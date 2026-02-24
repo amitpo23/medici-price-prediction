@@ -35,6 +35,11 @@ API_PORT = int(os.getenv("API_PORT", "8000"))
 MODEL_PATH = MODELS_DIR
 FORECAST_HORIZON = int(os.getenv("FORECAST_HORIZON", "30"))
 
+# Analytics
+ANALYTICS_CACHE_TTL_HOURS = int(os.getenv("ANALYTICS_CACHE_TTL_HOURS", "6"))
+DEFAULT_CONFIDENCE_LEVELS = [0.80, 0.95]
+BOOTSTRAP_N_SAMPLES = int(os.getenv("BOOTSTRAP_N_SAMPLES", "200"))
+
 # Israel — city coordinates for weather/geo
 ISRAEL_CITIES = {
     "Tel Aviv":  (32.0853, 34.7818),

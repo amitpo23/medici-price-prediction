@@ -1,4 +1,4 @@
-"""FastAPI endpoint for hotel price predictions."""
+"""FastAPI endpoint for hotel price predictions and analytics."""
 from __future__ import annotations
 
 from typing import Dict, List, Optional
@@ -10,27 +10,33 @@ from pydantic import BaseModel
 from config.settings import API_HOST, API_PORT, MODEL_PATH
 from src.models.forecaster import HotelPriceForecaster
 from src.models.pricing import DynamicPricer
+from src.models.occupancy import OccupancyPredictor
 from src.data.db_loader import load_daily_pricing
 from src.data.multi_source_loader import MultiSourceLoader
 
 app = FastAPI(
     title="Medici Price Prediction API",
-    description="Hotel price forecasting and dynamic pricing with multi-source data",
-    version="0.2.0",
+    description="Hotel price forecasting, dynamic pricing, and analytics with multi-source data",
+    version="0.3.0",
 )
 
 # Global references
 _forecaster: Optional[HotelPriceForecaster] = None
 _loader: Optional[MultiSourceLoader] = None
 _pricer = DynamicPricer()
+_occupancy_predictor: Optional[OccupancyPredictor] = None
+_training_data: Optional[pd.DataFrame] = None
 
 
 @app.on_event("startup")
 async def startup():
-    global _forecaster, _loader
+    global _forecaster, _loader, _occupancy_predictor
     model_path = MODEL_PATH / "price_model.pkl"
     if model_path.exists():
         _forecaster = HotelPriceForecaster.load(model_path)
+    occ_path = MODEL_PATH / "occupancy_model.pkl"
+    if occ_path.exists():
+        _occupancy_predictor = OccupancyPredictor.load(occ_path)
     _loader = MultiSourceLoader()
 
 
@@ -39,12 +45,14 @@ async def startup():
 class PredictionRequest(BaseModel):
     days_ahead: int = 30
     room_type: Optional[str] = None
+    include_intervals: bool = False
 
 
 class HotelPredictionRequest(BaseModel):
     city: str = "Tel Aviv"
     star_rating: float = 3.0
     days_ahead: int = 30
+    include_intervals: bool = False
 
 
 class PredictionResponse(BaseModel):
@@ -65,6 +73,7 @@ class MultiSourceTrainRequest(BaseModel):
     end_date: Optional[str] = None
     include_kaggle: bool = True
     include_market: bool = True
+    train_occupancy: bool = True
 
 
 class TrainResponse(BaseModel):
@@ -72,15 +81,52 @@ class TrainResponse(BaseModel):
     model_name: str
     message: str
     sources_used: Optional[List[str]] = None
+    occupancy_metrics: Optional[Dict] = None
 
 
-# --- Endpoints ---
+class SeasonalityResponse(BaseModel):
+    city: str
+    seasonal_strength: float
+    peak_periods: List[Dict]
+    monthly_profile: List[Dict]
+
+
+class RevPARResponse(BaseModel):
+    metrics: Dict
+    time_series: List[Dict]
+    forecast: Optional[List[Dict]] = None
+
+
+class DemandCurveResponse(BaseModel):
+    method: str
+    coefficients: Dict
+    r_squared: float
+    elasticity: float
+    optimal_price: float
+    expected_occupancy_at_optimal: float
+    expected_revpar_at_optimal: float
+    sensitivity_table: List[Dict]
+
+
+class MarketStatsResponse(BaseModel):
+    city: str
+    hotel_count: int
+    avg_price: float
+    median_price: float
+    avg_occupancy: Optional[float] = None
+    revpar: Optional[float] = None
+    by_star_rating: Dict
+    price_distribution: Dict
+
+
+# --- Core Endpoints ---
 
 @app.get("/health")
 async def health():
     return {
         "status": "ok",
         "model_loaded": _forecaster is not None,
+        "occupancy_model_loaded": _occupancy_predictor is not None,
     }
 
 
@@ -98,7 +144,10 @@ async def predict(request: PredictionRequest):
     if _forecaster is None:
         raise HTTPException(status_code=503, detail="No model loaded. Train first via POST /train")
 
-    predictions = _forecaster.predict(n_days=request.days_ahead)
+    predictions = _forecaster.predict(
+        n_days=request.days_ahead,
+        include_intervals=request.include_intervals,
+    )
     return PredictionResponse(
         predictions=predictions.to_dict(orient="records"),
         model_name=_forecaster.model_name,
@@ -112,7 +161,10 @@ async def predict_hotel(request: HotelPredictionRequest):
     if _forecaster is None:
         raise HTTPException(status_code=503, detail="No model loaded. Train first via POST /train")
 
-    predictions = _forecaster.predict(n_days=request.days_ahead)
+    predictions = _forecaster.predict(
+        n_days=request.days_ahead,
+        include_intervals=request.include_intervals,
+    )
 
     # Apply dynamic pricing adjustments based on hotel attributes
     results = []
@@ -125,6 +177,12 @@ async def predict_hotel(request: HotelPredictionRequest):
         rec["date"] = str(row["date"])
         rec["city"] = request.city
         rec["star_rating"] = request.star_rating
+
+        # Include confidence intervals if requested
+        for col in row.index:
+            if col.startswith("lower_") or col.startswith("upper_"):
+                rec[col] = float(row[col])
+
         results.append(rec)
 
     return {"predictions": results, "hotel_profile": request.model_dump()}
@@ -154,7 +212,7 @@ async def train(request: TrainRequest):
 @app.post("/train/multi-source", response_model=TrainResponse)
 async def train_multi_source(request: MultiSourceTrainRequest):
     """Train using all available data sources (Azure SQL + public datasets + enrichment)."""
-    global _forecaster
+    global _forecaster, _occupancy_predictor, _training_data
 
     if _loader is None:
         raise HTTPException(status_code=500, detail="Multi-source loader not initialized")
@@ -166,9 +224,19 @@ async def train_multi_source(request: MultiSourceTrainRequest):
     if df.empty:
         raise HTTPException(status_code=404, detail="No data found from any source")
 
+    # Store training data for analytics
+    _training_data = df.copy()
+
     _forecaster = HotelPriceForecaster(model_name=request.model_name)
     metrics = _forecaster.train_auto(df)
     _forecaster.save()
+
+    # Train occupancy model if requested and occupancy data exists
+    occ_metrics = None
+    if request.train_occupancy and "occupancy_rate" in df.columns:
+        _occupancy_predictor = OccupancyPredictor()
+        occ_metrics = _occupancy_predictor.train(df)
+        _occupancy_predictor.save()
 
     sources = _loader.available_sources()
     active = [name for name, available in sources.items() if available]
@@ -178,6 +246,7 @@ async def train_multi_source(request: MultiSourceTrainRequest):
         model_name=request.model_name,
         message=f"Model trained with {len(df)} rows from {len(active)} sources",
         sources_used=active,
+        occupancy_metrics=occ_metrics,
     )
 
 
@@ -204,7 +273,183 @@ async def list_models():
     return {
         "available": list(HotelPriceForecaster.AVAILABLE_MODELS.keys()),
         "current": _forecaster.model_name if _forecaster else None,
+        "occupancy_model_loaded": _occupancy_predictor is not None,
     }
+
+
+# --- Analytics Endpoints ---
+
+@app.get("/analytics/overview")
+async def analytics_overview():
+    """Summary KPIs across all available data."""
+    from src.analytics.statistics import market_overview
+
+    if _training_data is None:
+        raise HTTPException(status_code=404, detail="No training data available. Train a model first.")
+
+    return market_overview(_training_data)
+
+
+@app.get("/analytics/seasonality/{city}")
+async def analytics_seasonality(city: str, period: int = 7):
+    """Seasonal patterns for a specific city."""
+    from src.analytics.seasonality import (
+        decompose_series,
+        seasonal_strength_index,
+        identify_peak_periods,
+        city_seasonal_profile,
+    )
+
+    if _training_data is None:
+        raise HTTPException(status_code=404, detail="No training data available. Train a model first.")
+
+    city_data = _training_data[_training_data["city"] == city] if "city" in _training_data.columns else _training_data
+    if city_data.empty or "price" not in city_data.columns:
+        raise HTTPException(status_code=404, detail=f"No pricing data for city: {city}")
+
+    strength = seasonal_strength_index(city_data, period=period)
+    peaks = identify_peak_periods(city_data, period=period)
+
+    profile_df = city_seasonal_profile(
+        _training_data if "city" in _training_data.columns else city_data
+    )
+    city_profile = profile_df[profile_df["city"] == city] if "city" in profile_df.columns else profile_df
+
+    return SeasonalityResponse(
+        city=city,
+        seasonal_strength=round(strength, 4),
+        peak_periods=peaks,
+        monthly_profile=city_profile.to_dict(orient="records"),
+    )
+
+
+@app.get("/analytics/revpar")
+async def analytics_revpar(
+    city: Optional[str] = None,
+    star_rating: Optional[float] = None,
+    freq: str = "W",
+    include_forecast: bool = False,
+    forecast_days: int = 30,
+):
+    """RevPAR metrics and optional forecast."""
+    from src.analytics.revenue import compute_revenue_metrics, revenue_time_series, forecast_revpar
+
+    if _training_data is None:
+        raise HTTPException(status_code=404, detail="No training data available. Train a model first.")
+
+    data = _training_data.copy()
+    if city and "city" in data.columns:
+        data = data[data["city"] == city]
+    if star_rating is not None and "star_rating" in data.columns:
+        data = data[data["star_rating"] == star_rating]
+
+    if data.empty:
+        raise HTTPException(status_code=404, detail="No data matching filters")
+
+    # Current metrics
+    group_cols = []
+    if "city" in data.columns and data["city"].nunique() > 1:
+        group_cols.append("city")
+    metrics_df = compute_revenue_metrics(data, group_cols=group_cols or None)
+
+    # Time series
+    ts = revenue_time_series(data, freq=freq)
+
+    # Optional forecast
+    forecast_data = None
+    if include_forecast and _forecaster is not None:
+        try:
+            price_fc = _forecaster.predict(n_days=forecast_days, include_intervals=True)
+            occ_fc = None
+            if _occupancy_predictor is not None:
+                # Create a feature DataFrame for occupancy prediction
+                future_dates = pd.DataFrame({"date": price_fc["date"]})
+                future_dates["month"] = pd.to_datetime(future_dates["date"]).dt.month
+                future_dates["day_of_week"] = pd.to_datetime(future_dates["date"]).dt.dayofweek
+                future_dates["is_weekend"] = future_dates["day_of_week"].isin([4, 5]).astype(int)
+                occ_fc = _occupancy_predictor.predict(future_dates)
+
+            revpar_fc = forecast_revpar(price_fc, occ_fc)
+            forecast_data = revpar_fc.to_dict(orient="records")
+        except Exception:
+            forecast_data = None
+
+    return RevPARResponse(
+        metrics=metrics_df.to_dict(orient="records")[0] if len(metrics_df) == 1 else {"segments": metrics_df.to_dict(orient="records")},
+        time_series=ts.to_dict(orient="records"),
+        forecast=forecast_data,
+    )
+
+
+@app.get("/analytics/demand-curve")
+async def analytics_demand_curve(
+    city: Optional[str] = None,
+    star_rating: Optional[float] = None,
+    method: str = "log_linear",
+    rooms_available: int = 100,
+):
+    """Demand analysis: curve, elasticity, optimal price."""
+    from src.analytics.demand import (
+        estimate_demand_curve,
+        calculate_price_elasticity,
+        find_optimal_price,
+        demand_sensitivity_table,
+    )
+
+    if _training_data is None:
+        raise HTTPException(status_code=404, detail="No training data available. Train a model first.")
+
+    data = _training_data.copy()
+    if city and "city" in data.columns:
+        data = data[data["city"] == city]
+    if star_rating is not None and "star_rating" in data.columns:
+        data = data[data["star_rating"] == star_rating]
+
+    if "occupancy_rate" not in data.columns:
+        raise HTTPException(status_code=404, detail="No occupancy data available for demand analysis")
+
+    curve = estimate_demand_curve(data, method=method)
+    if "error" in curve:
+        raise HTTPException(status_code=400, detail=curve["error"])
+
+    elasticity = calculate_price_elasticity(data)
+    optimal = find_optimal_price(curve, rooms_available=rooms_available)
+    sensitivity = demand_sensitivity_table(curve, rooms_available=rooms_available)
+
+    return DemandCurveResponse(
+        method=curve["method"],
+        coefficients=curve["coefficients"],
+        r_squared=curve["r_squared"],
+        elasticity=elasticity,
+        optimal_price=optimal["optimal_price"],
+        expected_occupancy_at_optimal=optimal["expected_occupancy"],
+        expected_revpar_at_optimal=optimal["expected_revpar"],
+        sensitivity_table=sensitivity.to_dict(orient="records"),
+    )
+
+
+@app.get("/analytics/market-stats/{city}")
+async def analytics_market_stats(city: str):
+    """Competitive market statistics for a city."""
+    from src.analytics.statistics import city_statistics
+
+    if _training_data is None:
+        raise HTTPException(status_code=404, detail="No training data available. Train a model first.")
+
+    stats = city_statistics(_training_data, city=city)
+    if "error" in stats:
+        raise HTTPException(status_code=404, detail=stats["error"])
+
+    return MarketStatsResponse(
+        city=stats["city"],
+        hotel_count=stats["hotel_count"],
+        avg_price=stats["avg_price"],
+        median_price=stats["median_price"],
+        avg_occupancy=stats.get("avg_occupancy"),
+        revpar=stats.get("revpar"),
+        by_star_rating=stats.get("by_star_rating", {}),
+        price_distribution=stats["price_distribution"],
+    )
 
 
 def start():

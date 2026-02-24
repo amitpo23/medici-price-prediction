@@ -105,6 +105,35 @@ def add_competitor_features(
     return df
 
 
+def add_seasonality_features(
+    df: pd.DataFrame,
+    value_col: str = "price",
+    date_col: str = "date",
+) -> pd.DataFrame:
+    """Add STL seasonality decomposition features."""
+    df = df.copy()
+
+    if value_col not in df.columns or len(df) < 14:
+        return df
+
+    try:
+        from statsmodels.tsa.seasonal import STL
+
+        series = df.set_index(pd.to_datetime(df[date_col]))[value_col]
+        series = series.interpolate(method="linear").bfill().ffill()
+
+        if len(series) >= 14:
+            stl = STL(series, period=7, seasonal=13, robust=True)
+            result = stl.fit()
+            df["price_trend"] = result.trend.values
+            df["price_seasonal"] = result.seasonal.values
+            df["price_residual"] = result.resid.values
+    except Exception:
+        pass  # Graceful degradation
+
+    return df
+
+
 def prepare_features(
     df: pd.DataFrame,
     date_col: str = "date",
@@ -123,6 +152,7 @@ def prepare_features(
     df = add_calendar_features(df, date_col)
     df = add_lag_features(df, price_col)
     df = add_rolling_features(df, price_col)
+    df = add_seasonality_features(df, price_col, date_col)
     df = add_occupancy_features(df)
     df = add_competitor_features(df, price_col)
 

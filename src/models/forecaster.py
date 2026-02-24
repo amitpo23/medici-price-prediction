@@ -45,6 +45,7 @@ class HotelPriceForecaster:
         "events_active_count", "event_impact_score",
         "temperature_max", "beach_weather_score",
         "star_price_multiplier", "is_coastal",
+        "price_trend", "price_seasonal",
     ]
 
     def prepare_series(
@@ -195,10 +196,23 @@ class HotelPriceForecaster:
 
         return results
 
-    def predict(self, n_days: int | None = None) -> pd.DataFrame:
-        """Generate price predictions for the next n_days."""
+    def predict(
+        self,
+        n_days: int | None = None,
+        include_intervals: bool = False,
+        confidence_levels: list[float] | None = None,
+    ) -> pd.DataFrame:
+        """Generate price predictions for the next n_days.
+
+        Args:
+            include_intervals: If True, include confidence interval columns.
+            confidence_levels: Confidence levels (default [0.80, 0.95]).
+        """
         if self.model is None:
             raise RuntimeError("Model not trained. Call train() first.")
+
+        if include_intervals:
+            return self.predict_with_intervals(n_days, confidence_levels)
 
         horizon = n_days or self.horizon
         pred = self.model.predict(horizon)
@@ -207,6 +221,116 @@ class HotelPriceForecaster:
         result = pred_rescaled.pd_dataframe().reset_index()
         result.columns = ["date", "predicted_price"]
         return result
+
+    def predict_with_intervals(
+        self,
+        n_days: int | None = None,
+        confidence_levels: list[float] | None = None,
+    ) -> pd.DataFrame:
+        """Generate predictions with confidence intervals (80%, 95%).
+
+        Uses probabilistic forecasting for Darts models that support it,
+        or residual bootstrap for tree-based models.
+        """
+        if self.model is None:
+            raise RuntimeError("Model not trained. Call train() first.")
+
+        horizon = n_days or self.horizon
+        confidence_levels = confidence_levels or [0.80, 0.95]
+
+        # Point prediction
+        pred = self.model.predict(horizon)
+        pred_rescaled = self.scaler.inverse_transform(pred)
+        result = pred_rescaled.pd_dataframe().reset_index()
+        result.columns = ["date", "predicted_price"]
+
+        for level in confidence_levels:
+            lower_q = (1 - level) / 2
+            upper_q = 1 - lower_q
+            pct = int(level * 100)
+
+            try:
+                lower, upper = self._compute_intervals(
+                    horizon, lower_q, upper_q
+                )
+                result[f"lower_{pct}"] = lower
+                result[f"upper_{pct}"] = upper
+            except Exception:
+                # Fallback: percentage-based intervals
+                width = (1 - level) * 0.5
+                result[f"lower_{pct}"] = result["predicted_price"] * (1 - width)
+                result[f"upper_{pct}"] = result["predicted_price"] * (1 + width)
+
+        return result
+
+    def _compute_intervals(
+        self,
+        horizon: int,
+        lower_quantile: float,
+        upper_quantile: float,
+        n_samples: int = 200,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute prediction intervals using the best available method."""
+        if self.model_name in ("exponential_smoothing", "nbeats"):
+            # Darts probabilistic: use num_samples
+            pred = self.model.predict(horizon, num_samples=n_samples)
+            pred_rescaled = self.scaler.inverse_transform(pred)
+            lower = pred_rescaled.quantile_df(lower_quantile).values.flatten()
+            upper = pred_rescaled.quantile_df(upper_quantile).values.flatten()
+            return lower, upper
+        else:
+            # Residual bootstrap for tree-based models
+            return self._bootstrap_intervals(horizon, lower_quantile, upper_quantile, n_samples)
+
+    def _bootstrap_intervals(
+        self,
+        horizon: int,
+        lower_quantile: float,
+        upper_quantile: float,
+        n_bootstrap: int = 200,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Bootstrap prediction intervals for XGBoost/LightGBM.
+
+        Resamples training residuals and adds them to point predictions.
+        """
+        # Point prediction
+        pred = self.model.predict(horizon)
+        point_vals = self.scaler.inverse_transform(pred).values().flatten()
+
+        # Compute in-sample residuals
+        if self.target_series is not None and len(self.target_series) > horizon + 30:
+            try:
+                historical = self.model.historical_forecasts(
+                    self.target_series,
+                    start=max(30, len(self.target_series) - 100),
+                    forecast_horizon=1,
+                    stride=1,
+                    retrain=False,
+                    verbose=False,
+                )
+                hist_rescaled = self.scaler.inverse_transform(historical)
+                actual_slice = self.scaler.inverse_transform(
+                    self.target_series[-len(hist_rescaled):]
+                )
+                residuals = (
+                    actual_slice.values().flatten()
+                    - hist_rescaled.values().flatten()
+                )
+            except Exception:
+                # Fallback: estimate residuals as 10% of price std
+                residuals = point_vals.mean() * 0.10 * np.random.randn(100)
+        else:
+            residuals = point_vals.mean() * 0.10 * np.random.randn(100)
+
+        # Bootstrap
+        bootstrap_preds = np.zeros((n_bootstrap, horizon))
+        for i in range(n_bootstrap):
+            sampled = np.random.choice(residuals, size=horizon, replace=True)
+            bootstrap_preds[i] = point_vals + sampled
+
+        lower = np.quantile(bootstrap_preds, lower_quantile, axis=0)
+        upper = np.quantile(bootstrap_preds, upper_quantile, axis=0)
+        return lower, upper
 
     def backtest(
         self,

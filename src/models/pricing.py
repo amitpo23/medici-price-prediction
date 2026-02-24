@@ -93,12 +93,20 @@ class DynamicPricer:
         # Enforce bounds
         recommended = np.clip(base, self.min_price, self.max_price)
 
-        return {
+        result = {
             "predicted_price": round(predicted_price, 2),
             "recommended_price": round(recommended, 2),
             "adjustments": adjustments,
             "margin_vs_predicted": round((recommended - predicted_price) / predicted_price * 100, 1),
         }
+
+        # Add RevPAR if occupancy is known
+        if occupancy_rate is not None:
+            result["revpar"] = round(float(recommended * occupancy_rate), 2)
+            result["adr"] = round(float(recommended), 2)
+            result["occupancy_rate"] = round(float(occupancy_rate), 3)
+
+        return result
 
     def generate_pricing_table(
         self,
@@ -132,3 +140,61 @@ class DynamicPricer:
             results.append(rec)
 
         return pd.DataFrame(results)
+
+    def generate_revenue_report(
+        self,
+        pricing_table: pd.DataFrame,
+        rooms_available: int = 100,
+    ) -> dict:
+        """Generate a revenue summary from a pricing table.
+
+        Args:
+            pricing_table: Output of generate_pricing_table().
+            rooms_available: Total rooms in the hotel.
+
+        Returns dict with revenue KPIs and daily breakdown.
+        """
+        if pricing_table.empty:
+            return {"error": "Empty pricing table"}
+
+        has_occ = "occupancy_rate" in pricing_table.columns
+        has_revpar = "revpar" in pricing_table.columns
+
+        avg_adr = float(pricing_table["recommended_price"].mean())
+        avg_occ = float(pricing_table["occupancy_rate"].mean()) if has_occ else None
+
+        daily_revenue = []
+        total_revenue = 0.0
+
+        for _, row in pricing_table.iterrows():
+            price = row["recommended_price"]
+            occ = row.get("occupancy_rate", 0.65)
+            rooms_sold = int(round(rooms_available * occ))
+            day_rev = price * rooms_sold
+
+            daily_revenue.append({
+                "date": str(row.get("date", "")),
+                "recommended_price": round(price, 2),
+                "occupancy": round(float(occ), 3),
+                "rooms_sold": rooms_sold,
+                "revenue": round(day_rev, 2),
+            })
+            total_revenue += day_rev
+
+        result = {
+            "total_revenue": round(total_revenue, 2),
+            "avg_adr": round(avg_adr, 2),
+            "avg_occupancy": round(avg_occ, 3) if avg_occ is not None else None,
+            "avg_revpar": round(avg_adr * (avg_occ or 0.65), 2),
+            "rooms_available": rooms_available,
+            "forecast_days": len(pricing_table),
+            "revenue_by_day": daily_revenue,
+        }
+
+        # Peak and low revenue dates
+        if daily_revenue:
+            sorted_days = sorted(daily_revenue, key=lambda d: d["revenue"])
+            result["peak_revenue_date"] = sorted_days[-1]["date"]
+            result["low_revenue_date"] = sorted_days[0]["date"]
+
+        return result
