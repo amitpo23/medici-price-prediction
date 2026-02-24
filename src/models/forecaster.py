@@ -1,4 +1,5 @@
 """Price forecasting using Darts time series library."""
+from __future__ import annotations
 
 import pickle
 from pathlib import Path
@@ -37,12 +38,22 @@ class HotelPriceForecaster:
         self.target_series = None
         self.covariate_series = None
 
+    # Recommended covariate columns for hotel forecasting
+    DEFAULT_COVARIATES = [
+        "day_of_week", "month", "is_weekend", "is_holiday",
+        "is_high_impact_holiday", "is_summer_vacation",
+        "events_active_count", "event_impact_score",
+        "temperature_max", "beach_weather_score",
+        "star_price_multiplier", "is_coastal",
+    ]
+
     def prepare_series(
         self,
         df: pd.DataFrame,
         date_col: str = "date",
         target_col: str = "price",
         covariate_cols: list[str] | None = None,
+        future_covariate_cols: list[str] | None = None,
     ) -> tuple[TimeSeries, TimeSeries | None]:
         """Convert DataFrame to Darts TimeSeries objects.
 
@@ -63,13 +74,26 @@ class HotelPriceForecaster:
         )
         self.target_series = self.scaler.fit_transform(self.target_series)
 
-        # Covariate series
+        # Past covariate series (known only historically)
         self.covariate_series = None
         if covariate_cols:
             valid_cols = [c for c in covariate_cols if c in df.columns]
             if valid_cols:
+                cov_df = df[[date_col] + valid_cols].copy()
+                cov_df[valid_cols] = cov_df[valid_cols].fillna(0)
                 self.covariate_series = TimeSeries.from_dataframe(
-                    df, time_col=date_col, value_cols=valid_cols, fill_missing_dates=True
+                    cov_df, time_col=date_col, value_cols=valid_cols, fill_missing_dates=True
+                )
+
+        # Future covariate series (known ahead of time: holidays, events, weather forecasts)
+        self.future_covariate_series = None
+        if future_covariate_cols:
+            valid_future = [c for c in future_covariate_cols if c in df.columns]
+            if valid_future:
+                fut_df = df[[date_col] + valid_future].copy()
+                fut_df[valid_future] = fut_df[valid_future].fillna(0)
+                self.future_covariate_series = TimeSeries.from_dataframe(
+                    fut_df, time_col=date_col, value_cols=valid_future, fill_missing_dates=True
                 )
 
         return self.target_series, self.covariate_series
@@ -132,6 +156,44 @@ class HotelPriceForecaster:
         }
 
         return metrics
+
+    def train_auto(
+        self,
+        df: pd.DataFrame,
+        date_col: str = "date",
+        target_col: str = "price",
+        **model_kwargs,
+    ) -> dict:
+        """Train with automatic covariate detection from available columns."""
+        available = [c for c in self.DEFAULT_COVARIATES if c in df.columns]
+        return self.train(df, date_col, target_col, covariate_cols=available or None, **model_kwargs)
+
+    def train_multi_hotel(
+        self,
+        df: pd.DataFrame,
+        hotel_col: str = "hotel_id",
+        date_col: str = "date",
+        target_col: str = "price",
+    ) -> dict[str, dict]:
+        """Train separate models per hotel. Returns metrics per hotel."""
+        results = {}
+        hotels = df[hotel_col].unique()
+
+        for hotel_id in hotels:
+            hotel_df = df[df[hotel_col] == hotel_id].copy()
+            if len(hotel_df) < self.horizon * 2:
+                results[str(hotel_id)] = {"error": "Not enough data"}
+                continue
+
+            try:
+                metrics = self.train_auto(hotel_df, date_col, target_col)
+                self.save(name=f"price_model_{hotel_id}")
+                metrics["hotel_id"] = str(hotel_id)
+                results[str(hotel_id)] = metrics
+            except Exception as e:
+                results[str(hotel_id)] = {"error": str(e)}
+
+        return results
 
     def predict(self, n_days: int | None = None) -> pd.DataFrame:
         """Generate price predictions for the next n_days."""

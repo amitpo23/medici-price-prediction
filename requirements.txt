@@ -17,6 +17,17 @@ lightgbm>=4.0.0
 fastapi>=0.100.0
 uvicorn>=0.23.0
 
+# Data collection
+kaggle>=1.6.0
+openmeteo-requests>=1.2.0
+requests-cache>=1.1.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+google-search-results>=2.4.2
+pyluach>=2.2.0
+geopy>=2.4.0
+pyarrow>=14.0.0
+
 # Visualization / Notebooks
 jupyter>=1.0.0
 matplotlib>=3.7.0

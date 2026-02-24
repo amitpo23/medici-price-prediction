@@ -1,4 +1,5 @@
 """Feature engineering for hotel price prediction."""
+from __future__ import annotations
 
 import pandas as pd
 import numpy as np
@@ -104,48 +105,44 @@ def add_competitor_features(
     return df
 
 
-def add_israeli_holidays(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
-    """Flag Israeli holidays and events that affect hotel pricing.
-
-    Major dates that impact hotel demand in Israel:
-    - Rosh Hashana, Yom Kippur, Sukkot (Sep-Oct)
-    - Passover (Mar-Apr)
-    - Summer vacation (Jul-Aug)
-    - Christmas/New Year (for tourism)
-    """
-    df = df.copy()
-
-    # Static approximate windows — for production, use a proper Hebrew calendar library
-    holiday_windows = {
-        "passover": [(3, 15), (3, 16), (3, 17), (3, 18), (3, 19), (3, 20), (3, 21), (3, 22),
-                      (4, 15), (4, 16), (4, 17), (4, 18), (4, 19), (4, 20), (4, 21), (4, 22)],
-        "sukkot": [(9, 20), (9, 21), (9, 22), (9, 23), (9, 24), (9, 25), (9, 26), (9, 27),
-                   (10, 1), (10, 2), (10, 3), (10, 4), (10, 5), (10, 6), (10, 7)],
-    }
-
-    # Summer high season
-    df["is_summer_season"] = df[date_col].dt.month.isin([7, 8]).astype(int)
-
-    # Approximate holiday flag (month, day tuples)
-    df["is_holiday_approx"] = 0
-    for holiday, dates in holiday_windows.items():
-        for month, day in dates:
-            mask = (df[date_col].dt.month == month) & (df[date_col].dt.day == day)
-            df.loc[mask, "is_holiday_approx"] = 1
-
-    return df
-
-
 def prepare_features(
     df: pd.DataFrame,
     date_col: str = "date",
     price_col: str = "price",
+    events_df: pd.DataFrame | None = None,
+    weather_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Run the full feature engineering pipeline."""
+    """Run the full feature engineering pipeline with all available data."""
+    from src.features.holidays import add_hebrew_holiday_features, add_school_vacation_features
+    from src.features.events import add_event_features
+    from src.features.weather import add_weather_features
+    from src.features.hotel_attributes import add_star_rating_features, add_hotel_type_features
+    from src.features.location import add_location_features
+
+    # Core time-series features
     df = add_calendar_features(df, date_col)
     df = add_lag_features(df, price_col)
     df = add_rolling_features(df, price_col)
     df = add_occupancy_features(df)
     df = add_competitor_features(df, price_col)
-    df = add_israeli_holidays(df, date_col)
+
+    # Hebrew calendar holidays (replaces old approximation)
+    df = add_hebrew_holiday_features(df, date_col)
+    df = add_school_vacation_features(df, date_col)
+
+    # Hotel attributes (if columns exist)
+    df = add_star_rating_features(df)
+    df = add_hotel_type_features(df)
+
+    # Location features (if columns exist)
+    df = add_location_features(df)
+
+    # Event features (if events data provided)
+    if events_df is not None and not events_df.empty:
+        df = add_event_features(df, events_df, date_col)
+
+    # Weather features (if weather data provided)
+    if weather_df is not None and not weather_df.empty:
+        df = add_weather_features(df, weather_df, date_col)
+
     return df

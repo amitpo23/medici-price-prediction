@@ -1,4 +1,5 @@
 """Load hotel pricing and booking data from Azure SQL Database."""
+from __future__ import annotations
 
 import pandas as pd
 from sqlalchemy import create_engine, inspect, text
