@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from config.settings import API_HOST, API_PORT, MODEL_PATH
 from src.models.forecaster import HotelPriceForecaster
-from src.data.supabase_loader import load_daily_pricing
+from src.data.db_loader import load_daily_pricing
 
 app = FastAPI(
     title="Medici Price Prediction API",
@@ -78,7 +78,7 @@ async def train(request: TrainRequest):
 
     df = load_daily_pricing(start_date=request.start_date, end_date=request.end_date)
     if df.empty:
-        raise HTTPException(status_code=404, detail="No pricing data found in Supabase")
+        raise HTTPException(status_code=404, detail="No pricing data found in database")
 
     _forecaster = HotelPriceForecaster(model_name=request.model_name)
     metrics = _forecaster.train(df)
