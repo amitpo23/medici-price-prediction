@@ -26,6 +26,10 @@ app = FastAPI(
 from src.api.integration import router as integration_router
 app.include_router(integration_router)
 
+# SalesOffice analytics dashboard
+from src.api.analytics_dashboard import router as analytics_dashboard_router
+app.include_router(analytics_dashboard_router)
+
 # Global references (populated at startup if ML deps are available)
 _forecaster = None
 _loader = None
@@ -81,11 +85,17 @@ async def startup():
     from src.services.scheduler import start_scheduler
     start_scheduler()
 
+    # Start SalesOffice price collection scheduler (hourly)
+    from src.api.analytics_dashboard import start_salesoffice_scheduler
+    start_salesoffice_scheduler()
+
 
 @app.on_event("shutdown")
 async def shutdown():
     from src.services.scheduler import stop_scheduler
     stop_scheduler()
+    from src.api.analytics_dashboard import stop_salesoffice_scheduler
+    stop_salesoffice_scheduler()
 
 
 # --- Request/Response Models ---
