@@ -2,6 +2,24 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [0.5.0] - 2026-02-26 - Flight Demand Indicator (Kiwi.com)
+
+### Added
+- **Flight demand signal**: External enrichment from Kiwi.com flight data
+  - Tracks flight prices from 5 major US cities to Miami (NYC, Chicago, Atlanta, Boston, LA)
+  - Demand indicator: HIGH / MEDIUM / LOW based on avg flight prices and availability
+  - SQLite storage for flight demand snapshots (`flights_store.py`)
+- Dashboard shows **Flight Demand Indicator** section with:
+  - Demand level gauge (color-coded)
+  - Per-origin flight prices and availability table
+  - Avg/min flight price, total flights available
+- New endpoint: `GET /api/v1/salesoffice/flights/demand` — returns demand JSON
+- Predictions now adjusted by flight demand:
+  - HIGH demand → reduces expected downward price pressure by 30%
+  - LOW demand → increases expected downward pressure by 20%
+
+---
+
 ## [0.4.0] - 2026-02-26 - Data-Driven Price Predictions
 
 ### Added

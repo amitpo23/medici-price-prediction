@@ -36,6 +36,7 @@ def generate_report(analysis: dict) -> Path:
     booking_window = analysis.get("booking_window", {})
     price_changes = analysis.get("price_changes", {})
     model_info = analysis.get("model_info", {})
+    flight_demand = analysis.get("flight_demand", {})
 
     # Build chart data
     hotel_chart_data = _build_hotel_chart_data(hotels)
@@ -107,6 +108,8 @@ def generate_report(analysis: dict) -> Path:
     <div class="sub">Avg {stats.get('avg_days_to_checkin', 0):.0f} days to check-in</div>
   </div>
 </div>
+
+{_build_flight_demand_section(flight_demand)}
 
 <!-- Hotel Price Distribution -->
 <div class="section">
@@ -188,6 +191,74 @@ const darkLayout = {{
     latest_path.write_text(html, encoding="utf-8")
 
     return report_path
+
+
+def _build_flight_demand_section(demand: dict) -> str:
+    """Build the flight demand indicator section for the dashboard."""
+    indicator = demand.get("indicator", "NO_DATA")
+
+    if indicator == "NO_DATA":
+        return """
+<div class="section">
+  <h2>Flight Demand Indicator</h2>
+  <p style="color: #94a3b8;">No flight demand data collected yet. Run Kiwi flight search to populate.</p>
+</div>"""
+
+    # Color and icon by indicator
+    colors = {"HIGH": "#f87171", "MEDIUM": "#fbbf24", "LOW": "#4ade80"}
+    icons = {"HIGH": "&#9650;", "MEDIUM": "&#9644;", "LOW": "&#9660;"}
+    color = colors.get(indicator, "#94a3b8")
+    icon = icons.get(indicator, "?")
+
+    avg_price = demand.get("avg_flight_price", 0)
+    min_price = demand.get("min_flight_price", 0)
+    total_flights = demand.get("total_flights", 0)
+    origins = demand.get("origins_checked", 0)
+    last_collected = demand.get("last_collected", "N/A")
+
+    # Build per-origin table rows
+    origin_rows = ""
+    for item in demand.get("by_origin", []):
+        origin_rows += (
+            f"<tr>"
+            f"<td>{item['origin']}</td>"
+            f"<td>{item['flight_date']}</td>"
+            f"<td>{item['num_flights']}</td>"
+            f"<td>${item['min_price']:,.0f}</td>"
+            f"<td>${item['avg_price']:,.0f}</td>"
+            f"</tr>"
+        )
+
+    return f"""
+<div class="section">
+  <h2>Flight Demand Indicator <span style="color: {color}; font-size: 0.8em;">{icon} {indicator}</span></h2>
+  <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
+    <div class="card" style="text-align: center;">
+      <h3>Demand Level</h3>
+      <div class="value" style="color: {color};">{indicator}</div>
+      <div class="sub">Based on flight prices to Miami</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Avg Flight Price</h3>
+      <div class="value">${avg_price:,.0f}</div>
+      <div class="sub">Cheapest: ${min_price:,.0f}</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Flights Available</h3>
+      <div class="value">{total_flights}</div>
+      <div class="sub">From {origins} cities</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Last Updated</h3>
+      <div class="value" style="font-size: 1em;">{last_collected}</div>
+      <div class="sub">Via Kiwi.com</div>
+    </div>
+  </div>
+  <table>
+    <tr><th>Origin</th><th>Flight Date</th><th>Flights</th><th>Min Price</th><th>Avg Price</th></tr>
+    {origin_rows}
+  </table>
+</div>"""
 
 
 def _hotel_row(h: dict) -> str:

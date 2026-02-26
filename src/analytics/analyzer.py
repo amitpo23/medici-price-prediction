@@ -185,6 +185,35 @@ def _build_historical_model() -> dict:
 # Module-level cache for the historical model (recomputed per analysis run)
 _historical_model: dict = {}
 
+# Module-level cache for flight demand data
+_flight_demand_cache: dict = {}
+
+
+def _load_flight_demand() -> dict:
+    """Load flight demand signal from stored Kiwi.com data.
+
+    Returns demand summary dict with indicator (HIGH/MEDIUM/LOW)
+    and per-date demand info for prediction adjustment.
+    """
+    try:
+        from src.analytics.flights_store import get_demand_summary, init_flights_db
+        init_flights_db()
+        summary = get_demand_summary("Miami")
+        if summary.get("indicator") == "NO_DATA":
+            logger.info("No flight demand data available")
+            return {"indicator": "NO_DATA"}
+        logger.info(
+            "Flight demand: %s (avg $%.0f, %d flights from %d origins)",
+            summary["indicator"],
+            summary.get("avg_flight_price", 0),
+            summary.get("total_flights", 0),
+            summary.get("origins_checked", 0),
+        )
+        return summary
+    except Exception as e:
+        logger.warning("Failed to load flight demand: %s", e)
+        return {"indicator": "NO_DATA"}
+
 
 def run_analysis() -> dict:
     """Run full analysis on all collected price data.
@@ -210,6 +239,10 @@ def run_analysis() -> dict:
         logger.warning("Failed to build historical model, using defaults: %s", e)
         _historical_model = {}
 
+    # Load flight demand signal (external enrichment)
+    flight_demand = _load_flight_demand()
+    _flight_demand_cache.update(flight_demand)
+
     results = {
         "run_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
         "total_snapshots": n_snapshots,
@@ -221,6 +254,7 @@ def run_analysis() -> dict:
             "overall_avg_total_pct": _historical_model.get("overall_avg_total_pct", 0),
             "overall_median_total_pct": _historical_model.get("overall_median_total_pct", 0),
         },
+        "flight_demand": flight_demand,
     }
 
     # ── 1. Hotel-level summary ──────────────────────────────────────
@@ -430,6 +464,17 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
                     projected_observed = max(-30, min(30, projected_observed))
                     # Blend: 70% historical, 30% observed
                     expected_total_pct = expected_total_pct * 0.7 + projected_observed * 0.3
+
+        # Adjust based on flight demand signal
+        demand_indicator = _flight_demand_cache.get("indicator", "NO_DATA")
+        if demand_indicator == "HIGH":
+            # High demand → prices less likely to drop
+            if expected_total_pct < 0:
+                expected_total_pct *= 0.7  # reduce downward pressure by 30%
+        elif demand_indicator == "LOW":
+            # Low demand → prices more likely to soften
+            if expected_total_pct < 0:
+                expected_total_pct *= 1.2  # increase downward pressure by 20%
 
         # Cap total expected change at reasonable bounds
         expected_total_pct = max(-40, min(40, expected_total_pct))

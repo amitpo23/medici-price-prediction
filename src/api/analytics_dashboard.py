@@ -96,6 +96,16 @@ async def salesoffice_debug():
         return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
 
 
+@router.get("/flights/demand")
+async def salesoffice_flights_demand():
+    """Flight demand indicator for Miami — based on Kiwi.com data."""
+    from src.analytics.flights_store import get_demand_summary, init_flights_db
+
+    init_flights_db()
+    summary = get_demand_summary("Miami")
+    return JSONResponse(content=summary)
+
+
 @router.get("/status")
 async def salesoffice_status():
     """Quick status — snapshot count, last run, rooms, hotels."""
