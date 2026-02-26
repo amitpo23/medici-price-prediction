@@ -188,6 +188,9 @@ _historical_model: dict = {}
 # Module-level cache for flight demand data
 _flight_demand_cache: dict = {}
 
+# Module-level cache for events data
+_events_cache: dict = {}
+
 
 def _load_flight_demand() -> dict:
     """Load flight demand signal from stored Kiwi.com data.
@@ -213,6 +216,29 @@ def _load_flight_demand() -> dict:
     except Exception as e:
         logger.warning("Failed to load flight demand: %s", e)
         return {"indicator": "NO_DATA"}
+
+
+def _load_events_data() -> dict:
+    """Load events/conferences data for Miami.
+
+    Seeds hardcoded major events and returns summary.
+    """
+    try:
+        from src.analytics.events_store import (
+            init_events_db, seed_major_events, get_events_summary,
+        )
+        init_events_db()
+        seed_major_events()
+        summary = get_events_summary()
+        logger.info(
+            "Events loaded: %d total, %d upcoming",
+            summary.get("total_events", 0),
+            summary.get("upcoming_events", 0),
+        )
+        return summary
+    except Exception as e:
+        logger.warning("Failed to load events data: %s", e)
+        return {"total_events": 0, "upcoming_events": 0, "next_events": []}
 
 
 def run_analysis() -> dict:
@@ -243,6 +269,10 @@ def run_analysis() -> dict:
     flight_demand = _load_flight_demand()
     _flight_demand_cache.update(flight_demand)
 
+    # Load events/conferences data
+    events_data = _load_events_data()
+    _events_cache.update(events_data)
+
     results = {
         "run_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
         "total_snapshots": n_snapshots,
@@ -255,6 +285,7 @@ def run_analysis() -> dict:
             "overall_median_total_pct": _historical_model.get("overall_median_total_pct", 0),
         },
         "flight_demand": flight_demand,
+        "events": events_data,
     }
 
     # ── 1. Hotel-level summary ──────────────────────────────────────
@@ -475,6 +506,17 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
             # Low demand → prices more likely to soften
             if expected_total_pct < 0:
                 expected_total_pct *= 1.2  # increase downward pressure by 20%
+
+        # Adjust based on events near check-in date
+        try:
+            from src.analytics.events_store import get_impact_for_date
+            impact = get_impact_for_date(str(date_from.date()))
+            event_mult = impact.get("multiplier", 0)
+            if event_mult > 0:
+                # Events push prices UP (reduce downward or add upward pressure)
+                expected_total_pct += event_mult * 100  # e.g. +25% for very_high
+        except Exception:
+            pass
 
         # Cap total expected change at reasonable bounds
         expected_total_pct = max(-40, min(40, expected_total_pct))

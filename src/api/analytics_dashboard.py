@@ -106,6 +106,25 @@ async def salesoffice_flights_demand():
     return JSONResponse(content=summary)
 
 
+@router.get("/events")
+async def salesoffice_events():
+    """Events and conferences in Miami — demand indicators."""
+    from src.analytics.events_store import init_events_db, seed_major_events, get_events_summary
+
+    init_events_db()
+    seed_major_events()
+    summary = get_events_summary()
+    return JSONResponse(content=summary)
+
+
+@router.get("/data-sources")
+async def salesoffice_data_sources():
+    """Registry of all data sources (active + planned)."""
+    from src.analytics.data_sources import get_sources_summary
+
+    return JSONResponse(content=get_sources_summary())
+
+
 @router.get("/status")
 async def salesoffice_status():
     """Quick status — snapshot count, last run, rooms, hotels."""

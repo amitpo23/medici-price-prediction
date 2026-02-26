@@ -37,6 +37,7 @@ def generate_report(analysis: dict) -> Path:
     price_changes = analysis.get("price_changes", {})
     model_info = analysis.get("model_info", {})
     flight_demand = analysis.get("flight_demand", {})
+    events_data = analysis.get("events", {})
 
     # Build chart data
     hotel_chart_data = _build_hotel_chart_data(hotels)
@@ -110,6 +111,10 @@ def generate_report(analysis: dict) -> Path:
 </div>
 
 {_build_flight_demand_section(flight_demand)}
+
+{_build_events_section(events_data)}
+
+{_build_data_sources_section()}
 
 <!-- Hotel Price Distribution -->
 <div class="section">
@@ -257,6 +262,100 @@ def _build_flight_demand_section(demand: dict) -> str:
   <table>
     <tr><th>Origin</th><th>Flight Date</th><th>Flights</th><th>Min Price</th><th>Avg Price</th></tr>
     {origin_rows}
+  </table>
+</div>"""
+
+
+def _build_events_section(events: dict) -> str:
+    """Build the events and conferences section for the dashboard."""
+    total = events.get("total_events", 0)
+    upcoming = events.get("upcoming_events", 0)
+    next_events = events.get("next_events", [])
+
+    if total == 0:
+        return """
+<div class="section">
+  <h2>Events & Conferences</h2>
+  <p style="color: #94a3b8;">No events data loaded yet.</p>
+</div>"""
+
+    # Impact colors
+    impact_colors = {
+        "extreme": "#f87171",
+        "very_high": "#fb923c",
+        "high": "#fbbf24",
+        "moderate": "#38bdf8",
+        "low": "#94a3b8",
+    }
+
+    rows = ""
+    for ev in next_events:
+        impact = ev.get("hotel_impact", "low")
+        color = impact_colors.get(impact, "#94a3b8")
+        attendance = ev.get("expected_attendance", 0)
+        rows += (
+            f"<tr>"
+            f"<td><strong>{ev['name']}</strong></td>"
+            f"<td>{ev['start_date']} → {ev['end_date']}</td>"
+            f"<td>{ev.get('category', '')}</td>"
+            f"<td>{attendance:,}</td>"
+            f"<td><span class='tag' style='background: {color}22; color: {color};'>{impact.upper()}</span></td>"
+            f"</tr>"
+        )
+
+    return f"""
+<div class="section">
+  <h2>Events & Conferences <span style="color: #fbbf24; font-size: 0.7em;">{upcoming} upcoming</span></h2>
+  <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 16px;">
+    <div class="card" style="text-align: center;">
+      <h3>Total Events</h3>
+      <div class="value">{total}</div>
+      <div class="sub">In Miami area</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Upcoming</h3>
+      <div class="value" style="color: #fbbf24;">{upcoming}</div>
+      <div class="sub">Events ahead</div>
+    </div>
+  </div>
+  <table>
+    <tr><th>Event</th><th>Dates</th><th>Category</th><th>Est. Attendance</th><th>Hotel Impact</th></tr>
+    {rows}
+  </table>
+</div>"""
+
+
+def _build_data_sources_section() -> str:
+    """Build the data sources overview section."""
+    try:
+        from src.analytics.data_sources import DATA_SOURCES
+    except ImportError:
+        return ""
+
+    active = [s for s in DATA_SOURCES if s["status"] == "active"]
+    planned = [s for s in DATA_SOURCES if s["status"] == "planned"]
+
+    rows = ""
+    for s in DATA_SOURCES:
+        status_color = "#4ade80" if s["status"] == "active" else "#94a3b8"
+        status_icon = "&#9679;" if s["status"] == "active" else "&#9675;"
+        rows += (
+            f"<tr>"
+            f"<td><span style='color: {status_color};'>{status_icon}</span> {s['name']}</td>"
+            f"<td>{s['category']}</td>"
+            f"<td>{s['access']}</td>"
+            f"<td>{s['cost']}</td>"
+            f"<td><small>{s['metrics']}</small></td>"
+            f"<td>{s['update_freq']}</td>"
+            f"</tr>"
+        )
+
+    return f"""
+<div class="section">
+  <h2>Data Sources <span style="color: #4ade80; font-size: 0.7em;">{len(active)} active</span> <span style="color: #94a3b8; font-size: 0.7em;">{len(planned)} planned</span></h2>
+  <table>
+    <tr><th>Source</th><th>Category</th><th>Access</th><th>Cost</th><th>Metrics</th><th>Frequency</th></tr>
+    {rows}
   </table>
 </div>"""
 

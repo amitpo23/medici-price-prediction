@@ -2,6 +2,27 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [0.6.0] - 2026-02-26 - Events, Conferences & Data Sources Registry
+
+### Added
+- **Events & conferences system** (`events_store.py`):
+  - 8 hardcoded major Miami events (Art Basel, Ultra, F1, Miami Open, etc.)
+  - SQLite storage for dynamic events from APIs
+  - Impact calculator: EXTREME/VERY_HIGH/HIGH/MODERATE/LOW per date
+  - Attendance-based demand scoring
+- **Data sources registry** (`data_sources.py`):
+  - 12 sources cataloged: 3 active, 9 planned
+  - Categories: Internal Pricing, Travel Demand, Weather, Events, Competitor Pricing, Economic Indicators
+  - Includes: Open-Meteo, PredictHQ, SeatGeek, Xotelo, FRED, GMCVB, BLS, MIA Airport
+- Dashboard shows **Events & Conferences** section with upcoming events table
+- Dashboard shows **Data Sources** overview (active vs planned)
+- Predictions adjusted by events: F1/Art Basel (+40%), Ultra/Miami Open (+25%)
+- New endpoints:
+  - `GET /api/v1/salesoffice/events` — events summary JSON
+  - `GET /api/v1/salesoffice/data-sources` — data sources registry
+
+---
+
 ## [0.5.0] - 2026-02-26 - Flight Demand Indicator (Kiwi.com)
 
 ### Added
