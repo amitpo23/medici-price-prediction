@@ -140,6 +140,7 @@ def prepare_features(
     price_col: str = "price",
     events_df: pd.DataFrame | None = None,
     weather_df: pd.DataFrame | None = None,
+    trading_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Run the full feature engineering pipeline with all available data."""
     from src.features.holidays import add_hebrew_holiday_features, add_school_vacation_features
@@ -174,5 +175,10 @@ def prepare_features(
     # Weather features (if weather data provided)
     if weather_df is not None and not weather_df.empty:
         df = add_weather_features(df, weather_df, date_col)
+
+    # Trading features (if trading data provided)
+    if trading_df is not None and not trading_df.empty:
+        from src.features.trading import add_trading_features
+        df = add_trading_features(df, trading_df, date_col)
 
     return df

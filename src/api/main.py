@@ -1,6 +1,7 @@
 """FastAPI endpoint for hotel price predictions and analytics."""
 from __future__ import annotations
 
+import logging
 from typing import Dict, List, Optional
 
 import pandas as pd
@@ -8,36 +9,83 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from config.settings import API_HOST, API_PORT, MODEL_PATH
-from src.models.forecaster import HotelPriceForecaster
-from src.models.pricing import DynamicPricer
-from src.models.occupancy import OccupancyPredictor
-from src.data.db_loader import load_daily_pricing
-from src.data.multi_source_loader import MultiSourceLoader
+
+# Lazy imports — heavy ML modules (darts, sklearn) loaded only when needed
+# This allows the server to start even if darts is not installed,
+# so the trading integration endpoints remain functional.
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Medici Price Prediction API",
     description="Hotel price forecasting, dynamic pricing, and analytics with multi-source data",
-    version="0.3.0",
+    version="0.4.0",
 )
 
-# Global references
-_forecaster: Optional[HotelPriceForecaster] = None
-_loader: Optional[MultiSourceLoader] = None
-_pricer = DynamicPricer()
-_occupancy_predictor: Optional[OccupancyPredictor] = None
+# Trading integration endpoints (no heavy deps)
+from src.api.integration import router as integration_router
+app.include_router(integration_router)
+
+# Global references (populated at startup if ML deps are available)
+_forecaster = None
+_loader = None
+_pricer = None
+_occupancy_predictor = None
 _training_data: Optional[pd.DataFrame] = None
+
+
+def _init_pricer():
+    """Lazy-init the DynamicPricer (lightweight, no heavy deps)."""
+    global _pricer
+    if _pricer is None:
+        try:
+            from src.models.pricing import DynamicPricer
+            _pricer = DynamicPricer()
+        except ImportError:
+            logger.warning("DynamicPricer not available")
+    return _pricer
 
 
 @app.on_event("startup")
 async def startup():
     global _forecaster, _loader, _occupancy_predictor
-    model_path = MODEL_PATH / "price_model.pkl"
-    if model_path.exists():
-        _forecaster = HotelPriceForecaster.load(model_path)
-    occ_path = MODEL_PATH / "occupancy_model.pkl"
-    if occ_path.exists():
-        _occupancy_predictor = OccupancyPredictor.load(occ_path)
-    _loader = MultiSourceLoader()
+
+    # Try loading ML models — skip gracefully if deps missing
+    try:
+        from src.models.forecaster import HotelPriceForecaster
+        model_path = MODEL_PATH / "price_model.pkl"
+        if model_path.exists():
+            _forecaster = HotelPriceForecaster.load(model_path)
+            logger.info("Price forecaster loaded")
+    except ImportError:
+        logger.warning("darts not installed — price forecaster disabled. Trading endpoints still work.")
+
+    try:
+        from src.models.occupancy import OccupancyPredictor
+        occ_path = MODEL_PATH / "occupancy_model.pkl"
+        if occ_path.exists():
+            _occupancy_predictor = OccupancyPredictor.load(occ_path)
+            logger.info("Occupancy predictor loaded")
+    except ImportError:
+        logger.warning("sklearn not installed — occupancy predictor disabled.")
+
+    try:
+        from src.data.multi_source_loader import MultiSourceLoader
+        _loader = MultiSourceLoader()
+    except ImportError:
+        logger.warning("MultiSourceLoader dependencies missing — some data sources disabled.")
+
+    _init_pricer()
+
+    # Start background trading analysis scheduler
+    from src.services.scheduler import start_scheduler
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    from src.services.scheduler import stop_scheduler
+    stop_scheduler()
 
 
 # --- Request/Response Models ---
@@ -121,6 +169,12 @@ class MarketStatsResponse(BaseModel):
 
 # --- Core Endpoints ---
 
+@app.get("/", include_in_schema=False)
+async def root():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
+
+
 @app.get("/health")
 async def health():
     return {
@@ -167,9 +221,13 @@ async def predict_hotel(request: HotelPredictionRequest):
     )
 
     # Apply dynamic pricing adjustments based on hotel attributes
+    pricer = _init_pricer()
+    if pricer is None:
+        raise HTTPException(status_code=503, detail="DynamicPricer not available")
+
     results = []
     for _, row in predictions.iterrows():
-        rec = _pricer.calculate_recommended_price(
+        rec = pricer.calculate_recommended_price(
             predicted_price=row["predicted_price"],
             is_weekend=pd.Timestamp(row["date"]).dayofweek in (4, 5),
             star_rating=request.star_rating,
@@ -193,6 +251,12 @@ async def train(request: TrainRequest):
     """Train from Azure SQL database only."""
     global _forecaster
 
+    try:
+        from src.models.forecaster import HotelPriceForecaster
+        from src.data.db_loader import load_daily_pricing
+    except ImportError as e:
+        raise HTTPException(status_code=503, detail=f"ML dependencies not installed: {e}")
+
     df = load_daily_pricing(start_date=request.start_date, end_date=request.end_date)
     if df.empty:
         raise HTTPException(status_code=404, detail="No pricing data found in database")
@@ -214,6 +278,11 @@ async def train_multi_source(request: MultiSourceTrainRequest):
     """Train using all available data sources (Azure SQL + public datasets + enrichment)."""
     global _forecaster, _occupancy_predictor, _training_data
 
+    try:
+        from src.models.forecaster import HotelPriceForecaster
+    except ImportError as e:
+        raise HTTPException(status_code=503, detail=f"ML dependencies not installed: {e}")
+
     if _loader is None:
         raise HTTPException(status_code=500, detail="Multi-source loader not initialized")
 
@@ -234,9 +303,13 @@ async def train_multi_source(request: MultiSourceTrainRequest):
     # Train occupancy model if requested and occupancy data exists
     occ_metrics = None
     if request.train_occupancy and "occupancy_rate" in df.columns:
-        _occupancy_predictor = OccupancyPredictor()
-        occ_metrics = _occupancy_predictor.train(df)
-        _occupancy_predictor.save()
+        try:
+            from src.models.occupancy import OccupancyPredictor
+            _occupancy_predictor = OccupancyPredictor()
+            occ_metrics = _occupancy_predictor.train(df)
+            _occupancy_predictor.save()
+        except ImportError:
+            logger.warning("sklearn not installed — skipping occupancy model training")
 
     sources = _loader.available_sources()
     active = [name for name, available in sources.items() if available]
@@ -270,8 +343,15 @@ async def get_market_snapshot(city: str):
 
 @app.get("/models")
 async def list_models():
+    available_models = []
+    try:
+        from src.models.forecaster import HotelPriceForecaster
+        available_models = list(HotelPriceForecaster.AVAILABLE_MODELS.keys())
+    except ImportError:
+        available_models = ["(darts not installed)"]
+
     return {
-        "available": list(HotelPriceForecaster.AVAILABLE_MODELS.keys()),
+        "available": available_models,
         "current": _forecaster.model_name if _forecaster else None,
         "occupancy_model_loaded": _occupancy_predictor is not None,
     }

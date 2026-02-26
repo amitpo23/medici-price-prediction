@@ -11,6 +11,7 @@ from src.collectors.events_collector import EventsCollector
 from src.collectors.kaggle_collector import KaggleCollector
 from src.collectors.market_collector import MarketCollector
 from src.collectors.cbs_collector import CBSCollector
+from src.collectors.trading_collector import TradingCollector
 from src.features.engineering import prepare_features
 from config.settings import CACHE_DIR
 
@@ -26,6 +27,7 @@ def build_registry(cache: DataCache | None = None) -> CollectorRegistry:
     registry.register("kaggle", KaggleCollector(cache=cache))
     registry.register("market", MarketCollector(cache=cache))
     registry.register("cbs", CBSCollector(cache=cache))
+    registry.register("trading", TradingCollector(cache=cache))
     return registry
 
 
@@ -39,7 +41,7 @@ class MultiSourceLoader:
     def available_sources(self) -> dict[str, bool]:
         """Check which data sources are currently accessible."""
         result = {}
-        for name in ["weather", "events", "kaggle", "market", "cbs"]:
+        for name in ["weather", "events", "kaggle", "market", "cbs", "trading"]:
             try:
                 collector = self.registry.get(name)
                 result[name] = collector.is_available()
@@ -175,6 +177,17 @@ class MultiSourceLoader:
         # 2. Load enrichment
         enrichment = self.load_enrichment_data(start_date, end_date)
 
+        # 2b. Load trading data (if available)
+        trading_df = None
+        if "trading" in self.registry.available():
+            try:
+                trading_df = self.registry.get("trading").collect_cached(
+                    cache_key="trading_all_bookings",
+                    data_type="all_bookings",
+                )
+            except Exception:
+                trading_df = None
+
         # 3. Run feature engineering with all available data
         df = prepare_features(
             pricing,
@@ -182,6 +195,7 @@ class MultiSourceLoader:
             price_col="price",
             events_df=enrichment.get("events"),
             weather_df=enrichment.get("weather"),
+            trading_df=trading_df,
         )
 
         # 4. Drop rows with NaN from lag features (first ~30 rows)

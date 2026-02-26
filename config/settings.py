@@ -15,8 +15,20 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 MODELS_DIR = DATA_DIR / "models"
 CACHE_DIR = DATA_DIR / "cache"
 
-# Azure SQL Database
+# Ensure directories exist
+for _dir in (DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, CACHE_DIR):
+    _dir.mkdir(parents=True, exist_ok=True)
+
+# Azure SQL Database (prediction system's own DB)
 DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+# Medici Hotels Trading DB (READ-ONLY access)
+MEDICI_DB_URL = os.getenv("MEDICI_DB_URL", "")
+TRADING_CACHE_TTL_MINUTES = int(os.getenv("TRADING_CACHE_TTL_MINUTES", "5"))
+TRADING_ANALYSIS_INTERVAL_MINUTES = int(os.getenv("TRADING_ANALYSIS_INTERVAL_MINUTES", "30"))
+
+# API Authentication for trading integration
+PREDICTION_API_KEY = os.getenv("PREDICTION_API_KEY", "")
 
 # External API Keys
 KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME", "")
