@@ -59,12 +59,12 @@ async def salesoffice_data(
     """Raw analysis data as JSON — for programmatic access."""
     analysis = _get_or_run_analysis()
 
-    # Strip daily predictions (too verbose for JSON) — keep summaries
+    # Strip daily/forward_curve arrays (too verbose) — keep summaries + trading signals
     predictions = analysis.get("predictions", {})
     summary_predictions = {}
     for detail_id, pred in predictions.items():
         summary_predictions[detail_id] = {
-            k: v for k, v in pred.items() if k != "daily"
+            k: v for k, v in pred.items() if k not in ("daily", "forward_curve")
         }
 
     return JSONResponse(content={
@@ -123,6 +123,87 @@ async def salesoffice_data_sources():
     from src.analytics.data_sources import get_sources_summary
 
     return JSONResponse(content=get_sources_summary())
+
+
+@router.get("/benchmarks")
+async def salesoffice_benchmarks():
+    """Booking behavior benchmarks — seasonality, lead time, cancellation models."""
+    from src.analytics.booking_benchmarks import get_benchmarks_summary
+
+    return JSONResponse(content=get_benchmarks_summary())
+
+
+@router.get("/forward-curve/{detail_id}")
+async def salesoffice_forward_curve(detail_id: int):
+    """Full forward curve prediction for a specific room.
+
+    Returns the decay curve walk with momentum, regime, and enrichments.
+    """
+    analysis = _get_or_run_analysis()
+    predictions = analysis.get("predictions", {})
+
+    # detail_id might be int or str key
+    pred = predictions.get(detail_id) or predictions.get(str(detail_id))
+    if not pred:
+        raise HTTPException(status_code=404, detail=f"Room {detail_id} not found in predictions")
+
+    return JSONResponse(content={
+        "detail_id": detail_id,
+        "hotel_name": pred.get("hotel_name"),
+        "hotel_id": pred.get("hotel_id"),
+        "category": pred.get("category"),
+        "board": pred.get("board"),
+        "current_price": pred.get("current_price"),
+        "date_from": pred.get("date_from"),
+        "days_to_checkin": pred.get("days_to_checkin"),
+        "predicted_checkin_price": pred.get("predicted_checkin_price"),
+        "expected_change_pct": pred.get("expected_change_pct"),
+        "probability": pred.get("probability"),
+        "cancel_probability": pred.get("cancel_probability"),
+        "model_type": pred.get("model_type"),
+        "confidence_quality": pred.get("confidence_quality"),
+        "momentum": pred.get("momentum"),
+        "regime": pred.get("regime"),
+        "forward_curve": pred.get("forward_curve", []),
+    })
+
+
+@router.get("/decay-curve")
+async def salesoffice_decay_curve():
+    """The empirical decay curve term structure.
+
+    Shows expected daily price change at each T (days to check-in),
+    volatility surface, and category offsets.
+    """
+    analysis = _get_or_run_analysis()
+    model_info = analysis.get("model_info", {})
+    return JSONResponse(content={
+        "data_source": model_info.get("data_source", "N/A"),
+        "total_tracks": model_info.get("total_tracks", 0),
+        "total_observations": model_info.get("total_observations", 0),
+        "global_mean_daily_pct": model_info.get("global_mean_daily_pct", 0),
+        "category_offsets": model_info.get("category_offsets", {}),
+        "curve_snapshot": model_info.get("curve_snapshot", []),
+    })
+
+
+@router.get("/knowledge")
+async def salesoffice_knowledge():
+    """Hotel knowledge base — competitive landscape from TBO dataset."""
+    from src.analytics.hotel_knowledge import get_knowledge_summary
+
+    return JSONResponse(content=get_knowledge_summary())
+
+
+@router.get("/knowledge/{hotel_id}")
+async def salesoffice_hotel_profile(hotel_id: int):
+    """Detailed profile for a specific SalesOffice hotel."""
+    from src.analytics.hotel_knowledge import get_hotel_profile
+
+    profile = get_hotel_profile(hotel_id)
+    if "error" in profile:
+        raise HTTPException(status_code=404, detail=profile["error"])
+    return JSONResponse(content=profile)
 
 
 @router.get("/status")

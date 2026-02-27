@@ -1,10 +1,17 @@
-"""SalesOffice price analyzer — statistical analysis + price forecasting.
+"""SalesOffice price analyzer — algo-trading style price forecasting.
+
+Models hotel room prices like futures contracts:
+- T = days to check-in (time to expiration)
+- Decay curve = empirical expected daily price change at each T
+- Forward curve = predicted price path from now to check-in
+- Momentum = velocity and acceleration from 3-hour scans
+- Regime detection = is a room behaving normally or diverging?
 
 For each room (Detail):
-  - Track price changes over time (from hourly snapshots)
-  - Calculate volatility, trend, days until check-in
-  - Predict daily price until check-in date
-  - Flag rooms with significant price movement
+  - Walk the decay curve day-by-day (non-linear prediction)
+  - Compute momentum from recent 3-hour scans
+  - Detect regime (normal, trending, volatile, stale)
+  - Confidence intervals from per-T historical volatility
 
 For each hotel:
   - Aggregate room statistics
@@ -24,6 +31,14 @@ from src.analytics.price_store import (
     load_latest_snapshot,
     save_analysis_run,
 )
+from src.analytics.forward_curve import (
+    DecayCurve,
+    Enrichments,
+    build_decay_curve,
+    predict_forward_curve,
+)
+from src.analytics.momentum import compute_momentum
+from src.analytics.regime import detect_regime
 
 logger = logging.getLogger(__name__)
 
@@ -44,152 +59,34 @@ def _safe_label(mapping: dict, value) -> str:
         return str(value).capitalize()
 
 
-def _build_historical_model() -> dict:
-    """Build price change model from real historical data in SalesOffice.
+def _build_decay_curve() -> DecayCurve:
+    """Build empirical decay curve from historical SalesOffice data.
 
-    Analyzes all soft-deleted Detail records to learn:
-    - Expected TOTAL price change by booking window bucket
-    - Per-category volatility
-    - Probability of price moving up/down/stable
-
-    Uses track-level total changes (first price -> last price) instead of
-    consecutive scan diffs, which produces much more stable predictions.
-
-    Returns model parameters dict or empty dict if not enough data.
+    Analyzes all soft-deleted Detail records to learn expected daily
+    price changes at each T (days to check-in). This replaces the old
+    4-bucket model with a continuous T-indexed curve.
     """
     try:
         from src.analytics.collector import load_historical_prices
     except ImportError:
         logger.warning("Cannot import load_historical_prices")
-        return {}
+        return DecayCurve()
 
     hist = load_historical_prices()
-    if hist.empty or len(hist) < 50:
-        logger.info("Not enough historical data for model (%d rows)", len(hist))
-        return {}
-
-    logger.info("Building prediction model from %d historical records...", len(hist))
-
-    hist["scan_date"] = pd.to_datetime(hist["scan_date"])
-    hist["date_from_dt"] = pd.to_datetime(hist["date_from"])
-    hist["room_price"] = pd.to_numeric(hist["room_price"], errors="coerce")
-    hist = hist.dropna(subset=["room_price", "scan_date", "date_from_dt"])
-
-    # Compute per-track total changes (first -> last observation)
-    tracks = hist.groupby(["order_id", "hotel_id", "room_category", "room_board"])
-
-    track_stats = []
-    for _key, grp in tracks:
-        grp = grp.sort_values("scan_date")
-        if len(grp) < 2:
-            continue
-
-        first = grp.iloc[0]
-        last = grp.iloc[-1]
-        first_price = float(first["room_price"])
-        last_price = float(last["room_price"])
-        if first_price <= 0:
-            continue
-
-        days_tracked = (last["scan_date"] - first["scan_date"]).total_seconds() / 86400
-        if days_tracked < 0.5:
-            continue
-
-        date_from = first["date_from_dt"]
-        days_to_checkin_start = (date_from - first["scan_date"]).days
-        total_pct = (last_price - first_price) / first_price * 100
-
-        # Cap extreme outliers
-        total_pct = max(-50.0, min(50.0, total_pct))
-
-        # Also compute daily rate for this track
-        daily_rate = total_pct / days_tracked
-
-        track_stats.append({
-            "days_to_checkin": days_to_checkin_start,
-            "total_pct": total_pct,
-            "daily_rate": daily_rate,
-            "days_tracked": days_tracked,
-            "category": str(first["room_category"]),
-            "scans": len(grp),
-        })
-
-    if len(track_stats) < 10:
-        logger.info("Not enough tracks for model (%d)", len(track_stats))
-        return {}
-
-    ts_df = pd.DataFrame(track_stats)
-
-    # Compute expected total change and volatility by booking window
-    buckets = [
-        ("0-30", 0, 30),
-        ("31-60", 31, 60),
-        ("61-90", 61, 90),
-        ("90+", 91, 9999),
-    ]
-
-    window_stats = {}
-    for label, lo, hi in buckets:
-        mask = (ts_df["days_to_checkin"] >= lo) & (ts_df["days_to_checkin"] <= hi)
-        subset = ts_df[mask]
-        if len(subset) >= 3:
-            vals = subset["total_pct"]
-            up_count = (vals > 1).sum()
-            down_count = (vals < -1).sum()
-            stable_count = len(vals) - up_count - down_count
-
-            window_stats[label] = {
-                "avg_total_pct": round(float(vals.mean()), 2),
-                "median_total_pct": round(float(vals.median()), 2),
-                "std_total_pct": round(float(vals.std()), 2) if len(vals) > 1 else 5.0,
-                "avg_daily_rate": round(float(subset["daily_rate"].mean()), 4),
-                "tracks": len(subset),
-                "avg_days_tracked": round(float(subset["days_tracked"].mean()), 1),
-                "up_pct": round(up_count / len(subset) * 100, 1),
-                "down_pct": round(down_count / len(subset) * 100, 1),
-                "stable_pct": round(stable_count / len(subset) * 100, 1),
-            }
-
-    # Per-category stats
-    category_stats = {}
-    for cat, grp in ts_df.groupby("category"):
-        if len(grp) >= 5:
-            category_stats[str(cat)] = {
-                "avg_total_pct": round(float(grp["total_pct"].mean()), 2),
-                "median_total_pct": round(float(grp["total_pct"].median()), 2),
-                "std_total_pct": round(float(grp["total_pct"].std()), 2) if len(grp) > 1 else 5.0,
-                "tracks": len(grp),
-            }
-
-    overall_avg = float(ts_df["total_pct"].mean())
-    overall_median = float(ts_df["total_pct"].median())
-    overall_std = float(ts_df["total_pct"].std())
-
-    model = {
-        "total_tracks": len(track_stats),
-        "window_stats": window_stats,
-        "category_stats": category_stats,
-        "overall_avg_total_pct": round(overall_avg, 2),
-        "overall_median_total_pct": round(overall_median, 2),
-        "overall_std_total_pct": round(overall_std, 2),
-        "data_source": "historical",
-    }
-
-    logger.info(
-        "Model built: %d tracks, avg total change %.2f%%, median %.2f%%, windows: %s",
-        len(track_stats), overall_avg, overall_median, list(window_stats.keys()),
-    )
-    return model
+    return build_decay_curve(hist)
 
 
-# Module-level cache for the historical model (recomputed per analysis run)
-_historical_model: dict = {}
+# Module-level cache for the decay curve (recomputed per analysis run)
+_decay_curve: DecayCurve = DecayCurve()
 
 # Module-level cache for flight demand data
 _flight_demand_cache: dict = {}
 
 # Module-level cache for events data
 _events_cache: dict = {}
+
+# Module-level cache for hotel knowledge data
+_knowledge_cache: dict = {}
 
 
 def _load_flight_demand() -> dict:
@@ -241,12 +138,53 @@ def _load_events_data() -> dict:
         return {"total_events": 0, "upcoming_events": 0, "next_events": []}
 
 
+def _load_hotel_knowledge() -> dict:
+    """Load hotel knowledge base (competitive landscape from TBO data).
+
+    Returns market summary and per-hotel profiles.
+    """
+    try:
+        from src.analytics.hotel_knowledge import get_knowledge_summary
+        summary = get_knowledge_summary()
+        total = summary.get("market", {}).get("total_hotels", 0)
+        logger.info("Hotel knowledge loaded: %d Miami market hotels", total)
+        return summary
+    except Exception as e:
+        logger.warning("Failed to load hotel knowledge: %s", e)
+        return {"market": {"status": "no_data"}, "our_hotels": []}
+
+
+def _load_booking_benchmarks() -> dict:
+    """Load booking behavior benchmarks from hotel-booking-dataset.
+
+    Returns seasonality index, lead time model, city hotel benchmarks.
+    """
+    try:
+        from src.analytics.booking_benchmarks import get_benchmarks_summary
+        summary = get_benchmarks_summary()
+        if summary.get("status") == "ok":
+            logger.info(
+                "Booking benchmarks loaded: %d bookings (%s)",
+                summary.get("total_bookings", 0),
+                summary.get("years", ""),
+            )
+        return summary
+    except Exception as e:
+        logger.warning("Failed to load booking benchmarks: %s", e)
+        return {"status": "no_data"}
+
+
 def run_analysis() -> dict:
     """Run full analysis on all collected price data.
 
+    Uses algo-trading style forward curve prediction:
+    - Builds empirical decay curve from historical T-observations
+    - Walks curve day-by-day per room with momentum + enrichments
+    - Detects regimes (normal, trending, volatile)
+
     Returns a dict with analysis results for display/reporting.
     """
-    global _historical_model
+    global _decay_curve
 
     all_snapshots = load_all_snapshots()
     latest = load_latest_snapshot()
@@ -258,12 +196,12 @@ def run_analysis() -> dict:
     n_snapshots = all_snapshots["snapshot_ts"].nunique()
     now = datetime.utcnow()
 
-    # Build data-driven model from historical DB data
+    # Build empirical decay curve from historical DB data
     try:
-        _historical_model = _build_historical_model()
+        _decay_curve = _build_decay_curve()
     except Exception as e:
-        logger.warning("Failed to build historical model, using defaults: %s", e)
-        _historical_model = {}
+        logger.warning("Failed to build decay curve, using defaults: %s", e)
+        _decay_curve = DecayCurve()
 
     # Load flight demand signal (external enrichment)
     flight_demand = _load_flight_demand()
@@ -273,19 +211,31 @@ def run_analysis() -> dict:
     events_data = _load_events_data()
     _events_cache.update(events_data)
 
+    # Load hotel knowledge base (competitive landscape)
+    knowledge_data = _load_hotel_knowledge()
+    _knowledge_cache.update(knowledge_data)
+
+    # Load booking behavior benchmarks (seasonality, lead time model)
+    benchmarks_data = _load_booking_benchmarks()
+
+    curve_summary = _decay_curve.to_summary()
     results = {
         "run_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
         "total_snapshots": n_snapshots,
         "total_rooms": len(latest),
         "total_hotels": latest["hotel_id"].nunique(),
         "model_info": {
-            "data_source": _historical_model.get("data_source", "assumptions"),
-            "total_tracks": _historical_model.get("total_tracks", 0),
-            "overall_avg_total_pct": _historical_model.get("overall_avg_total_pct", 0),
-            "overall_median_total_pct": _historical_model.get("overall_median_total_pct", 0),
+            "data_source": "forward_curve" if _decay_curve.total_tracks > 0 else "default",
+            "total_tracks": curve_summary.get("total_tracks", 0),
+            "total_observations": curve_summary.get("total_observations", 0),
+            "global_mean_daily_pct": curve_summary.get("global_mean_daily_pct", 0),
+            "curve_snapshot": curve_summary.get("curve_snapshot", []),
+            "category_offsets": curve_summary.get("category_offsets", {}),
         },
         "flight_demand": flight_demand,
         "events": events_data,
+        "knowledge": knowledge_data,
+        "benchmarks": benchmarks_data,
     }
 
     # ── 1. Hotel-level summary ──────────────────────────────────────
@@ -319,7 +269,7 @@ def run_analysis() -> dict:
     results["statistics"] = stats
 
     # Save run record
-    model_tag = "historical" if _historical_model else "assumptions"
+    model_tag = "forward_curve" if _decay_curve.total_tracks > 0 else "default"
     summary = (
         f"{len(latest)} rooms, {latest['hotel_id'].nunique()} hotels, "
         f"avg ${latest['room_price'].mean():.0f}, {n_snapshots} snapshots, model={model_tag}"
@@ -399,69 +349,56 @@ def _analyze_rooms(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: datet
     return rooms
 
 
-def _get_expected_change(days_to_checkin: int, category: str) -> tuple[float, float]:
-    """Get expected total % change and std for a room until check-in.
+def _build_enrichments(date_from, now: datetime) -> Enrichments:
+    """Build enrichments object from all external signals."""
+    # Map hotel_impact levels to multipliers
+    impact_mults = {
+        "extreme": 0.40, "very_high": 0.25, "high": 0.15,
+        "moderate": 0.08, "low": 0.03,
+    }
 
-    Uses historical track-level data if available.
-    Returns (expected_total_pct, std_total_pct).
-    """
-    model = _historical_model
+    # Collect upcoming events from cached events data
+    events_list = []
+    try:
+        for ev in _events_cache.get("next_events", []):
+            impact_level = ev.get("hotel_impact", "low")
+            events_list.append({
+                "start_date": ev.get("start_date", ""),
+                "end_date": ev.get("end_date", ""),
+                "multiplier": impact_mults.get(impact_level, 0),
+                "name": ev.get("name", ""),
+            })
+    except Exception:
+        pass
 
-    # Default: prices are approximately stable (based on analysis of 232 tracks)
-    default_change = -0.5
-    default_std = 8.0
+    # Seasonality index
+    seasonality = {}
+    try:
+        from src.analytics.booking_benchmarks import get_seasonality_all
+        seasonality = get_seasonality_all()
+    except Exception:
+        pass
 
-    # Determine bucket
-    if days_to_checkin <= 30:
-        bucket = "0-30"
-    elif days_to_checkin <= 60:
-        bucket = "31-60"
-    elif days_to_checkin <= 90:
-        bucket = "61-90"
-    else:
-        bucket = "90+"
-
-    if model and "window_stats" in model:
-        ws = model["window_stats"].get(bucket, {})
-        # Use median (more robust than mean for skewed data)
-        base_pct = ws.get("median_total_pct", default_change)
-        std = ws.get("std_total_pct", default_std)
-
-        # Blend with category-specific stats
-        cat_key = str(category).lower()
-        cat_stats = model.get("category_stats", {})
-        if cat_key in cat_stats:
-            cat_pct = cat_stats[cat_key]["median_total_pct"]
-            cat_std = cat_stats[cat_key]["std_total_pct"]
-            # 60% window, 40% category
-            base_pct = base_pct * 0.6 + cat_pct * 0.4
-            std = (std + cat_std) / 2
-
-        # Scale by actual days relative to bucket's typical tracking period
-        avg_tracked = ws.get("avg_days_tracked", 20)
-        if avg_tracked > 0:
-            scale = min(days_to_checkin / avg_tracked, 2.0)
-            base_pct = base_pct * scale
-            std = std * scale ** 0.5
-
-        return base_pct, std
-
-    return default_change, default_std
+    return Enrichments(
+        demand_indicator=_flight_demand_cache.get("indicator", "NO_DATA"),
+        events=events_list,
+        seasonality_index=seasonality,
+    )
 
 
 def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: datetime) -> dict:
-    """Predict daily prices until check-in for each room.
+    """Predict daily prices until check-in using forward curve walk.
 
-    Strategy (data-driven, track-level):
-    - Computes expected TOTAL change from historical track analysis
-    - Distributes change linearly across prediction period
-    - Adjusts with observed trend from local snapshots
-    - Confidence intervals from historical std
-    - Probabilities of up/down/stable from historical data
+    Algo-trading strategy:
+    - Walk the empirical decay curve day-by-day from current T to T=0
+    - Each day gets its own expected change from the T-indexed curve
+    - Momentum from 3-hour scans adjusts near-term predictions
+    - Events, seasonality, demand applied as per-day adjustments
+    - Regime detection flags rooms diverging from expected behavior
+    - Per-T confidence intervals (not uniform widening)
     """
     predictions = {}
-    n_snapshots = all_snapshots["snapshot_ts"].nunique()
-    model = _historical_model
+    curve = _decay_curve
 
     for _, row in latest.iterrows():
         detail_id = int(row["detail_id"])
@@ -469,99 +406,63 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
         date_from = pd.Timestamp(row["date_from"])
         days_to_checkin = (date_from - pd.Timestamp(now)).days
         category = str(row["room_category"]).lower()
+        board = str(row["room_board"]).lower() if row["room_board"] else "unknown"
 
         if days_to_checkin <= 0:
             continue
 
-        dates = pd.date_range(start=now.date(), end=date_from, freq="D")
-        total_days = len(dates) - 1
-        if total_days < 1:
-            total_days = 1
+        # Compute momentum from 3-hour scan history
+        expected_daily = curve.get_daily_change(days_to_checkin)
+        vol_at_t = curve.get_volatility(days_to_checkin)
+        mom = compute_momentum(detail_id, all_snapshots, expected_daily, vol_at_t)
 
-        # Get expected total change from historical model
-        expected_total_pct, total_std = _get_expected_change(days_to_checkin, category)
+        # Detect regime (normal, trending, volatile, stale)
+        regime = detect_regime(
+            detail_id, current_price, all_snapshots, curve, category, board,
+        )
 
-        # Observed trend from local snapshots (blend in if available)
-        if n_snapshots > 1:
-            history = all_snapshots[all_snapshots["detail_id"] == detail_id]
-            if len(history) > 1:
-                prices = history["room_price"].values
-                timestamps = pd.to_datetime(history["snapshot_ts"])
-                days_span = (timestamps.iloc[-1] - timestamps.iloc[0]).total_seconds() / 86400
-                if days_span > 0.5 and prices[0] > 0:
-                    observed_pct = (prices[-1] - prices[0]) / prices[0] * 100
-                    # Project observed rate to full period
-                    projected_observed = observed_pct / days_span * days_to_checkin
-                    projected_observed = max(-30, min(30, projected_observed))
-                    # Blend: 70% historical, 30% observed
-                    expected_total_pct = expected_total_pct * 0.7 + projected_observed * 0.3
+        # Build enrichments
+        enrichments = _build_enrichments(date_from, now)
 
-        # Adjust based on flight demand signal
-        demand_indicator = _flight_demand_cache.get("indicator", "NO_DATA")
-        if demand_indicator == "HIGH":
-            # High demand → prices less likely to drop
-            if expected_total_pct < 0:
-                expected_total_pct *= 0.7  # reduce downward pressure by 30%
-        elif demand_indicator == "LOW":
-            # Low demand → prices more likely to soften
-            if expected_total_pct < 0:
-                expected_total_pct *= 1.2  # increase downward pressure by 20%
+        # Walk the forward curve
+        fwd = predict_forward_curve(
+            detail_id=detail_id,
+            hotel_id=int(row["hotel_id"]),
+            current_price=current_price,
+            current_t=days_to_checkin,
+            category=category,
+            board=board,
+            curve=curve,
+            momentum_state=mom.to_dict(),
+            enrichments=enrichments,
+        )
 
-        # Adjust based on events near check-in date
+        # Cancellation probability from lead-time benchmarks
+        cancel_prob = None
         try:
-            from src.analytics.events_store import get_impact_for_date
-            impact = get_impact_for_date(str(date_from.date()))
-            event_mult = impact.get("multiplier", 0)
-            if event_mult > 0:
-                # Events push prices UP (reduce downward or add upward pressure)
-                expected_total_pct += event_mult * 100  # e.g. +25% for very_high
+            from src.analytics.booking_benchmarks import get_cancel_probability
+            cancel_prob = get_cancel_probability(days_to_checkin)
         except Exception:
             pass
 
-        # Cap total expected change at reasonable bounds
-        expected_total_pct = max(-40, min(40, expected_total_pct))
+        # Get probabilities at current T
+        prob_info = curve.get_probabilities(days_to_checkin)
 
-        # Compute daily step (linear distribution of total change)
-        daily_step_pct = expected_total_pct / total_days
+        # Final predicted price
+        final_price = fwd.points[-1].predicted_price if fwd.points else current_price
+        cumulative_pct = fwd.points[-1].cumulative_change_pct if fwd.points else 0.0
 
-        # Get probability info
-        prob_info = {"up": 30, "down": 30, "stable": 40}
-        if model and "window_stats" in model:
-            bucket = "0-30" if days_to_checkin <= 30 else ("31-60" if days_to_checkin <= 60 else ("61-90" if days_to_checkin <= 90 else "90+"))
-            ws = model["window_stats"].get(bucket, {})
-            if ws:
-                prob_info = {
-                    "up": ws.get("up_pct", 30),
-                    "down": ws.get("down_pct", 30),
-                    "stable": ws.get("stable_pct", 40),
-                }
-
+        # Backward-compatible daily format
         daily_predictions = []
-        for i, date in enumerate(dates):
-            days_remaining = (date_from - pd.Timestamp(date)).days
-            if days_remaining <= 0:
-                days_remaining = 1
-
-            # Linear interpolation from current to predicted final price
-            progress = i / total_days
-            predicted_pct = expected_total_pct * progress
-            predicted = current_price * (1 + predicted_pct / 100)
-
-            # Confidence interval widens over time
-            uncertainty_pct = total_std * (progress ** 0.5)
-            uncertainty = current_price * uncertainty_pct / 100
-
-            dow = date.dayofweek
+        for pt in fwd.points:
             daily_predictions.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "days_remaining": days_remaining,
-                "predicted_price": round(predicted, 2),
-                "lower_bound": round(predicted - abs(uncertainty), 2),
-                "upper_bound": round(predicted + abs(uncertainty), 2),
-                "dow": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dow],
+                "date": pt.date,
+                "days_remaining": pt.t,
+                "predicted_price": pt.predicted_price,
+                "lower_bound": pt.lower_bound,
+                "upper_bound": pt.upper_bound,
+                "dow": pt.dow,
             })
-
-        final_price = daily_predictions[-1]["predicted_price"] if daily_predictions else current_price
 
         predictions[detail_id] = {
             "hotel_name": row["hotel_name"],
@@ -572,10 +473,32 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
             "date_from": str(row["date_from"]),
             "days_to_checkin": days_to_checkin,
             "predicted_checkin_price": round(final_price, 2),
-            "expected_change_pct": round(expected_total_pct, 2),
+            "expected_change_pct": round(cumulative_pct, 2),
             "probability": prob_info,
-            "model_type": "historical" if model else "default",
+            "cancel_probability": round(cancel_prob, 3) if cancel_prob is not None else None,
+            "model_type": "forward_curve" if curve.total_tracks > 0 else "default",
             "daily": daily_predictions,
+            # New algo-trading fields
+            "momentum": mom.to_dict(),
+            "regime": regime.to_dict(),
+            "confidence_quality": fwd.confidence_quality,
+            "forward_curve": [
+                {
+                    "date": pt.date,
+                    "t": pt.t,
+                    "predicted_price": pt.predicted_price,
+                    "daily_change_pct": pt.daily_change_pct,
+                    "cumulative_change_pct": pt.cumulative_change_pct,
+                    "lower_bound": pt.lower_bound,
+                    "upper_bound": pt.upper_bound,
+                    "volatility_at_t": pt.volatility_at_t,
+                    "event_adj_pct": pt.event_adj_pct,
+                    "season_adj_pct": pt.season_adj_pct,
+                    "demand_adj_pct": pt.demand_adj_pct,
+                    "momentum_adj_pct": pt.momentum_adj_pct,
+                }
+                for pt in fwd.points
+            ],
         }
 
     return predictions

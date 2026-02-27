@@ -38,12 +38,15 @@ def generate_report(analysis: dict) -> Path:
     model_info = analysis.get("model_info", {})
     flight_demand = analysis.get("flight_demand", {})
     events_data = analysis.get("events", {})
+    knowledge_data = analysis.get("knowledge", {})
+    benchmarks_data = analysis.get("benchmarks", {})
 
     # Build chart data
     hotel_chart_data = _build_hotel_chart_data(hotels)
     prediction_chart_data = _build_prediction_charts(predictions)
     booking_window_chart = _build_booking_window_chart(booking_window)
     category_chart = _build_category_chart(stats)
+    seasonality_chart = _build_seasonality_chart(benchmarks_data)
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -83,7 +86,7 @@ def generate_report(analysis: dict) -> Path:
 <div class="header">
   <h1>SalesOffice Price Analysis</h1>
   <p>Generated: {analysis.get('run_ts', '')} UTC &middot; {analysis.get('total_snapshots', 0)} snapshot(s) collected</p>
-  <p style="margin-top: 4px; font-size: 0.85em; color: #64748b;">Model: {model_info.get('data_source', 'N/A')} &middot; {model_info.get('total_tracks', 0)} historical tracks &middot; Avg change: {model_info.get('overall_avg_total_pct', 0):+.1f}%</p>
+  <p style="margin-top: 4px; font-size: 0.85em; color: #64748b;">Model: {model_info.get('data_source', 'N/A')} &middot; {model_info.get('total_tracks', 0)} tracks / {model_info.get('total_observations', 0)} T-observations &middot; Mean daily: {model_info.get('global_mean_daily_pct', 0):+.4f}%/day</p>
 </div>
 
 <!-- KPI Cards -->
@@ -110,11 +113,17 @@ def generate_report(analysis: dict) -> Path:
   </div>
 </div>
 
+{_build_trading_signals_section(predictions, model_info)}
+
 {_build_flight_demand_section(flight_demand)}
 
 {_build_events_section(events_data)}
 
 {_build_data_sources_section()}
+
+{_build_knowledge_section(knowledge_data)}
+
+{_build_benchmarks_section(benchmarks_data)}
 
 <!-- Hotel Price Distribution -->
 <div class="section">
@@ -150,9 +159,10 @@ def generate_report(analysis: dict) -> Path:
   </div>
 </div>
 
-<!-- Price Predictions -->
+<!-- Forward Curve Predictions -->
 <div class="section">
-  <h2>Price Predictions (Sample — Top Hotels)</h2>
+  <h2>Forward Curve Predictions</h2>
+  <p style="color: #94a3b8; margin-bottom: 16px;">Algo-trading style: decay curve walked day-by-day with momentum + enrichments. Non-linear paths with per-T confidence intervals.</p>
   {_build_prediction_section(predictions, hotels)}
 </div>
 
@@ -181,6 +191,9 @@ const darkLayout = {{
 // Category chart
 {category_chart}
 
+// Seasonality chart
+{seasonality_chart}
+
 // Prediction charts
 {prediction_chart_data}
 </script>
@@ -196,6 +209,159 @@ const darkLayout = {{
     latest_path.write_text(html, encoding="utf-8")
 
     return report_path
+
+
+def _build_trading_signals_section(predictions: dict, model_info: dict) -> str:
+    """Build the trading signals dashboard section — momentum, regime, curve quality."""
+    if not predictions:
+        return ""
+
+    # Collect all momentum signals and regimes
+    signals = []
+    regime_alerts = []
+    for detail_id, pred in predictions.items():
+        mom = pred.get("momentum", {})
+        regime = pred.get("regime", {})
+        signal = mom.get("signal", "NORMAL")
+        strength = mom.get("strength", 0)
+        alert = regime.get("alert_level", "none")
+
+        if signal not in ("NORMAL", "INSUFFICIENT_DATA"):
+            signals.append({
+                "hotel": pred["hotel_name"],
+                "room": f"{pred['category']} / {pred['board']}",
+                "checkin": pred["date_from"][:10],
+                "t": pred["days_to_checkin"],
+                "signal": signal,
+                "strength": strength,
+                "velocity_24h": mom.get("velocity_24h", 0),
+            })
+
+        if alert != "none":
+            regime_alerts.append({
+                "hotel": pred["hotel_name"],
+                "room": f"{pred['category']} / {pred['board']}",
+                "checkin": pred["date_from"][:10],
+                "regime": regime.get("regime", ""),
+                "z_score": regime.get("z_score", 0),
+                "divergence": regime.get("divergence_pct", 0),
+                "alert": alert,
+                "desc": regime.get("description", ""),
+            })
+
+    # Count by signal type
+    total_rooms = len(predictions)
+    active_signals = len(signals)
+    active_alerts = len(regime_alerts)
+
+    # Curve quality from model_info
+    curve_snapshot = model_info.get("curve_snapshot", [])
+    cat_offsets = model_info.get("category_offsets", {})
+
+    # Signal rows
+    signal_rows = ""
+    sig_colors = {
+        "ACCELERATING_UP": "#f87171", "ACCELERATING_DOWN": "#4ade80",
+        "ACCELERATING": "#fbbf24", "DECELERATING": "#818cf8",
+    }
+    for s in sorted(signals, key=lambda x: -x["strength"])[:10]:
+        sc = sig_colors.get(s["signal"], "#94a3b8")
+        signal_rows += (
+            f"<tr>"
+            f"<td>{s['hotel']}</td>"
+            f"<td>{s['room']}</td>"
+            f"<td>T-{s['t']}</td>"
+            f"<td><span class='tag' style='background: {sc}22; color: {sc};'>{s['signal'].replace('_', ' ')}</span></td>"
+            f"<td>{s['strength']:.0%}</td>"
+            f"<td>{s['velocity_24h']:+.3f}%/day</td>"
+            f"</tr>"
+        )
+
+    # Regime alert rows
+    alert_rows = ""
+    alert_colors = {"watch": "#fbbf24", "warning": "#f87171"}
+    for a in sorted(regime_alerts, key=lambda x: abs(x["z_score"]), reverse=True)[:10]:
+        ac = alert_colors.get(a["alert"], "#94a3b8")
+        alert_rows += (
+            f"<tr>"
+            f"<td>{a['hotel']}</td>"
+            f"<td>{a['room']}</td>"
+            f"<td><span class='tag' style='background: {ac}22; color: {ac};'>{a['regime'].replace('_', ' ')}</span></td>"
+            f"<td>{a['z_score']:+.1f} sigma</td>"
+            f"<td>{a['divergence']:+.1f}%</td>"
+            f"<td><small>{a['desc']}</small></td>"
+            f"</tr>"
+        )
+
+    # Decay curve snapshot table
+    curve_rows = ""
+    for cp in curve_snapshot:
+        d = cp.get("density", "")
+        d_color = "#4ade80" if d == "high" else ("#fbbf24" if d == "medium" else "#f87171")
+        curve_rows += (
+            f"<tr>"
+            f"<td>T-{cp['t']}</td>"
+            f"<td>{cp['expected_daily_pct']:+.4f}%</td>"
+            f"<td>{cp['volatility']:.4f}%</td>"
+            f"<td><span style='color: {d_color};'>{d}</span></td>"
+            f"</tr>"
+        )
+
+    # Category offsets
+    offset_pills = " ".join(
+        f"<span class='tag' style='background: #334155; color: #cbd5e1;'>{cat}: {off:+.4f}%/d</span>"
+        for cat, off in cat_offsets.items()
+    )
+
+    return f"""
+<div class="section">
+  <h2>Trading Signals <span style="color: #fbbf24; font-size: 0.7em;">{active_signals} active signals, {active_alerts} regime alerts</span></h2>
+  <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
+    <div class="card" style="text-align: center;">
+      <h3>Rooms Tracked</h3>
+      <div class="value">{total_rooms}</div>
+      <div class="sub">Forward curve predictions</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Active Signals</h3>
+      <div class="value" style="color: #fbbf24;">{active_signals}</div>
+      <div class="sub">Momentum divergences</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Regime Alerts</h3>
+      <div class="value" style="color: {'#f87171' if active_alerts > 0 else '#4ade80'};">{active_alerts}</div>
+      <div class="sub">Rooms off expected path</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Model</h3>
+      <div class="value" style="font-size: 1em;">Forward Curve</div>
+      <div class="sub">{model_info.get('total_tracks', 0)} tracks, {model_info.get('total_observations', 0)} obs</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div>
+      <h3 style="color: #f1f5f9; margin-bottom: 8px;">Momentum Signals</h3>
+      {f'<table><tr><th>Hotel</th><th>Room</th><th>T</th><th>Signal</th><th>Strength</th><th>Velocity</th></tr>{signal_rows}</table>' if signal_rows else '<p style="color: #64748b;">All rooms tracking normally -- no divergent momentum detected.</p>'}
+    </div>
+    <div>
+      <h3 style="color: #f1f5f9; margin-bottom: 8px;">Regime Alerts</h3>
+      {f'<table><tr><th>Hotel</th><th>Room</th><th>Regime</th><th>Z-Score</th><th>Divergence</th><th>Details</th></tr>{alert_rows}</table>' if alert_rows else '<p style="color: #64748b;">All rooms in NORMAL regime -- no anomalies detected.</p>'}
+    </div>
+  </div>
+
+  <h3 style="color: #f1f5f9; margin: 16px 0 8px;">Decay Curve Term Structure</h3>
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+    <table>
+      <tr><th>T (days to check-in)</th><th>Expected Daily Change</th><th>Daily Volatility</th><th>Data Density</th></tr>
+      {curve_rows}
+    </table>
+    <div>
+      <h3 style="color: #f1f5f9; margin-bottom: 8px;">Category Offsets</h3>
+      <div style="line-height: 2;">{offset_pills if offset_pills else '<span style="color: #64748b;">No category offsets computed</span>'}</div>
+    </div>
+  </div>
+</div>"""
 
 
 def _build_flight_demand_section(demand: dict) -> str:
@@ -360,6 +526,177 @@ def _build_data_sources_section() -> str:
 </div>"""
 
 
+def _build_knowledge_section(knowledge: dict) -> str:
+    """Build the hotel knowledge base / competitive landscape section."""
+    if not knowledge or knowledge.get("market", {}).get("status") == "no_data":
+        return """
+<div class="section">
+  <h2>Market Intelligence</h2>
+  <p style="color: #94a3b8;">Hotel knowledge base not loaded. Add data/miami_hotels_tbo.csv to enable.</p>
+</div>"""
+
+    market = knowledge.get("market", {})
+    our_hotels = knowledge.get("our_hotels", [])
+    total_hotels = market.get("total_hotels", 0)
+    ratings = market.get("rating_distribution", {})
+    sub_markets = market.get("sub_markets", {})
+
+    # Rating breakdown row
+    rating_html = " &middot; ".join(
+        f"<span style='color: #38bdf8;'>{k}</span>: {v}"
+        for k, v in sorted(ratings.items(), key=lambda x: -x[1])
+    )
+
+    # Sub-market pills
+    sub_html = " ".join(
+        f"<span class='tag' style='background: #334155; color: #cbd5e1; margin: 2px;'>{k}: {v}</span>"
+        for k, v in sorted(sub_markets.items(), key=lambda x: -x[1])
+    )
+
+    # Per-hotel competitive cards
+    hotel_cards = ""
+    for profile in our_hotels:
+        name = profile.get("name", "Unknown")
+        sub = profile.get("sub_market", "")
+        nearby = profile.get("nearby_hotels", 0)
+        rating_mix = profile.get("nearby_rating_mix", {})
+        closest = profile.get("closest_competitors", [])
+
+        amenities = profile.get("facilities", {}).get("amenities", {})
+        amenity_tags = " ".join(
+            f"<span class='tag' style='background: #16a34a22; color: #4ade80; margin: 1px;'>{a.replace('_', ' ')}</span>"
+            for a in list(amenities.keys())[:10]
+        )
+
+        comp_rows = ""
+        for c in closest[:5]:
+            comp_rows += (
+                f"<tr>"
+                f"<td>{c['name'][:40]}</td>"
+                f"<td>{c['rating']}</td>"
+                f"<td>{c['distance_km']:.1f} km</td>"
+                f"</tr>"
+            )
+
+        mix_html = ", ".join(f"{k}: {v}" for k, v in sorted(rating_mix.items(), key=lambda x: -x[1])[:4])
+
+        hotel_cards += f"""
+        <div style="background: #0f172a; border: 1px solid #475569; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+          <h3 style="color: #f1f5f9; margin-bottom: 8px;">{name} <span style="color: #94a3b8; font-size: 0.7em;">({sub})</span></h3>
+          <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 8px;">
+            <strong>{nearby}</strong> competitors within 2km &middot; {mix_html}
+          </p>
+          <div style="margin-bottom: 8px;">{amenity_tags}</div>
+          {"<table><tr><th>Closest Competitor</th><th>Rating</th><th>Distance</th></tr>" + comp_rows + "</table>" if comp_rows else ""}
+        </div>
+        """
+
+    return f"""
+<div class="section">
+  <h2>Market Intelligence <span style="color: #4ade80; font-size: 0.7em;">{total_hotels} hotels in Miami metro</span></h2>
+  <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 16px;">
+    <div class="card">
+      <h3>Rating Distribution</h3>
+      <div style="font-size: 0.9em; color: #cbd5e1; line-height: 1.8;">{rating_html}</div>
+    </div>
+    <div class="card">
+      <h3>Sub-Markets</h3>
+      <div style="line-height: 2;">{sub_html}</div>
+    </div>
+  </div>
+  <h3 style="color: #f1f5f9; margin-bottom: 12px;">Our Hotels — Competitive Position</h3>
+  {hotel_cards}
+  <p style="color: #64748b; font-size: 0.8em; margin-top: 8px;">Source: TBO Hotels Dataset (Kaggle) — {total_hotels} unique hotels in Miami metro area</p>
+</div>"""
+
+
+def _build_benchmarks_section(benchmarks: dict) -> str:
+    """Build the booking benchmarks section with seasonality chart."""
+    if not benchmarks or benchmarks.get("status") == "no_data":
+        return """
+<div class="section">
+  <h2>Booking Benchmarks</h2>
+  <p style="color: #94a3b8;">Benchmarks data not loaded. Add data/booking_benchmarks.json to enable.</p>
+</div>"""
+
+    seasonality = benchmarks.get("seasonality", {})
+    city = benchmarks.get("city_hotel", {})
+    lead_time = benchmarks.get("lead_time_buckets", {})
+    total = benchmarks.get("total_bookings", 0)
+    weekend_prem = benchmarks.get("weekend_premium_pct", 0)
+
+    # Lead time table
+    lt_rows = ""
+    for bucket, data in lead_time.items():
+        cancel_pct = data.get("cancel_rate", 0) * 100
+        bar_color = "#f87171" if cancel_pct > 40 else ("#fbbf24" if cancel_pct > 25 else "#4ade80")
+        lt_rows += (
+            f"<tr>"
+            f"<td>{bucket}</td>"
+            f"<td>${data.get('avg_adr', 0):,.0f}</td>"
+            f"<td><span style='color: {bar_color};'>{cancel_pct:.1f}%</span></td>"
+            f"<td>{data.get('bookings', 0):,}</td>"
+            f"</tr>"
+        )
+
+    # Market segments
+    segments = benchmarks.get("market_segments", {})
+    seg_rows = ""
+    for seg in sorted(segments, key=lambda s: segments[s].get("avg_adr", 0), reverse=True):
+        data = segments[seg]
+        if data.get("avg_adr", 0) > 0:
+            seg_rows += (
+                f"<tr>"
+                f"<td>{seg}</td>"
+                f"<td>${data.get('avg_adr', 0):,.0f}</td>"
+                f"<td>{data.get('cancel_rate', 0)*100:.0f}%</td>"
+                f"</tr>"
+            )
+
+    return f"""
+<div class="section">
+  <h2>Booking Benchmarks <span style="color: #94a3b8; font-size: 0.7em;">from {total:,} bookings</span></h2>
+  <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
+    <div class="card" style="text-align: center;">
+      <h3>City Hotel ADR</h3>
+      <div class="value">${city.get('avg_adr', 0):,.0f}</div>
+      <div class="sub">Median: ${city.get('median_adr', 0):,.0f}</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Cancel Rate</h3>
+      <div class="value" style="color: #fbbf24;">{city.get('cancel_rate', 0)*100:.0f}%</div>
+      <div class="sub">City Hotels</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Avg Lead Time</h3>
+      <div class="value">{city.get('avg_lead_time_days', 0):.0f}d</div>
+      <div class="sub">Booking to check-in</div>
+    </div>
+    <div class="card" style="text-align: center;">
+      <h3>Weekend Premium</h3>
+      <div class="value">+{weekend_prem:.1f}%</div>
+      <div class="sub">vs. weekday-only stays</div>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div id="seasonality-chart" class="chart" style="min-height: 300px;"></div>
+    <div>
+      <h3 style="color: #f1f5f9; margin-bottom: 8px;">Lead Time vs Cancellation Risk</h3>
+      <table>
+        <tr><th>Lead Time</th><th>Avg ADR</th><th>Cancel Rate</th><th>Bookings</th></tr>
+        {lt_rows}
+      </table>
+      <h3 style="color: #f1f5f9; margin: 16px 0 8px;">Market Segments</h3>
+      <table>
+        <tr><th>Segment</th><th>Avg ADR</th><th>Cancel</th></tr>
+        {seg_rows}
+      </table>
+    </div>
+  </div>
+  <p style="color: #64748b; font-size: 0.8em; margin-top: 8px;">Source: hotel-booking-dataset (GitHub mpolinowski) &mdash; {total:,} bookings, 2015-2017</p>
+</div>"""
+
+
 def _hotel_row(h: dict) -> str:
     return (
         f"<tr>"
@@ -419,6 +756,36 @@ Plotly.newPlot('booking-window-chart', [{{
 """
 
 
+def _build_seasonality_chart(benchmarks: dict) -> str:
+    """Build Plotly seasonality chart from booking benchmarks."""
+    if not benchmarks or benchmarks.get("status") == "no_data":
+        return "// No seasonality data"
+
+    seasonality = benchmarks.get("seasonality", {})
+    if not seasonality:
+        return "// No seasonality data"
+
+    months = list(seasonality.keys())
+    values = list(seasonality.values())
+    colors = ["#f87171" if v > 1.1 else ("#4ade80" if v < 0.8 else "#38bdf8") for v in values]
+
+    return f"""
+Plotly.newPlot('seasonality-chart', [{{
+  type: 'bar',
+  x: {json.dumps(months)},
+  y: {json.dumps(values)},
+  text: {json.dumps([f"{v:.2f}x" for v in values])},
+  textposition: 'outside',
+  marker: {{ color: {json.dumps(colors)} }},
+}}], {{
+  ...darkLayout,
+  title: 'ADR Seasonality Index (1.0 = average)',
+  yaxis: {{ ...darkLayout.yaxis, title: 'Index', range: [0, 1.6] }},
+  shapes: [{{ type: 'line', x0: -0.5, x1: 11.5, y0: 1.0, y1: 1.0, line: {{ color: '#94a3b8', dash: 'dash' }} }}],
+}});
+"""
+
+
 def _build_category_chart(stats: dict) -> str:
     by_cat = stats.get("by_category", {})
     by_board = stats.get("by_board", {})
@@ -460,7 +827,7 @@ Plotly.newPlot('board-chart', [{{
 
 
 def _build_prediction_charts(predictions: dict) -> str:
-    """Build Plotly charts for top predictions (one chart per hotel)."""
+    """Build Plotly forward curve charts with confidence bands (one per hotel)."""
     if not predictions:
         return "// No predictions"
 
@@ -473,12 +840,12 @@ def _build_prediction_charts(predictions: dict) -> str:
         by_hotel[hid].append((detail_id, pred))
 
     js_parts = []
-    for i, (hotel_id, preds) in enumerate(list(by_hotel.items())[:4]):  # top 4 hotels
+    for i, (hotel_id, preds) in enumerate(list(by_hotel.items())[:4]):
         div_id = f"pred-chart-{hotel_id}"
         traces = []
 
-        # Show up to 10 rooms per hotel
-        for detail_id, pred in preds[:10]:
+        # Show up to 6 rooms per hotel (with confidence bands)
+        for detail_id, pred in preds[:6]:
             daily = pred.get("daily", [])
             if not daily:
                 continue
@@ -488,21 +855,49 @@ def _build_prediction_charts(predictions: dict) -> str:
             lower = [d["lower_bound"] for d in daily]
 
             label = f"{pred['category']} {pred['board']} ({pred['date_from'][:10]})"
+            mom = pred.get("momentum", {})
+            signal = mom.get("signal", "")
+            signal_tag = f" [{signal}]" if signal and signal != "NORMAL" and signal != "INSUFFICIENT_DATA" else ""
 
+            # Confidence band (filled area)
+            traces.append({
+                "type": "scatter",
+                "x": dates + dates[::-1],
+                "y": upper + lower[::-1],
+                "fill": "toself",
+                "fillcolor": "rgba(56, 189, 248, 0.08)",
+                "line": {"color": "transparent"},
+                "showlegend": False,
+                "hoverinfo": "skip",
+            })
+
+            # Main prediction line
             traces.append({
                 "type": "scatter",
                 "mode": "lines",
-                "name": label,
+                "name": label + signal_tag,
                 "x": dates,
                 "y": prices,
+                "line": {"width": 2},
+            })
+
+            # Starting price marker
+            traces.append({
+                "type": "scatter",
+                "mode": "markers",
+                "x": [dates[0]],
+                "y": [pred["current_price"]],
+                "marker": {"size": 8, "symbol": "diamond"},
+                "showlegend": False,
+                "hovertext": f"Current: ${pred['current_price']:.0f}",
             })
 
         hotel_name = preds[0][1]["hotel_name"] if preds else str(hotel_id)
         js_parts.append(f"""
 Plotly.newPlot('{div_id}', {json.dumps(traces)}, {{
   ...darkLayout,
-  title: '{hotel_name} — Price Predictions',
-  xaxis: {{ ...darkLayout.xaxis, title: 'Date' }},
+  title: '{hotel_name} -- Forward Curve',
+  xaxis: {{ ...darkLayout.xaxis, title: 'Date (T countdown to check-in)' }},
   yaxis: {{ ...darkLayout.yaxis, title: 'Predicted Price ($)' }},
   showlegend: true,
   legend: {{ font: {{ size: 10 }} }},
@@ -513,7 +908,7 @@ Plotly.newPlot('{div_id}', {json.dumps(traces)}, {{
 
 
 def _build_prediction_section(predictions: dict, hotels: list) -> str:
-    """Build HTML section with prediction charts and summary table."""
+    """Build HTML section with forward curve charts and summary table."""
     if not predictions:
         return "<p style='color: #94a3b8;'>No predictions available yet.</p>"
 
@@ -525,35 +920,66 @@ def _build_prediction_section(predictions: dict, hotels: list) -> str:
             by_hotel[hid] = []
         by_hotel[hid].append(pred)
 
+    # Momentum signal colors
+    signal_colors = {
+        "ACCELERATING_UP": "#f87171",
+        "ACCELERATING_DOWN": "#4ade80",
+        "ACCELERATING": "#fbbf24",
+        "DECELERATING": "#818cf8",
+        "NORMAL": "#64748b",
+        "INSUFFICIENT_DATA": "#475569",
+    }
+    # Regime alert colors
+    regime_colors = {
+        "NORMAL": "#64748b",
+        "TRENDING_UP": "#f87171",
+        "TRENDING_DOWN": "#4ade80",
+        "VOLATILE": "#fbbf24",
+        "STALE": "#94a3b8",
+    }
+
     html_parts = []
     for hotel_id, preds in list(by_hotel.items())[:4]:
         hotel_name = preds[0]["hotel_name"]
         div_id = f"pred-chart-{hotel_id}"
 
-        # Summary table for this hotel
         rows = ""
         for p in sorted(preds, key=lambda x: x["date_from"])[:15]:
             change_class = "tag-up" if p["expected_change_pct"] > 1 else ("tag-down" if p["expected_change_pct"] < -1 else "tag-stable")
             change_label = f"+{p['expected_change_pct']}%" if p["expected_change_pct"] > 0 else f"{p['expected_change_pct']}%"
-            prob = p.get("probability", {})
-            prob_html = ""
-            if prob:
-                prob_html = (
-                    f"<small style='color: #94a3b8;'>"
-                    f"<span style='color: #f87171;'>&#9650;{prob.get('up', 0):.0f}%</span> "
-                    f"<span style='color: #4ade80;'>&#9660;{prob.get('down', 0):.0f}%</span> "
-                    f"<span style='color: #38bdf8;'>&#9644;{prob.get('stable', 0):.0f}%</span>"
-                    f"</small>"
-                )
+
+            # Momentum badge
+            mom = p.get("momentum", {})
+            signal = mom.get("signal", "INSUFFICIENT_DATA")
+            strength = mom.get("strength", 0)
+            sig_color = signal_colors.get(signal, "#475569")
+            mom_html = f"<span class='tag' style='background: {sig_color}22; color: {sig_color};'>{signal.replace('_', ' ')}</span>"
+            if strength > 0.3:
+                mom_html += f" <small style='color: {sig_color};'>({strength:.0%})</small>"
+
+            # Regime badge
+            regime = p.get("regime", {})
+            reg_name = regime.get("regime", "NORMAL")
+            alert = regime.get("alert_level", "none")
+            reg_color = regime_colors.get(reg_name, "#64748b")
+            reg_html = ""
+            if alert != "none":
+                reg_html = f"<span class='tag' style='background: {reg_color}22; color: {reg_color};'>{reg_name.replace('_', ' ')}</span>"
+
+            # Confidence quality
+            quality = p.get("confidence_quality", "")
+            q_color = "#4ade80" if quality == "high" else ("#fbbf24" if quality == "medium" else "#f87171")
+
             rows += (
                 f"<tr>"
                 f"<td>{p['category']} / {p['board']}</td>"
                 f"<td>{p['date_from'][:10]}</td>"
-                f"<td>{p['days_to_checkin']}d</td>"
+                f"<td>T-{p['days_to_checkin']}</td>"
                 f"<td>${p['current_price']:,.0f}</td>"
                 f"<td>${p['predicted_checkin_price']:,.0f}</td>"
                 f"<td><span class='tag {change_class}'>{change_label}</span></td>"
-                f"<td>{prob_html}</td>"
+                f"<td>{mom_html}</td>"
+                f"<td>{reg_html}</td>"
                 f"</tr>"
             )
 
@@ -561,7 +987,7 @@ def _build_prediction_section(predictions: dict, hotels: list) -> str:
         <h3 style="color: #f1f5f9; margin: 20px 0 10px;">{hotel_name} ({len(preds)} rooms)</h3>
         <div id="{div_id}" class="chart"></div>
         <table style="margin-top: 16px;">
-          <tr><th>Room</th><th>Check-in</th><th>Days</th><th>Current</th><th>Predicted</th><th>Change</th><th>Probability</th></tr>
+          <tr><th>Room</th><th>Check-in</th><th>T</th><th>Current</th><th>Predicted</th><th>Change</th><th>Momentum</th><th>Regime</th></tr>
           {rows}
         </table>
         """)

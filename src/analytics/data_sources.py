@@ -140,6 +140,28 @@ DATA_SOURCES = [
         "metrics": "8 major events (Art Basel, Ultra, F1, Miami Open, etc.)",
         "update_freq": "Annual",
     },
+    {
+        "id": "tbo_hotels",
+        "name": "TBO Hotels Dataset (Kaggle)",
+        "url": "https://www.kaggle.com/datasets/raj713335/tbo-hotels-dataset",
+        "category": "Market Intelligence",
+        "access": "CSV (kagglehub)",
+        "cost": "Free",
+        "status": "active",
+        "metrics": "1,816 Miami hotels: facilities, ratings, coordinates, competitive landscape",
+        "update_freq": "Static (refreshable)",
+    },
+    {
+        "id": "hotel_booking_dataset",
+        "name": "Hotel Booking Demand (GitHub)",
+        "url": "https://github.com/mpolinowski/hotel-booking-dataset",
+        "category": "Booking Behavior",
+        "access": "CSV (GitHub raw)",
+        "cost": "Free",
+        "status": "active",
+        "metrics": "117K bookings: seasonality index, lead time/cancel model, ADR benchmarks",
+        "update_freq": "Static (research dataset)",
+    },
 ]
 
 
