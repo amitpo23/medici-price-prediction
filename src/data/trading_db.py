@@ -436,11 +436,12 @@ def load_price_update_velocity(hotel_ids: list[int] | None = None) -> pd.DataFra
                MIN(r.DateInsert) AS first_update,
                MAX(r.DateInsert) AS last_update
         FROM RoomPriceUpdateLog r
-        JOIN MED_Book b ON r.PreBookId = b.PreBookId
+        LEFT JOIN MED_Book b ON r.PreBookId = b.PreBookId
+        WHERE b.HotelId IS NOT NULL
     """
     if hotel_ids:
         placeholders = ",".join(str(int(h)) for h in hotel_ids)
-        query += f" WHERE b.HotelId IN ({placeholders})"
+        query += f" AND b.HotelId IN ({placeholders})"
     query += " GROUP BY b.HotelId ORDER BY total_updates DESC"
     return run_trading_query(query)
 
@@ -534,6 +535,11 @@ def load_competitor_hotels(hotel_id: int, radius_km: float = 5.0,
         query += " AND i.stars = :stars"
         params["stars"] = stars
     df = run_trading_query(query, params)
+    if df.empty:
+        return df
+
+    # Drop rows with missing coordinates
+    df = df.dropna(subset=["Latitude", "Longitude"])
     if df.empty:
         return df
 
