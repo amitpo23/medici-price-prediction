@@ -3,6 +3,9 @@
 Endpoints:
   GET /api/v1/salesoffice/dashboard  — Interactive HTML dashboard (Plotly)
   GET /api/v1/salesoffice/data       — Raw analysis JSON
+  GET /api/v1/salesoffice/simple     — Simplified human-readable JSON
+  GET /api/v1/salesoffice/simple/text — Plain text report
+  GET /api/v1/salesoffice/backtest   — Backtest prediction quality
   GET /api/v1/salesoffice/status     — Quick status check
 
 Background:
@@ -15,7 +18,7 @@ import threading
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +80,30 @@ async def salesoffice_data(
         "booking_window": analysis.get("booking_window"),
         "price_changes": analysis.get("price_changes"),
     })
+
+
+@router.get("/simple")
+async def salesoffice_simple():
+    """Simplified analysis — human-readable JSON with 4 clear sections.
+
+    Returns: summary (text), predictions (per-room), attention (action items), market (stats).
+    Easy to read, no trading jargon.
+    """
+    from src.analytics.simple_analysis import simplify_analysis
+
+    analysis = _get_or_run_analysis()
+    simplified = simplify_analysis(analysis)
+    return JSONResponse(content=simplified)
+
+
+@router.get("/simple/text", response_class=PlainTextResponse)
+async def salesoffice_simple_text():
+    """Plain text analysis report — for quick reading in terminal or email."""
+    from src.analytics.simple_analysis import simplify_to_text
+
+    analysis = _get_or_run_analysis()
+    text = simplify_to_text(analysis)
+    return PlainTextResponse(content=text)
 
 
 @router.get("/debug")
@@ -165,7 +192,38 @@ async def salesoffice_forward_curve(detail_id: int):
         "momentum": pred.get("momentum"),
         "regime": pred.get("regime"),
         "forward_curve": pred.get("forward_curve", []),
+        # Deep predictor enrichments
+        "prediction_method": pred.get("prediction_method"),
+        "signals": pred.get("signals"),
+        "yoy_comparison": pred.get("yoy_comparison"),
+        "explanation": pred.get("explanation"),
     })
+
+
+@router.get("/backtest")
+async def salesoffice_backtest(
+    _key: str = Depends(_optional_api_key),
+):
+    """Run walk-forward backtest on historical price data.
+
+    Validates prediction quality by comparing forward curve predictions
+    against actual outcomes. No data leakage — decay curve is rebuilt
+    from prior-only data for each test point.
+
+    Returns MAPE, RMSE per method, per hotel, per lead-time bucket.
+    """
+    from src.analytics.backtest import HistoricalBacktester
+
+    try:
+        backtester = HistoricalBacktester()
+        results = backtester.run_backtest()
+        return JSONResponse(content=results)
+    except Exception as e:
+        logger.error("Backtest failed: %s", e, exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e), "n_trials": 0},
+        )
 
 
 @router.get("/decay-curve")

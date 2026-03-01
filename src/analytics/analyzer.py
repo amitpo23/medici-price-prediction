@@ -39,6 +39,8 @@ from src.analytics.forward_curve import (
 )
 from src.analytics.momentum import compute_momentum
 from src.analytics.regime import detect_regime
+from src.analytics.deep_predictor import DeepPredictor
+from src.analytics.historical_patterns import HistoricalPatternMiner
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +89,9 @@ _events_cache: dict = {}
 
 # Module-level cache for hotel knowledge data
 _knowledge_cache: dict = {}
+
+# Module-level cache for historical patterns (deep predictor)
+_historical_patterns_cache: dict = {}
 
 
 def _load_flight_demand() -> dict:
@@ -174,6 +179,31 @@ def _load_booking_benchmarks() -> dict:
         return {"status": "no_data"}
 
 
+def _load_historical_patterns(hotel_ids: list[int] | None = None) -> dict:
+    """Load deep historical patterns for prediction enrichment.
+
+    Mines same-period, lead-time, DOW, event impacts, and monthly
+    seasonality from all available historical data sources.
+
+    Returns dict keyed by (hotel_id, category) tuples with pattern dicts.
+    """
+    global _historical_patterns_cache
+    try:
+        miner = HistoricalPatternMiner()
+        miner.load_data()
+        patterns = miner.mine_all(hotel_ids=hotel_ids)
+        _historical_patterns_cache = patterns
+        logger.info(
+            "Historical patterns loaded: %d hotel+category combos",
+            len(patterns),
+        )
+        return patterns
+    except Exception as e:
+        logger.warning("Failed to load historical patterns: %s", e)
+        _historical_patterns_cache = {}
+        return {}
+
+
 def run_analysis() -> dict:
     """Run full analysis on all collected price data.
 
@@ -218,6 +248,10 @@ def run_analysis() -> dict:
     # Load booking behavior benchmarks (seasonality, lead time model)
     benchmarks_data = _load_booking_benchmarks()
 
+    # Load deep historical patterns for ensemble prediction
+    hotel_ids = latest["hotel_id"].unique().tolist()
+    historical_patterns = _load_historical_patterns(hotel_ids=[int(h) for h in hotel_ids])
+
     curve_summary = _decay_curve.to_summary()
     results = {
         "run_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
@@ -236,6 +270,14 @@ def run_analysis() -> dict:
         "events": events_data,
         "knowledge": knowledge_data,
         "benchmarks": benchmarks_data,
+        "historical_patterns_summary": {
+            "loaded": bool(historical_patterns),
+            "n_combos": len(historical_patterns),
+            "avg_quality": round(
+                np.mean([v.get("data_quality", 0) for v in historical_patterns.values()])
+                if historical_patterns else 0, 2
+            ),
+        },
     }
 
     # ── 1. Hotel-level summary ──────────────────────────────────────
@@ -387,22 +429,35 @@ def _build_enrichments(date_from, now: datetime) -> Enrichments:
 
 
 def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: datetime) -> dict:
-    """Predict daily prices until check-in using forward curve walk.
+    """Predict daily prices until check-in using deep ensemble prediction.
 
-    Algo-trading strategy:
-    - Walk the empirical decay curve day-by-day from current T to T=0
-    - Each day gets its own expected change from the T-indexed curve
-    - Momentum from 3-hour scans adjusts near-term predictions
-    - Events, seasonality, demand applied as per-day adjustments
-    - Regime detection flags rooms diverging from expected behavior
-    - Per-T confidence intervals (not uniform widening)
+    Combines 3 signals via weighted ensemble:
+    1. Forward curve walk (decay curve day-by-day with momentum + enrichments)
+    2. Historical pattern analysis (same-period, lead-time, DOW, events)
+    3. ML forecast from Darts models (if available)
+
+    Falls back to forward-curve-only if deep predictor fails for any room.
     """
     predictions = {}
     curve = _decay_curve
 
+    # Initialize DeepPredictor with historical patterns and ML models dir
+    try:
+        from config.settings import MODELS_DIR
+        ml_models_dir = MODELS_DIR
+    except Exception:
+        ml_models_dir = None
+
+    deep_predictor = DeepPredictor(
+        decay_curve=curve,
+        historical_patterns=_historical_patterns_cache,
+        ml_models_dir=ml_models_dir,
+    )
+
     for _, row in latest.iterrows():
         detail_id = int(row["detail_id"])
         current_price = float(row["room_price"])
+        hotel_id = int(row["hotel_id"])
         date_from = pd.Timestamp(row["date_from"])
         days_to_checkin = (date_from - pd.Timestamp(now)).days
         category = str(row["room_category"]).lower()
@@ -424,84 +479,133 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
         # Build enrichments
         enrichments = _build_enrichments(date_from, now)
 
-        # Walk the forward curve
-        fwd = predict_forward_curve(
-            detail_id=detail_id,
-            hotel_id=int(row["hotel_id"]),
-            current_price=current_price,
-            current_t=days_to_checkin,
-            category=category,
-            board=board,
-            curve=curve,
-            momentum_state=mom.to_dict(),
-            enrichments=enrichments,
-        )
-
-        # Cancellation probability from lead-time benchmarks
-        cancel_prob = None
+        # Try deep ensemble prediction first
         try:
-            from src.analytics.booking_benchmarks import get_cancel_probability
-            cancel_prob = get_cancel_probability(days_to_checkin)
-        except Exception:
-            pass
+            deep_result = deep_predictor.predict(
+                detail_id=detail_id,
+                hotel_id=hotel_id,
+                current_price=current_price,
+                days_to_checkin=days_to_checkin,
+                category=category,
+                board=board,
+                date_from=date_from,
+                all_snapshots=all_snapshots,
+                enrichments=enrichments,
+                momentum_state=mom.to_dict(),
+                regime_state=regime.to_dict(),
+            )
 
-        # Get probabilities at current T
-        prob_info = curve.get_probabilities(days_to_checkin)
+            # Add fields that analyzer manages (labels, momentum, regime)
+            deep_result["momentum"] = mom.to_dict()
+            deep_result["regime"] = regime.to_dict()
+            deep_result["hotel_name"] = row["hotel_name"]
+            deep_result["hotel_id"] = hotel_id
+            deep_result["category"] = _safe_label(CATEGORIES, row["room_category"])
+            deep_result["board"] = _safe_label(BOARDS, row["room_board"])
 
-        # Final predicted price
-        final_price = fwd.points[-1].predicted_price if fwd.points else current_price
-        cumulative_pct = fwd.points[-1].cumulative_change_pct if fwd.points else 0.0
+            predictions[detail_id] = deep_result
 
-        # Backward-compatible daily format
-        daily_predictions = []
-        for pt in fwd.points:
-            daily_predictions.append({
-                "date": pt.date,
-                "days_remaining": pt.t,
-                "predicted_price": pt.predicted_price,
-                "lower_bound": pt.lower_bound,
-                "upper_bound": pt.upper_bound,
-                "dow": pt.dow,
-            })
-
-        predictions[detail_id] = {
-            "hotel_name": row["hotel_name"],
-            "hotel_id": int(row["hotel_id"]),
-            "category": _safe_label(CATEGORIES, row["room_category"]),
-            "board": _safe_label(BOARDS, row["room_board"]),
-            "current_price": current_price,
-            "date_from": str(row["date_from"]),
-            "days_to_checkin": days_to_checkin,
-            "predicted_checkin_price": round(final_price, 2),
-            "expected_change_pct": round(cumulative_pct, 2),
-            "probability": prob_info,
-            "cancel_probability": round(cancel_prob, 3) if cancel_prob is not None else None,
-            "model_type": "forward_curve" if curve.total_tracks > 0 else "default",
-            "daily": daily_predictions,
-            # New algo-trading fields
-            "momentum": mom.to_dict(),
-            "regime": regime.to_dict(),
-            "confidence_quality": fwd.confidence_quality,
-            "forward_curve": [
-                {
-                    "date": pt.date,
-                    "t": pt.t,
-                    "predicted_price": pt.predicted_price,
-                    "daily_change_pct": pt.daily_change_pct,
-                    "cumulative_change_pct": pt.cumulative_change_pct,
-                    "lower_bound": pt.lower_bound,
-                    "upper_bound": pt.upper_bound,
-                    "volatility_at_t": pt.volatility_at_t,
-                    "event_adj_pct": pt.event_adj_pct,
-                    "season_adj_pct": pt.season_adj_pct,
-                    "demand_adj_pct": pt.demand_adj_pct,
-                    "momentum_adj_pct": pt.momentum_adj_pct,
-                }
-                for pt in fwd.points
-            ],
-        }
+        except Exception as e:
+            logger.warning(
+                "Deep predictor failed for detail %d, falling back to forward curve: %s",
+                detail_id, e,
+            )
+            # Fallback: forward-curve-only prediction (original logic)
+            predictions[detail_id] = _predict_forward_curve_only(
+                row, detail_id, current_price, hotel_id, date_from,
+                days_to_checkin, category, board, curve, mom, regime,
+                enrichments, all_snapshots,
+            )
 
     return predictions
+
+
+def _predict_forward_curve_only(
+    row,
+    detail_id: int,
+    current_price: float,
+    hotel_id: int,
+    date_from,
+    days_to_checkin: int,
+    category: str,
+    board: str,
+    curve: DecayCurve,
+    mom,
+    regime,
+    enrichments: Enrichments,
+    all_snapshots: pd.DataFrame,
+) -> dict:
+    """Fallback: original forward-curve-only prediction."""
+    fwd = predict_forward_curve(
+        detail_id=detail_id,
+        hotel_id=hotel_id,
+        current_price=current_price,
+        current_t=days_to_checkin,
+        category=category,
+        board=board,
+        curve=curve,
+        momentum_state=mom.to_dict(),
+        enrichments=enrichments,
+    )
+
+    cancel_prob = None
+    try:
+        from src.analytics.booking_benchmarks import get_cancel_probability
+        cancel_prob = get_cancel_probability(days_to_checkin)
+    except Exception:
+        pass
+
+    prob_info = curve.get_probabilities(days_to_checkin)
+    final_price = fwd.points[-1].predicted_price if fwd.points else current_price
+    cumulative_pct = fwd.points[-1].cumulative_change_pct if fwd.points else 0.0
+
+    daily_predictions = []
+    for pt in fwd.points:
+        daily_predictions.append({
+            "date": pt.date,
+            "days_remaining": pt.t,
+            "predicted_price": pt.predicted_price,
+            "lower_bound": pt.lower_bound,
+            "upper_bound": pt.upper_bound,
+            "dow": pt.dow,
+        })
+
+    return {
+        "hotel_name": row["hotel_name"],
+        "hotel_id": hotel_id,
+        "category": _safe_label(CATEGORIES, row["room_category"]),
+        "board": _safe_label(BOARDS, row["room_board"]),
+        "current_price": current_price,
+        "date_from": str(row["date_from"]),
+        "days_to_checkin": days_to_checkin,
+        "predicted_checkin_price": round(final_price, 2),
+        "expected_change_pct": round(cumulative_pct, 2),
+        "probability": prob_info,
+        "cancel_probability": round(cancel_prob, 3) if cancel_prob is not None else None,
+        "model_type": "forward_curve" if curve.total_tracks > 0 else "default",
+        "prediction_method": "forward_curve_only",
+        "daily": daily_predictions,
+        "momentum": mom.to_dict(),
+        "regime": regime.to_dict(),
+        "confidence_quality": fwd.confidence_quality,
+        "forward_curve": [
+            {
+                "date": pt.date,
+                "t": pt.t,
+                "predicted_price": pt.predicted_price,
+                "daily_change_pct": pt.daily_change_pct,
+                "cumulative_change_pct": pt.cumulative_change_pct,
+                "lower_bound": pt.lower_bound,
+                "upper_bound": pt.upper_bound,
+                "volatility_at_t": pt.volatility_at_t,
+                "event_adj_pct": pt.event_adj_pct,
+                "season_adj_pct": pt.season_adj_pct,
+                "demand_adj_pct": pt.demand_adj_pct,
+                "momentum_adj_pct": pt.momentum_adj_pct,
+            }
+            for pt in fwd.points
+        ],
+    }
 
 
 def _analyze_booking_window(latest: pd.DataFrame, now: datetime) -> dict:
