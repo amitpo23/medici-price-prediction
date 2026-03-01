@@ -52,7 +52,11 @@ async def salesoffice_dashboard():
 
     Open in browser for the visual report.
     """
-    analysis = _get_or_run_analysis()
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        return HTMLResponse(content=_loading_page(
+            "Analytics Dashboard", "/api/v1/salesoffice/dashboard"
+        ))
     html = _generate_html(analysis)
     return HTMLResponse(content=html)
 
@@ -304,7 +308,11 @@ async def salesoffice_insights():
     """Price insights — when prices go up/down, days below/above today."""
     from src.analytics.insights_page import generate_insights_html
 
-    analysis = _get_or_run_analysis()
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        return HTMLResponse(content=_loading_page(
+            "Price Insights", "/api/v1/salesoffice/insights"
+        ))
     html = generate_insights_html(analysis)
     return HTMLResponse(content=html)
 
@@ -576,6 +584,12 @@ def _run_collection_cycle() -> dict | None:
     return analysis
 
 
+def _get_cached_analysis() -> dict | None:
+    """Return cached analysis or None — never blocks."""
+    with _cache_lock:
+        return dict(_cache) if _cache else None
+
+
 def _get_or_run_analysis() -> dict:
     """Return cached analysis or run a fresh one."""
     with _cache_lock:
@@ -591,6 +605,48 @@ def _get_or_run_analysis() -> dict:
     if result is None:
         raise HTTPException(status_code=503, detail="No SalesOffice data available. Check DB connection.")
     return result
+
+
+def _loading_page(title: str, redirect_url: str) -> str:
+    """Return a self-refreshing loading page while analysis warms up."""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="12;url={redirect_url}">
+<title>{title} — Loading</title>
+<style>
+body{{background:#0f1117;color:#e4e7ec;font-family:'Inter',-apple-system,sans-serif;
+display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}}
+.box{{text-align:center;max-width:480px;padding:40px;}}
+h1{{font-size:1.6em;background:linear-gradient(135deg,#c7d2fe,#818cf8);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:16px;}}
+p{{color:#8b90a0;margin:8px 0;font-size:0.95em;}}
+.spinner{{width:48px;height:48px;border:4px solid #2d3140;border-top-color:#818cf8;
+border-radius:50%;animation:spin 1s linear infinite;margin:24px auto;}}
+@keyframes spin{{to{{transform:rotate(360deg);}}}}
+.bar{{height:4px;background:#2d3140;border-radius:2px;margin:24px 0;overflow:hidden;}}
+.bar-fill{{height:100%;width:40%;background:linear-gradient(90deg,#6366f1,#818cf8);
+border-radius:2px;animation:slide 1.5s ease-in-out infinite;}}
+@keyframes slide{{0%{{margin-left:-40%;}}100%{{margin-left:100%;}}}}
+small{{color:#4b5563;font-size:0.8em;}}
+</style>
+</head>
+<body>
+<div class="box">
+    <div class="spinner"></div>
+    <h1>{title}</h1>
+    <div class="bar"><div class="bar-fill"></div></div>
+    <p>The analysis engine is running in the background.</p>
+    <p>This page will refresh automatically in a few seconds.</p>
+    <small>First run after deployment takes ~2 minutes to collect and analyze all room prices.</small>
+</div>
+<script>
+// Also try to refresh every 12 seconds via JS
+setTimeout(() => window.location.reload(), 12000);
+</script>
+</body>
+</html>"""
 
 
 def _generate_html(analysis: dict) -> str:
