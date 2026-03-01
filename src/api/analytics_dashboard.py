@@ -2,6 +2,7 @@
 
 Endpoints:
   GET /api/v1/salesoffice/dashboard  — Interactive HTML dashboard (Plotly)
+  GET /api/v1/salesoffice/info       — System information & documentation (HTML)
   GET /api/v1/salesoffice/data       — Raw analysis JSON
   GET /api/v1/salesoffice/simple     — Simplified human-readable JSON
   GET /api/v1/salesoffice/simple/text — Plain text report
@@ -262,6 +263,39 @@ async def salesoffice_hotel_profile(hotel_id: int):
     if "error" in profile:
         raise HTTPException(status_code=404, detail=profile["error"])
     return JSONResponse(content=profile)
+
+
+@router.get("/info", response_class=HTMLResponse)
+async def salesoffice_info():
+    """System information & documentation — how everything works."""
+    from src.analytics.info_page import generate_info_html
+    from src.analytics.data_sources import DATA_SOURCES
+
+    # Try to get DB stats for the KPI section
+    db_stats = None
+    try:
+        from src.data.trading_db import run_trading_query
+        df = run_trading_query("""
+            SELECT t.name AS table_name, p.rows AS row_count,
+                   SUM(a.total_pages) * 8 / 1024 AS size_mb
+            FROM sys.tables t
+            INNER JOIN sys.indexes i ON t.object_id = i.object_id
+            INNER JOIN sys.partitions p ON i.object_id = p.object_id
+                AND i.index_id = p.index_id
+            INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
+            WHERE i.index_id <= 1
+            GROUP BY t.name, p.rows
+        """)
+        db_stats = {
+            "total_tables": len(df),
+            "total_rows": int(df["row_count"].sum()),
+            "total_size_mb": int(df["size_mb"].sum()),
+        }
+    except Exception:
+        pass
+
+    html = generate_info_html(DATA_SOURCES, db_stats)
+    return HTMLResponse(content=html)
 
 
 @router.get("/status")
