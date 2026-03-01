@@ -3,6 +3,7 @@
 Endpoints:
   GET /api/v1/salesoffice/dashboard  — Interactive HTML dashboard (Plotly)
   GET /api/v1/salesoffice/info       — System information & documentation (HTML)
+  GET /api/v1/salesoffice/insights   — Price insights: up/down, below/above today (HTML)
   GET /api/v1/salesoffice/data       — Raw analysis JSON
   GET /api/v1/salesoffice/simple     — Simplified human-readable JSON
   GET /api/v1/salesoffice/simple/text — Plain text report
@@ -295,6 +296,16 @@ async def salesoffice_info():
         pass
 
     html = generate_info_html(DATA_SOURCES, db_stats)
+    return HTMLResponse(content=html)
+
+
+@router.get("/insights", response_class=HTMLResponse)
+async def salesoffice_insights():
+    """Price insights — when prices go up/down, days below/above today."""
+    from src.analytics.insights_page import generate_insights_html
+
+    analysis = _get_or_run_analysis()
+    html = generate_insights_html(analysis)
     return HTMLResponse(content=html)
 
 
