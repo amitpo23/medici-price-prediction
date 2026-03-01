@@ -284,6 +284,182 @@ async def salesoffice_status():
     }
 
 
+# ── Market Data endpoints (new mega-tables) ──────────────────────────
+
+@router.get("/market/search-data")
+async def market_search_data(hotel_id: int | None = None, days_back: int = 30):
+    """AI Search Hotel Data — price history from 8.5M search records."""
+    try:
+        from src.data.trading_db import load_ai_search_data
+        hotel_ids = [hotel_id] if hotel_id else None
+        df = load_ai_search_data(hotel_ids=hotel_ids, days_back=days_back)
+        return {
+            "source": "AI_Search_HotelData",
+            "total_records": len(df),
+            "hotels": df["HotelId"].nunique() if not df.empty else 0,
+            "date_range": {
+                "from": str(df["UpdatedAt"].min()) if not df.empty else None,
+                "to": str(df["UpdatedAt"].max()) if not df.empty else None,
+            },
+            "records": df.to_dict(orient="records")[:500],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Market data query failed: {e}")
+
+
+@router.get("/market/search-summary")
+async def market_search_summary(hotel_id: int | None = None):
+    """Aggregated market pricing stats per hotel from AI search data."""
+    try:
+        from src.data.trading_db import load_ai_search_summary
+        hotel_ids = [hotel_id] if hotel_id else None
+        df = load_ai_search_summary(hotel_ids=hotel_ids)
+        return {
+            "source": "AI_Search_HotelData",
+            "total_hotels": len(df),
+            "hotels": df.to_dict(orient="records"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Summary query failed: {e}")
+
+
+@router.get("/market/search-results")
+async def market_search_results(hotel_id: int | None = None, days_back: int = 7):
+    """Search Results Poll Log — net/gross prices, providers, room details."""
+    try:
+        from src.data.trading_db import load_search_results_summary
+        hotel_ids = [hotel_id] if hotel_id else None
+        df = load_search_results_summary(hotel_ids=hotel_ids)
+        return {
+            "source": "SearchResultsSessionPollLog",
+            "total_hotels": len(df),
+            "hotels": df.to_dict(orient="records"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Search results query failed: {e}")
+
+
+@router.get("/market/price-updates")
+async def market_price_updates(days_back: int = 30):
+    """Room price change events — every price update tracked."""
+    try:
+        from src.data.trading_db import load_price_updates
+        df = load_price_updates(days_back=days_back)
+        return {
+            "source": "RoomPriceUpdateLog",
+            "total_updates": len(df),
+            "unique_rooms": df["PreBookId"].nunique() if not df.empty else 0,
+            "updates": df.to_dict(orient="records")[:500],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Price updates query failed: {e}")
+
+
+@router.get("/market/price-velocity")
+async def market_price_velocity(hotel_id: int | None = None):
+    """Price change velocity per hotel — how fast prices move."""
+    try:
+        from src.data.trading_db import load_price_update_velocity
+        hotel_ids = [hotel_id] if hotel_id else None
+        df = load_price_update_velocity(hotel_ids=hotel_ids)
+        return {
+            "source": "RoomPriceUpdateLog",
+            "hotels": df.to_dict(orient="records"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Velocity query failed: {e}")
+
+
+@router.get("/market/competitors/{hotel_id}")
+async def market_competitors(hotel_id: int, radius_km: float = 5.0,
+                              stars: int | None = None):
+    """Find competitor hotels within radius using geo coordinates."""
+    try:
+        from src.data.trading_db import load_competitor_hotels
+        df = load_competitor_hotels(hotel_id, radius_km=radius_km, stars=stars)
+        return {
+            "hotel_id": hotel_id,
+            "radius_km": radius_km,
+            "total_competitors": len(df),
+            "competitors": df.to_dict(orient="records"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Competitor query failed: {e}")
+
+
+@router.get("/market/prebooks")
+async def market_prebooks(hotel_id: int | None = None, days_back: int = 90):
+    """Pre-booking data with provider pricing and cancellation policies."""
+    try:
+        from src.data.trading_db import load_prebooks
+        hotel_ids = [hotel_id] if hotel_id else None
+        df = load_prebooks(hotel_ids=hotel_ids, days_back=days_back)
+        return {
+            "source": "MED_PreBook",
+            "total_prebooks": len(df),
+            "prebooks": df.to_dict(orient="records"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Prebook query failed: {e}")
+
+
+@router.get("/market/cancellations")
+async def market_cancellations(days_back: int = 365):
+    """Booking cancellation history with reasons."""
+    try:
+        from src.data.trading_db import load_cancellations
+        df = load_cancellations(days_back=days_back)
+        return {
+            "source": "MED_CancelBook",
+            "total_cancellations": len(df),
+            "cancellations": df.to_dict(orient="records"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Cancellation query failed: {e}")
+
+
+@router.get("/market/hotels-geo")
+async def market_hotels_geo():
+    """Hotel metadata with lat/long, stars, country."""
+    try:
+        from src.data.trading_db import load_hotels_with_geo
+        df = load_hotels_with_geo()
+        return {
+            "source": "Med_Hotels + Med_Hotels_instant",
+            "total_hotels": len(df),
+            "hotels": df.to_dict(orient="records")[:200],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Geo query failed: {e}")
+
+
+@router.get("/market/db-overview")
+async def market_db_overview():
+    """Full database overview — all tables with row counts."""
+    try:
+        from src.data.trading_db import run_trading_query
+        df = run_trading_query("""
+            SELECT t.name AS table_name, p.rows AS row_count,
+                   SUM(a.total_pages) * 8 / 1024 AS size_mb
+            FROM sys.tables t
+            INNER JOIN sys.indexes i ON t.object_id = i.object_id
+            INNER JOIN sys.partitions p ON i.object_id = p.object_id
+                AND i.index_id = p.index_id
+            INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
+            WHERE i.index_id <= 1
+            GROUP BY t.name, p.rows
+            ORDER BY p.rows DESC
+        """)
+        return {
+            "total_tables": len(df),
+            "total_rows": int(df["row_count"].sum()),
+            "total_size_mb": int(df["size_mb"].sum()),
+            "tables": df.to_dict(orient="records"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"DB overview failed: {e}")
+
+
 # ── Background scheduler ─────────────────────────────────────────────
 
 def start_salesoffice_scheduler() -> None:

@@ -261,6 +261,350 @@ def load_historical_prices() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# AI Search Hotel Data (8.5M rows — competitor/market pricing)
+# ---------------------------------------------------------------------------
+
+def load_ai_search_data(hotel_ids: list[int] | None = None,
+                        days_back: int = 90) -> pd.DataFrame:
+    """Load AI search hotel pricing data.
+
+    This is the richest pricing table: 8.5M rows with prices across
+    6,000+ hotels, 323 cities, room types, boards, and stars.
+    """
+    query = """
+        SELECT Id, HotelId, HotelName, CityName, StayFrom, StayTo,
+               CountryCode, PriceAmount, PriceAmountCurrency,
+               CancellationType, RoomType, UpdatedAt, Board, Stars
+        FROM AI_Search_HotelData
+        WHERE UpdatedAt >= DATEADD(day, :days_back, GETDATE())
+    """
+    params = {"days_back": -abs(days_back)}
+    if hotel_ids:
+        placeholders = ",".join(str(int(h)) for h in hotel_ids)
+        query += f" AND HotelId IN ({placeholders})"
+    query += " ORDER BY UpdatedAt DESC"
+    df = run_trading_query(query, params)
+    return _convert_date_columns(df, ["StayFrom", "StayTo", "UpdatedAt"])
+
+
+def load_ai_search_summary(hotel_ids: list[int] | None = None) -> pd.DataFrame:
+    """Load aggregated AI search stats per hotel — lightweight summary."""
+    query = """
+        SELECT HotelId, HotelName, CityName, Stars,
+               COUNT(*) AS search_count,
+               AVG(PriceAmount) AS avg_price,
+               MIN(PriceAmount) AS min_price,
+               MAX(PriceAmount) AS max_price,
+               MIN(UpdatedAt) AS first_seen,
+               MAX(UpdatedAt) AS last_seen,
+               COUNT(DISTINCT RoomType) AS room_types,
+               COUNT(DISTINCT Board) AS boards
+        FROM AI_Search_HotelData
+    """
+    if hotel_ids:
+        placeholders = ",".join(str(int(h)) for h in hotel_ids)
+        query += f" WHERE HotelId IN ({placeholders})"
+    query += " GROUP BY HotelId, HotelName, CityName, Stars ORDER BY search_count DESC"
+    return run_trading_query(query)
+
+
+def load_ai_search_price_history(hotel_id: int, room_type: str | None = None,
+                                  board: str | None = None) -> pd.DataFrame:
+    """Load price time-series for a specific hotel from AI search data."""
+    query = """
+        SELECT StayFrom, StayTo, PriceAmount, RoomType, Board,
+               CancellationType, UpdatedAt
+        FROM AI_Search_HotelData
+        WHERE HotelId = :hotel_id
+    """
+    params = {"hotel_id": hotel_id}
+    if room_type:
+        query += " AND RoomType = :room_type"
+        params["room_type"] = room_type
+    if board:
+        query += " AND Board = :board"
+        params["board"] = board
+    query += " ORDER BY UpdatedAt"
+    df = run_trading_query(query, params)
+    return _convert_date_columns(df, ["StayFrom", "StayTo", "UpdatedAt"])
+
+
+# ---------------------------------------------------------------------------
+# Search Results Session Poll Log (8.3M rows — detailed search results)
+# ---------------------------------------------------------------------------
+
+def load_search_results(hotel_ids: list[int] | None = None,
+                        days_back: int = 90) -> pd.DataFrame:
+    """Load detailed search results with net/gross prices and providers.
+
+    Excludes large JSON fields (RequestJson, ResponseJson) to keep queries fast.
+    """
+    query = """
+        SELECT Id, RequestTime, DateInsert, PriceAmount, PriceAmountCurrency,
+               NetPriceAmount, NetPriceCurrency, BarRateAmount,
+               Confirmation, PaymentType, Providers,
+               RoomName, RoomCategory, RoomBedding, RoomBoard,
+               HotelId, PaxAdults, CancellationType,
+               CancellationFrom, CancellationTo
+        FROM SearchResultsSessionPollLog
+        WHERE DateInsert >= DATEADD(day, :days_back, GETDATE())
+    """
+    params = {"days_back": -abs(days_back)}
+    if hotel_ids:
+        placeholders = ",".join(str(int(h)) for h in hotel_ids)
+        query += f" AND HotelId IN ({placeholders})"
+    query += " ORDER BY DateInsert DESC"
+    df = run_trading_query(query, params)
+    return _convert_date_columns(df, ["RequestTime", "DateInsert",
+                                       "CancellationFrom", "CancellationTo"])
+
+
+def load_search_results_summary(hotel_ids: list[int] | None = None) -> pd.DataFrame:
+    """Aggregated search results stats per hotel."""
+    query = """
+        SELECT HotelId,
+               COUNT(*) AS search_count,
+               AVG(PriceAmount) AS avg_gross_price,
+               AVG(NetPriceAmount) AS avg_net_price,
+               MIN(PriceAmount) AS min_price,
+               MAX(PriceAmount) AS max_price,
+               AVG(PriceAmount - NetPriceAmount) AS avg_margin,
+               COUNT(DISTINCT RoomCategory) AS categories,
+               COUNT(DISTINCT RoomBoard) AS boards,
+               COUNT(DISTINCT Providers) AS provider_combos,
+               MIN(DateInsert) AS first_seen,
+               MAX(DateInsert) AS last_seen
+        FROM SearchResultsSessionPollLog
+    """
+    if hotel_ids:
+        placeholders = ",".join(str(int(h)) for h in hotel_ids)
+        query += f" WHERE HotelId IN ({placeholders})"
+    query += " GROUP BY HotelId ORDER BY search_count DESC"
+    return run_trading_query(query)
+
+
+# ---------------------------------------------------------------------------
+# MED_SearchHotels (7M rows — historical search data 2020-2023)
+# ---------------------------------------------------------------------------
+
+def load_med_search_hotels(hotel_ids: list[int] | None = None) -> pd.DataFrame:
+    """Load historical search results (2020-2023 era).
+
+    133 hotels, 3 providers — valuable for long-term pattern analysis.
+    """
+    query = """
+        SELECT RequestTime, DateForm AS DateFrom, DateTo, NumberOfNights,
+               HotelId, CategoryId, BeddingId, BoardId,
+               PaxAdultsCount AS Adults, Price, CurrencyId,
+               providerId, providerName, CancellationType, source
+        FROM MED_SearchHotels
+    """
+    if hotel_ids:
+        placeholders = ",".join(str(int(h)) for h in hotel_ids)
+        query += f" WHERE HotelId IN ({placeholders})"
+    query += " ORDER BY RequestTime DESC"
+    return run_trading_query(query)
+
+
+# ---------------------------------------------------------------------------
+# Room Price Update Log (82K rows — every price change event)
+# ---------------------------------------------------------------------------
+
+def load_price_updates(days_back: int = 180) -> pd.DataFrame:
+    """Load price change events — shows every time a room price was updated."""
+    query = """
+        SELECT r.Id, r.DateInsert, r.PreBookId, r.Price,
+               b.HotelId, b.startDate AS DateFrom, b.endDate AS DateTo,
+               b.source AS Source
+        FROM RoomPriceUpdateLog r
+        LEFT JOIN MED_Book b ON r.PreBookId = b.PreBookId
+        WHERE r.DateInsert >= DATEADD(day, :days_back, GETDATE())
+        ORDER BY r.DateInsert DESC
+    """
+    df = run_trading_query(query, {"days_back": -abs(days_back)})
+    return _convert_date_columns(df, ["DateInsert", "DateFrom", "DateTo"])
+
+
+def load_price_update_velocity(hotel_ids: list[int] | None = None) -> pd.DataFrame:
+    """Compute price change velocity — how fast and how much prices move."""
+    query = """
+        SELECT b.HotelId,
+               COUNT(r.Id) AS total_updates,
+               COUNT(DISTINCT r.PreBookId) AS unique_rooms,
+               AVG(r.Price) AS avg_price,
+               STDEV(r.Price) AS price_stdev,
+               MIN(r.DateInsert) AS first_update,
+               MAX(r.DateInsert) AS last_update
+        FROM RoomPriceUpdateLog r
+        JOIN MED_Book b ON r.PreBookId = b.PreBookId
+    """
+    if hotel_ids:
+        placeholders = ",".join(str(int(h)) for h in hotel_ids)
+        query += f" WHERE b.HotelId IN ({placeholders})"
+    query += " GROUP BY b.HotelId ORDER BY total_updates DESC"
+    return run_trading_query(query)
+
+
+# ---------------------------------------------------------------------------
+# PreBook data (10.7K rows — pre-booking with provider info)
+# ---------------------------------------------------------------------------
+
+def load_prebooks(hotel_ids: list[int] | None = None,
+                  days_back: int = 180) -> pd.DataFrame:
+    """Load pre-booking data with provider and pricing info."""
+    query = """
+        SELECT PreBookId, DateInsert, HotelId, DateForm AS DateFrom,
+               DateTo, Price, CurrencyId, CategoryId, BoardId,
+               PaxAdultsCount AS Adults, PaxChildrenCount AS Children,
+               CancellationType, ProviderName, source AS Source,
+               NumberOfNights
+        FROM MED_PreBook
+        WHERE DateInsert >= DATEADD(day, :days_back, GETDATE())
+    """
+    params = {"days_back": -abs(days_back)}
+    if hotel_ids:
+        placeholders = ",".join(str(int(h)) for h in hotel_ids)
+        query += f" AND HotelId IN ({placeholders})"
+    query += " ORDER BY DateInsert DESC"
+    df = run_trading_query(query, params)
+    return _convert_date_columns(df, ["DateInsert", "DateFrom", "DateTo"])
+
+
+# ---------------------------------------------------------------------------
+# Destinations & Hotel Geo (40K + 745K rows)
+# ---------------------------------------------------------------------------
+
+def load_destinations() -> pd.DataFrame:
+    """Load all destinations with geo coordinates."""
+    query = """
+        SELECT Id, Name, Type, Latitude, Longitude, CountryId, SeoName
+        FROM Destinations
+        WHERE Latitude IS NOT NULL AND Longitude IS NOT NULL
+    """
+    return run_trading_query(query)
+
+
+def load_hotels_with_geo() -> pd.DataFrame:
+    """Load hotel metadata with lat/long from Med_Hotels_instant."""
+    query = """
+        SELECT h.HotelId, h.name AS Name, h.isActive AS IsActive,
+               h.BoardId, h.CategoryId,
+               i.stars AS Stars, i.countryName AS Country,
+               i.countryIso AS CountryCode,
+               i.Latitude, i.Longitude
+        FROM Med_Hotels h
+        LEFT JOIN Med_Hotels_instant i ON h.HotelId = i.HotelId
+        WHERE h.isActive = 1
+    """
+    return run_trading_query(query)
+
+
+def load_competitor_hotels(hotel_id: int, radius_km: float = 5.0,
+                           stars: int | None = None) -> pd.DataFrame:
+    """Find competitor hotels within radius using Haversine approx.
+
+    Uses Med_Hotels_instant for lat/long, then filters by distance.
+    """
+    # First get our hotel's coordinates
+    ref = run_trading_query(
+        "SELECT Latitude, Longitude FROM Med_Hotels_instant WHERE HotelId = :hid",
+        {"hid": hotel_id}
+    )
+    if ref.empty or ref.iloc[0]["Latitude"] is None:
+        return pd.DataFrame()
+
+    lat, lon = float(ref.iloc[0]["Latitude"]), float(ref.iloc[0]["Longitude"])
+    # Rough bounding box (1 degree ~ 111 km)
+    delta = radius_km / 111.0
+    query = """
+        SELECT i.HotelId, i.name AS Name, i.stars AS Stars,
+               i.countryName AS Country, i.Latitude, i.Longitude
+        FROM Med_Hotels_instant i
+        WHERE i.isActive = 1
+          AND i.Latitude BETWEEN :lat_min AND :lat_max
+          AND i.Longitude BETWEEN :lon_min AND :lon_max
+          AND i.HotelId != :hotel_id
+    """
+    params = {
+        "lat_min": lat - delta, "lat_max": lat + delta,
+        "lon_min": lon - delta, "lon_max": lon + delta,
+        "hotel_id": hotel_id,
+    }
+    if stars is not None:
+        query += " AND i.stars = :stars"
+        params["stars"] = stars
+    df = run_trading_query(query, params)
+    if df.empty:
+        return df
+
+    # Compute actual distance
+    df["distance_km"] = df.apply(
+        lambda r: _haversine(lat, lon, float(r["Latitude"]), float(r["Longitude"])),
+        axis=1,
+    )
+    df = df[df["distance_km"] <= radius_km].sort_values("distance_km")
+    return df
+
+
+def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Haversine distance in km."""
+    import math
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+         * math.sin(dlon / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+# ---------------------------------------------------------------------------
+# SalesOffice Log (1.2M rows — action/event logs)
+# ---------------------------------------------------------------------------
+
+def load_salesoffice_log(order_id: int | None = None,
+                         days_back: int = 30) -> pd.DataFrame:
+    """Load SalesOffice action logs."""
+    query = """
+        SELECT l.Id, l.SalesOfficeOrderId, l.SalesOfficeDetailId,
+               l.DateCreated, l.Message, l.ActionId, l.ActionResultId,
+               a.Name AS ActionName, r.Name AS ResultName
+        FROM [SalesOffice.Log] l
+        LEFT JOIN [SalesOffice.LogActionsDictionary] a ON l.ActionId = a.Id
+        LEFT JOIN [SalesOffice.LogActionsResultDictionary] r ON l.ActionResultId = r.Id
+        WHERE l.DateCreated >= DATEADD(day, :days_back, GETDATE())
+    """
+    params = {"days_back": -abs(days_back)}
+    if order_id is not None:
+        query += " AND l.SalesOfficeOrderId = :order_id"
+        params["order_id"] = order_id
+    query += " ORDER BY l.DateCreated DESC"
+    df = run_trading_query(query, params)
+    return _convert_date_columns(df, ["DateCreated"])
+
+
+# ---------------------------------------------------------------------------
+# Cancellation data (MED_CancelBook — 4.7K rows)
+# ---------------------------------------------------------------------------
+
+def load_cancellations(days_back: int = 365) -> pd.DataFrame:
+    """Load booking cancellation history with reasons."""
+    query = """
+        SELECT c.Id, c.DateInsert, c.PreBookId, c.contentBookingID,
+               c.CancellationReason, c.CancellationDate,
+               b.HotelId, b.startDate AS DateFrom, b.endDate AS DateTo,
+               b.price AS BuyPrice
+        FROM MED_CancelBook c
+        LEFT JOIN MED_Book b ON c.PreBookId = b.PreBookId
+        WHERE c.DateInsert >= DATEADD(day, :days_back, GETDATE())
+        ORDER BY c.DateInsert DESC
+    """
+    df = run_trading_query(query, {"days_back": -abs(days_back)})
+    return _convert_date_columns(df, ["DateInsert", "CancellationDate",
+                                       "DateFrom", "DateTo"])
+
+
+# ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
 
