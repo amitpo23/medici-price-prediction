@@ -362,9 +362,17 @@ async def market_price_velocity(hotel_id: int | None = None):
         from src.data.trading_db import load_price_update_velocity
         hotel_ids = [hotel_id] if hotel_id else None
         df = load_price_update_velocity(hotel_ids=hotel_ids)
+        # Replace NaN/NaT with None for JSON serialization
+        df = df.where(df.notna(), None)
+        records = df.to_dict(orient="records")
+        # Convert datetime objects to strings
+        for rec in records:
+            for k, v in rec.items():
+                if hasattr(v, "isoformat"):
+                    rec[k] = v.isoformat()
         return {
             "source": "RoomPriceUpdateLog",
-            "hotels": df.to_dict(orient="records"),
+            "hotels": records,
         }
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Velocity query failed: {e}")

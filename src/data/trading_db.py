@@ -432,7 +432,7 @@ def load_price_update_velocity(hotel_ids: list[int] | None = None) -> pd.DataFra
                COUNT(r.Id) AS total_updates,
                COUNT(DISTINCT r.PreBookId) AS unique_rooms,
                AVG(r.Price) AS avg_price,
-               STDEV(r.Price) AS price_stdev,
+               ISNULL(STDEV(r.Price), 0) AS price_stdev,
                MIN(r.DateInsert) AS first_update,
                MAX(r.DateInsert) AS last_update
         FROM RoomPriceUpdateLog r
