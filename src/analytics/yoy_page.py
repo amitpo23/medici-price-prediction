@@ -218,6 +218,51 @@ _BENCHMARKS: dict = {
         "global_rank_total_pax": 27,
         "global_rank_intl_freight": 5,
     },
+
+    # ── Miami Airbnb / Short-term Rental (STR) market ─────────────────
+    # Source: Airbtics Nov 2024 - Oct 2025 (insideairbnb.com blocked, Airbtics proxy)
+    "airbnb_miami": {
+        "active_listings_city": 7263,
+        "active_listings_metro": 22409,  # AirDNA broader Miami-Dade count
+        "median_occupancy_pct": 69.0,
+        "adr": 197.0,
+        "revpar": 136.0,  # computed: 69% × $197
+        "avg_annual_revenue": 47000,
+        "avg_monthly_revenue": 3956,
+        "international_guest_pct": 24.27,
+        "yoy_revenue_change_pct": 25.28,
+        "peak_month": "February",
+        "trough_month": "September",
+        "monthly_revenue": {
+            "November": 3455, "December": 4261, "January": 3843,
+            "February": 4485, "March": 4329, "April": 4099,
+            "May": 3861, "June": 3774, "July": 3917,
+            "August": 3914, "September": 3106, "October": 4406,
+        },
+        "neighborhoods": {
+            "Brickell":      {"listings": 1304, "annual_rev": 70612, "occupancy_pct": 75, "adr": 250},
+            "Downtown Miami":{"listings": 1141, "annual_rev": 60334, "occupancy_pct": 67, "adr": 241},
+            "Coconut Grove": {"listings": 705,  "annual_rev": 57245, "occupancy_pct": 75, "adr": 204},
+            "Wynwood":       {"listings": 469,  "occupancy_pct": None, "adr": 188},
+            "Little Havana": {"listings": 234,  "occupancy_pct": None, "adr": 134},
+        },
+        "property_type": {
+            "Entire home": 4831, "Condo": 1535, "Private room": 792,
+            "Shared room": 79, "Hotel room": 26,
+        },
+        "bedroom_distribution": {
+            "Studio": 623, "1 bed": 2838, "2 bed": 1764,
+            "3 bed": 681, "4 bed": 274, "5+ bed": 186,
+        },
+        # Inside Airbnb listings.csv columns (schema from public docs — CSV itself 403 blocked)
+        "insideairbnb_columns": [
+            "id", "name", "host_id", "host_name", "neighbourhood_group", "neighbourhood",
+            "latitude", "longitude", "room_type", "price", "minimum_nights",
+            "number_of_reviews", "last_review", "reviews_per_month",
+            "calculated_host_listings_count", "availability_365",
+            "number_of_reviews_ltm", "license",
+        ],
+    },
 }
 
 # Source 2: TBO Hotels Dataset — Miami area supply (2978 hotels, metadata only)
@@ -724,6 +769,35 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
             f'<td class="bm-note">{diff}</td></tr>'
         )
 
+    # ── Section 5e: Airbnb STR market ────────────────────────────────
+    airbnb = benchmarks.get("airbnb_miami", {})
+    airbnb_occ = airbnb.get("median_occupancy_pct", 0)
+    airbnb_adr = airbnb.get("adr", 0)
+    airbnb_revpar = airbnb.get("revpar", 0)
+    airbnb_listings = airbnb.get("active_listings_city", 0)
+    airbnb_monthly = airbnb.get("monthly_revenue", {})
+    airbnb_nbhd = airbnb.get("neighborhoods", {})
+    def _airbnb_nbhd_row(nb: str, d: dict) -> str:
+        occ_str = f'{d["occupancy_pct"]:.0f}%' if d.get("occupancy_pct") else "—"
+        rev_str = f'${d["annual_rev"]:,}' if d.get("annual_rev") else "—"
+        return (
+            f'<tr><td class="bm-month">{nb}</td>'
+            f'<td>{d.get("listings", 0):,}</td>'
+            f'<td>{occ_str}</td>'
+            f'<td>${d.get("adr", 0):.0f}</td>'
+            f'<td>{rev_str}</td></tr>'
+        )
+    airbnb_nbhd_rows = "".join(_airbnb_nbhd_row(nb, d) for nb, d in airbnb_nbhd.items())
+    airbnb_monthly_rows = "".join(
+        f'<tr><td class="bm-month">{m[:3]}</td><td>${rev:,}</td></tr>'
+        for m, rev in airbnb_monthly.items()
+    )
+    airbnb_prop_rows = "".join(
+        f'<tr><td class="bm-month">{pt}</td><td>{cnt:,}</td>'
+        f'<td><div class="bar-bg"><div class="bar-fill bar-mid" style="width:{min(int(cnt/airbnb_listings*180),100)}%"></div></div></td></tr>'
+        for pt, cnt in airbnb.get("property_type", {}).items()
+    )
+
     # ── Section 6: Miami Airport (MIA) statistics ────────────────────
     mia_pax = benchmarks.get("mia_annual_passengers", {})
     mia_cargo = benchmarks.get("mia_annual_cargo_tons_m", {})
@@ -942,7 +1016,50 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
         </div>
     </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">&#9317; Miami International Airport (MIA) Traffic</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9317; Miami Airbnb / Short-term Rental (STR) Market</h3>
+    <div class="bm-meta">
+        <span class="bm-badge">Source: Airbtics · Inside Airbnb · AirDNA</span>
+        <span class="bm-badge">7,263 active listings (city) · 22,409 (Miami-Dade metro)</span>
+        <span class="bm-badge">Nov 2024 – Oct 2025</span>
+    </div>
+    <div class="explainer" style="margin-bottom:12px">
+        Hotel vs STR comparison — Miami proper:
+        Hotels: ADR $222 · Occ 73.9% · RevPAR $164 &nbsp;|&nbsp;
+        Airbnb: ADR <strong>${airbnb_adr:.0f}</strong> · Occ <strong>{airbnb_occ:.0f}%</strong> · RevPAR <strong>${airbnb_revpar:.0f}</strong>.
+        Hotels command <strong>+{(222-airbnb_adr)/airbnb_adr*100:.0f}%</strong> ADR premium over STR.
+    </div>
+    <div class="bm-grid">
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Top Neighborhoods (Airbnb)</h4>
+            <p class="bm-desc">Brickell is the top performer: $250 ADR, 75% occ, $70K annual revenue.
+            Downtown Miami follows at $241 ADR. STR ADR in premium neighborhoods approaches hotel rates.</p>
+            <table class="bm-table">
+                <thead><tr><th>Neighborhood</th><th>Listings</th><th>Occ</th><th>ADR</th><th>Annual Rev</th></tr></thead>
+                <tbody>{airbnb_nbhd_rows}</tbody>
+            </table>
+        </div>
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Monthly Revenue Seasonality</h4>
+            <p class="bm-desc">Airbnb peak = Feb ($4,485/mo). Trough = Sep ($3,106). Pattern mirrors hotels.
+            Relatively stable year-round (+25.3% YoY revenue growth). {airbnb_listings:,} active listings.
+            International guests: {airbnb.get("international_guest_pct", 0):.1f}% of bookings.</p>
+            <table class="bm-table">
+                <thead><tr><th>Month</th><th>Avg Monthly Revenue</th></tr></thead>
+                <tbody>{airbnb_monthly_rows}</tbody>
+            </table>
+        </div>
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Property Type Distribution</h4>
+            <p class="bm-desc">67% entire homes, 21% condos. Condo inventory directly competes with hotel suites.
+            Only 26 hotel rooms listed on Airbnb (hotels primarily on OTAs).</p>
+            <table class="bm-table">
+                <thead><tr><th>Type</th><th>Listings</th><th>Share</th></tr></thead>
+                <tbody>{airbnb_prop_rows}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 class="hotel-header" style="margin-top:32px">&#9318; Miami International Airport (MIA) Traffic</h3>
     <div class="bm-meta">
         <span class="bm-badge">Source: MIA official press releases · miami-airport.com · ACI rankings</span>
         <span class="bm-badge">#1 US intl passengers · #1 US intl cargo · #10 US total pax (2024)</span>
@@ -961,7 +1078,7 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
         </div>
     </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">&#9318; Miami Hotel Supply — TBO Dataset</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9319; Miami Hotel Supply — TBO Dataset</h3>
     {tbo_html}
     """
 
