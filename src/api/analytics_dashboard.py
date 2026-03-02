@@ -5,6 +5,7 @@ Endpoints:
   GET /api/v1/salesoffice/info       — System information & documentation (HTML)
   GET /api/v1/salesoffice/insights   — Price insights: up/down, below/above today (HTML)
   GET /api/v1/salesoffice/yoy        — Year-over-Year comparison: decay curve, calendar spread (HTML)
+  GET /api/v1/salesoffice/options    — Options trading: CALL/PUT signals + expiry analytics (HTML)
   GET /api/v1/salesoffice/data       — Raw analysis JSON
   GET /api/v1/salesoffice/simple     — Simplified human-readable JSON
   GET /api/v1/salesoffice/simple/text — Plain text report
@@ -40,6 +41,12 @@ _yoy_cache: dict = {}
 _yoy_cache_ts: list[float] = [0.0]   # mutable container so inner function can update it
 _yoy_loading: list[bool] = [False]   # guard against duplicate background loads
 _YOY_CACHE_TTL = 6 * 3600           # 6 hours
+
+# Options expiry cache (separate — 6-hour TTL)
+_options_expiry_cache: dict = {}
+_options_expiry_ts: list[float] = [0.0]
+_options_loading: list[bool] = [False]
+_OPTIONS_CACHE_TTL = 6 * 3600
 
 
 # ── Auth (reuse from integration) ────────────────────────────────────
@@ -377,6 +384,52 @@ async def salesoffice_yoy():
     return HTMLResponse(content=_loading_page(
         "Year-over-Year Price Comparison", "/api/v1/salesoffice/yoy"
     ))
+
+
+@router.get("/options", response_class=HTMLResponse)
+async def salesoffice_options():
+    """Options trading signals + 6-month expiry-relative analytics."""
+    import time
+    from src.analytics.options_page import generate_options_html
+
+    # Section A needs existing analysis cache (non-blocking)
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        return HTMLResponse(content=_loading_page(
+            "Options Trading Signals", "/api/v1/salesoffice/options"
+        ))
+
+    # Section B: separate 6h cache for historical expiry data
+    expiry_data: dict = {}
+    if _options_expiry_cache and (time.time() - _options_expiry_ts[0]) < _OPTIONS_CACHE_TTL:
+        expiry_data = dict(_options_expiry_cache)
+    elif not _options_loading[0]:
+        def _run_options_expiry():
+            import time as _t
+            from src.data.yoy_db import load_unified_yoy_data
+            from src.analytics.options_engine import build_expiry_metrics
+            _options_loading[0] = True
+            try:
+                HOTEL_IDS = [66814, 854881, 20702, 24982]
+                df = load_unified_yoy_data(HOTEL_IDS)
+                if not df.empty:
+                    summaries, rollups = build_expiry_metrics(df)
+                    _options_expiry_cache.clear()
+                    _options_expiry_cache.update({
+                        "summaries": summaries.to_dict("records") if not summaries.empty else [],
+                        "rollups": rollups,
+                    })
+                    _options_expiry_ts[0] = _t.time()
+                    logger.info("Options expiry cache populated")
+            except Exception as exc:
+                logger.error("Options expiry load failed: %s", exc, exc_info=True)
+            finally:
+                _options_loading[0] = False
+
+        threading.Thread(target=_run_options_expiry, daemon=True).start()
+
+    html = generate_options_html(analysis, expiry_data)
+    return HTMLResponse(content=html)
 
 
 @router.get("/status")
