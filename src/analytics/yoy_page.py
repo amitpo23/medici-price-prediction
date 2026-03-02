@@ -186,6 +186,38 @@ _BENCHMARKS: dict = {
     },
 
     "weekend_premium_pct": 4.3,  # +4.3% weekend vs weekday ADR (directly from CSV)
+
+    # ── Miami International Airport (MIA) passenger statistics ───────
+    # Source: official MIA press releases / miamidade.gov / ACI rankings
+    "mia_annual_passengers": {
+        "2019": {"total_m": 45.92, "note": "Pre-pandemic baseline"},
+        "2020": {"total_m": 18.66, "note": "COVID collapse -59.4%"},
+        "2021": {"total_m": 37.30, "note": "Recovery +99.9% YoY"},
+        "2022": {"total_m": 50.68, "domestic_m": 29.3,  "international_m": 21.3,
+                 "note": "Record at the time; #1 US intl passengers"},
+        "2023": {"total_m": 52.34, "domestic_m": 29.1,  "international_m": 23.24,
+                 "note": "+3.3% YoY; 96 carriers"},
+        "2024": {"total_m": 55.93, "domestic_m": 30.76, "international_m": 25.17,
+                 "note": "+6.8% YoY; +22% vs 2019; #10 US, #1 US intl pax"},
+        "2025": {"total_m": 55.30, "domestic_m": 30.5,  "international_m": 24.8,
+                 "note": "-1.1% YoY; slight softening"},
+    },
+    "mia_annual_cargo_tons_m": {
+        "2019": 2.30, "2020": 2.32, "2021": 2.70,
+        "2022": 2.70, "2023": 2.78, "2024": 3.008,
+    },
+    "mia_annual_operations": {
+        "2019": 416000, "2020": 252000, "2021": 387973,
+        "2022": 472400, "2023": 461792, "2024": 485448,
+    },
+    "mia_rankings_2024": {
+        "us_rank_total_pax": 10,
+        "us_rank_intl_pax": 1,
+        "us_rank_intl_cargo": 1,
+        "us_rank_total_cargo": 3,
+        "global_rank_total_pax": 27,
+        "global_rank_intl_freight": 5,
+    },
 }
 
 # Source 2: TBO Hotels Dataset — Miami area supply (2978 hotels, metadata only)
@@ -692,7 +724,37 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
             f'<td class="bm-note">{diff}</td></tr>'
         )
 
-    # ── Section 6: TBO supply ─────────────────────────────────────────
+    # ── Section 6: Miami Airport (MIA) statistics ────────────────────
+    mia_pax = benchmarks.get("mia_annual_passengers", {})
+    mia_cargo = benchmarks.get("mia_annual_cargo_tons_m", {})
+    mia_ops = benchmarks.get("mia_annual_operations", {})
+    mia_rows = ""
+    prev_pax = None
+    for yr in sorted(mia_pax.keys()):
+        d = mia_pax[yr]
+        total = d.get("total_m", 0)
+        dom = d.get("domestic_m")
+        intl = d.get("international_m")
+        note = d.get("note", "")
+        yoy_str = ""
+        if prev_pax:
+            yoy = (total - prev_pax) / prev_pax * 100
+            col = "var(--green)" if yoy >= 0 else "var(--red)"
+            yoy_str = f'<span style="color:{col}">({yoy:+.1f}%)</span>'
+        cargo = mia_cargo.get(yr, 0)
+        ops = mia_ops.get(yr, 0)
+        mia_rows += (
+            f'<tr><td class="bm-month">{yr}</td>'
+            f'<td>{total:.2f}M {yoy_str}</td>'
+            f'<td>{f"{dom:.1f}M" if dom else "—"}</td>'
+            f'<td>{f"{intl:.2f}M" if intl else "—"}</td>'
+            f'<td>{f"{cargo:.2f}M t" if cargo else "—"}</td>'
+            f'<td>{f"{ops:,}" if ops else "—"}</td>'
+            f'<td class="bm-note">{note}</td></tr>'
+        )
+        prev_pax = total
+
+    # ── Section 7: TBO supply ─────────────────────────────────────────
     tbo_html = ""
     if tbo_stats:
         total = tbo_stats.get("total", 0)
@@ -880,7 +942,26 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
         </div>
     </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">&#9317; Miami Hotel Supply — TBO Dataset</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9317; Miami International Airport (MIA) Traffic</h3>
+    <div class="bm-meta">
+        <span class="bm-badge">Source: MIA official press releases · miami-airport.com · ACI rankings</span>
+        <span class="bm-badge">#1 US intl passengers · #1 US intl cargo · #10 US total pax (2024)</span>
+    </div>
+    <div class="bm-grid">
+        <div class="bm-panel" style="grid-column:1/-1">
+            <h4 class="bm-panel-title">Annual Passengers / Cargo / Operations 2019–2025</h4>
+            <p class="bm-desc">MIA is the primary demand driver for Airport-submarket hotels.
+            2024: record 55.9M passengers (+22% vs 2019), 3.0M cargo tons (record), 485K flight ops.
+            Airport ADR historically ~$130 — lowest of Miami submnarkets but highest occupancy (~83%).
+            MIA handles 90% of Florida air trade and 40% of combined air+sea trade.</p>
+            <table class="bm-table">
+                <thead><tr><th>Year</th><th>Total Pax</th><th>Domestic</th><th>International</th><th>Cargo (tons)</th><th>Operations</th><th>Note</th></tr></thead>
+                <tbody>{mia_rows}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 class="hotel-header" style="margin-top:32px">&#9318; Miami Hotel Supply — TBO Dataset</h3>
     {tbo_html}
     """
 
