@@ -4,6 +4,7 @@ Endpoints:
   GET /api/v1/salesoffice/dashboard  — Interactive HTML dashboard (Plotly)
   GET /api/v1/salesoffice/info       — System information & documentation (HTML)
   GET /api/v1/salesoffice/insights   — Price insights: up/down, below/above today (HTML)
+  GET /api/v1/salesoffice/yoy        — Year-over-Year comparison: decay curve, calendar spread (HTML)
   GET /api/v1/salesoffice/data       — Raw analysis JSON
   GET /api/v1/salesoffice/simple     — Simplified human-readable JSON
   GET /api/v1/salesoffice/simple/text — Plain text report
@@ -33,6 +34,12 @@ _scheduler_thread: threading.Thread | None = None
 _scheduler_stop = threading.Event()
 
 COLLECTION_INTERVAL = 3600  # 1 hour
+
+# YoY cache (separate — loaded on first /yoy request, 6-hour TTL)
+_yoy_cache: dict = {}
+_yoy_cache_ts: list[float] = [0.0]   # mutable container so inner function can update it
+_yoy_loading: list[bool] = [False]   # guard against duplicate background loads
+_YOY_CACHE_TTL = 6 * 3600           # 6 hours
 
 
 # ── Auth (reuse from integration) ────────────────────────────────────
@@ -315,6 +322,61 @@ async def salesoffice_insights():
         ))
     html = generate_insights_html(analysis)
     return HTMLResponse(content=html)
+
+
+@router.get("/yoy", response_class=HTMLResponse)
+async def salesoffice_yoy():
+    """Year-over-Year price comparison — decay curve by year, calendar spread, benchmarks."""
+    import time
+    from src.analytics.yoy_page import generate_yoy_html
+
+    # Separate 6-hour cache for YoY data (heavy multi-year query)
+    if _yoy_cache and (time.time() - _yoy_cache_ts[0]) < _YOY_CACHE_TTL:
+        return HTMLResponse(content=generate_yoy_html(_yoy_cache))
+
+    if _yoy_loading[0]:
+        return HTMLResponse(content=_loading_page(
+            "Year-over-Year Price Comparison", "/api/v1/salesoffice/yoy"
+        ))
+
+    # Trigger background load
+    def _run_yoy():
+        import time as _time
+        from src.data.yoy_db import load_unified_yoy_data
+        from src.analytics.yoy_analysis import (
+            build_scan_timeseries,
+            build_t_year_pivot,
+            build_yoy_comparison,
+            build_calendar_spread,
+        )
+        _yoy_loading[0] = True
+        try:
+            HOTEL_IDS = [66814, 854881, 20702, 24982]
+            raw = load_unified_yoy_data(HOTEL_IDS)
+            if raw.empty:
+                logger.warning("YoY: no data returned from DB")
+                return
+            ts = build_scan_timeseries(raw)
+            result: dict = {}
+            for hid in HOTEL_IDS:
+                result[hid] = {
+                    "pivot": build_t_year_pivot(ts, hid),
+                    "comparison": build_yoy_comparison(ts, hid),
+                    "spread": build_calendar_spread(ts, hid),
+                }
+            _yoy_cache.update(result)
+            _yoy_cache_ts[0] = _time.time()
+            logger.info("YoY cache populated for %d hotels", len(result))
+        except Exception as exc:
+            logger.error("YoY background load failed: %s", exc, exc_info=True)
+        finally:
+            _yoy_loading[0] = False
+
+    t = threading.Thread(target=_run_yoy, daemon=True)
+    t.start()
+    return HTMLResponse(content=_loading_page(
+        "Year-over-Year Price Comparison", "/api/v1/salesoffice/yoy"
+    ))
 
 
 @router.get("/status")
