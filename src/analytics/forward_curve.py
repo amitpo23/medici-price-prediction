@@ -494,8 +494,8 @@ class Enrichments:
         month_name = date.strftime("%B")
         idx = self.seasonality_index.get(month_name, 1.0)
         # Convert monthly index deviation to daily adjustment
-        # idx=1.37 (Aug, peak) → ~+0.12%/day upward pressure
-        # idx=0.70 (Jan, low) → ~-0.10%/day downward pressure
+        # idx=1.099 (Feb/Dec, Miami snowbird peak) → ~+0.033%/day upward pressure
+        # idx=0.845 (Sep, Miami hurricane season trough) → ~-0.052%/day downward pressure
         return (idx - 1.0) * 10.0 / 30.0  # spread monthly signal across 30 days
 
     def get_demand_daily_adj(self) -> float:

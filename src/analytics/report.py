@@ -761,13 +761,15 @@ def _build_seasonality_chart(benchmarks: dict) -> str:
     if not benchmarks or benchmarks.get("status") == "no_data":
         return "// No seasonality data"
 
-    seasonality = benchmarks.get("seasonality", {})
+    seasonality = benchmarks.get("seasonality_index", {})
     if not seasonality:
         return "// No seasonality data"
 
     months = list(seasonality.keys())
     values = list(seasonality.values())
-    colors = ["#f87171" if v > 1.1 else ("#4ade80" if v < 0.8 else "#38bdf8") for v in values]
+    # Miami range: 0.845 (Sep trough) to 1.099 (Feb/Dec peak)
+    # Red = peak (>= 1.05), Green = trough (<= 0.90), Blue = mid-range
+    colors = ["#f87171" if v >= 1.05 else ("#4ade80" if v <= 0.90 else "#38bdf8") for v in values]
 
     return f"""
 Plotly.newPlot('seasonality-chart', [{{
@@ -779,8 +781,8 @@ Plotly.newPlot('seasonality-chart', [{{
   marker: {{ color: {json.dumps(colors)} }},
 }}], {{
   ...darkLayout,
-  title: 'ADR Seasonality Index (1.0 = average)',
-  yaxis: {{ ...darkLayout.yaxis, title: 'Index', range: [0, 1.6] }},
+  title: 'ADR Seasonality Index — Miami (1.0 = annual avg, peak=Feb/Dec, trough=Sep)',
+  yaxis: {{ ...darkLayout.yaxis, title: 'Index', range: [0.6, 1.3] }},
   shapes: [{{ type: 'line', x0: -0.5, x1: 11.5, y0: 1.0, y1: 1.0, line: {{ color: '#94a3b8', dash: 'dash' }} }}],
 }});
 """

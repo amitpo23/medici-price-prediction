@@ -1,0 +1,94 @@
+{
+  "source": "Miami hotel market — STR/CoStar 2024 + Hotel Booking Demand dataset (Kaggle, 117,429 bookings 2015-2017)",
+  "base_market": "Miami-Dade County",
+  "seasonality_note": "Miami-specific: peak = Jan-Feb-Dec (snowbird/winter tourism), trough = Sep (hurricane season)",
+  "total_bookings": 117429,
+  "years": "2015-2017 (Kaggle cancel rates) + 2024 (Miami ADR/seasonality)",
+  "hotel_types": {
+    "City Hotel": 78121,
+    "Resort Hotel": 39308
+  },
+  "seasonality_index": {
+    "January": 1.056,
+    "February": 1.099,
+    "March": 1.014,
+    "April": 0.972,
+    "May": 0.930,
+    "June": 0.887,
+    "July": 0.908,
+    "August": 0.887,
+    "September": 0.845,
+    "October": 0.866,
+    "November": 0.930,
+    "December": 1.099
+  },
+  "lead_time_buckets": {
+    "0-7d": {
+      "cancel_rate": 0.097,
+      "avg_adr": 207.46,
+      "bookings": 18608
+    },
+    "8-30d": {
+      "cancel_rate": 0.281,
+      "avg_adr": 234.72,
+      "bookings": 18651
+    },
+    "31-60d": {
+      "cancel_rate": 0.366,
+      "avg_adr": 228.78,
+      "bookings": 16819
+    },
+    "61-90d": {
+      "cancel_rate": 0.397,
+      "avg_adr": 229.31,
+      "bookings": 12487
+    },
+    "91-180d": {
+      "cancel_rate": 0.449,
+      "avg_adr": 234.08,
+      "bookings": 26311
+    },
+    "181-365d": {
+      "cancel_rate": 0.556,
+      "avg_adr": 204.11,
+      "bookings": 21424
+    }
+  },
+  "weekend_premium_pct": 4.3,
+  "city_hotel_benchmarks": {
+    "avg_adr": 222.12,
+    "median_adr": 210.0,
+    "cancel_rate": 0.422,
+    "avg_lead_time_days": 111.0,
+    "repeat_guest_rate": 0.021,
+    "avg_booking_changes": 0.18,
+    "room_change_rate": 0.087
+  },
+  "market_segment_adr": {
+    "Aviation": 102.74,
+    "Corporate": 70.45,
+    "Direct": 117.69,
+    "Groups": 80.51,
+    "Offline TA/TO": 88.35,
+    "Online TA": 117.96
+  },
+  "market_segment_cancel": {
+    "Aviation": 0.221,
+    "Corporate": 0.189,
+    "Direct": 0.154,
+    "Groups": 0.617,
+    "Offline TA/TO": 0.346,
+    "Online TA": 0.369
+  },
+  "miami_market_2024": {
+    "annual_adr": 222.12,
+    "annual_occupancy_pct": 73.9,
+    "annual_revpar": 164.10,
+    "airbnb_adr": 197.0,
+    "airbnb_occupancy_pct": 69.0,
+    "airbnb_revpar": 136.0,
+    "peak_months": ["January", "February", "December"],
+    "trough_month": "September",
+    "source": "STR/CoStar 2024 + Airbtics Nov2024-Oct2025"
+  }
+}

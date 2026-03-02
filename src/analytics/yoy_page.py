@@ -28,6 +28,21 @@ _MONTH_TO_SEASON_KEY: dict[str, str] = {
     "Sep": "September", "Oct": "October", "Nov": "November", "Dec": "December",
 }
 
+# Hotel-specific submarket base ADR (Miami STR/CoStar 2024)
+_HOTEL_SUBMARKET_ADR: dict[int, float] = {
+    66814:  283.0,   # Breakwater South Beach → Miami Beach submarket
+    854881: 255.0,   # citizenM Miami Brickell → Brickell/Downtown
+    20702:  155.0,   # Embassy Suites Airport → Airport submarket
+    24982:  245.0,   # Hilton Miami Downtown → Downtown Miami
+}
+
+# Lead-time relative ratios from Kaggle 117K bookings (applied to Miami base ADR)
+# Ratio = European bucket ADR / European overall avg $104.11
+_LEAD_RATIO: dict[str, float] = {
+    "0-7d": 0.934, "8-30d": 1.056, "31-60d": 1.030,
+    "61-90d": 1.032, "91-180d": 1.053, "181-365d": 0.918,
+}
+
 # ── Embedded benchmark data (avoids runtime file dependency on Azure) ─────────
 
 # Source 1: Miami market ADR by month — Kayak / STR / CoStar (2023-2024)
@@ -377,27 +392,28 @@ def _build_decay_tab(yoy_data: dict) -> str:
 
 # ── Tab 2: YoY Comparison ─────────────────────────────────────────────
 
-def _benchmark_adr(T: int, month_name: str, benchmarks: dict) -> float | None:
-    """Compute seasonally-adjusted industry benchmark ADR for a given T and month."""
-    if not benchmarks:
-        return None
+def _benchmark_adr(T: int, month_name: str, benchmarks: dict, hotel_id: int | None = None) -> float | None:
+    """Miami market benchmark ADR: submarket base × lead-time ratio × seasonality.
+
+    Uses hotel-specific submarket ADR (STR/CoStar 2024) scaled by Kaggle lead-time
+    ratios and Miami seasonality. Produces $130-310 range vs old European $80-120.
+    """
     bucket = _T_TO_LEAD.get(T)
     if not bucket:
         return None
-    lead_data = benchmarks.get("lead_time_buckets", {}).get(bucket, {})
-    base_adr = lead_data.get("avg_adr")
-    if not base_adr:
-        return None
+    base_adr = _HOTEL_SUBMARKET_ADR.get(hotel_id, 222.12)
+    lead_ratio = _LEAD_RATIO.get(bucket, 1.0)
     season_key = _MONTH_TO_SEASON_KEY.get(month_name)
-    season_factor = benchmarks.get("seasonality_index", {}).get(season_key, 1.0) if season_key else 1.0
-    return round(base_adr * season_factor, 2)
+    season_factor = (benchmarks or _BENCHMARKS).get("seasonality_index", {}).get(season_key, 1.0) if season_key else 1.0
+    return round(base_adr * lead_ratio * season_factor, 2)
 
 
 def _build_yoy_comparison_tab(yoy_data: dict, benchmarks: dict) -> str:
     has_benchmarks = bool(benchmarks)
     benchmark_note = (
-        ' Industry ADR from <em>Hotel Booking Demand dataset (2015–2017, 117K bookings)</em>, '
-        'seasonally adjusted by month. Use as directional context only — not Miami-specific.'
+        ' Industry ADR = Miami market benchmark (STR/CoStar 2024): Miami Beach $283 · '
+        'Brickell $255 · Downtown $245 · Airport $155, adjusted for lead-time '
+        '(Kaggle 117K bookings) and Miami seasonality (peak=Feb, trough=Sep).'
         if has_benchmarks else ""
     )
     html = f"""
@@ -451,7 +467,7 @@ def _build_yoy_comparison_tab(yoy_data: dict, benchmarks: dict) -> str:
                 last_html = f"${last_price:,.0f}" if last_price else "—"
 
                 # Industry benchmark ADR (seasonally adjusted)
-                bench_adr = _benchmark_adr(r["T_bucket"], r["checkin_month_name"], benchmarks)
+                bench_adr = _benchmark_adr(r["T_bucket"], r["checkin_month_name"], benchmarks, hotel_id=hotel_id)
                 bench_html = "—"
                 if bench_adr and curr_price:
                     pct_vs_bench = (curr_price - bench_adr) / bench_adr * 100
