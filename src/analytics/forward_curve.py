@@ -143,6 +143,8 @@ class ForwardPoint:
     season_adj_pct: float = 0.0
     demand_adj_pct: float = 0.0
     momentum_adj_pct: float = 0.0
+    weather_adj_pct: float = 0.0
+    competitor_adj_pct: float = 0.0
 
 
 @dataclass
@@ -454,6 +456,8 @@ class Enrichments:
     demand_indicator: str = "NO_DATA"
     events: list[dict] = field(default_factory=list)
     seasonality_index: dict[str, float] = field(default_factory=dict)
+    weather_signal: dict[str, float] = field(default_factory=dict)   # {date_str: adj_pct}
+    competitor_pressure: float = 0.0                                   # -1.0 to +1.0
 
     def get_event_daily_adj(self, date: datetime) -> float:
         """Event impact for a specific date, spread across event window."""
@@ -505,6 +509,21 @@ class Enrichments:
         if self.demand_indicator == "LOW":
             return -0.02  # slight downward pressure per day
         return 0.0
+
+    def get_weather_daily_adj(self, date: datetime) -> float:
+        """Daily adjustment from weather forecast for a specific date.
+
+        Returns 0.0 if no weather data is available for the date.
+        """
+        return self.weather_signal.get(date.strftime("%Y-%m-%d"), 0.0)
+
+    def get_competitor_daily_adj(self) -> float:
+        """Daily adjustment from competitor rate pressure.
+
+        Scaled to ±0.02%/day maximum impact.
+        Positive pressure (we're cheaper) → slight upward pressure on prices.
+        """
+        return self.competitor_pressure * 0.02
 
 
 # ── Forward Curve Prediction ─────────────────────────────────────────
@@ -575,9 +594,11 @@ def predict_forward_curve(
         event_adj = enrichments.get_event_daily_adj(pred_date)
         season_adj = enrichments.get_season_daily_adj(pred_date)
         demand_adj = enrichments.get_demand_daily_adj()
+        weather_adj = enrichments.get_weather_daily_adj(pred_date)
+        comp_adj = enrichments.get_competitor_daily_adj()
 
         # Total daily change
-        total_daily_pct = base_pct + offset_pct + mom_adj + event_adj + season_adj + demand_adj
+        total_daily_pct = base_pct + offset_pct + mom_adj + event_adj + season_adj + demand_adj + weather_adj + comp_adj
 
         # Apply change (multiplicative)
         predicted_price *= (1.0 + total_daily_pct / 100.0)
@@ -603,6 +624,8 @@ def predict_forward_curve(
             season_adj_pct=round(season_adj, 4),
             demand_adj_pct=round(demand_adj, 4),
             momentum_adj_pct=round(mom_adj, 4),
+            weather_adj_pct=round(weather_adj, 4),
+            competitor_adj_pct=round(comp_adj, 4),
         ))
 
     # Determine confidence quality from data density at current T

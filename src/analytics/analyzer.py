@@ -41,6 +41,8 @@ from src.analytics.momentum import compute_momentum
 from src.analytics.regime import detect_regime
 from src.analytics.deep_predictor import DeepPredictor
 from src.analytics.historical_patterns import HistoricalPatternMiner
+from src.analytics.miami_weather import get_weather_forecast
+from src.analytics.xotelo_store import get_competitor_pressure
 
 logger = logging.getLogger(__name__)
 
@@ -391,7 +393,7 @@ def _analyze_rooms(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: datet
     return rooms
 
 
-def _build_enrichments(date_from, now: datetime) -> Enrichments:
+def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None) -> Enrichments:
     """Build enrichments object from all external signals."""
     # Map hotel_impact levels to multipliers
     impact_mults = {
@@ -421,10 +423,30 @@ def _build_enrichments(date_from, now: datetime) -> Enrichments:
     except Exception:
         pass
 
+    # Weather signal (Open-Meteo + NHC, no key required)
+    weather_signal: dict[str, float] = {}
+    try:
+        weather_signal = get_weather_forecast(days=14)
+    except Exception:
+        pass
+
+    # Competitor pressure from Xotelo (no key required)
+    competitor_pressure = 0.0
+    if hotel_id:
+        try:
+            snap = load_latest_snapshot(hotel_id)
+            if snap is not None and not snap.empty and "room_price" in snap.columns:
+                our_adr = float(snap["room_price"].median())
+                competitor_pressure = get_competitor_pressure(hotel_id, our_adr)
+        except Exception:
+            pass
+
     return Enrichments(
         demand_indicator=_flight_demand_cache.get("indicator", "NO_DATA"),
         events=events_list,
         seasonality_index=seasonality,
+        weather_signal=weather_signal,
+        competitor_pressure=competitor_pressure,
     )
 
 
@@ -477,7 +499,7 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
         )
 
         # Build enrichments
-        enrichments = _build_enrichments(date_from, now)
+        enrichments = _build_enrichments(date_from, now, hotel_id=hotel_id)
 
         # Try deep ensemble prediction first
         try:

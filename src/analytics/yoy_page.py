@@ -844,6 +844,43 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
         )
         prev_pax = total
 
+    # ── Section 8: FRED Economic Indicators ──────────────────────────
+    fred_html = ""
+    try:
+        from src.analytics.fred_store import get_fred_indicators
+        fred_data = get_fred_indicators()
+        if fred_data:
+            fred_rows = ""
+            for name, series in fred_data.items():
+                val = series.get("latest_value")
+                dt = series.get("latest_date", "")
+                label = series.get("label", name)
+                val_str = f"{val:,.1f}" if val is not None else "—"
+                fred_rows += (
+                    f'<tr><td class="bm-month">{label}</td>'
+                    f'<td style="font-weight:600">{val_str}</td>'
+                    f'<td class="bm-note">{dt}</td></tr>'
+                )
+            fred_html = f"""
+        <h3 class="hotel-header" style="margin-top:32px">&#9320; FRED Economic Indicators</h3>
+        <div class="bm-meta">
+            <span class="bm-badge">Source: Federal Reserve Bank of St. Louis (FRED)</span>
+            <span class="bm-badge">FL Hotel Employment · Lodging CPI · FL Hospitality Jobs</span>
+        </div>
+        <div class="bm-grid">
+            <div class="bm-panel">
+                <h4 class="bm-panel-title">Latest Economic Readings</h4>
+                <p class="bm-desc">Leading indicators for Miami hotel demand: FL hotel employment
+                (weekly, SA), lodging CPI (monthly), and FL leisure &amp; hospitality total jobs.</p>
+                <table class="bm-table">
+                    <thead><tr><th>Series</th><th>Latest Value</th><th>Date</th></tr></thead>
+                    <tbody>{fred_rows}</tbody>
+                </table>
+            </div>
+        </div>"""
+    except Exception:
+        pass
+
     # ── Section 7: TBO supply ─────────────────────────────────────────
     tbo_html = ""
     if tbo_stats:
@@ -1093,6 +1130,8 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
             </table>
         </div>
     </div>
+
+    {fred_html}
 
     <h3 class="hotel-header" style="margin-top:32px">&#9319; Miami Hotel Supply — TBO Dataset</h3>
     {tbo_html}

@@ -35,6 +35,9 @@ KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME", "")
 KAGGLE_KEY = os.getenv("KAGGLE_KEY", "")
 PREDICTHQ_API_KEY = os.getenv("PREDICTHQ_API_KEY", "")
 SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
+TICKETMASTER_API_KEY = os.getenv("TICKETMASTER_API_KEY", "")
+SEATGEEK_CLIENT_ID = os.getenv("SEATGEEK_CLIENT_ID", "")
+FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 
 # Cache
 CACHE_TTL_HOURS = int(os.getenv("CACHE_TTL_HOURS", "24"))

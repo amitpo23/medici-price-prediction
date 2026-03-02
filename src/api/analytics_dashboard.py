@@ -35,6 +35,7 @@ _scheduler_thread: threading.Thread | None = None
 _scheduler_stop = threading.Event()
 
 COLLECTION_INTERVAL = 3600  # 1 hour
+_last_event_refresh_date: list[str] = [""]  # tracks date of last API event refresh
 
 # YoY cache (separate — loaded on first /yoy request, 6-hour TTL)
 _yoy_cache: dict = {}
@@ -612,6 +613,31 @@ async def market_hotels_geo():
         raise HTTPException(status_code=503, detail=f"Geo query failed: {e}")
 
 
+@router.get("/market/weather")
+async def market_weather():
+    """Miami weather forecast + hurricane proximity status."""
+    from src.analytics.miami_weather import get_weather_forecast, _check_hurricane_proximity
+    return {
+        "adjustments": get_weather_forecast(days=14),
+        "hurricane_adj": _check_hurricane_proximity(),
+    }
+
+
+@router.get("/market/xotelo")
+async def market_xotelo():
+    """Competitor rates from Xotelo for all 4 Miami hotels."""
+    from src.analytics.xotelo_store import get_rates_summary
+    hotel_ids = [66814, 854881, 20702, 24982]
+    return {str(hid): get_rates_summary(hid) for hid in hotel_ids}
+
+
+@router.get("/market/fred")
+async def market_fred():
+    """FRED economic indicators for Miami hotel market context."""
+    from src.analytics.fred_store import get_fred_indicators
+    return get_fred_indicators()
+
+
 @router.get("/market/db-overview")
 async def market_db_overview():
     """Full database overview — all tables with row counts."""
@@ -699,6 +725,19 @@ def _run_collection_cycle() -> dict | None:
         analysis.get("statistics", {}).get("total_rooms", 0),
         analysis.get("statistics", {}).get("total_hotels", 0),
     )
+
+    # Daily API event refresh (Ticketmaster + SeatGeek) — run once per calendar day
+    from datetime import date as _date
+    today_str = _date.today().isoformat()
+    if _last_event_refresh_date[0] != today_str:
+        try:
+            from src.analytics.miami_events_fetcher import refresh_api_events
+            event_result = refresh_api_events(days_ahead=90)
+            _last_event_refresh_date[0] = today_str
+            logger.info("API events refreshed: %s", event_result)
+        except Exception as exc:
+            logger.warning("Event API refresh failed: %s", exc)
+
     return analysis
 
 
