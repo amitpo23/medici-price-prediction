@@ -30,17 +30,52 @@ _MONTH_TO_SEASON_KEY: dict[str, str] = {
 
 # ── Embedded benchmark data (avoids runtime file dependency on Azure) ─────────
 
-# Source: hotel-booking-dataset (mpolinowski/GitHub), 117K bookings 2015-2017
+# Source 1: Miami market ADR by month — Kayak / STR / CoStar (2023-2024)
+# Seasonality index = monthly_adr / annual_avg_adr (annual avg $236.67 per Kayak)
 _BENCHMARKS: dict = {
-    "source": "hotel-booking-dataset (mpolinowski/GitHub)",
-    "total_bookings": 117429,
-    "years": "2015-2017",
-    "hotel_types": {"City Hotel": 78121, "Resort Hotel": 39308},
+    "source": "Miami market benchmarks (Kayak/STR/CoStar/HVS) — compiled 2026-03",
+    "annual_avg_adr": 236.67,
+
+    # Miami-specific seasonality (inverted vs Europe — peak = Jan-Feb-Dec, trough = Sep)
     "seasonality_index": {
-        "January": 0.695, "February": 0.724, "March": 0.787, "April": 0.982,
-        "May": 1.067, "June": 1.14, "July": 1.242, "August": 1.37,
-        "September": 1.031, "October": 0.867, "November": 0.73, "December": 0.81,
+        "January": 1.056, "February": 1.099, "March": 1.014, "April": 0.972,
+        "May": 0.930, "June": 0.887, "July": 0.908, "August": 0.887,
+        "September": 0.845, "October": 0.866, "November": 0.930, "December": 1.099,
     },
+
+    # Monthly ADR by source (USD, all-hotel Miami metro average)
+    "monthly_adr_kayak": {
+        "January": 250, "February": 260, "March": 240, "April": 230,
+        "May": 220, "June": 210, "July": 215, "August": 210,
+        "September": 200, "October": 205, "November": 220, "December": 260,
+    },
+
+    # STR spot readings 2024 (professional hotel-only benchmark)
+    "str_spot_2024": {
+        "March":   {"adr": 284.14, "occupancy_pct": 83.5, "revpar": 237.25},
+        "October": {"adr": 245.28, "revpar": 179.72, "note": "event-driven: Taylor Swift + Adobe MAX"},
+        "Q3_avg":  {"adr": 149.21, "occupancy_pct": 73.7, "revpar": 162.0},
+    },
+
+    # Annual market KPIs (STR/CoStar)
+    "annual_market": {
+        "2019": {"revpar": 154.21, "note": "pre-pandemic baseline"},
+        "2022": {"revpar_approx": 185, "note": "post-pandemic peak, ~20% above 2018"},
+        "2023": {"revpar": 159.22, "revpar_yoy_pct": -6.7, "adr_yoy_pct": -6.0,
+                 "occ_yoy_pct": -2.0, "note": "normalization year"},
+        "2024": {"revpar": 164.0,  "revpar_yoy_pct": 2.6,  "adr_yoy_pct": 0.3,
+                 "occ_yoy_pct": 2.6, "note": "recovery; bounced back H2 2024"},
+    },
+
+    # HVS long-run RevPAR series (Miami-Hialeah)
+    "hvs_annual_revpar": {
+        "2008": 114.32, "2009": 91.32,  "2010": 101.40, "2011": 116.14,
+        "2012": 124.18, "2013": 135.24, "2014": 144.83, "2015": 152.74,
+        "2016": 143.59, "2017": 144.65, "2018": 148.99, "2019": 154.21,
+    },
+
+    # Lead-time ADR buckets — Hotel Booking Demand dataset (European proxy, 2015-2017)
+    # Note: directional signal only — Miami absolute ADR is 2× higher
     "lead_time_buckets": {
         "0-7d":    {"cancel_rate": 0.097, "avg_adr": 95.47,  "bookings": 18608},
         "8-30d":   {"cancel_rate": 0.281, "avg_adr": 109.91, "bookings": 18651},
@@ -49,12 +84,8 @@ _BENCHMARKS: dict = {
         "91-180d": {"cancel_rate": 0.449, "avg_adr": 109.66, "bookings": 26311},
         "181-365d":{"cancel_rate": 0.556, "avg_adr": 95.61,  "bookings": 21424},
     },
-    "weekend_premium_pct": 4.3,
-    "city_hotel_benchmarks": {
-        "avg_adr": 106.87, "median_adr": 100.0, "cancel_rate": 0.422,
-        "avg_lead_time_days": 111.0, "repeat_guest_rate": 0.021,
-        "avg_booking_changes": 0.18, "room_change_rate": 0.087,
-    },
+
+    # Market segment ADR / cancel rate (European proxy — Hotel Booking Demand dataset)
     "market_segment_adr": {
         "Aviation": 102.74, "Corporate": 70.45, "Direct": 117.69,
         "Groups": 80.51, "Offline TA/TO": 88.35, "Online TA": 117.96,
@@ -63,9 +94,10 @@ _BENCHMARKS: dict = {
         "Aviation": 0.221, "Corporate": 0.189, "Direct": 0.154,
         "Groups": 0.617, "Offline TA/TO": 0.346, "Online TA": 0.369,
     },
+    "weekend_premium_pct": 4.3,
 }
 
-# Source: TBO Hotels Dataset — Miami area supply (2978 hotels)
+# Source 2: TBO Hotels Dataset — Miami area supply (2978 hotels, metadata only)
 _TBO_STATS: dict = {
     "total": 2978,
     "ratings": {
@@ -376,134 +408,124 @@ def _build_calendar_spread_tab(yoy_data: dict) -> str:
 # ── Tab 4: External Benchmarks ────────────────────────────────────────
 
 def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
-    """Build the External Benchmarks panel from booking_benchmarks.json and TBO CSV."""
+    """Build the External Benchmarks panel — Miami-specific market data."""
 
-    # ── Hotel Booking Demand Dataset ─────────────────────────────────
-    hbd_html = '<p class="no-data">Hotel Booking Demand dataset not available.</p>'
+    if not benchmarks:
+        return '<p class="no-data">Benchmark data not available.</p>'
 
-    if benchmarks:
-        src = benchmarks.get("source", "Hotel Booking Demand")
-        total = benchmarks.get("total_bookings", 0)
-        years = benchmarks.get("years", "N/A")
-        city_bm = benchmarks.get("city_hotel_benchmarks", {})
+    # ── Section 1: Miami ADR by Month ────────────────────────────────
+    season = benchmarks.get("seasonality_index", {})
+    kayak_adr = benchmarks.get("monthly_adr_kayak", {})
+    annual_avg = benchmarks.get("annual_avg_adr", 236.67)
 
-        # Seasonality bar chart
-        season = benchmarks.get("seasonality_index", {})
-        season_rows = ""
-        for month, idx in season.items():
-            pct = idx * 100
-            bar_w = min(int(idx * 70), 100)
-            bar_cls = "bar-high" if idx >= 1.2 else "bar-mid" if idx >= 1.0 else "bar-low"
-            season_rows += f"""<tr>
-                <td class="bm-month">{month[:3]}</td>
-                <td class="bm-idx">{idx:.3f}</td>
-                <td>
-                    <div class="bar-bg">
-                        <div class="bar-fill {bar_cls}" style="width:{bar_w}%"></div>
-                    </div>
-                </td>
-                <td class="bm-note">{"Peak season" if idx >= 1.2 else "High season" if idx >= 1.0 else "Low season"}</td>
-            </tr>"""
+    season_rows = ""
+    for month, idx in season.items():
+        adr = kayak_adr.get(month, 0)
+        bar_w = min(int(idx * 70), 100)
+        bar_cls = "bar-high" if idx >= 1.05 else "bar-mid" if idx >= 0.95 else "bar-low"
+        label = "Peak" if idx >= 1.05 else "Average" if idx >= 0.95 else "Low"
+        season_rows += (
+            f'<tr><td class="bm-month">{month[:3]}</td>'
+            f'<td>${adr:,.0f}</td>'
+            f'<td class="bm-idx">{idx:.3f}</td>'
+            f'<td><div class="bar-bg"><div class="bar-fill {bar_cls}" style="width:{bar_w}%"></div></div></td>'
+            f'<td class="bm-note">{label}</td></tr>'
+        )
 
-        # Lead-time ADR table
-        lead_rows = ""
-        for bucket, bdata in benchmarks.get("lead_time_buckets", {}).items():
-            adr = bdata.get("avg_adr", 0)
-            cancel = bdata.get("cancel_rate", 0)
-            n = bdata.get("bookings", 0)
-            lead_rows += f"""<tr>
-                <td class="bm-month">{bucket}</td>
-                <td>${adr:,.2f}</td>
-                <td>{cancel * 100:.1f}%</td>
-                <td class="bm-note">{n:,} bookings</td>
-            </tr>"""
+    # ── Section 2: Annual KPIs (STR/CoStar) ──────────────────────────
+    annual = benchmarks.get("annual_market", {})
+    annual_rows = ""
+    for yr in sorted(annual.keys()):
+        d = annual[yr]
+        revpar = d.get("revpar") or d.get("revpar_approx", "—")
+        yoy = d.get("revpar_yoy_pct")
+        yoy_str = f'{yoy:+.1f}%' if yoy is not None else "—"
+        yoy_color = "var(--green)" if (yoy or 0) >= 0 else "var(--red)"
+        note = d.get("note", "")
+        annual_rows += (
+            f'<tr><td class="bm-month">{yr}</td>'
+            f'<td>${revpar if isinstance(revpar, str) else f"{revpar:.2f}"}</td>'
+            f'<td style="color:{yoy_color};font-weight:600">{yoy_str}</td>'
+            f'<td class="bm-note">{note}</td></tr>'
+        )
 
-        # Market segment
-        seg_rows = ""
-        seg_adr = benchmarks.get("market_segment_adr", {})
-        seg_cancel = benchmarks.get("market_segment_cancel", {})
-        for seg, adr in sorted(seg_adr.items(), key=lambda x: -x[1]):
-            cancel = seg_cancel.get(seg, 0)
-            seg_rows += f"""<tr>
-                <td class="bm-month">{seg}</td>
-                <td>${adr:,.2f}</td>
-                <td>{cancel * 100:.1f}%</td>
-            </tr>"""
+    # ── Section 3: STR Spot Readings 2024 ────────────────────────────
+    str_spots = benchmarks.get("str_spot_2024", {})
+    str_rows = ""
+    for period, d in str_spots.items():
+        if not isinstance(d, dict):
+            continue
+        adr = d.get("adr", "—")
+        occ = d.get("occupancy_pct", "—")
+        revpar = d.get("revpar", "—")
+        note = d.get("note", "")
+        str_rows += (
+            f'<tr><td class="bm-month">{period.replace("_", " ")}</td>'
+            f'<td>${adr if isinstance(adr, str) else f"{adr:.2f}"}</td>'
+            f'<td>{f"{occ:.1f}%" if isinstance(occ, (int, float)) else occ}</td>'
+            f'<td>${revpar if isinstance(revpar, str) else f"{revpar:.2f}"}</td>'
+            f'<td class="bm-note">{note}</td></tr>'
+        )
 
-        hbd_html = f"""
-        <div class="bm-meta">
-            <span class="bm-badge">Source: {src}</span>
-            <span class="bm-badge">{total:,} total bookings</span>
-            <span class="bm-badge">{years}</span>
-            <span class="bm-badge">City Hotel avg ADR: ${city_bm.get('avg_adr', 0):,.2f}</span>
-            <span class="bm-badge">Cancel rate: {city_bm.get('cancel_rate', 0) * 100:.1f}%</span>
-            <span class="bm-badge">Avg lead time: {city_bm.get('avg_lead_time_days', 0):.0f}d</span>
-        </div>
+    # ── Section 4: HVS Long-run RevPAR ───────────────────────────────
+    hvs = benchmarks.get("hvs_annual_revpar", {})
+    hvs_rows = ""
+    prev = None
+    for yr in sorted(hvs.keys()):
+        val = hvs[yr]
+        chg = f'{(val - prev) / prev * 100:+.1f}%' if prev else "—"
+        chg_color = "var(--green)" if prev and val >= prev else "var(--red)"
+        hvs_rows += (
+            f'<tr><td class="bm-month">{yr}</td>'
+            f'<td>${val:.2f}</td>'
+            f'<td style="color:{chg_color}">{chg}</td></tr>'
+        )
+        prev = val
 
-        <div class="bm-grid">
-            <div class="bm-panel">
-                <h4 class="bm-panel-title">Seasonality Index by Month</h4>
-                <p class="bm-desc">Index &gt; 1.0 = above-average demand. Apply to ADR benchmarks for seasonal pricing context.</p>
-                <table class="bm-table">
-                    <thead><tr><th>Month</th><th>Index</th><th>Relative demand</th><th></th></tr></thead>
-                    <tbody>{season_rows}</tbody>
-                </table>
-            </div>
-            <div class="bm-panel">
-                <h4 class="bm-panel-title">Average Daily Rate by Lead Time (T)</h4>
-                <p class="bm-desc">Industry ADR at different booking windows. These are the benchmarks used in the YoY Comparison tab.</p>
-                <table class="bm-table">
-                    <thead><tr><th>Lead Time</th><th>Avg ADR</th><th>Cancel Rate</th><th>Sample</th></tr></thead>
-                    <tbody>{lead_rows}</tbody>
-                </table>
-            </div>
-            <div class="bm-panel">
-                <h4 class="bm-panel-title">ADR by Market Segment</h4>
-                <p class="bm-desc">Direct bookings command the highest ADR. Groups and Corporate the lowest.</p>
-                <table class="bm-table">
-                    <thead><tr><th>Segment</th><th>Avg ADR</th><th>Cancel Rate</th></tr></thead>
-                    <tbody>{seg_rows}</tbody>
-                </table>
-            </div>
-        </div>"""
+    # ── Section 5: Lead-time benchmarks (proxy) ──────────────────────
+    lead_rows = ""
+    for bucket, bdata in benchmarks.get("lead_time_buckets", {}).items():
+        adr = bdata.get("avg_adr", 0)
+        cancel = bdata.get("cancel_rate", 0)
+        n = bdata.get("bookings", 0)
+        lead_rows += (
+            f'<tr><td class="bm-month">{bucket}</td>'
+            f'<td>${adr:,.2f}</td>'
+            f'<td>{cancel * 100:.1f}%</td>'
+            f'<td class="bm-note">{n:,}</td></tr>'
+        )
 
-    # ── TBO Hotels Dataset ────────────────────────────────────────────
-    tbo_html = '<p class="no-data">TBO Hotels dataset not available.</p>'
-
+    # ── Section 6: TBO supply ─────────────────────────────────────────
+    tbo_html = ""
     if tbo_stats:
         total = tbo_stats.get("total", 0)
         ratings = tbo_stats.get("ratings", {})
         cities = tbo_stats.get("cities", {})
-
         rating_rows = "".join(
             f'<tr><td class="bm-month">{r}</td><td>{n:,}</td>'
-            f'<td><div class="bar-bg"><div class="bar-fill bar-mid" style="width:{min(int(n/total*200),100)}%"></div></div></td></tr>'
+            f'<td><div class="bar-bg"><div class="bar-fill bar-mid" '
+            f'style="width:{min(int(n / total * 200), 100)}%"></div></div></td></tr>'
             for r, n in sorted(ratings.items(), key=lambda x: -x[1])
         )
         city_rows = "".join(
             f'<tr><td class="bm-month">{c}</td><td>{n:,}</td></tr>'
             for c, n in sorted(cities.items(), key=lambda x: -x[1])
         )
-
         tbo_html = f"""
-        <div class="bm-meta">
-            <span class="bm-badge">Source: TBO Hotels Dataset (Kaggle)</span>
-            <span class="bm-badge">{total:,} Miami-area hotels</span>
-        </div>
         <div class="bm-grid">
             <div class="bm-panel">
-                <h4 class="bm-panel-title">Hotel Distribution by Star Rating</h4>
-                <p class="bm-desc">Market composition of Miami-area hotel supply by tier.</p>
+                <h4 class="bm-panel-title">Hotel Supply by Star Rating</h4>
+                <p class="bm-desc">Miami-area hotel supply composition — TBO dataset (Kaggle), {total:,} properties.</p>
                 <table class="bm-table">
-                    <thead><tr><th>Rating</th><th>Count</th><th>Share</th></tr></thead>
+                    <thead><tr><th>Rating</th><th>Hotels</th><th>Share</th></tr></thead>
                     <tbody>{rating_rows}</tbody>
                 </table>
             </div>
             <div class="bm-panel">
-                <h4 class="bm-panel-title">Top Cities / Areas</h4>
-                <p class="bm-desc">Hotel supply by city/area in the dataset.</p>
+                <h4 class="bm-panel-title">Supply by Sub-market</h4>
+                <p class="bm-desc">Geographic distribution of Miami-area hotel inventory.</p>
                 <table class="bm-table">
-                    <thead><tr><th>City / Area</th><th>Hotels</th></tr></thead>
+                    <thead><tr><th>Area</th><th>Hotels</th></tr></thead>
                     <tbody>{city_rows}</tbody>
                 </table>
             </div>
@@ -511,15 +533,93 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
 
     return f"""
     <div class="explainer">
-        <strong>External Benchmarks:</strong> Industry-wide data from two open datasets used
-        to contextualize our internal YoY price analysis. These are not Miami-specific but provide
-        directional signals about pricing patterns, seasonality, and lead-time behavior.
+        <strong>Miami Market Benchmarks</strong> — compiled from Kayak, STR/CoStar, HVS, and TBO datasets.
+        Annual avg ADR: <strong>${annual_avg:,.2f}</strong> (Kayak, Miami metro all-hotel).
+        Peak months: <span class="premium">Feb &amp; Dec ($260)</span>.
+        Trough: <span class="savings">Sep ($200)</span>.
     </div>
 
-    <h3 class="hotel-header">Hotel Booking Demand Dataset</h3>
-    {hbd_html}
+    <h3 class="hotel-header">&#9312; Miami ADR by Month — Seasonality</h3>
+    <div class="bm-meta">
+        <span class="bm-badge">Source: Kayak (via 30secondcity.com)</span>
+        <span class="bm-badge">Annual avg ADR: ${annual_avg:,.2f}</span>
+        <span class="bm-badge">Miami metro · all hotel classes · 2023-2024</span>
+    </div>
+    <div class="bm-grid">
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Monthly ADR + Seasonality Index</h4>
+            <p class="bm-desc">Index = monthly ADR / annual avg. Miami peak = winter (Jan-Feb) — opposite of Europe.
+            Sep is cheapest month (-15% vs avg).</p>
+            <table class="bm-table">
+                <thead><tr><th>Month</th><th>Avg ADR</th><th>Index</th><th>Demand</th><th></th></tr></thead>
+                <tbody>{season_rows}</tbody>
+            </table>
+        </div>
+    </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">TBO Hotels Dataset — Miami Area Supply</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9313; Annual Market KPIs — STR / CoStar</h3>
+    <div class="bm-meta">
+        <span class="bm-badge">Source: STR / CoStar Benchmark</span>
+        <span class="bm-badge">Miami-Dade hotel market</span>
+        <span class="bm-badge">2019 – 2024</span>
+    </div>
+    <div class="bm-grid">
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Annual RevPAR + YoY Change</h4>
+            <p class="bm-desc">2022 was the post-pandemic peak. 2023 saw normalization (-6.7%).
+            2024 recovery began in H2. 2025 continues upward (+3.3% 12M RevPAR).</p>
+            <table class="bm-table">
+                <thead><tr><th>Year</th><th>RevPAR</th><th>YoY</th><th>Note</th></tr></thead>
+                <tbody>{annual_rows}</tbody>
+            </table>
+        </div>
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">STR Spot Readings 2024</h4>
+            <p class="bm-desc">Professional STR benchmark readings. March is the strongest month
+            ($284 ADR, 83.5% occupancy). Event weeks spike +30%.</p>
+            <table class="bm-table">
+                <thead><tr><th>Period</th><th>ADR</th><th>Occupancy</th><th>RevPAR</th><th>Note</th></tr></thead>
+                <tbody>{str_rows}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 class="hotel-header" style="margin-top:32px">&#9314; Long-run RevPAR Trend — HVS (2008-2019)</h3>
+    <div class="bm-meta">
+        <span class="bm-badge">Source: HVS Hotel Valuation Index</span>
+        <span class="bm-badge">Miami-Hialeah market</span>
+    </div>
+    <div class="bm-grid">
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Annual RevPAR 2008–2019</h4>
+            <p class="bm-desc">Structural uptrend from $91 (GFC trough 2009) to $154 (2019 pre-pandemic peak).
+            Useful long-run baseline for comparison.</p>
+            <table class="bm-table">
+                <thead><tr><th>Year</th><th>RevPAR</th><th>YoY</th></tr></thead>
+                <tbody>{hvs_rows}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 class="hotel-header" style="margin-top:32px">&#9315; Lead-Time ADR Proxy — Hotel Booking Demand</h3>
+    <div class="bm-meta">
+        <span class="bm-badge">Source: Hotel Booking Demand (GitHub / mpolinowski)</span>
+        <span class="bm-badge">117,429 European bookings · 2015-2017</span>
+        <span class="bm-badge" style="background:rgba(234,179,8,0.15);color:var(--yellow);">&#9888; Proxy only — not Miami-specific</span>
+    </div>
+    <div class="bm-grid">
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">ADR + Cancel Rate by Lead Time</h4>
+            <p class="bm-desc">Directional signal: last-minute (0-7d) has lowest cancel rate (9.7%) but also lower ADR.
+            180d+ has 55.6% cancel rate. Miami absolute ADR is ~2× higher.</p>
+            <table class="bm-table">
+                <thead><tr><th>Lead Time</th><th>Avg ADR</th><th>Cancel Rate</th><th>Bookings</th></tr></thead>
+                <tbody>{lead_rows}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 class="hotel-header" style="margin-top:32px">&#9316; Miami Hotel Supply — TBO Dataset</h3>
     {tbo_html}
     """
 
