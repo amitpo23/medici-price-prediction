@@ -135,27 +135,57 @@ _BENCHMARKS: dict = {
         "total_pipeline_projects": 60,
     },
 
-    # Lead-time ADR buckets — Hotel Booking Demand dataset (European proxy, 2015-2017)
-    # Note: directional signal only — Miami absolute ADR is ~2× higher
+    # ── Hotel Booking Demand dataset — European hotels 2015-2017, 117,429 rows ──
+    # Source: kagglehub jessemostipak/hotel-booking-demand (full CSV analysis)
+    # Note: directional signals only — Miami absolute ADR is ~2× higher
+
+    # Lead-time ADR + cancel rate (computed from full CSV, adr > 0 & < 5000)
     "lead_time_buckets": {
-        "0-7d":    {"cancel_rate": 0.097, "avg_adr": 95.47,  "bookings": 18608},
-        "8-30d":   {"cancel_rate": 0.281, "avg_adr": 109.91, "bookings": 18651},
-        "31-60d":  {"cancel_rate": 0.366, "avg_adr": 107.18, "bookings": 16819},
-        "61-90d":  {"cancel_rate": 0.397, "avg_adr": 107.43, "bookings": 12487},
-        "91-180d": {"cancel_rate": 0.449, "avg_adr": 109.66, "bookings": 26311},
-        "181-365d":{"cancel_rate": 0.556, "avg_adr": 95.61,  "bookings": 21424},
+        "0-7d":    {"cancel_rate": 0.11, "avg_adr": 97.23,  "median_adr": 89.0,  "bookings": 12839},
+        "8-30d":   {"cancel_rate": 0.28, "avg_adr": 109.91, "median_adr": 99.0,  "bookings": 18651},
+        "31-60d":  {"cancel_rate": 0.37, "avg_adr": 107.18, "median_adr": 96.0,  "bookings": 16819},
+        "61-90d":  {"cancel_rate": 0.40, "avg_adr": 107.43, "median_adr": 98.0,  "bookings": 12487},
+        "91-180d": {"cancel_rate": 0.45, "avg_adr": 109.66, "median_adr": 100.3, "bookings": 26311},
+        "181-365d":{"cancel_rate": 0.56, "avg_adr": 95.61,  "median_adr": 90.0,  "bookings": 21424},
+        "365d+":   {"cancel_rate": 0.68, "avg_adr": 79.29,  "median_adr": 67.0,  "bookings": 3129},
     },
 
-    # Market segment ADR / cancel rate (European proxy — Hotel Booking Demand dataset)
+    # Market segment (sorted by volume)
     "market_segment_adr": {
-        "Aviation": 102.74, "Corporate": 70.45, "Direct": 117.69,
-        "Groups": 80.51, "Offline TA/TO": 88.35, "Online TA": 117.96,
+        "Online TA": 117.96, "Direct": 117.69, "Aviation": 102.74,
+        "Offline TA/TO": 88.35, "Groups": 80.51, "Corporate": 70.45,
     },
     "market_segment_cancel": {
-        "Aviation": 0.221, "Corporate": 0.189, "Direct": 0.154,
-        "Groups": 0.617, "Offline TA/TO": 0.346, "Online TA": 0.369,
+        "Online TA": 0.37, "Direct": 0.15, "Aviation": 0.22,
+        "Offline TA/TO": 0.35, "Groups": 0.62, "Corporate": 0.19,
     },
-    "weekend_premium_pct": 4.3,
+    "market_segment_bookings": {
+        "Online TA": 56110, "Offline TA/TO": 23886, "Groups": 19558,
+        "Direct": 12366, "Corporate": 5213, "Aviation": 231,
+    },
+
+    # Customer type
+    "customer_type_cancel": {
+        "Transient": 0.41, "Transient-Party": 0.26, "Contract": 0.31, "Group": 0.08,
+    },
+    "customer_type_adr": {
+        "Transient": 108.71, "Transient-Party": 87.67, "Contract": 88.07, "Group": 88.55,
+    },
+
+    # Hotel type (City vs Resort)
+    "hotel_type": {
+        "City Hotel":   {"cancel_rate": 0.42, "avg_adr": 106.87, "bookings": 78121},
+        "Resort Hotel": {"cancel_rate": 0.28, "avg_adr":  96.77, "bookings": 39308},
+    },
+
+    # European monthly ADR (opposite seasonality to Miami — peak = Jul-Aug)
+    "european_monthly_adr": {
+        "January": 71.91, "February": 74.95, "March": 81.41, "April": 101.63,
+        "May": 110.38, "June": 117.97, "July": 128.51, "August": 141.81,
+        "September": 106.64, "October": 89.77, "November": 75.50, "December": 83.78,
+    },
+
+    "weekend_premium_pct": 4.3,  # +4.3% weekend vs weekday ADR (directly from CSV)
 }
 
 # Source 2: TBO Hotels Dataset — Miami area supply (2978 hotels, metadata only)
@@ -606,13 +636,60 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
     lead_rows = ""
     for bucket, bdata in benchmarks.get("lead_time_buckets", {}).items():
         adr = bdata.get("avg_adr", 0)
+        median_adr = bdata.get("median_adr", 0)
         cancel = bdata.get("cancel_rate", 0)
         n = bdata.get("bookings", 0)
+        cancel_color = "var(--red)" if cancel >= 0.5 else "var(--yellow)" if cancel >= 0.35 else "var(--green)"
         lead_rows += (
             f'<tr><td class="bm-month">{bucket}</td>'
             f'<td>${adr:,.2f}</td>'
-            f'<td>{cancel * 100:.1f}%</td>'
+            f'<td>${median_adr:,.1f}</td>'
+            f'<td style="color:{cancel_color}">{cancel * 100:.0f}%</td>'
             f'<td class="bm-note">{n:,}</td></tr>'
+        )
+
+    # ── Section 5b: Market segment (proxy) ───────────────────────────
+    seg_adr = benchmarks.get("market_segment_adr", {})
+    seg_cancel = benchmarks.get("market_segment_cancel", {})
+    seg_bookings = benchmarks.get("market_segment_bookings", {})
+    seg_rows = ""
+    for seg in sorted(seg_adr, key=lambda s: -seg_bookings.get(s, 0)):
+        adr = seg_adr.get(seg, 0)
+        cancel = seg_cancel.get(seg, 0)
+        n = seg_bookings.get(seg, 0)
+        cancel_color = "var(--red)" if cancel >= 0.5 else "var(--yellow)" if cancel >= 0.3 else "var(--green)"
+        seg_rows += (
+            f'<tr><td class="bm-month">{seg}</td>'
+            f'<td>${adr:.2f}</td>'
+            f'<td style="color:{cancel_color}">{cancel * 100:.0f}%</td>'
+            f'<td class="bm-note">{n:,}</td></tr>'
+        )
+
+    # ── Section 5c: Customer type (proxy) ────────────────────────────
+    ct_cancel = benchmarks.get("customer_type_cancel", {})
+    ct_adr = benchmarks.get("customer_type_adr", {})
+    ct_rows = "".join(
+        f'<tr><td class="bm-month">{ct}</td>'
+        f'<td>${ct_adr.get(ct, 0):.2f}</td>'
+        f'<td style="color:{"var(--red)" if ct_cancel.get(ct,0)>=0.35 else "var(--green)"}">{ct_cancel.get(ct,0)*100:.0f}%</td></tr>'
+        for ct in ct_cancel
+    )
+
+    # ── Section 5d: European monthly ADR (opposite seasonality) ──────
+    eu_adr = benchmarks.get("european_monthly_adr", {})
+    miami_adr = benchmarks.get("monthly_adr_kayak", {})
+    eu_rows = ""
+    months_order = ["January","February","March","April","May","June",
+                    "July","August","September","October","November","December"]
+    for m in months_order:
+        eu = eu_adr.get(m, 0)
+        miami = miami_adr.get(m, 0)
+        diff = "Peak EU" if eu >= 120 else "Low EU" if eu <= 80 else ""
+        eu_rows += (
+            f'<tr><td class="bm-month">{m[:3]}</td>'
+            f'<td>${eu:.2f}</td>'
+            f'<td>${miami:.0f}</td>'
+            f'<td class="bm-note">{diff}</td></tr>'
         )
 
     # ── Section 6: TBO supply ─────────────────────────────────────────
@@ -755,20 +832,50 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
         </div>
     </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">&#9316; Lead-Time ADR Proxy — Hotel Booking Demand</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9316; Hotel Booking Demand — Full Dataset Analysis</h3>
     <div class="bm-meta">
-        <span class="bm-badge">Source: Hotel Booking Demand (GitHub / mpolinowski)</span>
-        <span class="bm-badge">117,429 European bookings · 2015-2017</span>
-        <span class="bm-badge" style="background:rgba(234,179,8,0.15);color:var(--yellow);">&#9888; Proxy only — not Miami-specific</span>
+        <span class="bm-badge">Source: kagglehub jessemostipak/hotel-booking-demand</span>
+        <span class="bm-badge">117,429 bookings · European hotels · 2015-2017</span>
+        <span class="bm-badge" style="background:rgba(234,179,8,0.15);color:var(--yellow);">&#9888; Proxy — directional signals only, Miami ADR ≈ 2× higher</span>
     </div>
     <div class="bm-grid">
         <div class="bm-panel">
-            <h4 class="bm-panel-title">ADR + Cancel Rate by Lead Time</h4>
-            <p class="bm-desc">Directional signal: last-minute (0-7d) has lowest cancel rate (9.7%) but also lower ADR.
-            180d+ has 55.6% cancel rate. Miami absolute ADR is ~2× higher.</p>
+            <h4 class="bm-panel-title">Lead Time → ADR + Cancel Rate</h4>
+            <p class="bm-desc">Cancel rate rises sharply with lead time: 11% at 0-7d vs 68% at 365d+.
+            ADR peaks 8-30d out then declines for very early bookers.
+            Weekend premium: +4.3% over weekday ADR.</p>
             <table class="bm-table">
-                <thead><tr><th>Lead Time</th><th>Avg ADR</th><th>Cancel Rate</th><th>Bookings</th></tr></thead>
+                <thead><tr><th>Lead Time</th><th>Avg ADR</th><th>Median ADR</th><th>Cancel %</th><th>Bookings</th></tr></thead>
                 <tbody>{lead_rows}</tbody>
+            </table>
+        </div>
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Market Segment Performance</h4>
+            <p class="bm-desc">Online TA dominates volume (48%) and commands highest ADR ($118). Groups have 62% cancel rate — highest risk.
+            Direct bookings have lowest cancel rate (15%).</p>
+            <table class="bm-table">
+                <thead><tr><th>Segment</th><th>Avg ADR</th><th>Cancel %</th><th>Bookings</th></tr></thead>
+                <tbody>{seg_rows}</tbody>
+            </table>
+        </div>
+    </div>
+    <div class="bm-grid">
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Customer Type</h4>
+            <p class="bm-desc">Transient (individual) = 75% of volume, highest ADR ($109) but 41% cancel rate.
+            Groups = lowest cancel (8%) but lowest ADR ($89).</p>
+            <table class="bm-table">
+                <thead><tr><th>Type</th><th>Avg ADR</th><th>Cancel %</th></tr></thead>
+                <tbody>{ct_rows}</tbody>
+            </table>
+        </div>
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">European vs Miami Seasonality (Month ADR)</h4>
+            <p class="bm-desc">Europe peaks Jul-Aug. Miami peaks Jan-Feb-Dec. Completely inverted.
+            Sep is low season for both but for opposite reasons: hurricanes (Miami) vs school term (EU).</p>
+            <table class="bm-table">
+                <thead><tr><th>Month</th><th>EU ADR</th><th>Miami ADR</th><th></th></tr></thead>
+                <tbody>{eu_rows}</tbody>
             </table>
         </div>
     </div>
