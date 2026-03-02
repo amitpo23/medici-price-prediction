@@ -33,38 +33,86 @@ _MONTH_TO_SEASON_KEY: dict[str, str] = {
 # Source 1: Miami market ADR by month — Kayak / STR / CoStar (2023-2024)
 # Seasonality index = monthly_adr / annual_avg_adr (annual avg $236.67 per Kayak)
 _BENCHMARKS: dict = {
-    "source": "Miami market benchmarks (Kayak/STR/CoStar/HVS) — compiled 2026-03",
-    "annual_avg_adr": 236.67,
+    "source": "Miami market benchmarks (Kayak/STR/CoStar/HVS/GMCVB/CBRE/Newmark) — compiled 2026-03",
+    "annual_avg_adr": 222.12,  # STR/CoStar full-year 2024
 
     # Miami-specific seasonality (inverted vs Europe — peak = Jan-Feb-Dec, trough = Sep)
+    # Derived from Kayak 2023-2024 monthly ADR / annual avg $236.67
     "seasonality_index": {
         "January": 1.056, "February": 1.099, "March": 1.014, "April": 0.972,
         "May": 0.930, "June": 0.887, "July": 0.908, "August": 0.887,
         "September": 0.845, "October": 0.866, "November": 0.930, "December": 1.099,
     },
 
-    # Monthly ADR by source (USD, all-hotel Miami metro average)
+    # Monthly ADR by source (USD, all-hotel Miami metro average — Kayak 2023-2024)
     "monthly_adr_kayak": {
         "January": 250, "February": 260, "March": 240, "April": 230,
         "May": 220, "June": 210, "July": 215, "August": 210,
         "September": 200, "October": 205, "November": 220, "December": 260,
     },
 
-    # STR spot readings 2024 (professional hotel-only benchmark)
+    # STR spot readings 2024 (professional hotel-only benchmark — Miami-Dade)
     "str_spot_2024": {
-        "March":   {"adr": 284.14, "occupancy_pct": 83.5, "revpar": 237.25},
-        "October": {"adr": 245.28, "revpar": 179.72, "note": "event-driven: Taylor Swift + Adobe MAX"},
-        "Q3_avg":  {"adr": 149.21, "occupancy_pct": 73.7, "revpar": 162.0},
+        "February": {"adr": 326.27, "occupancy_pct": 78.1, "revpar": 254.73,
+                     "note": "Miami Beach submarket; occ +0.3%, ADR -1.5% YoY"},
+        "March":   {"adr": 284.14, "occupancy_pct": 83.5, "revpar": 237.25,
+                    "note": "Highest in Top 25 US markets; occ +2.3%, ADR -0.6% YoY"},
+        "October": {"adr": 245.28, "revpar": 179.72, "note": "event-driven: Taylor Swift + Adobe MAX; ADR +29.9% YoY"},
+        "Q3_avg":  {"adr": 169.70, "occupancy_pct": 67.2, "revpar": 114.08, "note": "Off-season Q3 2024"},
     },
 
-    # Annual market KPIs (STR/CoStar)
+    # Annual market KPIs (STR/CoStar — Miami-Dade County)
     "annual_market": {
-        "2019": {"revpar": 154.21, "note": "pre-pandemic baseline"},
-        "2022": {"revpar_approx": 185, "note": "post-pandemic peak, ~20% above 2018"},
-        "2023": {"revpar": 159.22, "revpar_yoy_pct": -6.7, "adr_yoy_pct": -6.0,
-                 "occ_yoy_pct": -2.0, "note": "normalization year"},
-        "2024": {"revpar": 164.0,  "revpar_yoy_pct": 2.6,  "adr_yoy_pct": 0.3,
-                 "occ_yoy_pct": 2.6, "note": "recovery; bounced back H2 2024"},
+        "2019": {"occupancy_pct": 75.0, "adr": 215.29, "revpar": 154.21,
+                 "note": "Pre-pandemic baseline; #3 ADR nationally"},
+        "2020": {"occupancy_pct": 48.8, "adr": 187.01, "revpar": None,
+                 "note": "COVID collapse (Dec 2020 snapshot)"},
+        "2021": {"occupancy_pct": 72.0, "adr": 223.49, "revpar": None,
+                 "note": "Fast recovery; ADR +14.7% vs 2019; 24.2M visitors"},
+        "2022": {"occupancy_pct": 72.1, "adr": 253.11, "revpar": 182.55,
+                 "revpar_yoy_pct": 23.1, "adr_yoy_pct": 14.0,
+                 "note": "Post-pandemic peak; ADR +30% vs 2019; #3 ADR, #3 RevPAR nationally"},
+        "2023": {"occupancy_pct": 71.9, "adr": 209.98, "revpar": 159.22,
+                 "revpar_yoy_pct": -6.7, "adr_yoy_pct": -6.0, "occ_yoy_pct": -0.2,
+                 "note": "Normalization year; 16-month RevPAR decline began"},
+        "2024": {"occupancy_pct": 73.9, "adr": 222.12, "revpar": 164.10,
+                 "revpar_yoy_pct": 3.1, "adr_yoy_pct": 0.4, "occ_yoy_pct": 2.7,
+                 "total_rooms": 67973, "visitors": 28.23,
+                 "note": "Recovery; #4 occ, #3 ADR in Top 25; record 28.2M visitors"},
+        "2025F": {"occupancy_pct": 74.0, "adr": 223.45, "revpar": 165.41,
+                  "revpar_yoy_pct": 0.8, "adr_yoy_pct": 0.6, "occ_yoy_pct": 0.2,
+                  "note": "CBRE forecast; Q1 led Top 25 markets in RevPAR & occupancy"},
+    },
+
+    # 2025 actual monthly data (STR/CoStar press releases)
+    "str_monthly_2025": {
+        "January":  {"occupancy_pct": 79.4, "adr": 256.99, "revpar": 203.95,
+                     "occ_yoy": 1.0, "adr_yoy": 2.1, "revpar_yoy": 3.1},
+        "February": {"occupancy_pct": 85.8, "adr": 305.06, "revpar": 261.61,
+                     "occ_yoy": 2.3, "adr_yoy": 4.6, "revpar_yoy": 7.0},
+        "March":    {"occupancy_pct": 83.2, "adr": 284.25, "revpar": 236.40,
+                     "occ_yoy": -0.4, "adr_yoy": 0.0, "revpar_yoy": -0.4,
+                     "note": "#1 occupancy in all Top 25 US markets"},
+    },
+
+    # Submarket performance (HVS / STR 2019 baseline)
+    "submarket_2019": {
+        "Miami Beach":        {"occupancy_pct": 79.6, "adr": 332.42, "revpar": 264.61},
+        "Downtown/Brickell":  {"occupancy_pct": 77.5, "adr": 215.29, "revpar": 166.85},
+        "Airport":            {"occupancy_pct": 83.0, "adr": 129.54, "revpar": 107.52},
+    },
+
+    # South Florida comparative (Matthews 3Q24 trailing 12 months)
+    "south_florida_t12_3q24": {
+        "Miami":         {"occupancy_pct": 73.3, "adr": 220.31, "revpar": 161.37, "rooms": 67481},
+        "Fort Lauderdale":{"occupancy_pct": 72.2, "adr": 180.32, "revpar": 132.57, "rooms": 39502},
+        "Palm Beach":    {"occupancy_pct": 67.1, "adr": 252.10, "revpar": 169.24, "rooms": 19533},
+    },
+
+    # Market segmentation — chain scale share of Miami market (Matthews 3Q24)
+    "chain_scale_share": {
+        "Luxury": 0.20, "Upper Upscale": 0.23, "Upscale": 0.24,
+        "Upper Midscale": 0.15, "Midscale": 0.06, "Economy": 0.12,
     },
 
     # HVS long-run RevPAR series (Miami-Hialeah)
@@ -74,8 +122,21 @@ _BENCHMARKS: dict = {
         "2016": 143.59, "2017": 144.65, "2018": 148.99, "2019": 154.21,
     },
 
+    # Supply pipeline (Matthews 3Q24)
+    "supply_pipeline": {
+        "total_rooms_2024": 67973,
+        "under_construction": 3600,
+        "under_construction_properties": 21,
+        "new_2023": 423,
+        "new_2024_scheduled": 1200,
+        "new_2025_scheduled": 1200,
+        "new_2026_planned": 5000,
+        "total_pipeline_rooms": 10564,
+        "total_pipeline_projects": 60,
+    },
+
     # Lead-time ADR buckets — Hotel Booking Demand dataset (European proxy, 2015-2017)
-    # Note: directional signal only — Miami absolute ADR is 2× higher
+    # Note: directional signal only — Miami absolute ADR is ~2× higher
     "lead_time_buckets": {
         "0-7d":    {"cancel_rate": 0.097, "avg_adr": 95.47,  "bookings": 18608},
         "8-30d":   {"cancel_rate": 0.281, "avg_adr": 109.91, "bookings": 18651},
@@ -437,15 +498,40 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
     annual_rows = ""
     for yr in sorted(annual.keys()):
         d = annual[yr]
-        revpar = d.get("revpar") or d.get("revpar_approx", "—")
+        occ = d.get("occupancy_pct")
+        adr = d.get("adr")
+        revpar = d.get("revpar") or d.get("revpar_approx")
         yoy = d.get("revpar_yoy_pct")
         yoy_str = f'{yoy:+.1f}%' if yoy is not None else "—"
         yoy_color = "var(--green)" if (yoy or 0) >= 0 else "var(--red)"
         note = d.get("note", "")
         annual_rows += (
             f'<tr><td class="bm-month">{yr}</td>'
-            f'<td>${revpar if isinstance(revpar, str) else f"{revpar:.2f}"}</td>'
+            f'<td>{f"{occ:.1f}%" if occ else "—"}</td>'
+            f'<td>{f"${adr:.2f}" if adr else "—"}</td>'
+            f'<td>{f"${revpar:.2f}" if revpar else "—"}</td>'
             f'<td style="color:{yoy_color};font-weight:600">{yoy_str}</td>'
+            f'<td class="bm-note">{note}</td></tr>'
+        )
+
+    # ── Section 2b: 2025 actual monthly data ─────────────────────────
+    m2025 = benchmarks.get("str_monthly_2025", {})
+    m2025_rows = ""
+    for month, d in m2025.items():
+        occ = d.get("occupancy_pct", 0)
+        adr = d.get("adr", 0)
+        revpar = d.get("revpar", 0)
+        occ_yoy = d.get("occ_yoy", 0)
+        adr_yoy = d.get("adr_yoy", 0)
+        revpar_yoy = d.get("revpar_yoy", 0)
+        note = d.get("note", "")
+        def _yc(v: float) -> str:
+            return "var(--green)" if v >= 0 else "var(--red)"
+        m2025_rows += (
+            f'<tr><td class="bm-month">{month}</td>'
+            f'<td>{occ:.1f}% <small style="color:{_yc(occ_yoy)}">({occ_yoy:+.1f}%)</small></td>'
+            f'<td>${adr:.2f} <small style="color:{_yc(adr_yoy)}">({adr_yoy:+.1f}%)</small></td>'
+            f'<td>${revpar:.2f} <small style="color:{_yc(revpar_yoy)}">({revpar_yoy:+.1f}%)</small></td>'
             f'<td class="bm-note">{note}</td></tr>'
         )
 
@@ -465,6 +551,40 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
             f'<td>{f"{occ:.1f}%" if isinstance(occ, (int, float)) else occ}</td>'
             f'<td>${revpar if isinstance(revpar, str) else f"{revpar:.2f}"}</td>'
             f'<td class="bm-note">{note}</td></tr>'
+        )
+
+    # ── Section 3b: Submarket comparison ─────────────────────────────
+    submarket = benchmarks.get("submarket_2019", {})
+    sub_rows = "".join(
+        f'<tr><td class="bm-month">{sm}</td>'
+        f'<td>{d.get("occupancy_pct",0):.1f}%</td>'
+        f'<td>${d.get("adr",0):.2f}</td>'
+        f'<td>${d.get("revpar",0):.2f}</td></tr>'
+        for sm, d in submarket.items()
+    )
+
+    # ── Section 3c: South Florida comparison ─────────────────────────
+    sf = benchmarks.get("south_florida_t12_3q24", {})
+    sf_rows = "".join(
+        f'<tr><td class="bm-month">{mkt}</td>'
+        f'<td>{d.get("occupancy_pct",0):.1f}%</td>'
+        f'<td>${d.get("adr",0):.2f}</td>'
+        f'<td>${d.get("revpar",0):.2f}</td>'
+        f'<td>{d.get("rooms",0):,}</td></tr>'
+        for mkt, d in sf.items()
+    )
+
+    # ── Section 3d: Chain scale share ────────────────────────────────
+    chain_scale = benchmarks.get("chain_scale_share", {})
+    scale_order = ["Luxury", "Upper Upscale", "Upscale", "Upper Midscale", "Midscale", "Economy"]
+    scale_rows = ""
+    for seg in scale_order:
+        share = chain_scale.get(seg, 0)
+        bar_w = int(share * 300)
+        scale_rows += (
+            f'<tr><td class="bm-month">{seg}</td>'
+            f'<td>{share * 100:.0f}%</td>'
+            f'<td><div class="bar-bg"><div class="bar-fill bar-mid" style="width:{bar_w}%"></div></div></td></tr>'
         )
 
     # ── Section 4: HVS Long-run RevPAR ───────────────────────────────
@@ -533,23 +653,23 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
 
     return f"""
     <div class="explainer">
-        <strong>Miami Market Benchmarks</strong> — compiled from Kayak, STR/CoStar, HVS, and TBO datasets.
-        Annual avg ADR: <strong>${annual_avg:,.2f}</strong> (Kayak, Miami metro all-hotel).
-        Peak months: <span class="premium">Feb &amp; Dec ($260)</span>.
-        Trough: <span class="savings">Sep ($200)</span>.
+        <strong>Miami Market Benchmarks</strong> — compiled from Kayak, STR/CoStar, HVS, GMCVB, CBRE, and Newmark datasets.
+        Full-year 2024 ADR: <strong>${annual_avg:,.2f}</strong> (STR/CoStar, Miami-Dade county-wide).
+        Peak: <span class="premium">Feb 2025 $305 ADR, 85.8% occ</span>.
+        Trough: <span class="savings">Sep ($200 ADR)</span>.
+        2024 visitors: <strong>28.2M (record)</strong>.
     </div>
 
     <h3 class="hotel-header">&#9312; Miami ADR by Month — Seasonality</h3>
     <div class="bm-meta">
         <span class="bm-badge">Source: Kayak (via 30secondcity.com)</span>
-        <span class="bm-badge">Annual avg ADR: ${annual_avg:,.2f}</span>
         <span class="bm-badge">Miami metro · all hotel classes · 2023-2024</span>
     </div>
     <div class="bm-grid">
         <div class="bm-panel">
             <h4 class="bm-panel-title">Monthly ADR + Seasonality Index</h4>
-            <p class="bm-desc">Index = monthly ADR / annual avg. Miami peak = winter (Jan-Feb) — opposite of Europe.
-            Sep is cheapest month (-15% vs avg).</p>
+            <p class="bm-desc">Index = monthly ADR / annual avg ($236.67). Miami peak = winter (Jan-Feb-Dec, snowbird season) — opposite of Europe.
+            Sep is cheapest month (-15% vs avg). Feb &amp; Dec both index at 1.099.</p>
             <table class="bm-table">
                 <thead><tr><th>Month</th><th>Avg ADR</th><th>Index</th><th>Demand</th><th></th></tr></thead>
                 <tbody>{season_rows}</tbody>
@@ -557,43 +677,77 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
         </div>
     </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">&#9313; Annual Market KPIs — STR / CoStar</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9313; Full Historical Series — STR / CoStar (2019-2025F)</h3>
     <div class="bm-meta">
-        <span class="bm-badge">Source: STR / CoStar Benchmark</span>
+        <span class="bm-badge">Source: STR / CoStar · CBRE · GMCVB</span>
         <span class="bm-badge">Miami-Dade hotel market</span>
-        <span class="bm-badge">2019 – 2024</span>
+        <span class="bm-badge">2019 – 2025 forecast</span>
     </div>
     <div class="bm-grid">
         <div class="bm-panel">
-            <h4 class="bm-panel-title">Annual RevPAR + YoY Change</h4>
-            <p class="bm-desc">2022 was the post-pandemic peak. 2023 saw normalization (-6.7%).
-            2024 recovery began in H2. 2025 continues upward (+3.3% 12M RevPAR).</p>
+            <h4 class="bm-panel-title">Annual Occupancy / ADR / RevPAR</h4>
+            <p class="bm-desc">2022 was the post-pandemic peak (ADR +30% vs 2019). 2023 normalization (-6.7% RevPAR).
+            2024 recovery. 2025 CBRE forecast +0.8% RevPAR; Q1 2025 led all Top 25 US markets.</p>
             <table class="bm-table">
-                <thead><tr><th>Year</th><th>RevPAR</th><th>YoY</th><th>Note</th></tr></thead>
+                <thead><tr><th>Year</th><th>Occ</th><th>ADR</th><th>RevPAR</th><th>RevPAR YoY</th><th>Note</th></tr></thead>
                 <tbody>{annual_rows}</tbody>
             </table>
         </div>
         <div class="bm-panel">
-            <h4 class="bm-panel-title">STR Spot Readings 2024</h4>
-            <p class="bm-desc">Professional STR benchmark readings. March is the strongest month
-            ($284 ADR, 83.5% occupancy). Event weeks spike +30%.</p>
+            <h4 class="bm-panel-title">2025 Monthly Actuals (STR)</h4>
+            <p class="bm-desc">Jan-Mar 2025 actual performance. Feb 2025: $305 ADR (+4.6% YoY), 85.8% occ (+2.3% YoY) — strongest month.
+            March 2025 was #1 in all Top 25 US markets by occupancy.</p>
             <table class="bm-table">
-                <thead><tr><th>Period</th><th>ADR</th><th>Occupancy</th><th>RevPAR</th><th>Note</th></tr></thead>
-                <tbody>{str_rows}</tbody>
+                <thead><tr><th>Month</th><th>Occupancy</th><th>ADR</th><th>RevPAR</th><th>Note</th></tr></thead>
+                <tbody>{m2025_rows}</tbody>
             </table>
         </div>
     </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">&#9314; Long-run RevPAR Trend — HVS (2008-2019)</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9314; Submarket &amp; Regional Comparison</h3>
     <div class="bm-meta">
-        <span class="bm-badge">Source: HVS Hotel Valuation Index</span>
-        <span class="bm-badge">Miami-Hialeah market</span>
+        <span class="bm-badge">Source: STR / HVS · Matthews 3Q24</span>
     </div>
     <div class="bm-grid">
         <div class="bm-panel">
-            <h4 class="bm-panel-title">Annual RevPAR 2008–2019</h4>
+            <h4 class="bm-panel-title">Miami Submnarkets — 2019 Baseline</h4>
+            <p class="bm-desc">Miami Beach commands 47% ADR premium vs county-wide. Airport has highest occupancy but lowest ADR (transit/commercial demand).
+            Downtown/Brickell is fastest-growing submarket for new supply.</p>
+            <table class="bm-table">
+                <thead><tr><th>Submarket</th><th>Occupancy</th><th>ADR</th><th>RevPAR</th></tr></thead>
+                <tbody>{sub_rows}</tbody>
+            </table>
+        </div>
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">South Florida Markets — Trailing 12M (3Q24)</h4>
+            <p class="bm-desc">Miami leads South Florida in both ADR ($220) and occupancy (73.3%).
+            Palm Beach has higher ADR ($252) but lower occupancy (67.1%).
+            CBRE 2025: Miami RevPAR +21.7% above 2019 levels.</p>
+            <table class="bm-table">
+                <thead><tr><th>Market</th><th>Occ</th><th>ADR</th><th>RevPAR</th><th>Rooms</th></tr></thead>
+                <tbody>{sf_rows}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 class="hotel-header" style="margin-top:32px">&#9315; Market Structure &amp; Long-run Trend</h3>
+    <div class="bm-meta">
+        <span class="bm-badge">Source: Matthews 3Q24 · HVS Hotel Valuation Index</span>
+    </div>
+    <div class="bm-grid">
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Chain Scale Market Share (Miami)</h4>
+            <p class="bm-desc">Miami skews heavily premium: 43% Upscale/Upper Upscale/Luxury combined.
+            Pipeline is even more luxury-heavy — Grand Hyatt Miami Beach (800 rooms, 2026), Virgin Hotels Brickell (250), Baccarat (249).</p>
+            <table class="bm-table">
+                <thead><tr><th>Segment</th><th>Share</th><th></th></tr></thead>
+                <tbody>{scale_rows}</tbody>
+            </table>
+        </div>
+        <div class="bm-panel">
+            <h4 class="bm-panel-title">Long-run RevPAR — HVS (2008–2019)</h4>
             <p class="bm-desc">Structural uptrend from $91 (GFC trough 2009) to $154 (2019 pre-pandemic peak).
-            Useful long-run baseline for comparison.</p>
+            2022 surpassed $180. 2025 tracking toward $165-172.</p>
             <table class="bm-table">
                 <thead><tr><th>Year</th><th>RevPAR</th><th>YoY</th></tr></thead>
                 <tbody>{hvs_rows}</tbody>
@@ -601,7 +755,7 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
         </div>
     </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">&#9315; Lead-Time ADR Proxy — Hotel Booking Demand</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9316; Lead-Time ADR Proxy — Hotel Booking Demand</h3>
     <div class="bm-meta">
         <span class="bm-badge">Source: Hotel Booking Demand (GitHub / mpolinowski)</span>
         <span class="bm-badge">117,429 European bookings · 2015-2017</span>
@@ -619,7 +773,7 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
         </div>
     </div>
 
-    <h3 class="hotel-header" style="margin-top:32px">&#9316; Miami Hotel Supply — TBO Dataset</h3>
+    <h3 class="hotel-header" style="margin-top:32px">&#9317; Miami Hotel Supply — TBO Dataset</h3>
     {tbo_html}
     """
 
