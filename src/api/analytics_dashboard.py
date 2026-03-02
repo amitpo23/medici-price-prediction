@@ -356,6 +356,7 @@ async def salesoffice_yoy():
             build_yoy_comparison,
             build_calendar_spread,
         )
+        from src.analytics.term_structure_engine import build_all_term_structures
         _yoy_loading[0] = True
         try:
             HOTEL_IDS = [66814, 854881, 20702, 24982]
@@ -364,12 +365,14 @@ async def salesoffice_yoy():
                 logger.warning("YoY: no data returned from DB")
                 return
             ts = build_scan_timeseries(raw)
+            ts_structures = build_all_term_structures(ts, HOTEL_IDS)
             result: dict = {}
             for hid in HOTEL_IDS:
                 result[hid] = {
                     "pivot": build_t_year_pivot(ts, hid),
                     "comparison": build_yoy_comparison(ts, hid),
                     "spread": build_calendar_spread(ts, hid),
+                    "term_structure": ts_structures.get(int(hid), {}),
                 }
             _yoy_cache.update(result)
             _yoy_cache_ts[0] = _time.time()

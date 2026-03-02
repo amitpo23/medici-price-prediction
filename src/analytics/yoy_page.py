@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from src.analytics.yoy_analysis import _safe_color, _safe_price_color
@@ -98,8 +99,10 @@ def generate_yoy_html(yoy_data: dict) -> str:
     tab2 = _build_yoy_comparison_tab(yoy_data, _BENCHMARKS)
     tab3 = _build_calendar_spread_tab(yoy_data)
     tab4 = _build_external_benchmarks_tab(_BENCHMARKS, _TBO_STATS)
+    term_data = {hid: data.get("term_structure", {}) for hid, data in yoy_data.items()}
+    tab5 = _build_term_structure_tab(term_data)
 
-    return _wrap_page(now, tab1, tab2, tab3, tab4)
+    return _wrap_page(now, tab1, tab2, tab3, tab4, tab5)
 
 
 # ── Tab 1: Decay Curve by Year ────────────────────────────────────────
@@ -521,6 +524,218 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
     """
 
 
+# ── Tab 5: Term Structure ─────────────────────────────────────────────
+
+def _build_term_structure_tab(term_data: dict) -> str:
+    """Build Term Structure tab with 6 Chart.js charts + client-side filtering."""
+    # Filter to hotels that actually have data
+    available = {hid: hdata for hid, hdata in term_data.items() if hdata and hdata.get("combos")}
+
+    if not available:
+        return (
+            '<div class="no-data" style="padding:60px;text-align:center;">'
+            'Term structure data is loading — please refresh in ~30 seconds.</div>'
+        )
+
+    # Build hotel dropdown
+    hotel_opts = "".join(
+        f'<option value="{hid}">{HOTEL_NAMES.get(int(hid), f"Hotel {hid}")}</option>'
+        for hid in sorted(available)
+    )
+
+    # First hotel's combos for initial combo dropdown
+    first_hid = next(iter(sorted(available)))
+    first_combos = available[first_hid].get("combos", [])
+    combo_opts = "".join(f'<option value="{c}">{c}</option>' for c in first_combos)
+
+    # Serialize all data to JSON (embedded in page, drives all charts client-side)
+    # Convert int keys to str for JSON compatibility
+    serializable = {str(hid): hdata for hid, hdata in available.items()}
+    json_data = json.dumps(serializable, default=str)
+
+    html = (
+        '<div class="explainer">'
+        '<strong>How to read:</strong> Select a hotel and room/board combination. '
+        'All 6 charts update instantly — no page reload. '
+        '<span style="color:#6366f1;font-weight:600;">Indigo = 2023</span> &nbsp;'
+        '<span style="color:#06b6d4;font-weight:600;">Cyan = 2024</span> &nbsp;'
+        '<span style="color:#22c55e;font-weight:600;">Green = 2025</span>. '
+        'Only clean observations (n&ge;3 per T-bucket) are plotted.</div>'
+
+        '<div class="ts-filters">'
+        f'<label class="ts-label">Hotel<select id="ts-hotel" onchange="tsHotelChange()">{hotel_opts}</select></label>'
+        f'<label class="ts-label">Room / Board<select id="ts-combo" onchange="tsRender()">{combo_opts}</select></label>'
+        '</div>'
+
+        '<div class="ts-grid">'
+
+        # Chart 1
+        '<div class="ts-panel">'
+        '<div class="ts-panel-title">&#9312; Avg Daily &Delta;% by T</div>'
+        '<div class="ts-panel-desc">Average daily price change at each lead time. Where 2025 diverges from 2023/2024 marks the structural shift point.</div>'
+        '<div class="ts-canvas-wrap"><canvas id="ch-delta"></canvas></div>'
+        '</div>'
+
+        # Chart 2
+        '<div class="ts-panel">'
+        '<div class="ts-panel-title">&#9313; Cumulative Path (base&nbsp;=&nbsp;100 at T=90)</div>'
+        '<div class="ts-panel-desc">Compounded price path from 90 days out to expiry. Flat then spike = last-minute squeeze. Linear = steady pressure.</div>'
+        '<div class="ts-canvas-wrap"><canvas id="ch-cumul"></canvas></div>'
+        '</div>'
+
+        # Chart 3
+        '<div class="ts-panel">'
+        '<div class="ts-panel-title">&#9314; Realized Volatility by T</div>'
+        '<div class="ts-panel-desc">Std dev of daily % changes. If 2025 spikes earlier than prior years, instability moved forward in the booking window.</div>'
+        '<div class="ts-canvas-wrap"><canvas id="ch-vol"></canvas></div>'
+        '</div>'
+
+        # Chart 4
+        '<div class="ts-panel">'
+        '<div class="ts-panel-title">&#9315; % Days with Positive &Delta;%</div>'
+        '<div class="ts-panel-desc">Fraction of days where price rose. At T=7: if 2025 &gt; 70% vs 2023 &lt; 55% — abnormal upward pressure confirmed.</div>'
+        '<div class="ts-canvas-wrap"><canvas id="ch-pctup"></canvas></div>'
+        '</div>'
+
+        # Chart 5 — full width
+        '<div class="ts-panel ts-panel--full">'
+        '<div class="ts-panel-title">&#9316; Min Rel-to-Expiry Distribution</div>'
+        '<div class="ts-panel-desc">For each completed contract: minimum of (price&minus;S_exp)/S_exp&times;100. '
+        'Shows whether large pre-expiry discounts (&minus;10%) still exist or have disappeared.</div>'
+        '<div class="ts-canvas-wrap ts-canvas-wrap--bar"><canvas id="ch-minrel"></canvas></div>'
+        '</div>'
+
+        # Chart 6 — heatmap, full width
+        '<div class="ts-panel ts-panel--full">'
+        '<div class="ts-panel-title">&#9317; Heatmap &mdash; Avg Daily &Delta;% (T &times; Year)</div>'
+        '<div class="ts-panel-desc">Same data as Chart &#9312; as a color matrix. '
+        '<span class="savings">Green</span> = prices falling (buy opportunity). '
+        '<span class="premium">Red</span> = prices rising. Hot zones jump out immediately.</div>'
+        '<div id="ch-heatmap" class="table-wrap"></div>'
+        '</div>'
+
+        '</div>'  # end .ts-grid
+    )
+
+    # JavaScript — string concatenation avoids f-string brace conflicts with JS objects
+    js = (
+        '<script>\n'
+        '(function() {\n'
+        'const TS_DATA = ' + json_data + ';\n'
+        'const YEAR_COLORS = {"2023":"#6366f1","2024":"#06b6d4","2025":"#22c55e"};\n'
+        'const YEARS = ["2023","2024","2025"];\n'
+        'const CHART_OPTS = {\n'
+        '  responsive: true, maintainAspectRatio: false,\n'
+        '  plugins: { legend: { labels: { color: "#e4e7ec", padding: 14 } },\n'
+        '             tooltip: { mode: "index", intersect: false } },\n'
+        '};\n'
+        'const AXIS_X = { reverse: true,\n'
+        '  title: { display: true, text: "T (days to check-in)", color: "#8b90a0" },\n'
+        '  ticks: { color: "#8b90a0" }, grid: { color: "#2d3140" } };\n'
+        'function yAxis(label) {\n'
+        '  return { title: { display: true, text: label, color: "#8b90a0" },\n'
+        '           ticks: { color: "#8b90a0" }, grid: { color: "#2d3140" } }; }\n'
+        'let _ch = {};\n'
+        '\n'
+        'window.tsHotelChange = function() {\n'
+        '  const hotel = document.getElementById("ts-hotel").value;\n'
+        '  const combos = (TS_DATA[hotel] || {}).combos || [];\n'
+        '  const sel = document.getElementById("ts-combo");\n'
+        '  sel.innerHTML = combos.map(c => `<option value="${c}">${c}</option>`).join("");\n'
+        '  window.tsRender();\n'
+        '};\n'
+        '\n'
+        'window.tsRender = function() {\n'
+        '  const hotel = document.getElementById("ts-hotel").value;\n'
+        '  const combo = document.getElementById("ts-combo").value;\n'
+        '  const hdata = TS_DATA[hotel];\n'
+        '  if (!hdata) return;\n'
+        '  const d = (hdata.data || {})[combo];\n'
+        '  if (!d) return;\n'
+        '  const T = d.t_values;\n'
+        '  _line("ch-delta", T, d.avg_delta, "Avg Daily \\u0394%");\n'
+        '  _line("ch-cumul", T, d.cumulative, "Normalized Price");\n'
+        '  _line("ch-vol",   T, d.volatility, "Std Dev \\u0394%");\n'
+        '  _line("ch-pctup", T, d.pct_up, "% Days Positive");\n'
+        '  _bar("ch-minrel", d.min_rel_hist);\n'
+        '  _heatmap("ch-heatmap", d.heatmap);\n'
+        '};\n'
+        '\n'
+        'function _line(id, tVals, yearData, yLabel) {\n'
+        '  if (_ch[id]) { _ch[id].destroy(); }\n'
+        '  const ctx = document.getElementById(id);\n'
+        '  if (!ctx) return;\n'
+        '  _ch[id] = new Chart(ctx, {\n'
+        '    type: "line",\n'
+        '    data: { labels: tVals,\n'
+        '      datasets: YEARS.map(yr => ({\n'
+        '        label: yr, data: (yearData || {})[yr] || [],\n'
+        '        borderColor: YEAR_COLORS[yr], backgroundColor: "transparent",\n'
+        '        tension: 0.3, pointRadius: 4, pointHoverRadius: 6,\n'
+        '        spanGaps: true, borderWidth: 2 })) },\n'
+        '    options: { ...CHART_OPTS, scales: { x: AXIS_X, y: yAxis(yLabel) } }\n'
+        '  });\n'
+        '}\n'
+        '\n'
+        'function _bar(id, histData) {\n'
+        '  if (_ch[id]) { _ch[id].destroy(); }\n'
+        '  const ctx = document.getElementById(id);\n'
+        '  if (!ctx || !histData) return;\n'
+        '  _ch[id] = new Chart(ctx, {\n'
+        '    type: "bar",\n'
+        '    data: { labels: histData.buckets || [],\n'
+        '      datasets: YEARS.map(yr => ({\n'
+        '        label: yr, data: histData[yr] || [],\n'
+        '        backgroundColor: YEAR_COLORS[yr] + "99",\n'
+        '        borderColor: YEAR_COLORS[yr], borderWidth: 1 })) },\n'
+        '    options: { ...CHART_OPTS,\n'
+        '      scales: {\n'
+        '        x: { title: { display: true, text: "Min Rel-to-Expiry", color: "#8b90a0" },\n'
+        '             ticks: { color: "#8b90a0" }, grid: { color: "#2d3140" } },\n'
+        '        y: { title: { display: true, text: "# Contracts", color: "#8b90a0" },\n'
+        '             ticks: { color: "#8b90a0" }, grid: { color: "#2d3140" } } } }\n'
+        '  });\n'
+        '}\n'
+        '\n'
+        'function _heatmap(id, hmData) {\n'
+        '  const el = document.getElementById(id);\n'
+        '  if (!el || !hmData) return;\n'
+        '  const tVals = hmData.t_values || [];\n'
+        '  const yrs = hmData.years || [];\n'
+        '  const matrix = hmData.matrix || {};\n'
+        '  let h = \'<table class="heatmap-table"><thead><tr><th>T</th>\';\n'
+        '  yrs.forEach(yr => h += `<th>${yr}</th>`);\n'
+        '  h += "</tr></thead><tbody>";\n'
+        '  tVals.forEach((T, ti) => {\n'
+        '    h += `<tr><td class="t-cell">${T}d</td>`;\n'
+        '    yrs.forEach(yr => {\n'
+        '      const v = (matrix[yr] || [])[ti];\n'
+        '      if (v === null || v === undefined) {\n'
+        '        h += \'<td class="empty-cell">&mdash;</td>\';\n'
+        '      } else {\n'
+        '        const alpha = Math.min(0.15 + Math.abs(v) / 0.5 * 0.55, 0.70);\n'
+        '        const bg = v < 0\n'
+        '          ? `rgba(34,197,94,${alpha.toFixed(2)})`\n'
+        '          : `rgba(239,68,68,${alpha.toFixed(2)})`;\n'
+        '        h += `<td style="background:${bg}">${v > 0 ? "+" : ""}${v.toFixed(3)}%</td>`;\n'
+        '      }\n'
+        '    });\n'
+        '    h += "</tr>";\n'
+        '  });\n'
+        '  h += "</tbody></table>";\n'
+        '  el.innerHTML = h;\n'
+        '}\n'
+        '\n'
+        'document.addEventListener("DOMContentLoaded", function() {\n'
+        '  if (document.getElementById("ch-delta")) window.tsRender();\n'
+        '});\n'
+        '})();\n'
+        '</script>\n'
+    )
+
+    return html + js
+
+
 # ── Page wrapper ──────────────────────────────────────────────────────
 
 def _empty_page(now: str) -> str:
@@ -533,13 +748,14 @@ def _empty_page(now: str) -> str:
 </body></html>"""
 
 
-def _wrap_page(now: str, tab1: str, tab2: str, tab3: str, tab4: str) -> str:
+def _wrap_page(now: str, tab1: str, tab2: str, tab3: str, tab4: str, tab5: str) -> str:
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Medici — Year-over-Year Price Comparison</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {{
     --bg:#0f1117; --surface:#1a1d27; --surface2:#232733;
@@ -636,6 +852,20 @@ body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .bar-mid{{background:var(--cyan);}}
 .bar-low{{background:var(--text-dim);}}
 .no-data{{color:var(--text-dim);font-style:italic;padding:20px 0;}}
+
+/* Term Structure (Tab 5) */
+.ts-filters{{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;}}
+.ts-label{{font-size:0.85em;color:var(--text-dim);display:flex;flex-direction:column;gap:4px;}}
+.ts-label select{{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:0.9em;font-family:inherit;cursor:pointer;min-width:200px;}}
+.ts-label select:focus{{outline:none;border-color:var(--accent);}}
+.ts-grid{{display:grid;grid-template-columns:1fr 1fr;gap:16px;}}
+@media(max-width:900px){{.ts-grid{{grid-template-columns:1fr;}}}}
+.ts-panel{{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}}
+.ts-panel--full{{grid-column:1/-1;}}
+.ts-panel-title{{font-size:0.95em;font-weight:700;color:var(--accent2);margin-bottom:4px;}}
+.ts-panel-desc{{font-size:0.8em;color:var(--text-dim);margin-bottom:12px;line-height:1.4;}}
+.ts-canvas-wrap{{height:280px;position:relative;}}
+.ts-canvas-wrap--bar{{height:260px;}}
 </style>
 </head>
 <body>
@@ -659,6 +889,7 @@ body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
     <button class="tab-btn" onclick="switchTab('yoy',this)">YoY Comparison</button>
     <button class="tab-btn" onclick="switchTab('spread',this)">Calendar Spread</button>
     <button class="tab-btn" onclick="switchTab('benchmarks',this)">External Benchmarks</button>
+    <button class="tab-btn" onclick="switchTab('ts',this)">Term Structure</button>
 </div>
 </div>
 
@@ -667,6 +898,7 @@ body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
     <div id="tab-yoy" class="tab-content">{tab2}</div>
     <div id="tab-spread" class="tab-content">{tab3}</div>
     <div id="tab-benchmarks" class="tab-content">{tab4}</div>
+    <div id="tab-ts" class="tab-content">{tab5}</div>
 </div>
 
 <div class="footer">
@@ -679,6 +911,7 @@ function switchTab(name, btn) {{
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
+    if (name === 'ts' && typeof tsRender === 'function') {{ tsRender(); }}
 }}
 function toggle(id) {{
     const el = document.getElementById(id);
