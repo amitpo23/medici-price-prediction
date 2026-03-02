@@ -638,6 +638,20 @@ async def market_fred():
     return get_fred_indicators()
 
 
+@router.get("/market/kaggle-bookings")
+async def market_kaggle_bookings():
+    """Lead-time price curves + DOW premiums from Kaggle Hotel Booking Demand dataset (119K bookings)."""
+    from src.analytics.kaggle_bookings import get_summary
+    return get_summary()
+
+
+@router.get("/market/makcorps")
+async def market_makcorps():
+    """Makcorps historical OTA price data for our 4 Miami hotels."""
+    from src.analytics.makcorps_store import get_summary
+    return get_summary()
+
+
 @router.get("/market/db-overview")
 async def market_db_overview():
     """Full database overview — all tables with row counts."""
@@ -726,17 +740,39 @@ def _run_collection_cycle() -> dict | None:
         analysis.get("statistics", {}).get("total_hotels", 0),
     )
 
-    # Daily API event refresh (Ticketmaster + SeatGeek) — run once per calendar day
+    # Daily refreshes — run once per calendar day (not every hour)
     from datetime import date as _date
     today_str = _date.today().isoformat()
     if _last_event_refresh_date[0] != today_str:
+        _last_event_refresh_date[0] = today_str
+
+        # Ticketmaster + SeatGeek events
         try:
             from src.analytics.miami_events_fetcher import refresh_api_events
             event_result = refresh_api_events(days_ahead=90)
-            _last_event_refresh_date[0] = today_str
             logger.info("API events refreshed: %s", event_result)
         except Exception as exc:
             logger.warning("Event API refresh failed: %s", exc)
+
+        # Xotelo competitor rates (free, no key)
+        try:
+            from src.analytics.xotelo_store import fetch_rates
+            hotel_ids = [66814, 854881, 20702, 24982]
+            xotelo_total = sum(fetch_rates(hid, days_ahead=60) for hid in hotel_ids)
+            logger.info("Xotelo competitor rates refreshed: %d records", xotelo_total)
+        except Exception as exc:
+            logger.warning("Xotelo refresh failed: %s", exc)
+
+        # Makcorps historical prices (needs API key)
+        try:
+            from src.analytics.makcorps_store import fetch_historical_prices
+            from config.settings import MAKCORPS_API_KEY
+            if MAKCORPS_API_KEY:
+                hotel_ids = [66814, 854881, 20702, 24982]
+                mc_total = sum(fetch_historical_prices(hid) for hid in hotel_ids)
+                logger.info("Makcorps historical prices refreshed: %d records", mc_total)
+        except Exception as exc:
+            logger.warning("Makcorps refresh failed: %s", exc)
 
     return analysis
 

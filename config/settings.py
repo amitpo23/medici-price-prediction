@@ -38,6 +38,7 @@ SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
 TICKETMASTER_API_KEY = os.getenv("TICKETMASTER_API_KEY", "")
 SEATGEEK_CLIENT_ID = os.getenv("SEATGEEK_CLIENT_ID", "")
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
+MAKCORPS_API_KEY = os.getenv("MAKCORPS_API_KEY", "")
 
 # Cache
 CACHE_TTL_HOURS = int(os.getenv("CACHE_TTL_HOURS", "24"))
