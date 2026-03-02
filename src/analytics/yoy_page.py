@@ -8,13 +8,9 @@
 """
 from __future__ import annotations
 
-import json
-import pathlib
 from datetime import datetime
 
 from src.analytics.yoy_analysis import _safe_color, _safe_price_color
-
-_DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
 
 # Maps our T-bucket values → lead-time bucket keys in booking_benchmarks.json
 _T_TO_LEAD: dict[int, str] = {
@@ -31,36 +27,57 @@ _MONTH_TO_SEASON_KEY: dict[str, str] = {
     "Sep": "September", "Oct": "October", "Nov": "November", "Dec": "December",
 }
 
+# ── Embedded benchmark data (avoids runtime file dependency on Azure) ─────────
 
-def _load_benchmarks() -> dict:
-    """Load Hotel Booking Demand benchmarks from JSON (static file, loaded once)."""
-    try:
-        with open(_DATA_DIR / "booking_benchmarks.json") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+# Source: hotel-booking-dataset (mpolinowski/GitHub), 117K bookings 2015-2017
+_BENCHMARKS: dict = {
+    "source": "hotel-booking-dataset (mpolinowski/GitHub)",
+    "total_bookings": 117429,
+    "years": "2015-2017",
+    "hotel_types": {"City Hotel": 78121, "Resort Hotel": 39308},
+    "seasonality_index": {
+        "January": 0.695, "February": 0.724, "March": 0.787, "April": 0.982,
+        "May": 1.067, "June": 1.14, "July": 1.242, "August": 1.37,
+        "September": 1.031, "October": 0.867, "November": 0.73, "December": 0.81,
+    },
+    "lead_time_buckets": {
+        "0-7d":    {"cancel_rate": 0.097, "avg_adr": 95.47,  "bookings": 18608},
+        "8-30d":   {"cancel_rate": 0.281, "avg_adr": 109.91, "bookings": 18651},
+        "31-60d":  {"cancel_rate": 0.366, "avg_adr": 107.18, "bookings": 16819},
+        "61-90d":  {"cancel_rate": 0.397, "avg_adr": 107.43, "bookings": 12487},
+        "91-180d": {"cancel_rate": 0.449, "avg_adr": 109.66, "bookings": 26311},
+        "181-365d":{"cancel_rate": 0.556, "avg_adr": 95.61,  "bookings": 21424},
+    },
+    "weekend_premium_pct": 4.3,
+    "city_hotel_benchmarks": {
+        "avg_adr": 106.87, "median_adr": 100.0, "cancel_rate": 0.422,
+        "avg_lead_time_days": 111.0, "repeat_guest_rate": 0.021,
+        "avg_booking_changes": 0.18, "room_change_rate": 0.087,
+    },
+    "market_segment_adr": {
+        "Aviation": 102.74, "Corporate": 70.45, "Direct": 117.69,
+        "Groups": 80.51, "Offline TA/TO": 88.35, "Online TA": 117.96,
+    },
+    "market_segment_cancel": {
+        "Aviation": 0.221, "Corporate": 0.189, "Direct": 0.154,
+        "Groups": 0.617, "Offline TA/TO": 0.346, "Online TA": 0.369,
+    },
+}
 
-
-def _load_tbo_stats() -> dict:
-    """Load TBO Hotels Dataset stats from CSV."""
-    try:
-        import pandas as pd
-        df = pd.read_csv(
-            _DATA_DIR / "miami_hotels_tbo.csv",
-            usecols=["HotelRating", "cityName"],
-            low_memory=False,
-        )
-        total = len(df)
-        ratings = df["HotelRating"].value_counts().to_dict()
-        cities = df["cityName"].str.split(",").str[0].str.strip().value_counts().head(8).to_dict()
-        return {"total": total, "ratings": ratings, "cities": cities}
-    except Exception:
-        return {}
-
-
-# Load once at import time (static data)
-_BENCHMARKS: dict = _load_benchmarks()
-_TBO_STATS: dict = _load_tbo_stats()
+# Source: TBO Hotels Dataset — Miami area supply (2978 hotels)
+_TBO_STATS: dict = {
+    "total": 2978,
+    "ratings": {
+        "ThreeStar": 1333, "FourStar": 591, "TwoStar": 514,
+        "All": 439, "FiveStar": 69, "OneStar": 32,
+    },
+    "cities": {
+        "Miami": 953, "Miami Beach": 599, "Fort Lauderdale": 590,
+        "Miami South Beach": 279, "Hollywood Beach/Fort Lauderdale": 221,
+        "Miami Beach - Sunny Isles": 93, "Pompano Beach/Fort Lauderdale": 70,
+        "Lauderdale-by-the-Sea": 47,
+    },
+}
 
 HOTEL_NAMES: dict[int, str] = {
     66814: "Breakwater South Beach",
