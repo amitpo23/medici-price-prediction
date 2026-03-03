@@ -86,8 +86,10 @@ def build_zip() -> int:
 
 def deploy() -> int:
     print(f"Deploying {OUT_ZIP} to {AZURE_APP}...")
+    import shutil
+    az_cmd = shutil.which("az") or "az"
     result = subprocess.run([
-        "az", "webapp", "deploy",
+        az_cmd, "webapp", "deploy",
         "--name", AZURE_APP,
         "--resource-group", AZURE_RG,
         "--src-path", str(OUT_ZIP),
