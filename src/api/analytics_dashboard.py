@@ -652,57 +652,6 @@ async def market_makcorps():
     return get_summary()
 
 
-@router.get("/market/makcorps/map")
-async def market_makcorps_map():
-    """Trigger Makcorps hotel ID mapping for all 4 hotels. Returns raw API responses for diagnostics."""
-    import requests as _req
-    from config.settings import MAKCORPS_API_KEY
-    from src.analytics.makcorps_store import OUR_HOTELS, _get_conn, _ensure_tables, BASE_URL
-
-    if not MAKCORPS_API_KEY:
-        return {"error": "MAKCORPS_API_KEY not set"}
-
-    results = {}
-    for hotel_id, hotel in OUR_HOTELS.items():
-        search_name = f"{hotel['name']}, {hotel['city']}"
-        try:
-            r = _req.get(
-                f"{BASE_URL}/mapping",
-                params={"api_key": MAKCORPS_API_KEY, "name": search_name},
-                timeout=15,
-            )
-            raw = r.json()
-            # Parse document_id where type == "HOTEL"
-            makcorps_id = None
-            if isinstance(raw, list):
-                for item in raw:
-                    if item.get("type", "").upper() == "HOTEL":
-                        makcorps_id = str(item.get("document_id", ""))
-                        break
-                if not makcorps_id and raw:
-                    makcorps_id = str(raw[0].get("document_id", ""))
-
-            if makcorps_id and makcorps_id not in ("", "None"):
-                with _get_conn() as conn:
-                    _ensure_tables(conn)
-                    conn.execute(
-                        "INSERT OR REPLACE INTO hotel_mappings VALUES (?, ?, ?, datetime('now'))",
-                        (hotel_id, hotel["name"], makcorps_id),
-                    )
-                    conn.commit()
-
-            results[str(hotel_id)] = {
-                "name": hotel["name"],
-                "search_name": search_name,
-                "status_code": r.status_code,
-                "makcorps_id_found": makcorps_id or None,
-                "raw_sample": raw[:2] if isinstance(raw, list) else raw,
-            }
-        except Exception as exc:
-            results[str(hotel_id)] = {"name": hotel["name"], "search_name": search_name, "error": str(exc)}
-
-    return results
-
 
 @router.get("/market/db-overview")
 async def market_db_overview():

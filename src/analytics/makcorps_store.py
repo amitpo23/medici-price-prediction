@@ -1,7 +1,8 @@
 """Makcorps Historical Hotel Price API integration.
 
 Makcorps provides OTA rates (Booking.com, Expedia, Hotels.com, etc.)
-going back to 2010 for 200+ OTAs. Free tier: 5,000 calls/month.
+going back to 2010 for 200+ OTAs. Free tier: 30 calls total (trial only).
+Paid plans start at $350/month for 10K calls. Sign up at makcorps.com.
 
 Sign up: https://makcorps.com (email registration, instant free key)
 Once you have a key, set it via:
@@ -283,7 +284,8 @@ def get_summary() -> dict:
         "status": "active" if has_key else "needs_api_key",
         "api_key_set": has_key,
         "sign_up_url": "https://makcorps.com",
-        "free_calls_per_month": 5000,
+        "free_calls_total": 30,
+        "note": "Free tier is 30 trial calls only. Paid plans from $350/month for 10K calls.",
         "total_stored_prices": total_prices,
         "hotel_mappings": [
             {"our_hotel_id": m[0], "hotel_name": m[1], "makcorps_id": m[2]}
