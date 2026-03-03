@@ -970,11 +970,16 @@ body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
     <h1>Chart Pack — Price Behavior Analysis</h1>
     <p>Contract-level deep dive, multi-year term structure, and opportunity statistics</p>
     <div class="nav-links">
+        <a href="/api/v1/salesoffice/home">Home</a>
+        <a href="/api/v1/salesoffice/dashboard">Dashboard</a>
         <a href="/api/v1/salesoffice/insights">Insights</a>
         <a href="/api/v1/salesoffice/options">Options</a>
         <a href="/api/v1/salesoffice/yoy">Year-over-Year</a>
-        <a href="/api/v1/salesoffice/dashboard">Dashboard</a>
-        <a href="/api/v1/salesoffice/info">Documentation</a>
+        <a href="/api/v1/salesoffice/accuracy">Accuracy</a>
+        <a href="/api/v1/salesoffice/providers">Providers</a>
+        <a href="/api/v1/salesoffice/alerts">Alerts</a>
+        <a href="/api/v1/salesoffice/freshness">Freshness</a>
+        <a href="/api/v1/salesoffice/info">Docs</a>
     </div>
 </div>
 </div>

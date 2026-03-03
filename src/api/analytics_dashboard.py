@@ -1,6 +1,7 @@
 """SalesOffice Analytics Dashboard — live endpoints for price analysis.
 
 Endpoints:
+  GET /api/v1/salesoffice/home       — Consolidated landing page (HTML)
   GET /api/v1/salesoffice/dashboard  — Interactive HTML dashboard (Plotly)
   GET /api/v1/salesoffice/info       — System information & documentation (HTML)
   GET /api/v1/salesoffice/insights   — Price insights: up/down, below/above today (HTML)
@@ -8,6 +9,13 @@ Endpoints:
   GET /api/v1/salesoffice/options    — Options trading: CALL/PUT signals + expiry analytics (HTML)
   GET /api/v1/salesoffice/charts     — Chart Pack: contract path, term structure, opportunity stats (HTML)
   GET /api/v1/salesoffice/charts/contract-data — Contract path data (JSON, AJAX)
+  GET /api/v1/salesoffice/accuracy   — Prediction accuracy tracker (HTML)
+  GET /api/v1/salesoffice/providers  — Provider price comparison (HTML)
+  GET /api/v1/salesoffice/alerts     — Price alert system (HTML)
+  GET /api/v1/salesoffice/freshness  — Data freshness monitor (HTML)
+  GET /api/v1/salesoffice/export/csv/contracts  — CSV export: contract prices
+  GET /api/v1/salesoffice/export/csv/providers  — CSV export: provider data
+  GET /api/v1/salesoffice/export/summary        — Weekly summary JSON/text
   GET /api/v1/salesoffice/data       — Raw analysis JSON
   GET /api/v1/salesoffice/simple     — Simplified human-readable JSON
   GET /api/v1/salesoffice/simple/text — Plain text report
@@ -56,6 +64,18 @@ _charts_cache: dict = {}
 _charts_cache_ts: list[float] = [0.0]
 _charts_loading: list[bool] = [False]
 _CHARTS_CACHE_TTL = 6 * 3600
+
+# Accuracy cache (separate — 6-hour TTL)
+_accuracy_cache: dict = {}
+_accuracy_cache_ts: list[float] = [0.0]
+_accuracy_loading: list[bool] = [False]
+_ACCURACY_CACHE_TTL = 6 * 3600
+
+# Provider cache (separate — 6-hour TTL)
+_provider_cache: dict = {}
+_provider_cache_ts: list[float] = [0.0]
+_provider_loading: list[bool] = [False]
+_PROVIDER_CACHE_TTL = 6 * 3600
 
 
 # ── Auth (reuse from integration) ────────────────────────────────────
@@ -508,6 +528,202 @@ async def salesoffice_charts_contract_data(
     except Exception as e:
         logger.error("Contract path failed: %s", e, exc_info=True)
         raise HTTPException(status_code=503, detail=f"Contract data query failed: {e}")
+
+
+@router.get("/home", response_class=HTMLResponse)
+async def salesoffice_home():
+    """Consolidated landing page — hub linking to all analytics pages."""
+    from src.analytics.landing_page import generate_landing_html
+
+    status_data = None
+    try:
+        from src.analytics.price_store import get_snapshot_count, load_latest_snapshot, init_db
+        init_db()
+        latest = load_latest_snapshot()
+        status_data = {
+            "total_rooms": len(latest) if not latest.empty else 0,
+            "total_hotels": latest["hotel_id"].nunique() if not latest.empty else 0,
+            "snapshots_collected": get_snapshot_count(),
+            "scheduler_running": _scheduler_thread is not None and _scheduler_thread.is_alive(),
+        }
+    except Exception:
+        pass
+
+    html = generate_landing_html(status_data)
+    return HTMLResponse(content=html)
+
+
+@router.get("/accuracy", response_class=HTMLResponse)
+async def salesoffice_accuracy():
+    """Prediction Accuracy Tracker — backtest predicted vs actual settlement prices."""
+    import time
+    from src.analytics.accuracy_page import generate_accuracy_html
+
+    # Separate 6-hour cache
+    if _accuracy_cache and (time.time() - _accuracy_cache_ts[0]) < _ACCURACY_CACHE_TTL:
+        return HTMLResponse(content=generate_accuracy_html(_accuracy_cache))
+
+    if _accuracy_loading[0]:
+        return HTMLResponse(content=_loading_page(
+            "Prediction Accuracy Tracker", "/api/v1/salesoffice/accuracy"
+        ))
+
+    def _run_accuracy():
+        import time as _time
+        from src.analytics.accuracy_engine import build_accuracy_data
+        _accuracy_loading[0] = True
+        try:
+            result = build_accuracy_data()
+            if result:
+                _accuracy_cache.update(result)
+                _accuracy_cache_ts[0] = _time.time()
+                logger.info("Accuracy cache populated")
+        except Exception as exc:
+            logger.error("Accuracy background load failed: %s", exc, exc_info=True)
+        finally:
+            _accuracy_loading[0] = False
+
+    threading.Thread(target=_run_accuracy, daemon=True).start()
+    return HTMLResponse(content=_loading_page(
+        "Prediction Accuracy Tracker", "/api/v1/salesoffice/accuracy"
+    ))
+
+
+@router.get("/providers", response_class=HTMLResponse)
+async def salesoffice_providers():
+    """Provider Price Comparison — 129 providers from 8.3M search results."""
+    import time
+    from src.analytics.provider_page import generate_provider_html
+
+    # Separate 6-hour cache
+    if _provider_cache and (time.time() - _provider_cache_ts[0]) < _PROVIDER_CACHE_TTL:
+        return HTMLResponse(content=generate_provider_html(_provider_cache))
+
+    if _provider_loading[0]:
+        return HTMLResponse(content=_loading_page(
+            "Provider Price Comparison", "/api/v1/salesoffice/providers"
+        ))
+
+    def _run_providers():
+        import time as _time
+        from src.analytics.provider_engine import build_provider_data
+        _provider_loading[0] = True
+        try:
+            result = build_provider_data(days_back=90)
+            if result:
+                _provider_cache.update(result)
+                _provider_cache_ts[0] = _time.time()
+                logger.info("Provider cache populated")
+        except Exception as exc:
+            logger.error("Provider background load failed: %s", exc, exc_info=True)
+        finally:
+            _provider_loading[0] = False
+
+    threading.Thread(target=_run_providers, daemon=True).start()
+    return HTMLResponse(content=_loading_page(
+        "Provider Price Comparison", "/api/v1/salesoffice/providers"
+    ))
+
+
+@router.get("/alerts", response_class=HTMLResponse)
+async def salesoffice_alerts():
+    """Price Alert System — breach threshold monitoring."""
+    import time
+    from src.analytics.alerts_page import generate_alerts_html
+
+    # Alerts use the charts cache (Tab 3 data)
+    if _charts_cache and (time.time() - _charts_cache_ts[0]) < _CHARTS_CACHE_TTL:
+        return HTMLResponse(content=generate_alerts_html(_charts_cache))
+
+    if _charts_loading[0]:
+        return HTMLResponse(content=_loading_page(
+            "Price Alert System", "/api/v1/salesoffice/alerts"
+        ))
+
+    # Trigger charts cache load if needed
+    def _run_charts_for_alerts():
+        import time as _time
+        from src.analytics.charts_engine import build_charts_cache
+        _charts_loading[0] = True
+        try:
+            HOTEL_IDS = [66814, 854881, 20702, 24982]
+            result = build_charts_cache(HOTEL_IDS)
+            if result:
+                _charts_cache.update(result)
+                _charts_cache_ts[0] = _time.time()
+                logger.info("Charts cache populated (for alerts)")
+        except Exception as exc:
+            logger.error("Charts load for alerts failed: %s", exc, exc_info=True)
+        finally:
+            _charts_loading[0] = False
+
+    threading.Thread(target=_run_charts_for_alerts, daemon=True).start()
+    return HTMLResponse(content=_loading_page(
+        "Price Alert System", "/api/v1/salesoffice/alerts"
+    ))
+
+
+@router.get("/freshness", response_class=HTMLResponse)
+async def salesoffice_freshness():
+    """Data Freshness Monitor — check all data source update times."""
+    from src.analytics.freshness_engine import build_freshness_data
+    from src.analytics.freshness_page import generate_freshness_html
+
+    try:
+        data = build_freshness_data()
+        return HTMLResponse(content=generate_freshness_html(data))
+    except Exception as e:
+        logger.error("Freshness monitor failed: %s", e, exc_info=True)
+        return HTMLResponse(content=_loading_page(
+            "Data Freshness Monitor", "/api/v1/salesoffice/freshness"
+        ))
+
+
+@router.get("/export/csv/contracts")
+async def salesoffice_export_contracts():
+    """CSV export of contract price history."""
+    from src.analytics.export_engine import export_contracts_csv
+
+    try:
+        csv_data = export_contracts_csv()
+        return PlainTextResponse(
+            content=csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=medici_contracts.csv"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Export failed: {e}")
+
+
+@router.get("/export/csv/providers")
+async def salesoffice_export_providers():
+    """CSV export of provider pricing data."""
+    from src.analytics.export_engine import export_providers_csv
+
+    try:
+        csv_data = export_providers_csv()
+        return PlainTextResponse(
+            content=csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=medici_providers.csv"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Export failed: {e}")
+
+
+@router.get("/export/summary")
+async def salesoffice_export_summary(format: str = "json"):
+    """Weekly summary digest — JSON or plain text."""
+    from src.analytics.export_engine import generate_weekly_summary, generate_summary_text
+
+    try:
+        summary = generate_weekly_summary()
+        if format == "text":
+            text = generate_summary_text(summary)
+            return PlainTextResponse(content=text)
+        return JSONResponse(content=summary)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Summary generation failed: {e}")
 
 
 @router.get("/status")
