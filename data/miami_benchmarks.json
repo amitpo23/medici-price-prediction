@@ -1,0 +1,283 @@
+{
+  "_meta": {
+    "description": "Miami hotel market benchmarks compiled from multiple public sources",
+    "last_updated": "2026-03-02",
+    "sources": [
+      {
+        "id": "kayak_30sc",
+        "name": "Kayak (via 30secondcity.com)",
+        "url": "https://30secondcity.com/miami-average-hotel-price-by-month/",
+        "type": "OTA aggregator",
+        "coverage": "Miami metro, all hotel classes",
+        "year": "2023-2024"
+      },
+      {
+        "id": "trivago_statista",
+        "name": "Trivago (via Statista)",
+        "url": "https://www.statista.com/statistics/309128/overnight-accommodation-costs-miami-by-month/",
+        "type": "OTA aggregator",
+        "coverage": "Miami city, all accommodation",
+        "year": "2023"
+      },
+      {
+        "id": "str_costar",
+        "name": "STR / CoStar Benchmark",
+        "url": "https://www.costar.com/products/benchmark",
+        "type": "Professional hotel benchmarking (STR)",
+        "coverage": "Miami-Dade hotel market",
+        "year": "2019-2024"
+      },
+      {
+        "id": "matthews_cre",
+        "name": "Matthews Real Estate / CoStar",
+        "url": "https://www.matthews.com/3q24-hospitality-market-report-miami-fl/",
+        "type": "Commercial real estate report",
+        "coverage": "Miami-FL hotel sector",
+        "year": "2024"
+      },
+      {
+        "id": "hvs",
+        "name": "HVS Hotel Valuation Index",
+        "url": "https://hvi.hvs.com/market/united-states/Miami_-_Hialeah",
+        "type": "Hotel valuation / appraisal",
+        "coverage": "Miami-Hialeah market",
+        "year": "2008-2024"
+      },
+      {
+        "id": "miami_today",
+        "name": "Miami Today / Greater Miami CVB",
+        "url": "https://www.miamitodaynews.com/2023/10/31/miami-hotel-rates-revenues-near-top-in-nation/",
+        "type": "Tourism bureau / local media",
+        "coverage": "Miami-Dade County",
+        "year": "2022-2024"
+      }
+    ]
+  },
+
+  "monthly_adr": {
+    "_note": "Average Daily Rate (USD) by month — Miami metro all-hotel average",
+    "kayak_2023_2024": {
+      "source": "kayak_30sc",
+      "January":   250,
+      "February":  260,
+      "March":     240,
+      "April":     230,
+      "May":       220,
+      "June":      210,
+      "July":      215,
+      "August":    210,
+      "September": 200,
+      "October":   205,
+      "November":  220,
+      "December":  260
+    },
+    "trivago_2023_partial": {
+      "source": "trivago_statista",
+      "_note": "Only two months publicly available without paywall",
+      "August":    199,
+      "September": 198
+    },
+    "str_spot_2024": {
+      "source": "str_costar",
+      "_note": "Spot readings from STR press releases — Miami market",
+      "March_2024":   284.14,
+      "August_2024":  null,
+      "October_2024": 245.28
+    }
+  },
+
+  "monthly_occupancy_pct": {
+    "_note": "Occupancy rate (%) by spot month — STR / Miami-Dade data",
+    "source": "str_costar",
+    "March_2024":   83.5,
+    "August_2024":  null,
+    "October_2024": null,
+    "Q3_2024_avg":  73.7,
+    "peak_season_Jan_Apr": 61.5,
+    "_note2": "Miami-Dade was #1 in top 25 US destinations for occupancy Jan-Apr 2023"
+  },
+
+  "monthly_revpar": {
+    "_note": "Revenue Per Available Room (USD)",
+    "source": "str_costar",
+    "March_2024":   237.25,
+    "October_2024": 179.72,
+    "Q3_2024_avg":  162.0
+  },
+
+  "seasonality_index": {
+    "_note": "Derived from Kayak monthly ADR / annual avg ($236.67). Index 1.0 = average month.",
+    "source": "kayak_30sc",
+    "annual_avg_adr": 236.67,
+    "January":   1.056,
+    "February":  1.099,
+    "March":     1.014,
+    "April":     0.972,
+    "May":       0.930,
+    "June":      0.887,
+    "July":      0.908,
+    "August":    0.887,
+    "September": 0.845,
+    "October":   0.866,
+    "November":  0.930,
+    "December":  1.099
+  },
+
+  "annual_market": {
+    "_note": "Full-year Miami hotel market KPIs",
+    "2019": {
+      "source": "str_costar",
+      "revpar": 154.21,
+      "adr_miami_beach_sep": 230.98,
+      "note": "Pre-pandemic baseline"
+    },
+    "2022": {
+      "source": "hvs",
+      "revpar_note": "~20% above 2018 peak ($154.21) — approx $185",
+      "revpar_approx": 185,
+      "note": "Post-pandemic peak year"
+    },
+    "2023": {
+      "source": "str_costar",
+      "revpar": 159.22,
+      "revpar_yoy_pct": -6.7,
+      "adr_yoy_pct": -6.0,
+      "occ_yoy_pct": -2.0,
+      "q1_revpar_yoy": -1.3,
+      "q2_revpar_yoy": -15.0,
+      "q3_revpar_yoy": -9.4,
+      "note": "Normalization year after 2022 surge"
+    },
+    "2024": {
+      "source": "str_costar",
+      "revpar": 164.0,
+      "revpar_yoy_pct": 2.6,
+      "adr_yoy_pct": 0.3,
+      "occ_yoy_pct": 2.6,
+      "adr_miami_beach_ytd_sep": 283.38,
+      "total_rooms_market": 67973,
+      "note": "Recovery year; bounced back H2 2024 after 16 months negative"
+    }
+  },
+
+  "hvs_annual_revpar": {
+    "_note": "Miami-Hialeah market annual RevPAR — HVS Hotel Valuation Index",
+    "source": "hvs",
+    "2008": 114.32,
+    "2009": 91.32,
+    "2010": 101.40,
+    "2011": 116.14,
+    "2012": 124.18,
+    "2013": 135.24,
+    "2014": 144.83,
+    "2015": 152.74,
+    "2016": 143.59,
+    "2017": 144.65,
+    "2018": 148.99,
+    "2019": 154.21
+  },
+
+  "market_supply": {
+    "_note": "Miami-Dade hotel supply statistics",
+    "source": "matthews_cre",
+    "total_rooms_2024": 67973,
+    "new_rooms_opening_2024": 1200,
+    "tbo_miami_area_hotels": 2978,
+    "tbo_breakdown_by_rating": {
+      "source": "tbo_dataset",
+      "ThreeStar": 1333,
+      "FourStar":  591,
+      "TwoStar":   514,
+      "All":       439,
+      "FiveStar":  69,
+      "OneStar":   32
+    },
+    "tbo_breakdown_by_submarket": {
+      "source": "tbo_dataset",
+      "Miami":                             953,
+      "Miami Beach":                       599,
+      "Fort Lauderdale":                   590,
+      "Miami South Beach":                 279,
+      "Hollywood Beach/Fort Lauderdale":   221,
+      "Miami Beach - Sunny Isles":          93,
+      "Pompano Beach/Fort Lauderdale":      70,
+      "Lauderdale-by-the-Sea":              47
+    }
+  },
+
+  "our_hotels_internal": {
+    "_note": "Live data from AI_Search_HotelData (our DB, queried 2026-03-02)",
+    "source": "internal_ai_search",
+    "coverage": "May 2025 to present",
+    "66814": {
+      "name": "Breakwater South Beach",
+      "rows": 64350,
+      "avg_price": 199.40,
+      "min_price": 81.53,
+      "max_price": 23377.00,
+      "earliest": "2025-05-01",
+      "latest": "2026-02-27",
+      "room_types": ["standard", "superior", "deluxe", "suite", "apartment"],
+      "boards": ["RO", "BB"]
+    },
+    "20702": {
+      "name": "Embassy Suites Miami Airport",
+      "rows": 35458,
+      "avg_price": 170.76,
+      "min_price": 126.24,
+      "max_price": 6146.00,
+      "earliest": "2025-05-01",
+      "latest": "2026-06-16",
+      "room_types": ["standard", "suite"],
+      "boards": ["RO", "BB"]
+    },
+    "854881": {
+      "name": "citizenM Miami Brickell",
+      "rows": 6369,
+      "avg_price": 254.36,
+      "min_price": 100.00,
+      "max_price": 3467.52,
+      "earliest": "2025-11-12",
+      "latest": "2026-06-16",
+      "room_types": ["standard"],
+      "boards": ["RO", "BB"]
+    },
+    "24982": {
+      "name": "Hilton Miami Downtown",
+      "rows": 2390,
+      "avg_price": 576.32,
+      "min_price": 171.99,
+      "max_price": 14555.00,
+      "earliest": "2025-05-01",
+      "latest": "2026-06-16",
+      "room_types": ["standard", "suite", "apartment"],
+      "boards": ["RO", "BB"]
+    }
+  },
+
+  "event_driven_spikes": {
+    "_note": "Known demand events causing ADR spikes in Miami",
+    "source": "str_costar",
+    "events": [
+      {
+        "period": "Oct 13-19 2024",
+        "adr": 245.28,
+        "adr_yoy_pct": 29.9,
+        "revpar": 179.72,
+        "revpar_yoy_pct": 35.5,
+        "drivers": ["Taylor Swift Eras Tour", "Adobe MAX 2024"]
+      },
+      {
+        "period": "Jan-Apr annually",
+        "note": "Snowbird season — Miami-Dade #1 in top 25 US markets for occupancy",
+        "typical_adr_range": [240, 285],
+        "typical_occ_pct": 61.5
+      },
+      {
+        "period": "March annually",
+        "note": "Spring break + Art Basel residual demand — consistently highest ADR month",
+        "typical_adr": 280
+      }
+    ]
+  }
+}
