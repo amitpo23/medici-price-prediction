@@ -1,6 +1,6 @@
 """Makcorps Historical Hotel Price API integration.
 
-Makcorps provides historical OTA rates (Booking.com, Expedia, Hotels.com, etc.)
+Makcorps provides OTA rates (Booking.com, Expedia, Hotels.com, etc.)
 going back to 2010 for 200+ OTAs. Free tier: 5,000 calls/month.
 
 Sign up: https://makcorps.com (email registration, instant free key)
@@ -8,17 +8,23 @@ Once you have a key, set it via:
   az webapp config appsettings set --name medici-prediction-api \\
     --resource-group medici-prediction-rg --settings MAKCORPS_API_KEY="<key>"
 
-API structure:
-  1. Hotel mapping: /mapping?hotel_name=...&city=...&api_key=...  → find hotel_id
-  2. Historical rates: /hotel?hotelid=...&checkin=...&checkout=...&api_key=... → prices
+API structure (docs.makcorps.com):
+  1. Hotel mapping: GET /mapping?api_key=...&name=<Hotel Name, City>
+     Response: [{document_id, type, name, details}, ...]
+     Use document_id where type == "HOTEL"
 
-We store found hotel_id mappings and cached historical prices in SQLite.
+  2. Hotel prices: GET /hotel?api_key=...&hotelid=<document_id>&adults=2&cur=USD&rooms=1
+                             &checkin=YYYY-MM-DD&checkout=YYYY-MM-DD
+     Response: {comparison: [{vendor, price, tax}, ...]}
+
+We store found hotel mappings and cached prices in SQLite.
 """
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 import requests
@@ -35,12 +41,12 @@ logger = logging.getLogger(__name__)
 DB_PATH = DATA_DIR / "makcorps_prices.sqlite"
 BASE_URL = "https://api.makcorps.com"
 
-# Our 4 Miami hotels — hotel_id will be filled in after mapping call
+# Our 4 Miami hotels — makcorps_id (document_id) filled in after mapping call
 OUR_HOTELS: dict[int, dict] = {
-    66814:  {"name": "Breakwater South Beach",    "city": "Miami Beach", "makcorps_id": None},
-    854881: {"name": "citizenM Miami Brickell",   "city": "Miami",       "makcorps_id": None},
-    20702:  {"name": "Embassy Suites Miami Airport", "city": "Miami",    "makcorps_id": None},
-    24982:  {"name": "Hilton Miami Downtown",     "city": "Miami",       "makcorps_id": None},
+    66814:  {"name": "Breakwater South Beach",       "city": "Miami Beach"},
+    854881: {"name": "citizenM Miami Brickell",      "city": "Miami"},
+    20702:  {"name": "Embassy Suites Miami Airport", "city": "Miami"},
+    24982:  {"name": "Hilton Miami Downtown",        "city": "Miami"},
 }
 
 
@@ -73,9 +79,10 @@ def _ensure_tables(conn: sqlite3.Connection) -> None:
 
 
 def find_hotel_id(hotel_id: int) -> str | None:
-    """Find Makcorps hotel ID for one of our hotels using name search.
+    """Find Makcorps document_id for one of our hotels using name search.
 
     Caches result in SQLite. Returns makcorps_id string or None.
+    Uses: GET /mapping?api_key=...&name=<Hotel Name, City>
     """
     if not MAKCORPS_API_KEY:
         return None
@@ -94,28 +101,30 @@ def find_hotel_id(hotel_id: int) -> str | None:
         if row and row[0]:
             return row[0]
 
-    # Search Makcorps
+    # Search Makcorps — name format: "Hotel Name, City"
+    search_name = f"{hotel['name']}, {hotel['city']}"
     try:
         r = requests.get(
             f"{BASE_URL}/mapping",
-            params={
-                "hotel_name": hotel["name"],
-                "city": hotel["city"],
-                "api_key": MAKCORPS_API_KEY,
-            },
+            params={"api_key": MAKCORPS_API_KEY, "name": search_name},
             timeout=15,
         )
         r.raise_for_status()
         results = r.json()
 
-        # Makcorps returns a list of matches; take the first one
+        # Response: [{document_id, type, name, details}, ...]
+        # Pick first result where type == "HOTEL"
         makcorps_id = None
-        if isinstance(results, list) and results:
-            makcorps_id = str(results[0].get("hotel_id") or results[0].get("id", ""))
-        elif isinstance(results, dict):
-            makcorps_id = str(results.get("hotel_id") or results.get("id", ""))
+        if isinstance(results, list):
+            for item in results:
+                if item.get("type", "").upper() == "HOTEL":
+                    makcorps_id = str(item.get("document_id", ""))
+                    break
+            # Fallback: take first result's document_id regardless of type
+            if not makcorps_id and results:
+                makcorps_id = str(results[0].get("document_id", ""))
 
-        if makcorps_id:
+        if makcorps_id and makcorps_id not in ("", "None"):
             with _get_conn() as conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO hotel_mappings VALUES (?, ?, ?, datetime('now'))",
@@ -125,8 +134,10 @@ def find_hotel_id(hotel_id: int) -> str | None:
             logger.info("Makcorps mapping: hotel_id=%d → makcorps_id=%s", hotel_id, makcorps_id)
             return makcorps_id
 
+        logger.warning("Makcorps: no document_id found for '%s' (response: %s)", search_name, str(results)[:200])
+
     except Exception as exc:
-        logger.warning("Makcorps mapping failed for hotel %d: %s", hotel_id, exc)
+        logger.warning("Makcorps mapping failed for hotel %d ('%s'): %s", hotel_id, search_name, exc)
     return None
 
 
@@ -135,13 +146,14 @@ def fetch_historical_prices(
     start_date: str | None = None,
     end_date: str | None = None,
 ) -> int:
-    """Fetch historical prices for a hotel across a date range.
+    """Fetch prices for a hotel across a date range (weekly sampling).
 
-    Queries each check-in date individually (1-night stay).
-    Returns number of rows stored. Uses ~1 API call per check-in date.
+    Uses GET /hotel with adults=2, rooms=1, cur=USD.
+    Response: {comparison: [{vendor, price, tax}, ...]}
+    Returns number of rows stored. Each call uses 1 API credit.
 
     With 5,000 free calls/month and 4 hotels:
-      5000 / 4 = 1,250 check-in dates per hotel per month ≈ 3.5 years of data
+      5000 / 4 = 1,250 check-in dates per hotel per month ≈ 3.5 years
     """
     if not MAKCORPS_API_KEY:
         logger.debug("MAKCORPS_API_KEY not set")
@@ -149,14 +161,14 @@ def fetch_historical_prices(
 
     makcorps_id = find_hotel_id(hotel_id)
     if not makcorps_id:
-        logger.warning("No Makcorps ID found for hotel %d — run find_hotel_id() first", hotel_id)
+        logger.warning("No Makcorps ID found for hotel %d", hotel_id)
         return 0
 
-    # Default: last 180 days of history
+    # Default: last 90 days (conservative — 4 hotels × ~13 calls = ~52 credits)
     if start_date is None:
-        start_date = (date.today() - timedelta(days=180)).isoformat()
+        start_date = (date.today() - timedelta(days=90)).isoformat()
     if end_date is None:
-        end_date = (date.today() - timedelta(days=1)).isoformat()  # yesterday
+        end_date = (date.today() - timedelta(days=1)).isoformat()
 
     start_dt = date.fromisoformat(start_date)
     end_dt = date.fromisoformat(end_date)
@@ -176,33 +188,35 @@ def fetch_historical_prices(
                 (hotel_id, checkin),
             ).fetchone()
             if existing:
-                current += timedelta(days=7)  # skip 7 days at a time
+                current += timedelta(days=7)
                 continue
 
             try:
                 r = requests.get(
                     f"{BASE_URL}/hotel",
                     params={
+                        "api_key": MAKCORPS_API_KEY,
                         "hotelid": makcorps_id,
+                        "adults": 2,
+                        "cur": "USD",
+                        "rooms": 1,
                         "checkin": checkin,
                         "checkout": checkout,
-                        "api_key": MAKCORPS_API_KEY,
                     },
                     timeout=15,
                 )
                 r.raise_for_status()
                 data = r.json()
 
-                # Extract prices from response
-                prices = []
-                if isinstance(data, list):
-                    prices = [float(p["price"]) for p in data if p.get("price")]
-                elif isinstance(data, dict):
-                    raw = data.get("rates", data.get("prices", []))
-                    prices = [float(p) for p in raw if p]
+                # Response: {comparison: [{vendor, price, tax}, ...]}
+                comparison = data.get("comparison", []) if isinstance(data, dict) else []
+                prices = [
+                    float(item["price"])
+                    for item in comparison
+                    if item.get("price") is not None
+                ]
 
                 if prices:
-                    import json
                     sorted_p = sorted(prices)
                     conn.execute(
                         "INSERT OR REPLACE INTO historical_prices VALUES (?,?,?,?,?,?,datetime('now'))",
@@ -216,13 +230,13 @@ def fetch_historical_prices(
                     count += 1
 
             except Exception as exc:
-                logger.debug("Makcorps price fetch failed %s: %s", checkin, exc)
+                logger.debug("Makcorps price fetch failed %s hotel=%d: %s", checkin, hotel_id, exc)
 
             current += timedelta(days=7)  # weekly sampling to preserve API quota
 
         conn.commit()
 
-    logger.info("Makcorps: stored %d historical price records for hotel %d", count, hotel_id)
+    logger.info("Makcorps: stored %d price records for hotel %d", count, hotel_id)
     return count
 
 
@@ -255,9 +269,11 @@ def get_summary() -> dict:
             total_prices = conn.execute("SELECT COUNT(*) FROM historical_prices").fetchone()[0]
             mappings = conn.execute("SELECT our_hotel_id, hotel_name, makcorps_id FROM hotel_mappings").fetchall()
             by_hotel = {}
-            for hotel_id, in conn.execute("SELECT DISTINCT our_hotel_id FROM historical_prices").fetchall():
-                cnt = conn.execute("SELECT COUNT(*) FROM historical_prices WHERE our_hotel_id=?", (hotel_id,)).fetchone()[0]
-                by_hotel[str(hotel_id)] = cnt
+            for (hid,) in conn.execute("SELECT DISTINCT our_hotel_id FROM historical_prices").fetchall():
+                cnt = conn.execute(
+                    "SELECT COUNT(*) FROM historical_prices WHERE our_hotel_id=?", (hid,)
+                ).fetchone()[0]
+                by_hotel[str(hid)] = cnt
     except Exception:
         total_prices = 0
         mappings = []
