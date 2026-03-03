@@ -26,10 +26,86 @@ def generate_charts_html(charts_data: dict) -> str:
     if not charts_data:
         return _empty_page(now)
 
+    attribution = charts_data.get("source_attribution", {})
+    enrichments = charts_data.get("enrichments", {})
+
     tab1 = _build_contract_path_tab(charts_data)
-    tab2 = _build_term_structure_tab(charts_data)
-    tab3 = _build_opportunity_stats_tab(charts_data)
-    return _wrap_page(now, tab1, tab2, tab3)
+    tab2 = _build_term_structure_tab(charts_data, enrichments.get("seasonality", {}))
+    tab3 = _build_opportunity_stats_tab(charts_data, enrichments.get("velocity", {}))
+    return _wrap_page(now, tab1, tab2, tab3, attribution)
+
+
+# ── Data source attribution helpers ──────────────────────────────────────
+
+
+def _source_strip_html(sources: list[dict], extra_label: str = "") -> str:
+    """Build a collapsible data source attribution strip."""
+    if not sources:
+        return ""
+
+    total_rows = sum(s.get("rows", 0) for s in sources if isinstance(s.get("rows"), int))
+    all_years = set()
+    for s in sources:
+        for y in s.get("years", []):
+            all_years.add(y)
+    year_range = f"{min(all_years)}-{max(all_years)}" if all_years else "N/A"
+    n_sources = len(sources)
+
+    cards = ""
+    for s in sources:
+        rows_str = f"{s['rows']:,}" if isinstance(s.get("rows"), int) else str(s.get("rows", ""))
+        status_cls = "badge-live" if s.get("status") == "live" else "badge-archive"
+        status_txt = "Live" if s.get("status") == "live" else "Archive"
+        cards += (
+            f'<div class="source-mini-card">'
+            f'<span class="source-mini-name">{s["name"]}</span>'
+            f'<span class="source-mini-rows">{rows_str} rows</span>'
+            f'<span class="source-mini-years">{s.get("year_range", "")}</span>'
+            f'<span class="source-mini-freq">{s.get("update_freq", "")}</span>'
+            f'<span class="badge {status_cls}">{status_txt}</span>'
+            f'</div>'
+        )
+
+    extra = f' | {extra_label}' if extra_label else ""
+    return (
+        '<details class="source-strip">'
+        '<summary class="source-summary">'
+        f'<span>Data Sources: <strong>{n_sources}</strong> sources | '
+        f'<strong>{total_rows:,}</strong> rows | '
+        f'<strong>{year_range}</strong>{extra}</span>'
+        '<span class="source-toggle">Details</span>'
+        '</summary>'
+        f'<div class="source-details">{cards}</div>'
+        '</details>'
+    )
+
+
+def _coverage_bar_html(attribution: dict | None) -> str:
+    """Compact coverage stats bar between header and tabs."""
+    if not attribution or not attribution.get("total_rows"):
+        return ""
+    total = attribution.get("total_rows", 0)
+    year_range = attribution.get("year_range", "N/A")
+    hotels = attribution.get("hotels", 0)
+    contracts = attribution.get("contracts", 0)
+    n_sources = len(attribution.get("sources", []))
+    return (
+        '<div class="coverage-bar"><div class="container">'
+        f'<span class="cov-item"><strong>{total:,}</strong> price observations</span>'
+        f'<span class="cov-item"><strong>{year_range}</strong> year coverage</span>'
+        f'<span class="cov-item"><strong>{hotels}</strong> hotels tracked</span>'
+        f'<span class="cov-item"><strong>{contracts:,}</strong> unique contracts</span>'
+        f'<span class="cov-item"><strong>{n_sources}+</strong> data sources</span>'
+        '</div></div>'
+    )
+
+
+def _footer_sources_text(attribution: dict | None) -> str:
+    """Generate footer text listing data sources."""
+    if not attribution or not attribution.get("sources"):
+        return ""
+    names = [s["name"] for s in attribution["sources"]]
+    return f'Powered by {len(names)} sources: {", ".join(names)}. &mdash; '
 
 
 # ── Tab 1: Room/Contract Path (AJAX-driven) ─────────────────────────────
@@ -61,6 +137,16 @@ def _build_contract_path_tab(charts_data: dict) -> str:
         for i, c in enumerate(first_contracts)
     )
 
+    # Source strip for Tab 1
+    tab1_sources = [
+        {"name": "SalesOffice.Details + Orders", "rows": "~39K", "years": [2024, 2025],
+         "year_range": "2024-2025", "update_freq": "Hourly", "status": "live"},
+        {"name": "MED_SearchHotels", "rows": "7M", "years": [2020, 2021, 2022, 2023],
+         "year_range": "2020-2023", "update_freq": "Static", "status": "archive"},
+        {"name": "AI_Search_HotelData (Market)", "rows": "8.5M", "years": [2024, 2025],
+         "year_range": "2024-2025", "update_freq": "Real-time", "status": "live"},
+    ]
+
     html = (
         '<div class="explainer">'
         '<strong>How to read:</strong> Select a hotel and contract (check-in date + room type + board). '
@@ -70,6 +156,11 @@ def _build_contract_path_tab(charts_data: dict) -> str:
         '<strong>Chart 3</strong>: how far above/below settlement. '
         '<strong>Chart 4</strong>: premium vs competitor market average.'
         '</div>'
+
+        + _source_strip_html(tab1_sources, "+ Events + Weather + Flights + Xotelo enrichments")
+
+        + '<div id="cp-enrichments" class="cp-enrichments" style="display:none;"></div>'
+        '<div id="cp-sources-used" class="cp-sources-used" style="display:none;"></div>'
 
         '<div class="ts-filters">'
         f'<label class="ts-label">Hotel<select id="cp-hotel" onchange="cpHotelChange()">{hotel_opts}</select></label>'
@@ -207,6 +298,42 @@ def _build_contract_path_tab(charts_data: dict) -> str:
         '    metaEl.style.display = "block";\n'
         '  }\n'
         '\n'
+        '  // Enrichment tags\n'
+        '  const enr = data.enrichments || {};\n'
+        '  const enrEl = document.getElementById("cp-enrichments");\n'
+        '  let enrHtml = "";\n'
+        '  if (enr.events) {\n'
+        '    enrHtml += `<span class="cp-tag cp-tag--event">Event: ${enr.events.event_names.join(", ")} (${enr.events.impact_level})</span>`;\n'
+        '  }\n'
+        '  if (enr.weather) {\n'
+        '    enrHtml += `<span class="cp-tag cp-tag--weather">${enr.weather.summary} (${enr.weather.adjustment_pct > 0 ? "+" : ""}${enr.weather.adjustment_pct}%)</span>`;\n'
+        '  }\n'
+        '  if (enr.flights) {\n'
+        '    const fc = enr.flights.indicator === "HIGH" ? "cp-tag--flights-high" : enr.flights.indicator === "MEDIUM" ? "cp-tag--flights-med" : "cp-tag--flights-low";\n'
+        '    enrHtml += `<span class="cp-tag ${fc}">Flights: ${enr.flights.indicator}${enr.flights.avg_price ? " ($" + enr.flights.avg_price + " avg)" : ""}</span>`;\n'
+        '  }\n'
+        '  if (enr.xotelo && enr.xotelo.latest_rates && enr.xotelo.latest_rates.length > 0) {\n'
+        '    const r = enr.xotelo.latest_rates[0];\n'
+        '    enrHtml += `<span class="cp-tag cp-tag--xotelo">OTA Median: $${r.median_rate || "N/A"}</span>`;\n'
+        '  }\n'
+        '  if (enrHtml) { enrEl.innerHTML = enrHtml; enrEl.style.display = "flex"; }\n'
+        '  else { enrEl.style.display = "none"; }\n'
+        '\n'
+        '  // Sources used\n'
+        '  const src = data.sources_used || {};\n'
+        '  const srcEl = document.getElementById("cp-sources-used");\n'
+        '  if (src.n_rows) {\n'
+        '    let srcParts = [`<span class="cp-tag cp-tag--src">${src.n_rows} data points</span>`];\n'
+        '    if (src.by_source) {\n'
+        '      Object.entries(src.by_source).forEach(([k,v]) => {\n'
+        '        srcParts.push(`<span class="cp-tag cp-tag--src">${k}: ${v} rows</span>`);\n'
+        '      });\n'
+        '    }\n'
+        '    if (src.market) srcParts.push(`<span class="cp-tag cp-tag--src">${src.market}</span>`);\n'
+        '    srcEl.innerHTML = srcParts.join("");\n'
+        '    srcEl.style.display = "flex";\n'
+        '  }\n'
+        '\n'
         '  // Chart 1: Realized path\n'
         '  cpLine("ch-realized", data.chart1_realized_path.scan_dates,\n'
         '    [{ label: "Price ($)", data: data.chart1_realized_path.prices,\n'
@@ -279,7 +406,7 @@ def _build_contract_path_tab(charts_data: dict) -> str:
 # ── Tab 2: 3-Year Term Structure (reuses term_structure_engine data) ─────
 
 
-def _build_term_structure_tab(charts_data: dict) -> str:
+def _build_term_structure_tab(charts_data: dict, seasonality: dict | None = None) -> str:
     tab2 = charts_data.get("tab2", {})
     available = {hid: hdata for hid, hdata in tab2.items() if hdata.get("combos")}
 
@@ -304,6 +431,40 @@ def _build_term_structure_tab(charts_data: dict) -> str:
     serializable = {str(hid): hdata for hid, hdata in available.items()}
     json_data = json.dumps(serializable, default=str)
 
+    # Source strip for Tab 2
+    attr = charts_data.get("source_attribution", {})
+    tab2_sources = attr.get("sources", [])
+
+    # Seasonality bar HTML
+    seasonality_html = ""
+    if seasonality and seasonality.get("months"):
+        month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        months = seasonality["months"]
+        cells = ""
+        for m in month_names:
+            val = months.get(m, 1.0)
+            # Color: green for peak (>1.0), red for trough (<1.0)
+            if val >= 1.05:
+                bg = f"rgba(34,197,94,{min((val-1.0)*4, 0.6):.2f})"
+            elif val <= 0.95:
+                bg = f"rgba(239,68,68,{min((1.0-val)*4, 0.6):.2f})"
+            else:
+                bg = "transparent"
+            cells += f'<td style="background:{bg};text-align:center;padding:6px 8px;">{val:.3f}</td>'
+
+        seasonality_html = (
+            '<div class="ts-panel ts-panel--full">'
+            '<div class="ts-panel-title">Miami Monthly Demand Index</div>'
+            '<div class="ts-panel-desc">Seasonal multiplier: 1.0 = average month. '
+            '<span class="savings">Green = peak demand</span>, '
+            '<span class="premium">Red = low demand</span>. '
+            f'Source: {seasonality.get("source", "Kaggle Hotel Booking Demand")}.</div>'
+            '<div class="table-wrap"><table class="heatmap-table"><thead><tr>'
+            + "".join(f'<th>{m}</th>' for m in month_names)
+            + '</tr></thead><tbody><tr>' + cells + '</tr></tbody></table></div>'
+            '</div>'
+        )
+
     html = (
         '<div class="explainer">'
         '<strong>How to read:</strong> Select a hotel and room/board combination. '
@@ -313,7 +474,9 @@ def _build_term_structure_tab(charts_data: dict) -> str:
         '<span style="color:#22c55e;font-weight:600;">Green = 2025</span>. '
         'Compare curve shapes to spot structural changes in price behavior by year.</div>'
 
-        '<div class="ts-filters">'
+        + _source_strip_html(tab2_sources)
+
+        + '<div class="ts-filters">'
         f'<label class="ts-label">Hotel<select id="ts-hotel" onchange="tsHotelChange()">{hotel_opts}</select></label>'
         f'<label class="ts-label">Room / Board<select id="ts-combo" onchange="tsRender()">{combo_opts}</select></label>'
         '</div>'
@@ -361,7 +524,9 @@ def _build_term_structure_tab(charts_data: dict) -> str:
         '<div id="ch-heatmap" class="table-wrap"></div>'
         '</div>'
 
-        '</div>'  # end .ts-grid
+        + seasonality_html
+
+        + '</div>'  # end .ts-grid
     )
 
     # JavaScript for Tab 2
@@ -473,7 +638,7 @@ def _build_term_structure_tab(charts_data: dict) -> str:
 # ── Tab 3: Expiry-Relative Opportunity Stats ─────────────────────────────
 
 
-def _build_opportunity_stats_tab(charts_data: dict) -> str:
+def _build_opportunity_stats_tab(charts_data: dict, velocity: dict | None = None) -> str:
     tab3 = charts_data.get("tab3", {})
 
     if not tab3:
@@ -492,6 +657,13 @@ def _build_opportunity_stats_tab(charts_data: dict) -> str:
     serializable = {str(hid): hdata for hid, hdata in tab3.items()}
     json_data = json.dumps(serializable, default=str)
 
+    # Source strip for Tab 3
+    attr = charts_data.get("source_attribution", {})
+    tab3_sources = attr.get("sources", [])
+
+    # Velocity data as JSON for JS
+    velocity_json = json.dumps(velocity or {}, default=str)
+
     html = (
         '<div class="explainer">'
         '<strong>How to read:</strong> These charts analyze completed contracts from the last 6 months. '
@@ -500,8 +672,19 @@ def _build_opportunity_stats_tab(charts_data: dict) -> str:
         '<span class="savings">Green/negative</span> = price was below settlement (potential buy). '
         '<span class="premium">Red/positive</span> = price was above settlement.</div>'
 
-        '<div class="ts-filters">'
+        + _source_strip_html(tab3_sources, "+ RoomPriceUpdateLog (82K events)")
+
+        + '<div class="ts-filters">'
         f'<label class="ts-label">Hotel<select id="opp-hotel" onchange="oppRender()">{hotel_opts}</select></label>'
+        '</div>'
+
+        # Velocity KPIs
+        '<div id="opp-velocity" class="kpi-row">'
+        '<div class="kpi-mini"><span class="kpi-mini-value" id="vel-updates">-</span><span class="kpi-mini-label">Price Updates</span></div>'
+        '<div class="kpi-mini"><span class="kpi-mini-value" id="vel-rooms">-</span><span class="kpi-mini-label">Rooms Tracked</span></div>'
+        '<div class="kpi-mini"><span class="kpi-mini-value" id="vel-avg">-</span><span class="kpi-mini-label">Avg Price</span></div>'
+        '<div class="kpi-mini"><span class="kpi-mini-value" id="vel-stdev">-</span><span class="kpi-mini-label">Price Std Dev</span></div>'
+        '<div class="kpi-mini kpi-mini--src"><span class="kpi-mini-label">Source: RoomPriceUpdateLog</span></div>'
         '</div>'
 
         '<div class="ts-grid">'
@@ -538,6 +721,7 @@ def _build_opportunity_stats_tab(charts_data: dict) -> str:
         '<script>\n'
         '(function() {\n'
         'const OPP_DATA = ' + json_data + ';\n'
+        'const VEL_DATA = ' + velocity_json + ';\n'
         'const YEAR_COLORS = {"2023":"#6366f1","2024":"#06b6d4","2025":"#22c55e"};\n'
         'const YEARS = ["2023","2024","2025"];\n'
         'const OPP_OPTS = {\n'
@@ -551,6 +735,13 @@ def _build_opportunity_stats_tab(charts_data: dict) -> str:
         '  const hotel = document.getElementById("opp-hotel").value;\n'
         '  const d = OPP_DATA[hotel];\n'
         '  if (!d) return;\n'
+        '\n'
+        '  // Update velocity KPIs\n'
+        '  const vel = VEL_DATA[hotel] || {};\n'
+        '  document.getElementById("vel-updates").textContent = vel.total_updates ? vel.total_updates.toLocaleString() : "-";\n'
+        '  document.getElementById("vel-rooms").textContent = vel.unique_rooms ? vel.unique_rooms.toLocaleString() : "-";\n'
+        '  document.getElementById("vel-avg").textContent = vel.avg_price ? "$" + vel.avg_price.toLocaleString() : "-";\n'
+        '  document.getElementById("vel-stdev").textContent = vel.price_stdev ? "$" + vel.price_stdev.toFixed(1) : "-";\n'
         '\n'
         '  // Chart 10: min_rel distribution histogram\n'
         '  const mrd = d.min_rel_dist;\n'
@@ -655,7 +846,7 @@ def _empty_page(now: str) -> str:
 </body></html>"""
 
 
-def _wrap_page(now: str, tab1: str, tab2: str, tab3: str) -> str:
+def _wrap_page(now: str, tab1: str, tab2: str, tab3: str, attribution: dict | None = None) -> str:
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -728,6 +919,47 @@ body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .cp-spinner{{width:24px;height:24px;border:3px solid var(--border);border-top:3px solid var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}}
 @keyframes spin{{to{{transform:rotate(360deg);}}}}
 
+/* Source attribution strips */
+.source-strip{{margin:0 0 16px;}}
+.source-summary{{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:0.82em;color:var(--text-dim);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;}}
+.source-summary::-webkit-details-marker{{display:none;}}
+.source-summary strong{{color:var(--accent2);}}
+.source-toggle{{color:var(--accent);font-size:0.85em;font-weight:500;}}
+.source-strip[open] .source-toggle::after{{content:" ▲";}}
+.source-strip:not([open]) .source-toggle::after{{content:" ▼";}}
+.source-details{{display:flex;flex-wrap:wrap;gap:10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;}}
+.source-mini-card{{display:flex;gap:8px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:0.8em;}}
+.source-mini-name{{font-weight:600;color:var(--text);}}
+.source-mini-rows{{color:var(--cyan);}}
+.source-mini-years{{color:var(--text-dim);}}
+.source-mini-freq{{color:var(--text-dim);font-size:0.9em;}}
+.badge{{padding:2px 8px;border-radius:10px;font-size:0.75em;font-weight:600;}}
+.badge-live{{background:rgba(34,197,94,0.15);color:var(--green);}}
+.badge-archive{{background:rgba(234,179,8,0.15);color:var(--yellow);}}
+
+/* Coverage bar */
+.coverage-bar{{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 0;font-size:0.8em;color:var(--text-dim);}}
+.coverage-bar .container{{display:flex;gap:24px;flex-wrap:wrap;align-items:center;}}
+.cov-item strong{{color:var(--accent2);}}
+
+/* Enrichment tags (Tab 1) */
+.cp-enrichments{{display:flex;flex-wrap:wrap;gap:8px;padding:8px 18px;margin-bottom:12px;}}
+.cp-sources-used{{display:flex;flex-wrap:wrap;gap:6px;padding:4px 18px 12px;}}
+.cp-tag--event{{background:rgba(249,115,22,0.15);border-color:rgba(249,115,22,0.3);color:#fb923c;}}
+.cp-tag--weather{{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);color:#60a5fa;}}
+.cp-tag--flights-high{{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;}}
+.cp-tag--flights-med{{background:rgba(234,179,8,0.15);border-color:rgba(234,179,8,0.3);color:#fbbf24;}}
+.cp-tag--flights-low{{background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.3);color:#4ade80;}}
+.cp-tag--xotelo{{background:rgba(6,182,212,0.15);border-color:rgba(6,182,212,0.3);color:#22d3ee;}}
+.cp-tag--src{{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.2);color:var(--accent2);font-size:0.78em;}}
+
+/* Velocity KPI row (Tab 3) */
+.kpi-row{{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding:10px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;}}
+.kpi-mini{{display:flex;flex-direction:column;align-items:center;padding:8px 16px;min-width:100px;}}
+.kpi-mini-value{{font-size:1.3em;font-weight:700;color:var(--accent2);}}
+.kpi-mini-label{{font-size:0.75em;color:var(--text-dim);margin-top:2px;}}
+.kpi-mini--src{{justify-content:center;}}
+
 .footer{{text-align:center;padding:32px 0;color:var(--text-dim);font-size:0.85em;border-top:1px solid var(--border);margin-top:24px;}}
 </style>
 </head>
@@ -747,6 +979,8 @@ body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 </div>
 </div>
 
+{_coverage_bar_html(attribution)}
+
 <div class="tab-bar">
 <div class="container">
     <button class="tab-btn active" onclick="switchTab('contract',this)">Room/Contract Path</button>
@@ -762,7 +996,9 @@ body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 </div>
 
 <div class="footer">
-    <p>Medici Price Prediction Engine &mdash; Chart Pack &mdash; Generated {now}</p>
+    <p>Medici Price Prediction Engine &mdash; Chart Pack &mdash;
+    {_footer_sources_text(attribution)}
+    Generated {now}</p>
 </div>
 
 <script>

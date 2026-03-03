@@ -67,6 +67,15 @@ def build_charts_cache(hotel_ids: list[int]) -> dict:
     boards = sorted(raw["board"].dropna().unique().tolist())
     years = sorted(str(y) for y in raw["year"].dropna().unique().tolist())
 
+    # Source attribution — what data powers these charts
+    source_attribution = _build_source_attribution(raw)
+
+    # Enrichments: seasonality context for Tab 2
+    seasonality = _load_seasonality_enrichment()
+
+    # Enrichments: price velocity context for Tab 3
+    velocity = _load_velocity_enrichment(hotel_ids)
+
     logger.info(
         "Charts cache built: tab2=%d hotels, tab3=%d hotels, contracts=%d hotels",
         len(tab2), len(tab3), len(contracts_index),
@@ -76,6 +85,11 @@ def build_charts_cache(hotel_ids: list[int]) -> dict:
         "tab3": tab3,
         "contracts_index": contracts_index,
         "filter_options": {"categories": categories, "boards": boards, "years": years},
+        "source_attribution": source_attribution,
+        "enrichments": {
+            "seasonality": seasonality,
+            "velocity": velocity,
+        },
     }
 
 
@@ -167,12 +181,27 @@ def build_contract_path(
         "max_price": round(float(sub["price"].max()), 2),
     }
 
+    # Enrichments: events, weather, flights, competitor rates
+    enrichments = _load_contract_enrichments(hotel_id, checkin_date)
+
+    # Sources used for this contract
+    source_counts = sub["source"].value_counts().to_dict() if "source" in sub.columns else {}
+    sources_used = {
+        "primary": "SalesOffice.Details + Orders (2024+)",
+        "historical": "MED_SearchHotels (2020-2023)",
+        "market": "AI_Search_HotelData (8.5M rows)" if not chart4.get("no_market_data") else None,
+        "n_rows": len(sub),
+        "by_source": {k: int(v) for k, v in source_counts.items()},
+    }
+
     return {
         "chart1_realized_path": chart1,
         "chart2_t_space_path": chart2,
         "chart3_rel_expiry": chart3,
         "chart4_market_premium": chart4,
         "contract_meta": meta,
+        "enrichments": enrichments,
+        "sources_used": sources_used,
     }
 
 
@@ -511,3 +540,175 @@ def _build_contracts_index(raw: pd.DataFrame, hotel_ids: list[int]) -> dict:
             result[int(hid)] = entries
 
     return result
+
+
+# ── Source attribution & enrichment loaders ───────────────────────────────
+
+
+def _build_source_attribution(raw: pd.DataFrame) -> dict:
+    """Compute data source coverage stats from the unified DataFrame."""
+    if raw.empty:
+        return {"total_rows": 0, "year_range": "N/A", "years": [], "hotels": 0, "contracts": 0, "sources": []}
+
+    so_rows = int((raw["source"] == "salesoffice").sum()) if "source" in raw.columns else 0
+    med_rows = int((raw["source"] == "med_search").sum()) if "source" in raw.columns else 0
+    total_rows = len(raw)
+    years = sorted(int(y) for y in raw["year"].dropna().unique())
+    year_range = f"{min(years)}-{max(years)}" if years else "N/A"
+    hotels = int(raw["hotel_id"].nunique())
+    contracts = raw.groupby(CONTRACT_KEY).ngroups
+
+    sources = []
+
+    if so_rows > 0:
+        so_years = sorted(int(y) for y in raw[raw["source"] == "salesoffice"]["year"].unique())
+        sources.append({
+            "name": "SalesOffice.Details + Orders",
+            "rows": so_rows,
+            "years": so_years,
+            "year_range": f"{min(so_years)}-{max(so_years)}" if so_years else "",
+            "update_freq": "Hourly scans",
+            "status": "live",
+            "description": "Live room price scans from SalesOffice booking system",
+        })
+
+    if med_rows > 0:
+        med_years = sorted(int(y) for y in raw[raw["source"] == "med_search"]["year"].unique())
+        sources.append({
+            "name": "MED_SearchHotels (Historical)",
+            "rows": med_rows,
+            "years": med_years,
+            "year_range": f"{min(med_years)}-{max(med_years)}" if med_years else "",
+            "update_freq": "Static archive",
+            "status": "archive",
+            "description": "Historical search data from internal system (2020-2023)",
+        })
+
+    # AI_Search_HotelData is used for Chart 4 market benchmark
+    sources.append({
+        "name": "AI_Search_HotelData (Market)",
+        "rows": "8.5M+",
+        "years": [2024, 2025],
+        "year_range": "2024-2025",
+        "update_freq": "Real-time",
+        "status": "live",
+        "description": "Competitor pricing from 6,013 hotels, 323 cities — powers Chart 4 market benchmark",
+    })
+
+    return {
+        "total_rows": total_rows,
+        "year_range": year_range,
+        "years": years,
+        "hotels": hotels,
+        "contracts": contracts,
+        "sources": sources,
+    }
+
+
+def _load_seasonality_enrichment() -> dict:
+    """Load Miami seasonality index from booking benchmarks."""
+    try:
+        from src.analytics.booking_benchmarks import get_seasonality_all
+        seasonal = get_seasonality_all()
+        return {
+            "months": seasonal,
+            "source": "117K hotel bookings (Kaggle), scaled to Miami ADR $222",
+        }
+    except Exception as e:
+        logger.warning("Seasonality enrichment failed: %s", e)
+        return {}
+
+
+def _load_velocity_enrichment(hotel_ids: list[int]) -> dict:
+    """Load price update velocity per hotel from RoomPriceUpdateLog (82K rows)."""
+    try:
+        from src.data.trading_db import load_price_update_velocity
+        vel_df = load_price_update_velocity(hotel_ids=hotel_ids)
+        if vel_df.empty:
+            return {}
+
+        result = {}
+        for _, row in vel_df.iterrows():
+            hid = int(row["HotelId"])
+            result[hid] = {
+                "total_updates": int(row["total_updates"]),
+                "unique_rooms": int(row["unique_rooms"]),
+                "avg_price": round(float(row["avg_price"]), 2),
+                "price_stdev": round(float(row["price_stdev"]), 2) if pd.notna(row["price_stdev"]) else 0,
+                "source": "RoomPriceUpdateLog (82K price change events)",
+            }
+        return result
+    except Exception as e:
+        logger.warning("Velocity enrichment failed: %s", e)
+        return {}
+
+
+def _load_contract_enrichments(hotel_id: int, checkin_date: str) -> dict:
+    """Load enrichment signals for a single contract (Tab 1 AJAX)."""
+    enrichments: dict = {}
+
+    # Events for this check-in date
+    try:
+        from src.analytics.events_store import get_impact_for_date
+        impact = get_impact_for_date(checkin_date)
+        if impact and impact.get("events"):
+            enrichments["events"] = {
+                "impact_level": impact.get("impact_level", "none"),
+                "multiplier": impact.get("multiplier", 0),
+                "event_names": [e.get("name", "") for e in impact["events"]],
+                "source": "SeatGeek + Ticketmaster + hardcoded Miami events",
+            }
+    except Exception as e:
+        logger.debug("Events enrichment skipped: %s", e)
+
+    # Weather for check-in date
+    try:
+        from src.analytics.miami_weather import get_weather_forecast
+        forecast = get_weather_forecast(days=14)
+        # forecast is {date_str: adjustment_pct}
+        if checkin_date in forecast:
+            adj = forecast[checkin_date]
+            if adj < -0.10:
+                summary = "Hurricane/Storm Alert"
+            elif adj < 0:
+                summary = "Rain Expected"
+            elif adj > 0:
+                summary = "Clear Skies"
+            else:
+                summary = "Normal"
+            enrichments["weather"] = {
+                "adjustment_pct": round(adj * 100, 1),
+                "summary": summary,
+                "source": "Open-Meteo + NOAA NHC",
+            }
+    except Exception as e:
+        logger.debug("Weather enrichment skipped: %s", e)
+
+    # Flight demand
+    try:
+        from src.analytics.flights_store import get_demand_for_date
+        demand = get_demand_for_date("Miami", checkin_date)
+        if demand:
+            enrichments["flights"] = {
+                "indicator": demand.get("indicator", "NO_DATA"),
+                "avg_price": round(float(demand.get("avg_price", 0)), 0) if demand.get("avg_price") else None,
+                "total_flights": demand.get("total_flights", 0),
+                "source": "Kiwi.com flight search data",
+            }
+    except Exception as e:
+        logger.debug("Flights enrichment skipped: %s", e)
+
+    # Xotelo competitor rates
+    try:
+        from src.analytics.xotelo_store import get_rates_summary
+        xotelo = get_rates_summary(hotel_id)
+        if xotelo.get("status") == "ok" and xotelo.get("rates"):
+            rates = xotelo["rates"][:5]
+            enrichments["xotelo"] = {
+                "latest_rates": rates,
+                "source": "Xotelo (Booking.com, Expedia, Hotels.com)",
+            }
+    except Exception as e:
+        logger.debug("Xotelo enrichment skipped: %s", e)
+
+    return enrichments
