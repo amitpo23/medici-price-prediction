@@ -335,6 +335,7 @@ code {{
         <a href="#data-sources">Data Sources</a>
         <a href="#glossary">Glossary</a>
         <a href="#api">API Reference</a>
+        <a href="/api/v1/salesoffice/charts">Charts</a>
         <a href="/api/v1/salesoffice/dashboard">Dashboard</a>
     </div>
 </div>

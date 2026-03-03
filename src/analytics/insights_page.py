@@ -369,6 +369,7 @@ body {{ font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-ser
     <h1>Price Insights</h1>
     <p>Forward curve analysis &mdash; when prices go up, when they drop, and how they compare to today</p>
     <div class="nav-links">
+        <a href="/api/v1/salesoffice/charts">Charts</a>
         <a href="/api/v1/salesoffice/dashboard">Dashboard</a>
         <a href="/api/v1/salesoffice/info">Documentation</a>
         <a href="/api/v1/salesoffice/data">Raw Data</a>

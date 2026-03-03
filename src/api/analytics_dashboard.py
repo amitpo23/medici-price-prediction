@@ -6,6 +6,8 @@ Endpoints:
   GET /api/v1/salesoffice/insights   — Price insights: up/down, below/above today (HTML)
   GET /api/v1/salesoffice/yoy        — Year-over-Year comparison: decay curve, calendar spread (HTML)
   GET /api/v1/salesoffice/options    — Options trading: CALL/PUT signals + expiry analytics (HTML)
+  GET /api/v1/salesoffice/charts     — Chart Pack: contract path, term structure, opportunity stats (HTML)
+  GET /api/v1/salesoffice/charts/contract-data — Contract path data (JSON, AJAX)
   GET /api/v1/salesoffice/data       — Raw analysis JSON
   GET /api/v1/salesoffice/simple     — Simplified human-readable JSON
   GET /api/v1/salesoffice/simple/text — Plain text report
@@ -48,6 +50,12 @@ _options_expiry_cache: dict = {}
 _options_expiry_ts: list[float] = [0.0]
 _options_loading: list[bool] = [False]
 _OPTIONS_CACHE_TTL = 6 * 3600
+
+# Charts cache (separate — 6-hour TTL)
+_charts_cache: dict = {}
+_charts_cache_ts: list[float] = [0.0]
+_charts_loading: list[bool] = [False]
+_CHARTS_CACHE_TTL = 6 * 3600
 
 
 # ── Auth (reuse from integration) ────────────────────────────────────
@@ -434,6 +442,72 @@ async def salesoffice_options():
 
     html = generate_options_html(analysis, expiry_data)
     return HTMLResponse(content=html)
+
+
+@router.get("/charts", response_class=HTMLResponse)
+async def salesoffice_charts():
+    """Chart Pack — 3-tab visual analysis: contract path, term structure, opportunity stats."""
+    import time
+    from src.analytics.charts_page import generate_charts_html
+
+    # Separate 6-hour cache (same pattern as /yoy)
+    if _charts_cache and (time.time() - _charts_cache_ts[0]) < _CHARTS_CACHE_TTL:
+        return HTMLResponse(content=generate_charts_html(_charts_cache))
+
+    if _charts_loading[0]:
+        return HTMLResponse(content=_loading_page(
+            "Chart Pack", "/api/v1/salesoffice/charts"
+        ))
+
+    # Trigger background load
+    def _run_charts():
+        import time as _time
+        from src.analytics.charts_engine import build_charts_cache
+        _charts_loading[0] = True
+        try:
+            HOTEL_IDS = [66814, 854881, 20702, 24982]
+            result = build_charts_cache(HOTEL_IDS)
+            if result:
+                _charts_cache.update(result)
+                _charts_cache_ts[0] = _time.time()
+                logger.info("Charts cache populated")
+        except Exception as exc:
+            logger.error("Charts background load failed: %s", exc, exc_info=True)
+        finally:
+            _charts_loading[0] = False
+
+    t = threading.Thread(target=_run_charts, daemon=True)
+    t.start()
+    return HTMLResponse(content=_loading_page(
+        "Chart Pack", "/api/v1/salesoffice/charts"
+    ))
+
+
+@router.get("/charts/contract-data")
+async def salesoffice_charts_contract_data(
+    hotel_id: int,
+    checkin_date: str,
+    category: str,
+    board: str,
+    radius_km: float = 5.0,
+    stars: int | None = None,
+):
+    """Contract path data for Charts 1-4 (Tab 1). Called via AJAX."""
+    from src.analytics.charts_engine import build_contract_path
+
+    try:
+        data = build_contract_path(
+            hotel_id=hotel_id,
+            checkin_date=checkin_date,
+            category=category,
+            board=board,
+            market_radius_km=radius_km,
+            market_stars=stars,
+        )
+        return JSONResponse(content=data)
+    except Exception as e:
+        logger.error("Contract path failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=503, detail=f"Contract data query failed: {e}")
 
 
 @router.get("/status")

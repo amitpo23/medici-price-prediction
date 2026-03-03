@@ -1491,6 +1491,7 @@ body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
     <div class="nav-links">
         <a href="/api/v1/salesoffice/insights">Insights</a>
         <a href="/api/v1/salesoffice/options">Options</a>
+        <a href="/api/v1/salesoffice/charts">Charts</a>
         <a href="/api/v1/salesoffice/dashboard">Dashboard</a>
         <a href="/api/v1/salesoffice/info">Documentation</a>
     </div>
