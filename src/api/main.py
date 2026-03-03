@@ -203,7 +203,7 @@ async def list_data_sources():
 
 
 @app.post("/predict", response_model=PredictionResponse)
-async def predict(request: PredictionRequest):
+def predict(request: PredictionRequest):
     """Predict prices using the currently loaded model."""
     if _forecaster is None:
         raise HTTPException(status_code=503, detail="No model loaded. Train first via POST /train")
@@ -220,7 +220,7 @@ async def predict(request: PredictionRequest):
 
 
 @app.post("/predict/hotel")
-async def predict_hotel(request: HotelPredictionRequest):
+def predict_hotel(request: HotelPredictionRequest):
     """Predict price for a specific hotel profile with pricing recommendations."""
     if _forecaster is None:
         raise HTTPException(status_code=503, detail="No model loaded. Train first via POST /train")
@@ -257,7 +257,7 @@ async def predict_hotel(request: HotelPredictionRequest):
 
 
 @app.post("/train", response_model=TrainResponse)
-async def train(request: TrainRequest):
+def train(request: TrainRequest):
     """Train from Azure SQL database only."""
     global _forecaster
 
@@ -284,7 +284,7 @@ async def train(request: TrainRequest):
 
 
 @app.post("/train/multi-source", response_model=TrainResponse)
-async def train_multi_source(request: MultiSourceTrainRequest):
+def train_multi_source(request: MultiSourceTrainRequest):
     """Train using all available data sources (Azure SQL + public datasets + enrichment)."""
     global _forecaster, _occupancy_predictor, _training_data
 
@@ -334,7 +334,7 @@ async def train_multi_source(request: MultiSourceTrainRequest):
 
 
 @app.get("/market/{city}")
-async def get_market_snapshot(city: str):
+def get_market_snapshot(city: str):
     """Get current market pricing for a city via Google Hotels."""
     if _loader is None:
         raise HTTPException(status_code=500, detail="Loader not initialized")
@@ -370,7 +370,7 @@ async def list_models():
 # --- Analytics Endpoints ---
 
 @app.get("/analytics/overview")
-async def analytics_overview():
+def analytics_overview():
     """Summary KPIs across all available data."""
     from src.analytics.statistics import market_overview
 
@@ -381,7 +381,7 @@ async def analytics_overview():
 
 
 @app.get("/analytics/seasonality/{city}")
-async def analytics_seasonality(city: str, period: int = 7):
+def analytics_seasonality(city: str, period: int = 7):
     """Seasonal patterns for a specific city."""
     from src.analytics.seasonality import (
         decompose_series,
@@ -414,7 +414,7 @@ async def analytics_seasonality(city: str, period: int = 7):
 
 
 @app.get("/analytics/revpar")
-async def analytics_revpar(
+def analytics_revpar(
     city: Optional[str] = None,
     star_rating: Optional[float] = None,
     freq: str = "W",
@@ -472,7 +472,7 @@ async def analytics_revpar(
 
 
 @app.get("/analytics/demand-curve")
-async def analytics_demand_curve(
+def analytics_demand_curve(
     city: Optional[str] = None,
     star_rating: Optional[float] = None,
     method: str = "log_linear",
@@ -519,7 +519,7 @@ async def analytics_demand_curve(
 
 
 @app.get("/analytics/market-stats/{city}")
-async def analytics_market_stats(city: str):
+def analytics_market_stats(city: str):
     """Competitive market statistics for a city."""
     from src.analytics.statistics import city_statistics
 

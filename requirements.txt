@@ -16,6 +16,10 @@ fastapi>=0.100.0
 uvicorn>=0.23.0
 gunicorn>=21.2.0
 
+# Analytics (used in demand.py, seasonality.py)
+scipy>=1.11.0
+statsmodels>=0.14.0
+
 # Data collection
 requests>=2.31.0
 requests-cache>=1.1.0

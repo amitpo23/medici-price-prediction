@@ -2,6 +2,26 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [0.8.1] - 2026-03-03 - Performance & Stability Fixes
+
+### Fixed
+- **Critical performance fix**: `_predict_prices()` called weather API per-room (1143 HTTP calls). Refactored to pre-compute shared enrichment data once and cache per hotel_id — **analysis time reduced from 564s to 18s (32x faster)**
+- **Event loop blocking**: Changed ~39 `async def` endpoints to `def` across `analytics_dashboard.py`, `main.py`, and `integration.py`. FastAPI now runs these in thread pool, preventing event loop starvation on sync DB/analysis calls
+- **Wrong SQL column**: `freshness_engine.py` referenced `DateInsert` on SalesOffice.Details table — corrected to `DateUpdated` per database schema
+- **`load_latest_snapshot()` signature bug**: Was called with `hotel_id` argument but function takes no parameters — fixed to load full snapshot then filter by hotel_id
+- **DB connection reliability**: Added `connect_timeout=10`, `pool_pre_ping=True`, reduced `pool_timeout` to 15s in `trading_db.py`
+
+### Added
+- `_compute_shared_enrichment_data()` helper in `analyzer.py` — single-call weather/events/seasonality/snapshot loader
+- Missing dependencies `scipy>=1.11.0` and `statsmodels>=0.14.0` added to `requirements.txt`
+- `.gitignore` entries for SQLite databases, deploy artifacts, and report files
+
+### Changed
+- `_build_enrichments()` now accepts optional `_shared` parameter for batch optimization
+- Enrichments pre-computed per hotel_id (5 hotels) instead of per room (1133 rooms)
+
+---
+
 ## [0.8.0] - 2026-02-27 - Algo-Trading Forward Curve Prediction Engine
 
 ### Added

@@ -95,8 +95,8 @@ def build_provider_data(hotel_ids: list[int] | None = None, days_back: int = 90)
         "total_records": len(raw),
         "unique_providers": raw["provider_name"].nunique(),
         "date_range": {
-            "from": raw["DateInsert"].min().strftime("%Y-%m-%d") if not raw.empty else None,
-            "to": raw["DateInsert"].max().strftime("%Y-%m-%d") if not raw.empty else None,
+            "from": raw["DateInsert"].min().strftime("%Y-%m-%d") if (not raw.empty and pd.notna(raw["DateInsert"].min())) else None,
+            "to": raw["DateInsert"].max().strftime("%Y-%m-%d") if (not raw.empty and pd.notna(raw["DateInsert"].max())) else None,
         },
         "source": "SearchResultsSessionPollLog (8.3M rows, 129 providers)",
     }

@@ -1,7 +1,8 @@
 """Data freshness monitor — check last update times for all data sources.
 
-Queries each data source's last-updated timestamp and computes
-staleness levels (green/yellow/red) based on expected update frequency.
+Uses a single UNION ALL query to check all SQL sources at once (avoids
+sequential MAX() on huge tables which times out). External sources
+checked via file modification time.
 """
 from __future__ import annotations
 
@@ -12,86 +13,54 @@ logger = logging.getLogger(__name__)
 
 # Expected max age in hours for each source type
 FRESHNESS_THRESHOLDS = {
-    "realtime": {"green": 4, "yellow": 24},       # expect updates every few hours
-    "hourly": {"green": 6, "yellow": 24},          # expect hourly scans
-    "daily": {"green": 48, "yellow": 168},         # expect daily updates
-    "weekly": {"green": 192, "yellow": 720},       # expect weekly updates
-    "static": {"green": 99999, "yellow": 99999},   # never stale
+    "realtime": {"green": 4, "yellow": 24},
+    "hourly": {"green": 6, "yellow": 24},
+    "daily": {"green": 48, "yellow": 168},
+    "weekly": {"green": 192, "yellow": 720},
+    "static": {"green": 99999, "yellow": 99999},
 }
+
+# SQL source definitions: (name, query_fragment, frequency, description)
+# Use TOP 1 ORDER BY DESC instead of MAX() — much faster on unindexed columns
+SQL_SOURCES = [
+    ("SalesOffice.Details", "SELECT TOP 1 DateUpdated AS lu FROM [SalesOffice.Details] ORDER BY DateUpdated DESC", "hourly", "Internal room price scans"),
+    ("SalesOffice.Orders", "SELECT TOP 1 DateInsert AS lu FROM [SalesOffice.Orders] ORDER BY DateInsert DESC", "hourly", "Scan orders"),
+    ("AI_Search_HotelData", "SELECT TOP 1 UpdatedAt AS lu FROM AI_Search_HotelData ORDER BY Id DESC", "realtime", "8.5M market pricing records"),
+    ("SearchResultsSessionPollLog", "SELECT TOP 1 DateInsert AS lu FROM SearchResultsSessionPollLog ORDER BY Id DESC", "realtime", "8.3M provider search results"),
+    ("RoomPriceUpdateLog", "SELECT TOP 1 DateInsert AS lu FROM RoomPriceUpdateLog ORDER BY Id DESC", "daily", "82K price change events"),
+    ("MED_Book", "SELECT TOP 1 DateInsert AS lu FROM MED_Book ORDER BY id DESC", "daily", "Active bookings"),
+    ("MED_PreBook", "SELECT TOP 1 DateInsert AS lu FROM MED_PreBook ORDER BY PreBookId DESC", "daily", "Pre-booking data"),
+    ("SalesOffice.Log", "SELECT TOP 1 DateCreated AS lu FROM [SalesOffice.Log] ORDER BY Id DESC", "hourly", "1.2M action logs"),
+]
+
+# Static/archive sources — just check if they exist, don't query MAX
+STATIC_SOURCES = [
+    ("MED_SearchHotels", "static", "7M historical search (2020-2023)"),
+]
 
 
 def build_freshness_data() -> dict:
-    """Check freshness of all data sources.
-
-    Returns list of source status dicts with last_updated, age, status color.
-    """
+    """Check freshness of all data sources."""
     sources = []
     now = datetime.now(timezone.utc)
 
-    # 1. SalesOffice.Details (hourly scans)
-    sources.append(_check_source(
-        "SalesOffice.Details",
-        "SELECT MAX(DateInsert) AS last_update FROM [SalesOffice.Details]",
-        "hourly", "Internal room price scans", now,
-    ))
+    # Check SQL sources — each query individually with error handling
+    for name, query, freq, description in SQL_SOURCES:
+        sources.append(_check_sql_source(name, query, freq, description, now))
 
-    # 2. SalesOffice.Orders
-    sources.append(_check_source(
-        "SalesOffice.Orders",
-        "SELECT MAX(DateInsert) AS last_update FROM [SalesOffice.Orders]",
-        "hourly", "Scan orders", now,
-    ))
+    # Static sources — just mark as archive
+    for name, freq, description in STATIC_SOURCES:
+        sources.append({
+            "name": name,
+            "description": description,
+            "last_updated": "Static archive",
+            "age_hours": 0,
+            "age_display": "archive",
+            "status": "green",
+            "frequency": freq,
+        })
 
-    # 3. AI_Search_HotelData (real-time)
-    sources.append(_check_source(
-        "AI_Search_HotelData",
-        "SELECT MAX(UpdatedAt) AS last_update FROM AI_Search_HotelData",
-        "realtime", "8.5M market pricing records", now,
-    ))
-
-    # 4. SearchResultsSessionPollLog (real-time)
-    sources.append(_check_source(
-        "SearchResultsSessionPollLog",
-        "SELECT MAX(DateInsert) AS last_update FROM SearchResultsSessionPollLog",
-        "realtime", "8.3M provider search results", now,
-    ))
-
-    # 5. MED_SearchHotels (static archive)
-    sources.append(_check_source(
-        "MED_SearchHotels",
-        "SELECT MAX(RequestTime) AS last_update FROM MED_SearchHotels",
-        "static", "7M historical search (2020-2023)", now,
-    ))
-
-    # 6. RoomPriceUpdateLog
-    sources.append(_check_source(
-        "RoomPriceUpdateLog",
-        "SELECT MAX(DateInsert) AS last_update FROM RoomPriceUpdateLog",
-        "daily", "82K price change events", now,
-    ))
-
-    # 7. MED_Book (bookings)
-    sources.append(_check_source(
-        "MED_Book",
-        "SELECT MAX(DateInsert) AS last_update FROM MED_Book",
-        "daily", "Active bookings", now,
-    ))
-
-    # 8. MED_PreBook
-    sources.append(_check_source(
-        "MED_PreBook",
-        "SELECT MAX(DateInsert) AS last_update FROM MED_PreBook",
-        "daily", "Pre-booking data", now,
-    ))
-
-    # 9. SalesOffice.Log
-    sources.append(_check_source(
-        "SalesOffice.Log",
-        "SELECT MAX(DateCreated) AS last_update FROM [SalesOffice.Log]",
-        "hourly", "1.2M action logs", now,
-    ))
-
-    # 10. External sources (check local SQLite DBs)
+    # External sources (check local SQLite DBs via file mtime)
     sources.append(_check_external("Events DB", "events", "daily", now))
     sources.append(_check_external("Weather Cache", "weather", "daily", now))
     sources.append(_check_external("Flights DB", "flights", "daily", now))
@@ -128,21 +97,22 @@ def build_freshness_data() -> dict:
     }
 
 
-def _check_source(
+def _check_sql_source(
     name: str, query: str, freq: str, description: str, now: datetime,
 ) -> dict:
-    """Check a single SQL data source."""
+    """Check a single SQL data source using TOP 1 ORDER BY DESC (fast)."""
     try:
         from src.data.trading_db import run_trading_query
         df = run_trading_query(query)
-        if df.empty or df.iloc[0]["last_update"] is None:
+        if df.empty or df.iloc[0]["lu"] is None:
             return {
                 "name": name, "description": description,
                 "last_updated": None, "age_hours": None,
+                "age_display": "N/A",
                 "status": "unknown", "frequency": freq,
             }
 
-        last_update = df.iloc[0]["last_update"]
+        last_update = df.iloc[0]["lu"]
         if hasattr(last_update, "to_pydatetime"):
             last_update = last_update.to_pydatetime()
         if last_update.tzinfo is None:
@@ -165,13 +135,14 @@ def _check_source(
         return {
             "name": name, "description": description,
             "last_updated": None, "age_hours": None,
+            "age_display": "error",
             "status": "unknown", "frequency": freq,
-            "error": str(e),
+            "error": str(e)[:100],
         }
 
 
 def _check_external(name: str, source_type: str, freq: str, now: datetime) -> dict | None:
-    """Check an external data source (local SQLite)."""
+    """Check an external data source (local SQLite) via file mtime."""
     description = {
         "events": "SeatGeek + Ticketmaster events",
         "weather": "Open-Meteo weather forecasts",
@@ -181,9 +152,7 @@ def _check_external(name: str, source_type: str, freq: str, now: datetime) -> di
     }.get(source_type, source_type)
 
     try:
-        import sqlite3
         from pathlib import Path
-
         data_dir = Path(__file__).parent.parent.parent / "data"
 
         db_map = {
@@ -199,10 +168,10 @@ def _check_external(name: str, source_type: str, freq: str, now: datetime) -> di
             return {
                 "name": name, "description": description,
                 "last_updated": None, "age_hours": None,
+                "age_display": "N/A",
                 "status": "unknown", "frequency": freq,
             }
 
-        # Check file modification time as proxy
         mtime = datetime.fromtimestamp(db_file.stat().st_mtime, tz=timezone.utc)
         age_hours = (now - mtime).total_seconds() / 3600
         status = _compute_status(age_hours, freq)
@@ -221,6 +190,7 @@ def _check_external(name: str, source_type: str, freq: str, now: datetime) -> di
         return {
             "name": name, "description": description,
             "last_updated": None, "age_hours": None,
+            "age_display": "N/A",
             "status": "unknown", "frequency": freq,
         }
 

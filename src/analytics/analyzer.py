@@ -393,8 +393,50 @@ def _analyze_rooms(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: datet
     return rooms
 
 
-def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None) -> Enrichments:
-    """Build enrichments object from all external signals."""
+def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
+                       *,
+                       _shared: dict | None = None) -> Enrichments:
+    """Build enrichments object from all external signals.
+
+    Args:
+        _shared: Pre-computed shared data (weather, seasonality, events, snapshot)
+                 to avoid redundant I/O when called in a loop.
+    """
+    # Use pre-computed shared data if provided (batch optimization)
+    if _shared is None:
+        _shared = _compute_shared_enrichment_data()
+
+    events_list = _shared.get("events_list", [])
+    seasonality = _shared.get("seasonality", {})
+    weather_signal = _shared.get("weather_signal", {})
+    latest_snap = _shared.get("latest_snapshot")
+
+    # Competitor pressure from Xotelo (no key required)
+    competitor_pressure = 0.0
+    if hotel_id:
+        try:
+            if latest_snap is not None and not latest_snap.empty and "room_price" in latest_snap.columns:
+                hotel_snap = latest_snap[latest_snap["hotel_id"] == hotel_id]
+                if not hotel_snap.empty:
+                    our_adr = float(hotel_snap["room_price"].median())
+                    competitor_pressure = get_competitor_pressure(hotel_id, our_adr)
+        except Exception:
+            pass
+
+    return Enrichments(
+        demand_indicator=_flight_demand_cache.get("indicator", "NO_DATA"),
+        events=events_list,
+        seasonality_index=seasonality,
+        weather_signal=weather_signal,
+        competitor_pressure=competitor_pressure,
+    )
+
+
+def _compute_shared_enrichment_data() -> dict:
+    """Compute expensive enrichment data once (events, seasonality, weather, snapshot).
+
+    Called once before a batch prediction loop instead of per-room.
+    """
     # Map hotel_impact levels to multipliers
     impact_mults = {
         "extreme": 0.40, "very_high": 0.25, "high": 0.15,
@@ -415,7 +457,7 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None) ->
     except Exception:
         pass
 
-    # Seasonality index
+    # Seasonality index (from JSON file, read once)
     seasonality = {}
     try:
         from src.analytics.booking_benchmarks import get_seasonality_all
@@ -423,31 +465,26 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None) ->
     except Exception:
         pass
 
-    # Weather signal (Open-Meteo + NHC, no key required)
+    # Weather signal (Open-Meteo + NHC, single HTTP call)
     weather_signal: dict[str, float] = {}
     try:
         weather_signal = get_weather_forecast(days=14)
     except Exception:
         pass
 
-    # Competitor pressure from Xotelo (no key required)
-    competitor_pressure = 0.0
-    if hotel_id:
-        try:
-            snap = load_latest_snapshot(hotel_id)
-            if snap is not None and not snap.empty and "room_price" in snap.columns:
-                our_adr = float(snap["room_price"].median())
-                competitor_pressure = get_competitor_pressure(hotel_id, our_adr)
-        except Exception:
-            pass
+    # Latest price snapshot (for competitor pressure computation)
+    latest_snapshot = None
+    try:
+        latest_snapshot = load_latest_snapshot()
+    except Exception:
+        pass
 
-    return Enrichments(
-        demand_indicator=_flight_demand_cache.get("indicator", "NO_DATA"),
-        events=events_list,
-        seasonality_index=seasonality,
-        weather_signal=weather_signal,
-        competitor_pressure=competitor_pressure,
-    )
+    return {
+        "events_list": events_list,
+        "seasonality": seasonality,
+        "weather_signal": weather_signal,
+        "latest_snapshot": latest_snapshot,
+    }
 
 
 def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: datetime) -> dict:
@@ -476,6 +513,21 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
         ml_models_dir=ml_models_dir,
     )
 
+    # Pre-compute shared enrichment data ONCE (weather API, seasonality JSON, etc.)
+    # instead of making HTTP calls per-room (was 1143 HTTP calls → now 1)
+    shared_data = _compute_shared_enrichment_data()
+
+    # Pre-compute enrichments per hotel_id (only competitor pressure varies)
+    unique_hotel_ids = latest["hotel_id"].unique()
+    enrichments_by_hotel: dict[int, Enrichments] = {}
+    for hid in unique_hotel_ids:
+        enrichments_by_hotel[int(hid)] = _build_enrichments(
+            None, now, hotel_id=int(hid), _shared=shared_data,
+        )
+
+    logger.info("Pre-computed enrichments for %d hotels (1 weather API call instead of %d)",
+                len(unique_hotel_ids), len(latest))
+
     for _, row in latest.iterrows():
         detail_id = int(row["detail_id"])
         current_price = float(row["room_price"])
@@ -498,8 +550,8 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
             detail_id, current_price, all_snapshots, curve, category, board,
         )
 
-        # Build enrichments
-        enrichments = _build_enrichments(date_from, now, hotel_id=hotel_id)
+        # Use pre-computed enrichments for this hotel
+        enrichments = enrichments_by_hotel.get(hotel_id, Enrichments())
 
         # Try deep ensemble prediction first
         try:

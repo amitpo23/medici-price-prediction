@@ -90,8 +90,8 @@ def generate_accuracy_html(data: dict) -> str:
             <td>{s['pct_down']:.0f}%</td><td>{s['mean_change']:+.1f}%</td>
         </tr>"""
 
-    # Scatter data for Chart.js
-    scatter_data = json.dumps(overall.get("scatter", []))
+    # Scatter data for Chart.js (use default=str to handle any non-serializable types)
+    scatter_data = json.dumps(overall.get("scatter", []), default=str)
 
     # T-bucket bar chart data
     t_bar_labels = []

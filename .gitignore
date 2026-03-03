@@ -17,11 +17,18 @@ env/
 data/raw/
 data/processed/
 data/models/
+data/cache/
+data/reports/
 *.csv
 *.parquet
 *.pkl
 *.joblib
 *.h5
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+deploy.zip
 
 # Environment variables
 .env

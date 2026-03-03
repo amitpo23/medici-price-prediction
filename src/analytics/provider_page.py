@@ -207,8 +207,8 @@ const pieColors = ['#6366f1','#22c55e','#eab308','#ef4444','#06b6d4','#f97316','
 new Chart(document.getElementById('chartPie'), {{
     type: 'doughnut',
     data: {{
-        labels: {json.dumps(pie_labels)},
-        datasets: [{{data: {json.dumps(pie_values)}, backgroundColor: pieColors}}]
+        labels: {json.dumps(pie_labels, default=str)},
+        datasets: [{{data: {json.dumps(pie_values, default=str)}, backgroundColor: pieColors}}]
     }},
     options: {{
         responsive: true,
@@ -221,10 +221,10 @@ new Chart(document.getElementById('chartPie'), {{
 new Chart(document.getElementById('chartBar'), {{
     type: 'bar',
     data: {{
-        labels: {json.dumps(bar_labels)},
+        labels: {json.dumps(bar_labels, default=str)},
         datasets: [
-            {{label: 'Net Price', data: {json.dumps(bar_net)}, backgroundColor: '#22c55e', borderRadius: 4}},
-            {{label: 'Gross Price', data: {json.dumps(bar_gross)}, backgroundColor: '#6366f1', borderRadius: 4}}
+            {{label: 'Net Price', data: {json.dumps(bar_net, default=str)}, backgroundColor: '#22c55e', borderRadius: 4}},
+            {{label: 'Gross Price', data: {json.dumps(bar_gross, default=str)}, backgroundColor: '#6366f1', borderRadius: 4}}
         ]
     }},
     options: {{

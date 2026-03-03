@@ -190,7 +190,7 @@ def generate_alerts_html(charts_data: dict) -> str:
 <style>
 :root{{--bg:#0f1117;--surface:#1a1d27;--surface2:#232733;--border:#2d3140;
 --text:#e4e7ec;--text-dim:#8b90a0;--accent:#6366f1;--accent2:#818cf8;
---green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f97316;}}
+--green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f97316;--blue:#3b82f6;}}
 *{{margin:0;padding:0;box-sizing:border-box;}}
 body{{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;}}
 .container{{max-width:1400px;margin:0 auto;padding:20px 24px;}}
@@ -235,7 +235,6 @@ nav a:hover{{color:var(--accent2);}}
 nav .active{{color:var(--accent2);font-weight:600;}}
 footer{{text-align:center;color:var(--text-dim);font-size:0.8em;padding:24px 0;margin-top:40px;
 border-top:1px solid var(--border);}}
---blue: #3b82f6;
 </style>
 </head>
 <body>

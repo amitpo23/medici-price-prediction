@@ -24,12 +24,19 @@ def get_trading_engine() -> Engine:
     if not MEDICI_DB_URL:
         raise ValueError("MEDICI_DB_URL must be set in .env file")
 
+    # Append connection timeout to the URL so pyodbc doesn't hang forever
+    url = MEDICI_DB_URL
+    sep = "&" if "?" in url else "?"
+    if "timeout" not in url.lower() and "connect_timeout" not in url.lower():
+        url = f"{url}{sep}connect_timeout=10"
+
     _engine = create_engine(
-        MEDICI_DB_URL,
+        url,
         pool_size=5,
         max_overflow=2,
-        pool_timeout=30,
+        pool_timeout=15,
         pool_recycle=1800,
+        pool_pre_ping=True,
         echo=False,
     )
 

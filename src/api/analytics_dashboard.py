@@ -105,7 +105,7 @@ async def salesoffice_dashboard():
 
 
 @router.get("/data")
-async def salesoffice_data(
+def salesoffice_data(
     _key: str = Depends(_optional_api_key),
 ):
     """Raw analysis data as JSON — for programmatic access."""
@@ -132,7 +132,7 @@ async def salesoffice_data(
 
 
 @router.get("/simple")
-async def salesoffice_simple():
+def salesoffice_simple():
     """Simplified analysis — human-readable JSON with 4 clear sections.
 
     Returns: summary (text), predictions (per-room), attention (action items), market (stats).
@@ -146,7 +146,7 @@ async def salesoffice_simple():
 
 
 @router.get("/simple/text", response_class=PlainTextResponse)
-async def salesoffice_simple_text():
+def salesoffice_simple_text():
     """Plain text analysis report — for quick reading in terminal or email."""
     from src.analytics.simple_analysis import simplify_to_text
 
@@ -156,7 +156,7 @@ async def salesoffice_simple_text():
 
 
 @router.get("/debug")
-async def salesoffice_debug():
+def salesoffice_debug():
     """Debug endpoint — runs analysis and returns error details if any."""
     import traceback
     try:
@@ -210,7 +210,7 @@ async def salesoffice_benchmarks():
 
 
 @router.get("/forward-curve/{detail_id}")
-async def salesoffice_forward_curve(detail_id: int):
+def salesoffice_forward_curve(detail_id: int):
     """Full forward curve prediction for a specific room.
 
     Returns the decay curve walk with momentum, regime, and enrichments.
@@ -250,7 +250,7 @@ async def salesoffice_forward_curve(detail_id: int):
 
 
 @router.get("/backtest")
-async def salesoffice_backtest(
+def salesoffice_backtest(
     _key: str = Depends(_optional_api_key),
 ):
     """Run walk-forward backtest on historical price data.
@@ -276,7 +276,7 @@ async def salesoffice_backtest(
 
 
 @router.get("/decay-curve")
-async def salesoffice_decay_curve():
+def salesoffice_decay_curve():
     """The empirical decay curve term structure.
 
     Shows expected daily price change at each T (days to check-in),
@@ -314,7 +314,7 @@ async def salesoffice_hotel_profile(hotel_id: int):
 
 
 @router.get("/info", response_class=HTMLResponse)
-async def salesoffice_info():
+def salesoffice_info():
     """System information & documentation — how everything works."""
     from src.analytics.info_page import generate_info_html
     from src.analytics.data_sources import DATA_SOURCES
@@ -504,7 +504,7 @@ async def salesoffice_charts():
 
 
 @router.get("/charts/contract-data")
-async def salesoffice_charts_contract_data(
+def salesoffice_charts_contract_data(
     hotel_id: int,
     checkin_date: str,
     category: str,
@@ -680,7 +680,7 @@ async def salesoffice_freshness():
 
 
 @router.get("/export/csv/contracts")
-async def salesoffice_export_contracts():
+def salesoffice_export_contracts():
     """CSV export of contract price history."""
     from src.analytics.export_engine import export_contracts_csv
 
@@ -696,7 +696,7 @@ async def salesoffice_export_contracts():
 
 
 @router.get("/export/csv/providers")
-async def salesoffice_export_providers():
+def salesoffice_export_providers():
     """CSV export of provider pricing data."""
     from src.analytics.export_engine import export_providers_csv
 
@@ -712,13 +712,13 @@ async def salesoffice_export_providers():
 
 
 @router.get("/export/summary")
-async def salesoffice_export_summary(format: str = "json"):
-    """Weekly summary digest — JSON or plain text."""
+def salesoffice_export_summary(fmt: str = "json"):
+    """Weekly summary digest — JSON or plain text. Use ?fmt=text for plain text."""
     from src.analytics.export_engine import generate_weekly_summary, generate_summary_text
 
     try:
         summary = generate_weekly_summary()
-        if format == "text":
+        if fmt == "text":
             text = generate_summary_text(summary)
             return PlainTextResponse(content=text)
         return JSONResponse(content=summary)
@@ -749,7 +749,7 @@ async def salesoffice_status():
 # ── Market Data endpoints (new mega-tables) ──────────────────────────
 
 @router.get("/market/search-data")
-async def market_search_data(hotel_id: int | None = None, days_back: int = 30):
+def market_search_data(hotel_id: int | None = None, days_back: int = 30):
     """AI Search Hotel Data — price history from 8.5M search records."""
     try:
         from src.data.trading_db import load_ai_search_data
@@ -770,7 +770,7 @@ async def market_search_data(hotel_id: int | None = None, days_back: int = 30):
 
 
 @router.get("/market/search-summary")
-async def market_search_summary(hotel_id: int | None = None):
+def market_search_summary(hotel_id: int | None = None):
     """Aggregated market pricing stats per hotel from AI search data."""
     try:
         from src.data.trading_db import load_ai_search_summary
@@ -786,7 +786,7 @@ async def market_search_summary(hotel_id: int | None = None):
 
 
 @router.get("/market/search-results")
-async def market_search_results(hotel_id: int | None = None, days_back: int = 7):
+def market_search_results(hotel_id: int | None = None, days_back: int = 7):
     """Search Results Poll Log — net/gross prices, providers, room details."""
     try:
         from src.data.trading_db import load_search_results_summary
@@ -802,7 +802,7 @@ async def market_search_results(hotel_id: int | None = None, days_back: int = 7)
 
 
 @router.get("/market/price-updates")
-async def market_price_updates(days_back: int = 30):
+def market_price_updates(days_back: int = 30):
     """Room price change events — every price update tracked."""
     try:
         from src.data.trading_db import load_price_updates
@@ -818,7 +818,7 @@ async def market_price_updates(days_back: int = 30):
 
 
 @router.get("/market/price-velocity")
-async def market_price_velocity(hotel_id: int | None = None):
+def market_price_velocity(hotel_id: int | None = None):
     """Price change velocity per hotel — how fast prices move."""
     try:
         from src.data.trading_db import load_price_update_velocity
@@ -841,7 +841,7 @@ async def market_price_velocity(hotel_id: int | None = None):
 
 
 @router.get("/market/competitors/{hotel_id}")
-async def market_competitors(hotel_id: int, radius_km: float = 5.0,
+def market_competitors(hotel_id: int, radius_km: float = 5.0,
                               stars: int | None = None):
     """Find competitor hotels within radius using geo coordinates."""
     try:
@@ -858,7 +858,7 @@ async def market_competitors(hotel_id: int, radius_km: float = 5.0,
 
 
 @router.get("/market/prebooks")
-async def market_prebooks(hotel_id: int | None = None, days_back: int = 90):
+def market_prebooks(hotel_id: int | None = None, days_back: int = 90):
     """Pre-booking data with provider pricing and cancellation policies."""
     try:
         from src.data.trading_db import load_prebooks
@@ -874,7 +874,7 @@ async def market_prebooks(hotel_id: int | None = None, days_back: int = 90):
 
 
 @router.get("/market/cancellations")
-async def market_cancellations(days_back: int = 365):
+def market_cancellations(days_back: int = 365):
     """Booking cancellation history with reasons."""
     try:
         from src.data.trading_db import load_cancellations
@@ -889,7 +889,7 @@ async def market_cancellations(days_back: int = 365):
 
 
 @router.get("/market/hotels-geo")
-async def market_hotels_geo():
+def market_hotels_geo():
     """Hotel metadata with lat/long, stars, country."""
     try:
         from src.data.trading_db import load_hotels_with_geo
@@ -944,7 +944,7 @@ async def market_makcorps():
 
 
 @router.get("/market/db-overview")
-async def market_db_overview():
+def market_db_overview():
     """Full database overview — all tables with row counts."""
     try:
         from src.data.trading_db import run_trading_query

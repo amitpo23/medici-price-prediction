@@ -101,7 +101,7 @@ class DailyReportResponse(BaseModel):
 # ── Endpoints ────────────────────────────────────────────────────────
 
 @router.get("/health/trading")
-async def trading_health():
+def trading_health():
     """Check trading DB connectivity and system status."""
     try:
         from src.data.trading_db import check_connection
@@ -121,7 +121,7 @@ async def trading_health():
 
 
 @router.post("/analyze/opportunity", response_model=AnalysisResponse)
-async def analyze_opportunity(
+def analyze_opportunity(
     request: OpportunityRequest,
     _key: str = Depends(verify_api_key),
 ):
@@ -190,7 +190,7 @@ async def analyze_opportunity(
 
 
 @router.get("/analyze/booking/{pre_book_id}", response_model=AnalysisResponse)
-async def analyze_booking(
+def analyze_booking(
     pre_book_id: int,
     _key: str = Depends(verify_api_key),
 ):
@@ -223,7 +223,7 @@ async def analyze_booking(
 
 
 @router.get("/analyze/portfolio", response_model=PortfolioResponse)
-async def analyze_portfolio(
+def analyze_portfolio(
     _key: str = Depends(verify_api_key),
 ):
     """Analyze the full active booking portfolio."""
@@ -265,7 +265,7 @@ async def analyze_portfolio(
 
 
 @router.get("/forecast/{hotel_id}", response_model=ForecastResponse)
-async def forecast_hotel(
+def forecast_hotel(
     hotel_id: int,
     days: int = 30,
     include_intervals: bool = True,
@@ -291,7 +291,7 @@ async def forecast_hotel(
 
 
 @router.get("/recommendations/active")
-async def get_active_recommendations(
+def get_active_recommendations(
     _key: str = Depends(verify_api_key),
 ):
     """Get all current recommendations from the last analysis run.
@@ -317,7 +317,7 @@ async def get_active_recommendations(
 
 
 @router.get("/report/daily", response_model=DailyReportResponse)
-async def daily_report(
+def daily_report(
     _key: str = Depends(verify_api_key),
 ):
     """Generate a daily performance report."""
