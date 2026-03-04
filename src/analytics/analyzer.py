@@ -291,7 +291,15 @@ def run_analysis() -> dict:
     results["rooms"] = room_analysis
 
     # ── 3. Price predictions ────────────────────────────────────────
-    predictions = _predict_prices(all_snapshots, latest, now)
+    #   Load historical scan data from medici-db for scan_history tracking
+    try:
+        from src.analytics.collector import load_scan_history
+        scan_history_df = load_scan_history()
+    except Exception as e:
+        logger.warning("Failed to load scan history from medici-db: %s", e)
+        scan_history_df = pd.DataFrame()
+
+    predictions = _predict_prices(all_snapshots, latest, now, scan_history_df)
     results["predictions"] = predictions
 
     # ── 4. Booking window analysis ──────────────────────────────────
@@ -487,7 +495,9 @@ def _compute_shared_enrichment_data() -> dict:
     }
 
 
-def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: datetime) -> dict:
+def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
+                     now: datetime,
+                     scan_history_df: pd.DataFrame | None = None) -> dict:
     """Predict daily prices until check-in using deep ensemble prediction.
 
     Combines 3 signals via weighted ensemble:
@@ -591,7 +601,142 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: date
                 enrichments, all_snapshots,
             )
 
+        # Attach scan history for every prediction (from medici-db)
+        predictions[detail_id]["scan_history"] = _build_scan_history(
+            int(row["order_id"]), int(row["hotel_id"]),
+            row["room_category"], row["room_board"],
+            scan_history_df if scan_history_df is not None else pd.DataFrame(),
+        )
+
     return predictions
+
+
+def _build_scan_history(order_id: int, hotel_id: int,
+                        room_category, room_board,
+                        scan_history_df: pd.DataFrame) -> dict:
+    """Build actual scan history for a room from medici-db historical data.
+
+    Matches by (order_id, hotel_id, room_category, room_board) across all
+    3-hourly scans since tracking started (Feb 23).
+
+    Returns metrics about observed price behavior:
+    - first/last scan price and dates
+    - count of actual price drops and rises between consecutive scans
+    - total actual decline/increase amounts
+    - change from first scan to current price
+    """
+    _empty = {
+        "scan_snapshots": 0,
+        "first_scan_date": None,
+        "first_scan_price": None,
+        "latest_scan_date": None,
+        "latest_scan_price": None,
+        "scan_price_change": 0.0,
+        "scan_price_change_pct": 0.0,
+        "scan_actual_drops": 0,
+        "scan_actual_rises": 0,
+        "scan_actual_unchanged": 0,
+        "scan_total_drop_amount": 0.0,
+        "scan_total_rise_amount": 0.0,
+        "scan_max_single_drop": 0.0,
+        "scan_max_single_rise": 0.0,
+        "scan_trend": "no_data",
+    }
+
+    if scan_history_df is None or scan_history_df.empty:
+        return _empty
+
+    # Match by natural key: same order + hotel + room type
+    mask = (
+        (scan_history_df["order_id"] == order_id)
+        & (scan_history_df["hotel_id"] == hotel_id)
+        & (scan_history_df["room_category"] == room_category)
+        & (scan_history_df["room_board"] == room_board)
+    )
+    history = scan_history_df[mask].copy()
+
+    if history.empty:
+        return _empty
+
+    # Aggregate per scan_date (take min price if multiple entries per scan)
+    history["scan_date"] = pd.to_datetime(history["scan_date"], errors="coerce")
+    agg = (
+        history
+        .groupby("scan_date")
+        .agg(room_price=("room_price", "min"))
+        .reset_index()
+        .sort_values("scan_date")
+    )
+
+    if len(agg) < 1:
+        return _empty
+
+    prices = agg["room_price"].values.astype(float)
+    scan_dates = agg["scan_date"].values
+
+    first_price = float(prices[0])
+    last_price = float(prices[-1])
+    first_date = str(scan_dates[0])
+    last_date = str(scan_dates[-1])
+
+    drops = 0
+    rises = 0
+    unchanged = 0
+    total_drop = 0.0
+    total_rise = 0.0
+    max_drop = 0.0
+    max_rise = 0.0
+
+    for i in range(1, len(prices)):
+        diff = prices[i] - prices[i - 1]
+        if diff < -0.01:
+            drops += 1
+            amt = abs(diff)
+            total_drop += amt
+            if amt > max_drop:
+                max_drop = amt
+        elif diff > 0.01:
+            rises += 1
+            total_rise += diff
+            if diff > max_rise:
+                max_rise = diff
+        else:
+            unchanged += 1
+
+    change = last_price - first_price
+    change_pct = (change / first_price * 100) if first_price > 0 else 0.0
+
+    if change < -0.5:
+        trend = "down"
+    elif change > 0.5:
+        trend = "up"
+    else:
+        trend = "stable"
+
+    # Build price series for charting (date -> price list)
+    scan_price_series = [
+        {"date": str(scan_dates[i])[:16], "price": round(float(prices[i]), 2)}
+        for i in range(len(prices))
+    ]
+
+    return {
+        "scan_snapshots": len(agg),
+        "first_scan_date": first_date,
+        "first_scan_price": round(first_price, 2),
+        "latest_scan_date": last_date,
+        "latest_scan_price": round(last_price, 2),
+        "scan_price_change": round(change, 2),
+        "scan_price_change_pct": round(change_pct, 2),
+        "scan_actual_drops": drops,
+        "scan_actual_rises": rises,
+        "scan_actual_unchanged": unchanged,
+        "scan_total_drop_amount": round(total_drop, 2),
+        "scan_total_rise_amount": round(total_rise, 2),
+        "scan_max_single_drop": round(max_drop, 2),
+        "scan_max_single_rise": round(max_rise, 2),
+        "scan_trend": trend,
+        "scan_price_series": scan_price_series,
+    }
 
 
 def _predict_forward_curve_only(
