@@ -2,6 +2,64 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [0.9.1] - 2026-03-04 - Forward Curve Enrichment Recalibration & Price Drop Detection
+
+### Fixed — Critical Calculation Bugs (5 bugs)
+
+- **Bug 1 — Enrichment scaling ~100× too small**: All 6 forward curve enrichment adjustments (competitor, cancel, provider, demand, season, velocity) contributed only 0.01–0.02%/day vs a 0.39% base drift — making the curve effectively a straight line. Enrichments never created any dips.
+  - `get_competitor_daily_adj()`: `pressure * 0.02` → `pressure * 0.20` (10× increase)
+  - `get_cancel_risk_adj()`: `-cancel * 0.015` → `-cancel * 0.25` (17× increase)
+  - `get_provider_pressure_adj()`: `provider * 0.015` → `provider * 0.20` (13× increase)
+  - `get_demand_daily_adj()`: `±0.02` → `±0.15` %/day (7.5× increase)
+  - `get_season_daily_adj()`: `(idx-1.0) * 10/30` → `(idx-1.0) * 3.0` (monthly deviation as daily pct)
+  - `get_velocity_daily_adj()`: `velocity * 0.01` → `return 0.0` (non-directional, was incorrectly biasing upward)
+
+- **Bug 2 — `touches_expected_min/max` always returned 1**: Tolerance was $0.01 on $100–$900 prices — only the exact min/max point matched. Changed to 10% of the price range band (min $1).
+  - **Before**: `{1: 1219}` (every row = 1)
+  - **After**: distributed `{1: 77, 2: 371, 3: 362, 4: 213, 5: 53, 6: 4, 7: 141}`
+
+- **Bug 3 — `count_price_changes_gt_20` always 0**: Was using direction reversals, but the forward curve is monotonic (all adjustments push same way per day). Changed to count "days with price decline" vs "days with price rise", which is what users actually need to see.
+  - `count_price_changes_gt_20` → number of days price dropped
+  - `count_price_changes_lte_20` → number of days price rose or stayed flat
+
+- **Bug 4 — `put_decline_count` always 0**: Forward curve path never dipped because enrichments were too small (Bug 1). After rescaling, the curve now produces real dips (up to 6 per 7-day window).
+
+- **Bug 5 — No probability-based expected drops**: `p_down` data (e.g., 27.7%) existed but was unused. Added `expected_future_drops` and `expected_future_rises` fields computed from `p_down * horizon`.
+
+### Added — New Fields in Options API
+
+- `expected_future_drops` — probability-based expected price drops over the T-horizon (e.g., `1.2–2.5` for 7 days)
+- `expected_future_rises` — probability-based expected price rises over the T-horizon
+- `put_decline_events` — array of individual decline events with dates, prices, drop amounts and percentages
+- `put_downside_from_now_to_t_min` — dollar amount of expected downside from current price to T-min
+- `put_rebound_from_t_min_to_checkin` — dollar rebound from T-min back to predicted check-in price
+- Enhanced HTML dashboard (`/options/view`) with probability-based drop display
+
+### Changed — Key Metrics Impact
+
+| Metric | Before | After |
+|--------|--------|-------|
+| `touches_expected_min` | Always 1 | Distributed 1–7 |
+| `touches_expected_max` | Always 1 | Distributed 1–7 |
+| `count_price_changes_gt_20` (decline days) | Always 0 | 0–6 |
+| `put_decline_count` | Always 0 | 1–6 |
+| PUT signals | 29 | 139 |
+| `expected_min < current_price` | 0 / 1,219 (0%) | 243 / 1,221 (19.9%) |
+| `expected_future_drops` | N/A | 1.2–2.5 per 7 days |
+
+### Technical
+
+- All fixes applied in **both** code paths: JSON API (`/options`) and HTML view (`/options/view`)
+- `_build_put_path_insights()` now accepts `probability` parameter for expected drop/rise calculations
+- Forward curve enrichment methods in `forward_curve.py` recalibrated based on actual data distributions
+- Velocity adjustment disabled (returns 0.0) — it was non-directional but was incorrectly biasing prices upward
+
+### Files Changed
+- `src/analytics/forward_curve.py` — 6 enrichment method rescaling
+- `src/api/analytics_dashboard.py` — touches band, price change counting, put path insights, new fields
+
+---
+
 ## [0.9.0] - 2026-03-04 - Scan History Analytics & Interactive Charts
 
 ### Added

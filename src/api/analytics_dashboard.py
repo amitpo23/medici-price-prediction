@@ -293,12 +293,26 @@ async def salesoffice_options(
         if path_prices:
             expected_min_price = min(path_prices)
             expected_max_price = max(path_prices)
-            touches_min = sum(1 for px in path_prices if abs(px - expected_min_price) < 0.01)
-            touches_max = sum(1 for px in path_prices if abs(px - expected_max_price) < 0.01)
 
-            deltas = [abs(path_prices[i] - path_prices[i - 1]) for i in range(1, len(path_prices))]
-            changes_gt_20 = sum(1 for d in deltas if d > 20)
-            changes_lte_20 = sum(1 for d in deltas if d <= 20)
+            # Touches: count days price is within 2% of min/max band
+            price_range = max(expected_max_price - expected_min_price, 1.0)
+            touch_band = max(price_range * 0.10, 1.0)  # 10% of range, min $1
+            touches_min = sum(1 for px in path_prices if abs(px - expected_min_price) <= touch_band)
+            touches_max = sum(1 for px in path_prices if abs(px - expected_max_price) <= touch_band)
+
+            # Count daily price drops vs rises in the forward curve path
+            # gt_20: days with price DECLINE (negative daily change)
+            # lte_20: days with price RISE or flat (positive daily change)
+            changes_gt_20 = 0  # decline days
+            changes_lte_20 = 0  # rise/flat days
+            for i in range(1, len(path_prices)):
+                prev_px = path_prices[i - 1]
+                if prev_px > 0:
+                    delta = path_prices[i] - prev_px
+                    if delta < -0.001:  # price dropped
+                        changes_gt_20 += 1
+                    else:  # price rose or flat
+                        changes_lte_20 += 1
         else:
             expected_min_price = predicted_checkin
             expected_max_price = predicted_checkin
@@ -316,6 +330,7 @@ async def salesoffice_options(
             curve_points=curve_points,
             current_price=current_price,
             predicted_checkin=predicted_checkin,
+            probability=pred.get("probability"),
         )
 
         row = {
@@ -502,10 +517,24 @@ async def salesoffice_options_view(
         if path_prices:
             expected_min_price = min(path_prices)
             expected_max_price = max(path_prices)
-            touches_min = sum(1 for px in path_prices if abs(px - expected_min_price) < 0.01)
-            touches_max = sum(1 for px in path_prices if abs(px - expected_max_price) < 0.01)
-            deltas = [abs(path_prices[i] - path_prices[i - 1]) for i in range(1, len(path_prices))]
-            changes_gt_20 = sum(1 for d in deltas if d > 20)
+
+            # Touches: count days price is within 10% of min/max band
+            price_range = max(expected_max_price - expected_min_price, 1.0)
+            touch_band = max(price_range * 0.10, 1.0)
+            touches_min = sum(1 for px in path_prices if abs(px - expected_min_price) <= touch_band)
+            touches_max = sum(1 for px in path_prices if abs(px - expected_max_price) <= touch_band)
+
+            # Count daily price drops vs rises in the forward curve path
+            changes_gt_20 = 0  # decline days
+            changes_lte_20 = 0  # rise/flat days
+            for i in range(1, len(path_prices)):
+                prev_px = path_prices[i - 1]
+                if prev_px > 0:
+                    delta = path_prices[i] - prev_px
+                    if delta < -0.001:  # price dropped
+                        changes_gt_20 += 1
+                    else:  # price rose or flat
+                        changes_lte_20 += 1
         else:
             expected_min_price = predicted_checkin
             expected_max_price = predicted_checkin
@@ -517,7 +546,10 @@ async def salesoffice_options_view(
         sources = _extract_sources(pred, analysis)
         quality = _build_quality_summary(pred, sources)
         option_levels = _build_option_levels(pred, option_signal, quality)
-        put_insights = _build_put_path_insights(curve_points, current_price, predicted_checkin)
+        put_insights = _build_put_path_insights(
+            curve_points, current_price, predicted_checkin,
+            probability=pred.get("probability"),
+        )
         scan = pred.get("scan_history") or {}
 
         rows.append({
@@ -544,6 +576,8 @@ async def salesoffice_options_view(
             "put_decline_count": put_insights.get("put_decline_count", 0),
             "put_total_decline": put_insights.get("put_total_decline_amount", 0),
             "put_largest_decline": put_insights.get("put_largest_single_decline", 0),
+            "expected_future_drops": put_insights.get("expected_future_drops", 0),
+            "expected_future_rises": put_insights.get("expected_future_rises", 0),
             "t_min_price": put_insights.get("t_min_price", 0),
             "t_max_price": put_insights.get("t_max_price", 0),
             "t_min_price_date": put_insights.get("t_min_price_date", ""),
@@ -1548,12 +1582,15 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
         q_cls = "q-high" if q_score >= 0.75 else ("q-med" if q_score >= 0.5 else "q-low")
 
         put_info = ""
+        exp_drops = r.get("expected_future_drops", 0)
         if r["put_decline_count"] > 0:
             put_info = (
                 f'{r["put_decline_count"]} drops, '
                 f'total ${r["put_total_decline"]:.0f}, '
                 f'max ${r["put_largest_decline"]:.0f}'
             )
+        elif exp_drops > 0:
+            put_info = f'~{exp_drops:.0f} expected drops (prob-based)'
 
         # Scan history cells
         s_snaps = r.get("scan_snapshots", 0)
@@ -2248,7 +2285,21 @@ def _build_put_path_insights(
     curve_points: list[dict],
     current_price: float,
     predicted_checkin: float,
+    probability: dict | None = None,
 ) -> dict:
+    """Build put-side path insights: dips, declines, expected drops.
+
+    Combines actual curve path analysis with probability-based expected drops.
+    """
+    horizon = len(curve_points) if curve_points else 0
+    prob = probability or {}
+    p_down = float(prob.get("down", 30.0) or 30.0) / 100.0
+    p_up = float(prob.get("up", 30.0) or 30.0) / 100.0
+
+    # Probability-based expected drops/rises over the horizon
+    expected_future_drops = round(p_down * horizon, 1) if horizon > 0 else 0.0
+    expected_future_rises = round(p_up * horizon, 1) if horizon > 0 else 0.0
+
     if not curve_points:
         base_price = round(float(predicted_checkin), 2)
         return {
@@ -2264,6 +2315,8 @@ def _build_put_path_insights(
             "put_downside_from_now_to_t_min": round(max(0.0, float(current_price) - base_price), 2),
             "put_rebound_from_t_min_to_checkin": 0.0,
             "put_decline_events": [],
+            "expected_future_drops": expected_future_drops,
+            "expected_future_rises": expected_future_rises,
         }
 
     prices = [float(p.get("predicted_price", predicted_checkin) or predicted_checkin) for p in curve_points]
@@ -2282,23 +2335,29 @@ def _build_put_path_insights(
         drop_amount = prev_price - next_price
 
         if drop_amount > 0:
+            drop_pct = round(drop_amount / prev_price * 100.0, 2) if prev_price > 0 else 0.0
             decline_events.append({
                 "from_date": curve_points[i - 1].get("date"),
                 "to_date": curve_points[i].get("date"),
                 "from_price": round(prev_price, 2),
                 "to_price": round(next_price, 2),
                 "drop_amount": round(drop_amount, 2),
+                "drop_pct": drop_pct,
             })
 
     total_decline = round(sum(float(e["drop_amount"]) for e in decline_events), 2)
     largest_decline_event = max(decline_events, key=lambda e: e["drop_amount"], default=None)
+
+    # Use actual path dips if found; otherwise use probability-based estimate
+    actual_decline_count = len(decline_events)
+    effective_decline_count = max(actual_decline_count, round(expected_future_drops))
 
     return {
         "t_min_price": round(t_min_price, 2),
         "t_max_price": round(t_max_price, 2),
         "t_min_price_date": t_min_price_date,
         "t_max_price_date": t_max_price_date,
-        "put_decline_count": len(decline_events),
+        "put_decline_count": effective_decline_count,
         "put_total_decline_amount": total_decline,
         "put_largest_single_decline": round(float(largest_decline_event["drop_amount"]), 2) if largest_decline_event else 0.0,
         "put_first_decline_date": decline_events[0]["to_date"] if decline_events else None,
@@ -2306,6 +2365,8 @@ def _build_put_path_insights(
         "put_downside_from_now_to_t_min": round(max(0.0, float(current_price) - t_min_price), 2),
         "put_rebound_from_t_min_to_checkin": round(max(0.0, float(predicted_checkin) - t_min_price), 2),
         "put_decline_events": decline_events,
+        "expected_future_drops": expected_future_drops,
+        "expected_future_rises": expected_future_rises,
     }
 
 

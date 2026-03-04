@@ -96,10 +96,15 @@ For each day (T counting down from current_T to 1):
     3. board_adj      = board_offset              (e.g., All-Inclusive: +0.02%)
     4. momentum_adj   = recent_momentum * decay   (e.g., +0.10%, decays over 7 days)
     5. event_adj      = event_impact              (e.g., Art Basel: +0.30%)
-    6. season_adj     = seasonal_index            (e.g., August peak: +0.04%)
-    7. demand_adj     = flight_demand_signal      (e.g., HIGH demand: +0.02%)
+    6. season_adj     = seasonal_index            (e.g., peak month: +0.30%/day)
+    7. demand_adj     = flight_demand_signal      (e.g., HIGH demand: +0.15%/day)
+    8. weather_adj    = weather_forecast_signal    (per-date from weather API)
+    9. competitor_adj = competitor_pressure * 0.20  (e.g., we're 10% cheaper → +0.02%/day)
+   10. cancel_adj     = -cancel_risk * 0.25       (e.g., 20% cancel rate → -0.05%/day)
+   11. provider_adj   = provider_pressure * 0.20   (multi-provider signal)
 
     total_change = base + category + board + momentum + event + season + demand
+                   + weather + competitor + cancel + provider
     predicted_price *= (1 + total_change / 100)
 ```
 
@@ -107,24 +112,35 @@ For each day (T counting down from current_T to 1):
 ```
 Room #1234: Current price $800, check-in in 14 days
 
-Day 1 (T=14): base +0.10%, momentum +0.05%, event +0.20% = +0.35%
-  → $800 * 1.0035 = $802.80
+Day 1 (T=14): base +0.10%, momentum +0.05%, event +0.20%, season +0.30% = +0.65%
+  → $800 * 1.0065 = $805.20
 
-Day 2 (T=13): base +0.12%, momentum +0.04% = +0.16%
-  → $802.80 * 1.0016 = $804.08
+Day 2 (T=13): base +0.12%, momentum +0.04%, cancel -0.05% = +0.11%
+  → $805.20 * 1.0011 = $806.09
 
 ... (continues for 14 days)
 
-Day 14 (T=0): Final predicted price = $845.20 (+5.7%)
+Day 14 (T=0): Final predicted price = $856.40 (+7.0%)
 ```
 
-**Adjustments explained:**
-- **Category offset:** Suites and Deluxe rooms may have different price patterns than Standard rooms
-- **Board offset:** All-Inclusive prices behave differently from Room-Only
-- **Momentum:** If the room has been rising faster than expected in recent scans, that momentum carries forward (but decays with a ~7-day half-life)
-- **Events:** Major events (Art Basel, conferences) push prices up during their impact window (3 days before to 2 days after)
-- **Seasonality:** Monthly index from historical booking data (e.g., August = 1.37x average, January = 0.70x)
-- **Demand:** Flight search volume to Miami indicates general demand level
+### Enrichment Adjustments (Calibrated Scales)
+
+Each enrichment source contributes a daily percentage adjustment to the forward curve:
+
+| Enrichment | Scale | Range | Description |
+|------------|-------|-------|-------------|
+| **Base (Decay Curve)** | From historical data | ~0.39%/day avg | Core T-dependent drift |
+| **Seasonality** | `(idx - 1.0) × 3.0` | ±0.30%/day | Monthly index deviation. Feb (idx=1.099) → +0.30%/day; Sep (idx=0.845) → −0.47%/day |
+| **Demand** | Fixed ±0.15 | ±0.15%/day | HIGH/LOW flight demand indicator |
+| **Competitor** | `pressure × 0.20` | ±0.20%/day | Positive = we're cheaper → upward pressure |
+| **Cancellation** | `−risk × 0.25` | 0 to −0.25%/day | High cancel rate → more supply → downward pressure |
+| **Provider** | `pressure × 0.20` | ±0.20%/day | Multi-provider pricing signal |
+| **Velocity** | Disabled (returns 0) | 0 | Non-directional; was incorrectly biasing upward |
+| **Events** | Impact × 100 / days | Varies | Multi-day event impact spread across impact window |
+| **Weather** | Per-date signal | ±small | Weather forecast impact on demand |
+| **Momentum** | Excess velocity × decay | Decays over ~7 days | Recent scan-to-scan speed above/below expected |
+
+> **Note (v0.9.1):** Enrichment scales were recalibrated from ~100× too small values. Before v0.9.1, competitor contributed 0.02%/day (vs base 0.39%), making enrichments invisible. Now competitor contributes up to ±0.20%/day, producing real dips and rises in the forward curve.
 
 **Confidence intervals:**
 The algorithm also computes price bands showing the range of likely prices:
@@ -398,6 +414,10 @@ Why:
 | Booking benchmarks | Seasonality index, cancellation model | Static dataset |
 | Hotel knowledge (TBO) | Competitive landscape | Static dataset |
 | Darts ML models | XGBoost/LightGBM forecasts | When trained |
+| AI_Search_HotelData | Market benchmark (same-star avg in city) | Built on each run |
+| SearchResultsSessionPollLog | Provider pricing pressure | Built on each run |
+| MED_CancelBook | Cancellation rates per hotel | Built on each run |
+| RoomPriceUpdateLog | Price update velocity | Built on each run |
 
 ---
 
@@ -405,9 +425,73 @@ Why:
 
 | Endpoint | What It Returns |
 |----------|----------------|
+| `GET /api/v1/salesoffice/options` | Full options-style JSON dashboard (signals, levels, forward curve, scan history, market) |
+| `GET /api/v1/salesoffice/options/view` | Interactive HTML dashboard with all columns rendered |
+| `GET /api/v1/salesoffice/options/legend` | Legend explaining all column scales, levels, and signal meanings |
+| `GET /api/v1/salesoffice/sources/audit` | Data source validation (connectivity, row counts, freshness) |
+| `GET /api/v1/salesoffice/forward-curve/{id}` | Detailed prediction for one room (all signals, YoY, explanation) |
 | `GET /api/v1/salesoffice/simple` | Simplified JSON (summary, predictions with explanations, attention items) |
 | `GET /api/v1/salesoffice/simple/text` | Plain text report |
-| `GET /api/v1/salesoffice/forward-curve/{id}` | Detailed prediction for one room (all signals, YoY, explanation) |
 | `GET /api/v1/salesoffice/backtest` | Prediction quality validation (MAPE, RMSE by hotel/category/T) |
 | `GET /api/v1/salesoffice/data` | Full raw analysis JSON |
-| `GET /api/v1/salesoffice/dashboard` | Interactive HTML dashboard |
+| `GET /api/v1/salesoffice/dashboard` | Interactive HTML dashboard (legacy) |
+| `POST /train/deep-models?lite=true` | Trigger ML model training |
+| `GET /train/deep-models/status` | Training status |
+| `GET /health` | Health check |
+
+---
+
+## Options Dashboard Columns (v0.9.1)
+
+The `/options` endpoint returns per-room rows with the following key fields:
+
+### Price & Prediction
+| Field | Type | Description |
+|-------|------|-------------|
+| `current_price` | float | Latest scanned price |
+| `predicted_checkin_price` | float | Predicted price at check-in (ensemble) |
+| `expected_change_pct` | float | Expected change from now to check-in (%) |
+| `expected_min_price` | float | Minimum price on the forward curve path (T-horizon) |
+| `expected_max_price` | float | Maximum price on the forward curve path (T-horizon) |
+
+### Forward Curve Path Analysis
+| Field | Type | Description |
+|-------|------|-------------|
+| `touches_expected_min` | int | Days the path price is within 10% of the min band |
+| `touches_expected_max` | int | Days the path price is within 10% of the max band |
+| `count_price_changes_gt_20` | int | Days with price **decline** in the forward curve path |
+| `count_price_changes_lte_20` | int | Days with price **rise or flat** in the forward curve path |
+
+### Put-Side (Decline) Analysis
+| Field | Type | Description |
+|-------|------|-------------|
+| `put_decline_count` | int | Number of decline events in the path (or probability-based minimum) |
+| `put_total_decline_amount` | float | Total dollar amount of all declines |
+| `put_largest_single_decline` | float | Largest single daily drop (dollars) |
+| `put_downside_from_now_to_t_min` | float | Max downside: `current_price - t_min_price` |
+| `put_rebound_from_t_min_to_checkin` | float | Rebound from min to predicted check-in |
+| `put_decline_events` | array | Individual decline events with dates, prices, drop amounts |
+| `expected_future_drops` | float | Probability-based expected drops: `p_down × horizon` |
+| `expected_future_rises` | float | Probability-based expected rises: `p_up × horizon` |
+
+### Signal & Quality
+| Field | Type | Description |
+|-------|------|-------------|
+| `option_signal` | string | `CALL` (expect rise) or `PUT` (expect fall) |
+| `option_levels` | object | Direction, 1–10 strength level, score |
+| `quality` | object | Quality label (`HIGH`/`MEDIUM`/`LOW`), confidence score |
+| `sources` | array | Prediction sources used (forward_curve, historical_pattern, ml_model) |
+
+### Scan History (Actual Observed)
+| Field | Type | Description |
+|-------|------|-------------|
+| `scan_history.scan_actual_drops` | int | Number of actual price drops observed in real scans |
+| `scan_history.scan_actual_rises` | int | Number of actual price rises observed |
+| `scan_history.scan_trend` | string | `declining` / `rising` / `stable` / `no_data` |
+| `scan_history.scan_price_series` | array | Array of `{date, price}` for charting |
+
+### Market Benchmark
+| Field | Type | Description |
+|-------|------|-------------|
+| `market_benchmark.market_avg_price` | float | Average price of same-star hotels in same city |
+| `market_benchmark.pressure` | float | Competitive pressure: +1 = we're cheapest, -1 = we're most expensive |

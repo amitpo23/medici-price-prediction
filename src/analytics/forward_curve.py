@@ -501,16 +501,16 @@ class Enrichments:
         month_name = date.strftime("%B")
         idx = self.seasonality_index.get(month_name, 1.0)
         # Convert monthly index deviation to daily adjustment
-        # idx=1.099 (Feb/Dec, Miami snowbird peak) → ~+0.033%/day upward pressure
-        # idx=0.845 (Sep, Miami hurricane season trough) → ~-0.052%/day downward pressure
-        return (idx - 1.0) * 10.0 / 30.0  # spread monthly signal across 30 days
+        # idx=1.099 (Feb/Dec, Miami snowbird peak) → ~+0.30%/day upward pressure
+        # idx=0.845 (Sep, Miami hurricane season trough) → ~-0.47%/day downward
+        return (idx - 1.0) * 3.0  # 3x monthly deviation as daily pct
 
     def get_demand_daily_adj(self) -> float:
         """Demand-based daily adjustment."""
         if self.demand_indicator == "HIGH":
-            return 0.02  # slight upward pressure per day
+            return 0.15  # upward pressure per day from high demand
         if self.demand_indicator == "LOW":
-            return -0.02  # slight downward pressure per day
+            return -0.15  # downward pressure per day from low demand
         return 0.0
 
     def get_weather_daily_adj(self, date: datetime) -> float:
@@ -523,37 +523,38 @@ class Enrichments:
     def get_competitor_daily_adj(self) -> float:
         """Daily adjustment from competitor rate pressure.
 
-        Scaled to ±0.02%/day maximum impact.
-        Positive pressure (we're cheaper) → slight upward pressure on prices.
+        Scaled to ±0.20%/day maximum impact.
+        Positive pressure (we're cheaper) → upward pressure on prices.
+        Negative pressure (we're expensive) → downward pressure on prices.
         """
-        return self.competitor_pressure * 0.02
+        return self.competitor_pressure * 0.20
 
     def get_velocity_daily_adj(self) -> float:
         """Daily adjustment from price update velocity.
 
         High velocity (many price changes) → market is active, prices volatile.
-        Adds slight upward pressure when market is actively repricing.
-        Scaled to ±0.01%/day maximum impact.
+        Velocity is non-directional (fast changes = up OR down), so returns 0.
+        Impact is captured via increased volatility in confidence bands.
         """
-        return self.price_velocity * 0.01
+        return 0.0  # non-directional; was incorrectly biasing upward
 
     def get_cancel_risk_adj(self) -> float:
         """Daily adjustment from cancellation risk.
 
         High cancel rate → downward pressure on predicted price
         (rooms may become available, increasing supply).
-        Scaled to -0.015%/day maximum impact.
+        Scaled to -0.25%/day maximum impact at 100% cancel rate.
         """
-        return -self.cancellation_risk * 0.015
+        return -self.cancellation_risk * 0.25
 
     def get_provider_pressure_adj(self) -> float:
         """Daily adjustment from multi-provider search results.
 
         Positive = providers raising prices → upward pressure.
         Negative = providers dropping prices → downward pressure.
-        Scaled to ±0.015%/day maximum impact.
+        Scaled to ±0.20%/day maximum impact.
         """
-        return self.provider_pressure * 0.015
+        return self.provider_pressure * 0.20
 
 
 # ── Forward Curve Prediction ─────────────────────────────────────────
