@@ -123,8 +123,73 @@ Portfolio-level numbers: total rooms, average price, price range, breakdown by c
 |----------|--------|-------------|
 | `GET /api/v1/salesoffice/dashboard` | HTML | Interactive visual dashboard |
 | `GET /api/v1/salesoffice/data` | JSON | Full raw analysis data |
+| `GET /api/v1/salesoffice/options` | JSON | Options-style rows with min/max path, touch counts, $20 change counts, sources, and chart payload |
+| `GET /api/v1/salesoffice/options/legend` | JSON | UI legend for `i/?` icon and source/quality interpretation |
+| `GET /api/v1/salesoffice/sources/audit` | JSON | Runtime audit of all configured data sources (active/degraded/planned) |
 | `GET /api/v1/salesoffice/forward-curve/{detail_id}` | JSON | Day-by-day prediction for one room |
 | `GET /api/v1/salesoffice/decay-curve` | JSON | The learned price change pattern |
+
+### Options Endpoint Notes
+
+`GET /api/v1/salesoffice/options` returns one row per room with:
+
+- `option_signal`: `CALL` / `PUT` / `NEUTRAL`
+- `expected_min_price`, `expected_max_price`
+- `touches_expected_min`, `touches_expected_max`
+- `count_price_changes_gt_20`, `count_price_changes_lte_20`
+- PUT-focus path analytics across `T`:
+	- `put_decline_count` (how many downward moves happened in the horizon)
+	- `put_total_decline_amount` (total accumulated drop amount across all down-steps)
+	- `put_largest_single_decline` (largest single step-down amount)
+	- `put_first_decline_date`, `put_largest_decline_date`
+	- `t_min_price`, `t_max_price` and `t_min_price_date`, `t_max_price_date`
+	- `put_downside_from_now_to_t_min`, `put_rebound_from_t_min_to_checkin`
+	- `put_decline_events` (step-by-step list: `from_date`, `to_date`, `from_price`, `to_price`, `drop_amount`)
+- `sources`: per-signal model sources and reasoning
+- `quality`: score + confidence summary
+- `option_levels`: non-breaking 10-level strength (`CALL_L1..L10` / `PUT_L1..L10`, plus score)
+- `info`: UI-ready info marker (`icon` = `i` / `?`) + tooltip text with source summary
+- `chart`: labels + predicted / lower / upper series (for direct chart rendering)
+
+Top-level metadata includes `source_validation` with basic checks for core sources.
+Top-level metadata also includes `sources_audit_summary` for full-source runtime health snapshot.
+
+Response envelope (top-level) includes:
+
+- `run_ts`, `total_rows`, `t_days_requested`
+- `source_validation`, `sources_audit_summary`, `data_sources`
+- `rows` (list of room-level option rows)
+
+`/api/v1/salesoffice/sources/audit` now explicitly reports:
+
+- `trivago_statista` status based on local file `data/miami_benchmarks.json`
+- `brightdata_mcp` status based on `.mcp.json` MCP server configuration
+
+`GET /api/v1/salesoffice/options/legend` now includes compatibility + explicit scales:
+
+- `legend_version`
+- `scale`, `levels`, `call_levels`, `put_levels`
+- `option_levels` (kept for backward compatibility)
+- `info_icon_rules`, `quality_score_bands`, `source_fields`
+
+`GET /api/v1/salesoffice/sources/audit` returns:
+
+- `status` (`ok` / `degraded`)
+- `summary`, `checks`, `source_validation`, `sources`
+
+Note: `status = degraded` is an informational runtime state (for example missing external files), not an API failure.
+
+Optional query parameters:
+
+- `t_days` — analyze only the first T prediction days
+- `include_chart` — include/remove chart payload per row
+- `profile` — `full` (default) or `lite` (keeps existing schema, disables chart payload)
+- `include_system_context` — include top-level `system_capabilities` snapshot (default: true)
+
+Additional top-level additive fields:
+
+- `profile_applied`
+- `system_capabilities` (existing system/data coverage summary from forward-curve, historical patterns, events, flights, benchmarks)
 
 ### External Data
 | Endpoint | Format | Description |
@@ -139,6 +204,59 @@ Portfolio-level numbers: total rooms, average price, price range, breakdown by c
 |----------|--------|-------------|
 | `GET /api/v1/salesoffice/status` | JSON | System health and snapshot count |
 | `GET /api/v1/salesoffice/debug` | JSON | Debug info with error details |
+
+---
+
+## Statista Ingestion (Local Pipeline)
+
+To ingest Statista-derived Miami ADR data into the system:
+
+```bash
+python scripts/ingest_statista_data.py
+```
+
+Optional additional search path:
+
+```bash
+python scripts/ingest_statista_data.py --path ~/Downloads --path ~/Documents
+```
+
+Expected outputs after successful ingestion:
+
+- `data/processed/statista_miami_monthly_adr.csv`
+- `data/miami_benchmarks.json`
+
+Then check runtime source status via:
+
+```bash
+GET /api/v1/salesoffice/sources/audit
+```
+
+---
+
+## Bright Data OTA Ingestion (Airbnb, Booking, Expedia, ...)
+
+To ingest OTA export files collected via Bright Data:
+
+```bash
+python scripts/ingest_brightdata_market_data.py
+```
+
+Optional additional search path:
+
+```bash
+python scripts/ingest_brightdata_market_data.py --path ~/Downloads --path ~/Documents
+```
+
+Expected outputs:
+
+- `data/processed/brightdata_ota_rates.csv`
+- `data/processed/brightdata_ota_summary.json`
+
+How to verify Airbnb and other OTA data was loaded:
+
+- Call `GET /api/v1/salesoffice/sources/audit`
+- Check source `ota_brightdata_exports` evidence (`rows=...`, `platforms=airbnb,booking,...`)
 
 ---
 

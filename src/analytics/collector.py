@@ -145,6 +145,60 @@ def load_historical_prices() -> pd.DataFrame:
     return df
 
 
+SCAN_HISTORY_QUERY = """
+SELECT
+    d.SalesOfficeOrderId AS order_id,
+    d.HotelId            AS hotel_id,
+    d.RoomCategory       AS room_category,
+    d.RoomBoard          AS room_board,
+    d.RoomPrice          AS room_price,
+    d.DateCreated        AS scan_date
+FROM [SalesOffice.Details] d
+JOIN [SalesOffice.Orders] o ON d.SalesOfficeOrderId = o.Id
+WHERE o.IsActive = 1
+  AND o.WebJobStatus LIKE 'Completed%%'
+  AND o.WebJobStatus NOT LIKE '%%Mapping: 0%%'
+ORDER BY d.SalesOfficeOrderId, d.HotelId, d.RoomCategory, d.RoomBoard, d.DateCreated
+"""
+
+
+def load_scan_history() -> pd.DataFrame:
+    """Load all historical scan records from medici-db for scan_history analysis.
+
+    Each row = one room result from one scan.  Matching key for tracking a room
+    across scans: (order_id, hotel_id, room_category, room_board).
+    Multiple scans are distinguished by scan_date (DateCreated).
+
+    Returns DataFrame with columns: order_id, hotel_id, room_category,
+    room_board, room_price, scan_date.
+    """
+    from src.data.trading_db import get_trading_engine
+
+    engine = get_trading_engine()
+    if engine is None:
+        logger.error("Cannot connect to trading DB for scan history")
+        return pd.DataFrame()
+
+    logger.info("Loading scan history from medici-db [SalesOffice.Details]...")
+
+    try:
+        df = pd.read_sql_query(SCAN_HISTORY_QUERY, engine)
+    except Exception as e:
+        logger.error("Failed to load scan history: %s", e)
+        return pd.DataFrame()
+
+    if df.empty:
+        logger.warning("No scan history found")
+        return df
+
+    n_scans = df["scan_date"].nunique() if "scan_date" in df.columns else 0
+    logger.info(
+        "Loaded %d scan records, %d unique scan dates, %d orders",
+        len(df), n_scans, df["order_id"].nunique(),
+    )
+    return df
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     df = collect_prices()

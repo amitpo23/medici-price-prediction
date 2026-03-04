@@ -2,6 +2,37 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [0.9.0] - 2026-03-04 - Scan History Analytics & Interactive Charts
+
+### Added
+- **Scan History from medici-db** — real historical price tracking from `[SalesOffice.Details].DateCreated`:
+  - `load_scan_history()` in `collector.py`: queries all 3-hourly scan records from Azure SQL
+  - `_build_scan_history()` in `analyzer.py`: matches rooms by `(order_id, hotel_id, room_category, room_board)` natural key
+  - Tracks actual drops, rises, trend, total amounts, max single moves since scanning started (Feb 23)
+  - Up to 23 scans per room with full price series for charting
+- **Interactive Scan Chart Modal** in HTML dashboard (`/options/view`):
+  - Chart icon (📈) per row — click to open price history chart
+  - Canvas-rendered sparkline with date axis, price gridlines, colored dots (red=drop, green=rise)
+  - Summary stats in modal: first/latest price, drops, rises, min, max, total change %
+  - Keyboard (Esc) and overlay-click to close
+- **Enhanced scan visualization** in dashboard table:
+  - Rich "Actual D/R" column with colored drop/rise counters and hover tooltips
+  - Trend badge (▲/▼/▬) next to Scan Chg% for quick visual scanning
+  - Hover tooltips showing full breakdown (total drop/rise amounts, max single move)
+- **`scan_price_series`** added to JSON API `scan_history` object — array of `{date, price}` for client-side charting
+- New "Chart" column (col 20) in HTML dashboard — 767+ rows with clickable chart icons
+
+### Fixed
+- **Scan history data source** — was reading from local SQLite (1 snapshot on Azure due to `data/` excluded from deploy). Now reads directly from medici-db Azure SQL with full historical data
+
+### Technical
+- `SCAN_HISTORY_QUERY` in `collector.py` — efficient SQL against `[SalesOffice.Details]` with active order filter
+- Per-scan-date aggregation (min price) to handle duplicate entries
+- `scan_history_df` passed through `run_analysis()` → `_predict_prices()` → `_build_scan_history()` pipeline
+- HTML dashboard now 22 columns (was 21) — all additive, no existing columns changed
+
+---
+
 ## [0.8.0] - 2026-02-27 - Algo-Trading Forward Curve Prediction Engine
 
 ### Added
