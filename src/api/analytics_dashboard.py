@@ -371,6 +371,10 @@ async def salesoffice_options(
             "scan_price_series": scan.get("scan_price_series", []),
         }
 
+        # Market benchmark — hotel vs same-star avg in same city
+        bench = pred.get("market_benchmark") or {}
+        row["market_benchmark"] = bench
+
         rows.append(row)
 
     rows.sort(
@@ -560,6 +564,12 @@ async def salesoffice_options_view(
             "first_scan_date": scan.get("first_scan_date"),
             "latest_scan_date": scan.get("latest_scan_date"),
             "latest_scan_price": scan.get("latest_scan_price"),
+            # Market benchmark — hotel vs same-star avg in same city
+            "market_avg_price": (pred.get("market_benchmark") or {}).get("market_avg_price", 0),
+            "market_pressure": (pred.get("market_benchmark") or {}).get("pressure", 0),
+            "market_competitor_hotels": (pred.get("market_benchmark") or {}).get("competitor_hotels", 0),
+            "market_city": (pred.get("market_benchmark") or {}).get("city", ""),
+            "market_stars": (pred.get("market_benchmark") or {}).get("stars", 0),
         })
 
     rows.sort(key=lambda x: (
@@ -1605,6 +1615,27 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
         else:
             chart_icon = '<span class="chart-btn-empty" title="Not enough scan data">-</span>'
 
+        # Market benchmark cell (hotel vs same-star avg in same city)
+        mkt_avg = r.get("market_avg_price", 0)
+        mkt_pressure = r.get("market_pressure", 0)
+        mkt_hotels = r.get("market_competitor_hotels", 0)
+        mkt_city = r.get("market_city", "")
+        mkt_stars = r.get("market_stars", 0)
+        if mkt_avg and mkt_avg > 0:
+            mkt_cls = "pct-up" if r["current_price"] < mkt_avg else ("pct-down" if r["current_price"] > mkt_avg else "")
+            mkt_pct = (r["current_price"] - mkt_avg) / mkt_avg * 100
+            mkt_arrow = "&#9660;" if mkt_pct < -1 else ("&#9650;" if mkt_pct > 1 else "")
+            mkt_title = (
+                f"{mkt_city} {mkt_stars}★ avg: ${mkt_avg:,.0f} | "
+                f"{mkt_hotels} competitor hotels | "
+                f"You are {mkt_pct:+.1f}% vs market"
+            )
+            mkt_str = f'{mkt_arrow} ${mkt_avg:,.0f} <small>({mkt_pct:+.0f}%)</small>'
+        else:
+            mkt_cls = ""
+            mkt_title = "No market data for this hotel's city/star combo"
+            mkt_str = "-"
+
         table_rows.append(
             f'<tr class="{sig_cls}" '
             f'data-signal="{sig}" '
@@ -1634,6 +1665,7 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
             f'<td class="num {scan_chg_cls}" title="drop ${s_total_drop:.0f} / rise ${s_total_rise:.0f}">{trend_badge} {scan_chg_arrow} {s_chg_pct:+.1f}%</td>'
             f'<td class="col-chart">{chart_icon}</td>'
             f'<td class="col-put">{put_info}</td>'
+            f'<td class="num {mkt_cls}" title="{mkt_title}">{mkt_str}</td>'
             f'</tr>'
         )
 
@@ -1761,11 +1793,42 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
   .modal-stat.rise .val {{ color: var(--call); }}
 
   .footer {{ text-align: center; padding: 18px; font-size: 11px; color: #94a3b8; }}
+
+  /* ── Info-icon tooltips ─────────────────────────────────────── */
+  .info-icon {{
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%; background: #94a3b8;
+    color: #fff; font-size: 9px; font-weight: 700; font-style: normal;
+    margin-left: 4px; cursor: help; position: relative; vertical-align: middle;
+    flex-shrink: 0; line-height: 1;
+  }}
+  .info-icon:hover {{ background: #3b82f6; }}
+  .info-tip {{
+    display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%); width: 290px; padding: 10px 12px;
+    background: #1e293b; color: #f1f5f9; font-size: 11px; font-weight: 400;
+    line-height: 1.45; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    z-index: 200; text-transform: none; letter-spacing: 0; white-space: normal;
+    pointer-events: none;
+  }}
+  .info-tip::after {{
+    content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 6px solid transparent; border-top-color: #1e293b;
+  }}
+  .info-icon:hover .info-tip {{ display: block; }}
+  /* Right-edge tooltips: shift left so they don't overflow */
+  th:nth-child(n+16) .info-tip {{ left: auto; right: 0; transform: none; }}
+  th:nth-child(n+16) .info-tip::after {{ left: auto; right: 12px; transform: none; }}
+  .info-tip b {{ color: #93c5fd; }}
+  .info-tip .src-tag {{ display: inline-block; background: #334155; padding: 1px 5px;
+    border-radius: 3px; font-size: 10px; margin: 2px 2px 0 0; }}
+
   @media (max-width: 900px) {{
     .cards {{ padding: 12px; gap: 8px; }}
     .controls {{ padding: 8px 12px; }}
     .table-wrap {{ padding: 0 8px 16px; }}
     .controls input {{ width: 100%; }}
+    .info-tip {{ width: 220px; }}
   }}
 </style>
 </head>
@@ -1805,28 +1868,29 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
 <div class="table-wrap">
 <table id="opts-table">
 <thead><tr>
-  <th data-col="0" data-type="num">ID <span class="arrow">&#9650;</span></th>
-  <th data-col="1" data-type="str">Hotel <span class="arrow">&#9650;</span></th>
-  <th data-col="2" data-type="str">Category <span class="arrow">&#9650;</span></th>
-  <th data-col="3" data-type="str">Board <span class="arrow">&#9650;</span></th>
-  <th data-col="4" data-type="str">Check-in <span class="arrow">&#9650;</span></th>
-  <th data-col="5" data-type="num">Days <span class="arrow">&#9650;</span></th>
-  <th data-col="6" data-type="str">Signal <span class="arrow">&#9650;</span></th>
-  <th data-col="7" data-type="num">Current $ <span class="arrow">&#9650;</span></th>
-  <th data-col="8" data-type="num">Predicted $ <span class="arrow">&#9650;</span></th>
-  <th data-col="9" data-type="num">Change % <span class="arrow">&#9650;</span></th>
-  <th data-col="10" data-type="num">Min $ <span class="arrow">&#9650;</span></th>
-  <th data-col="11" data-type="num">Max $ <span class="arrow">&#9650;</span></th>
-  <th data-col="12" data-type="str">Touches <span class="arrow">&#9650;</span></th>
-  <th data-col="13" data-type="num">Big Moves <span class="arrow">&#9650;</span></th>
-  <th data-col="14" data-type="num" title="Expected price drops in forward curve until T">Exp Drops <span class="arrow">&#9650;</span></th>
-  <th data-col="15" data-type="str">Quality <span class="arrow">&#9650;</span></th>
-  <th data-col="16" data-type="num" title="Number of price snapshots collected since tracking started">Scans <span class="arrow">&#9650;</span></th>
-  <th data-col="17" data-type="num" title="Price at first scan">1st Price <span class="arrow">&#9650;</span></th>
-  <th data-col="18" data-type="str" title="Actual drops and rises observed since first scan">Actual D/R <span class="arrow">&#9650;</span></th>
-  <th data-col="19" data-type="num" title="Price change % from first scan to current">Scan Chg% <span class="arrow">&#9650;</span></th>
-  <th data-col="20" data-type="str" title="View scan price history chart">Chart</th>
-  <th data-col="21" data-type="str">PUT Detail <span class="arrow">&#9650;</span></th>
+  <th data-col="0" data-type="num">ID<span class="info-icon">i<span class="info-tip"><b>Detail ID</b><br>Unique room identifier from SalesOffice DB.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="1" data-type="str">Hotel<span class="info-icon">i<span class="info-tip"><b>Hotel Name</b><br>Property name from Med_Hotels table joined via HotelID.<br><span class="src-tag">Med_Hotels</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="2" data-type="str">Category<span class="info-icon">i<span class="info-tip"><b>Room Category</b><br>Mapped from RoomCategoryID: 1=Standard, 2=Superior, 4=Deluxe, 12=Suite. Affects forward-curve category offset in prediction.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="3" data-type="str">Board<span class="info-icon">i<span class="info-tip"><b>Board Type</b><br>Meal plan from BoardId: RO, BB, HB, FB, AI, etc. Adds a board offset to the forward curve prediction.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="4" data-type="str">Check-in<span class="info-icon">i<span class="info-tip"><b>Check-in Date</b><br>Booked arrival date from the order. This is the target date (T=0) for the forward curve walk.<br><span class="src-tag">SalesOffice.Orders</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="5" data-type="num">Days<span class="info-icon">i<span class="info-tip"><b>Days to Check-in</b><br>Calendar days from today to check-in. This is the T value &mdash; how many steps the forward curve walks.<br>Formula: <b>check_in_date &minus; today</b></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="6" data-type="str">Signal<span class="info-icon">i<span class="info-tip"><b>Option Signal (CALL / PUT / NEUTRAL)</b><br>&bull; <b>CALL</b>: price expected to rise (&ge;0.5%) or prob_up &gt; prob_down+0.1<br>&bull; <b>PUT</b>: price expected to drop (&le;&minus;0.5%) or prob_down &gt; prob_up+0.1<br>&bull; <b>L1-L10</b>: confidence level (65% change magnitude + 35% probability &times; quality)<br><span class="src-tag">Forward Curve 50%</span> <span class="src-tag">Historical 30%</span> <span class="src-tag">ML 20%</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="7" data-type="num">Current $<span class="info-icon">i<span class="info-tip"><b>Current Room Price</b><br>Latest price from the most recent hourly scan of SalesOffice.Details. This is the starting point for the forward curve.<br><span class="src-tag">SalesOffice.Details</span> <span class="src-tag">Hourly scan</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="8" data-type="num">Predicted $<span class="info-icon">i<span class="info-tip"><b>Predicted Check-in Price</b><br>Weighted ensemble of 2-3 signals:<br>&bull; <b>Forward Curve (50%)</b>: day-by-day walk with decay + events + season + weather adjustments<br>&bull; <b>Historical Pattern (30%)</b>: same-month prior-year average + lead-time adjustment<br>&bull; <b>ML Model (20%)</b>: if trained model exists (currently inactive)<br>Weights are scaled by each signal's confidence then normalized.<br><span class="src-tag">SalesOffice DB</span> <span class="src-tag">Open-Meteo</span> <span class="src-tag">Events</span> <span class="src-tag">Seasonality</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="9" data-type="num">Change %<span class="info-icon">i<span class="info-tip"><b>Expected Price Change %</b><br>Percentage difference between predicted check-in price and current price.<br>Formula: <b>(predicted &divide; current &minus; 1) &times; 100</b><br>Green = price expected to rise, Red = expected to drop.</span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="10" data-type="num">Min $<span class="info-icon">i<span class="info-tip"><b>Expected Minimum Price</b><br>Lowest price point on the forward curve between now and check-in.<br>Formula: <b>min(all daily predicted prices)</b><br>This is the predicted best buying opportunity in the path.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="11" data-type="num">Max $<span class="info-icon">i<span class="info-tip"><b>Expected Maximum Price</b><br>Highest price point on the forward curve between now and check-in.<br>Formula: <b>max(all daily predicted prices)</b><br>Peak predicted price before check-in.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="12" data-type="str">Touches<span class="info-icon">i<span class="info-tip"><b>Touches Min / Max</b><br>How many times the forward curve touches the min and max price levels (within $0.01).<br>Format: <b>min_touches / max_touches</b><br>High touch count = price lingers at that level (support/resistance).</span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="13" data-type="num">Big Moves<span class="info-icon">i<span class="info-tip"><b>Big Price Moves (&gt;$20)</b><br>Count of day-to-day predicted price changes greater than $20 on the forward curve.<br>More big moves = higher volatility expected.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="14" data-type="num">Exp Drops<span class="info-icon">i<span class="info-tip"><b>Expected Price Drops</b><br>Number of day-to-day drops predicted by the forward curve between now and check-in.<br>Higher count for PUT signals = more predicted decline episodes.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="15" data-type="str">Quality<span class="info-icon">i<span class="info-tip"><b>Prediction Quality Score</b><br>Blended confidence metric:<br>&bull; 60% from data availability (scan count, price history depth, hotel coverage)<br>&bull; 40% from mean signal confidence<br>Levels: <b>HIGH</b> (&ge;0.75), <b>MEDIUM</b> (&ge;0.50), <b>LOW</b> (&lt;0.50)<br>Higher = more data backing the prediction.</span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="16" data-type="num">Scans<span class="info-icon">i<span class="info-tip"><b>Scan Count (Actual)</b><br>Number of real price snapshots collected from medici-db since tracking started (Feb 23).<br>Scanned every ~3 hours. More scans = better trend visibility.<br><span class="src-tag">SalesOffice.Details.DateCreated</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="17" data-type="num">1st Price<span class="info-icon">i<span class="info-tip"><b>First Scan Price</b><br>The room price at the earliest recorded scan. Used as baseline to measure actual price movement since tracking began.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="18" data-type="str">Actual D/R<span class="info-icon">i<span class="info-tip"><b>Actual Drops / Rises (Observed)</b><br>Real price drops and rises observed across actual scans &mdash; NOT predictions.<br>&bull; <b style="color:#ef4444">Red number&#9660;</b> = count of scans where price decreased<br>&bull; <b style="color:#22c55e">Green number&#9650;</b> = count of scans where price increased<br>Hover for total $ amounts and max single move.<br><span class="src-tag">medici-db scans</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="19" data-type="num">Scan Chg%<span class="info-icon">i<span class="info-tip"><b>Scan Price Change %</b><br>Actual price change from first scan to current price.<br>Formula: <b>(latest &minus; first) &divide; first &times; 100</b><br>Trend badge: &#9650; up, &#9660; down, &#9644; stable.<br>This is REAL observed data, not a prediction.<br><span class="src-tag">medici-db scans</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="20" data-type="str">Chart<span class="info-icon">i<span class="info-tip"><b>Scan Price Chart</b><br>Click &#128200; to view price history chart showing all actual scan prices over time with colored dots (red=drop, green=rise).<br>Requires &ge;2 scans.</span></span></th>
+  <th data-col="21" data-type="str">PUT Detail<span class="info-icon">i<span class="info-tip"><b>PUT Decline Details</b><br>Breakdown of predicted downward moves on the forward curve:<br>&bull; <b>drops</b>: count of decline days<br>&bull; <b>total $</b>: sum of all daily drops<br>&bull; <b>max $</b>: largest single-day drop<br>Only shown for rooms with predicted declines.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="22" data-type="num">Mkt &#9733;$<span class="info-icon">i<span class="info-tip"><b>Market Benchmark (same &#9733; avg)</b><br>Average price of all other hotels with the <b>same star rating</b> in the <b>same city</b> from AI_Search_HotelData (8.5M records, 6K+ hotels, 323 cities).<br>&bull; <b style="color:#22c55e">Green</b>: our price &lt; market avg (well-positioned)<br>&bull; <b style="color:#ef4444">Red</b>: our price &gt; market avg (premium priced)<br>Hover for N competitor hotels and city.<br><span class="src-tag">AI_Search_HotelData</span></span></span> <span class="arrow">&#9650;</span></th>
 </tr></thead>
 <tbody>
 {rows_html}

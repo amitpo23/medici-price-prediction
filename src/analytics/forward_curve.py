@@ -458,6 +458,9 @@ class Enrichments:
     seasonality_index: dict[str, float] = field(default_factory=dict)
     weather_signal: dict[str, float] = field(default_factory=dict)   # {date_str: adj_pct}
     competitor_pressure: float = 0.0                                   # -1.0 to +1.0
+    price_velocity: float = 0.0                                        # 0-1 normalized update frequency
+    cancellation_risk: float = 0.0                                     # 0-1 cancel rate for this hotel
+    provider_pressure: float = 0.0                                     # -1.0 to +1.0 from search results
 
     def get_event_daily_adj(self, date: datetime) -> float:
         """Event impact for a specific date, spread across event window."""
@@ -524,6 +527,33 @@ class Enrichments:
         Positive pressure (we're cheaper) → slight upward pressure on prices.
         """
         return self.competitor_pressure * 0.02
+
+    def get_velocity_daily_adj(self) -> float:
+        """Daily adjustment from price update velocity.
+
+        High velocity (many price changes) → market is active, prices volatile.
+        Adds slight upward pressure when market is actively repricing.
+        Scaled to ±0.01%/day maximum impact.
+        """
+        return self.price_velocity * 0.01
+
+    def get_cancel_risk_adj(self) -> float:
+        """Daily adjustment from cancellation risk.
+
+        High cancel rate → downward pressure on predicted price
+        (rooms may become available, increasing supply).
+        Scaled to -0.015%/day maximum impact.
+        """
+        return -self.cancellation_risk * 0.015
+
+    def get_provider_pressure_adj(self) -> float:
+        """Daily adjustment from multi-provider search results.
+
+        Positive = providers raising prices → upward pressure.
+        Negative = providers dropping prices → downward pressure.
+        Scaled to ±0.015%/day maximum impact.
+        """
+        return self.provider_pressure * 0.015
 
 
 # ── Forward Curve Prediction ─────────────────────────────────────────
@@ -596,9 +626,14 @@ def predict_forward_curve(
         demand_adj = enrichments.get_demand_daily_adj()
         weather_adj = enrichments.get_weather_daily_adj(pred_date)
         comp_adj = enrichments.get_competitor_daily_adj()
+        velocity_adj = enrichments.get_velocity_daily_adj()
+        cancel_adj = enrichments.get_cancel_risk_adj()
+        provider_adj = enrichments.get_provider_pressure_adj()
 
         # Total daily change
-        total_daily_pct = base_pct + offset_pct + mom_adj + event_adj + season_adj + demand_adj + weather_adj + comp_adj
+        total_daily_pct = (base_pct + offset_pct + mom_adj + event_adj
+                           + season_adj + demand_adj + weather_adj + comp_adj
+                           + velocity_adj + cancel_adj + provider_adj)
 
         # Apply change (multiplicative)
         predicted_price *= (1.0 + total_daily_pct / 100.0)

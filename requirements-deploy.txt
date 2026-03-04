@@ -1,6 +1,6 @@
 # Lightweight requirements for Azure App Service deployment
-# Excludes heavy ML deps (darts, sklearn, xgboost, lightgbm) and notebooks
-# Trading integration endpoints work fully without ML deps via lazy imports
+# Excludes heavy deps (darts, torch, xgboost) but includes lightweight ML
+# Trading integration endpoints work fully; ML training uses LightGBM directly
 
 # Core
 python-dotenv>=1.0.0
@@ -23,3 +23,7 @@ beautifulsoup4>=4.12.0
 pyluach>=2.2.0
 geopy>=2.4.0
 pyarrow>=14.0.0
+
+# Lightweight ML (no PyTorch/Darts dependency)
+lightgbm>=4.0.0
+scikit-learn>=1.3.0

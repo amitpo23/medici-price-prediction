@@ -268,6 +268,120 @@ def load_historical_prices() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Market Benchmark (hotel vs same-star hotels in same city)
+# ---------------------------------------------------------------------------
+
+def load_market_benchmark(hotel_ids: list[int],
+                          days_back: int = 60) -> dict[int, dict]:
+    """Market benchmark: avg price of same-star hotels in same city.
+
+    Uses AI_Search_HotelData (8.5M rows, 6K+ hotels, 323 cities) to compute
+    how each hotel's pricing compares to similar hotels in the market.
+
+    For each hotel_id, finds all OTHER hotels with the same CityName and Stars
+    rating, then returns:
+      - market_avg_price: average price across competitor hotels
+      - our_avg_price: our hotel's average price in AI_Search
+      - pressure: (market_avg - our_avg) / market_avg, clamped [-1, +1]
+        Positive = market charges more (opportunity to raise)
+        Negative = market charges less (risk of being overpriced)
+
+    Returns dict: {hotel_id: {city, stars, market_avg_price, pressure, ...}}
+    """
+    if not hotel_ids:
+        return {}
+
+    placeholders = ",".join(str(int(h)) for h in hotel_ids)
+    params: dict = {"days_back": -abs(days_back)}
+
+    # Single CTE query: our hotel refs → our prices → market averages
+    query = f"""
+    WITH our_ref AS (
+        SELECT DISTINCT HotelId, CityName, Stars
+        FROM AI_Search_HotelData
+        WHERE HotelId IN ({placeholders})
+          AND Stars IS NOT NULL
+          AND CityName IS NOT NULL
+    ),
+    our_prices AS (
+        SELECT HotelId,
+               AVG(PriceAmount) AS our_avg_price,
+               COUNT(*) AS our_samples
+        FROM AI_Search_HotelData
+        WHERE HotelId IN ({placeholders})
+          AND PriceAmount > 0
+          AND UpdatedAt >= DATEADD(day, :days_back, GETDATE())
+        GROUP BY HotelId
+    ),
+    market AS (
+        SELECT r.HotelId       AS our_hotel_id,
+               r.CityName,
+               r.Stars,
+               COUNT(DISTINCT a.HotelId) AS competitor_hotels,
+               AVG(a.PriceAmount)        AS market_avg_price,
+               MIN(a.PriceAmount)        AS market_min_price,
+               MAX(a.PriceAmount)        AS market_max_price,
+               COUNT(*)                  AS market_samples
+        FROM our_ref r
+        INNER JOIN AI_Search_HotelData a
+            ON a.CityName = r.CityName
+           AND a.Stars    = r.Stars
+        WHERE a.HotelId NOT IN ({placeholders})
+          AND a.PriceAmount > 0
+          AND a.UpdatedAt >= DATEADD(day, :days_back, GETDATE())
+        GROUP BY r.HotelId, r.CityName, r.Stars
+    )
+    SELECT m.our_hotel_id  AS hotel_id,
+           m.CityName      AS city,
+           m.Stars         AS stars,
+           m.competitor_hotels,
+           m.market_avg_price,
+           m.market_min_price,
+           m.market_max_price,
+           m.market_samples,
+           COALESCE(p.our_avg_price, 0) AS our_avg_price,
+           COALESCE(p.our_samples, 0)   AS our_samples
+    FROM market m
+    LEFT JOIN our_prices p ON m.our_hotel_id = p.HotelId
+    """
+
+    try:
+        df = run_trading_query(query, params)
+    except Exception as exc:
+        logger.warning("Market benchmark query failed: %s", exc)
+        return {}
+
+    if df.empty:
+        return {}
+
+    result: dict[int, dict] = {}
+    for _, row in df.iterrows():
+        hid = int(row["hotel_id"])
+        market_avg = float(row["market_avg_price"] or 0)
+        our_avg = float(row["our_avg_price"] or 0)
+
+        # Pressure: positive = market more expensive (we can raise)
+        #           negative = market cheaper (we're overpriced)
+        pressure = 0.0
+        if market_avg > 0 and our_avg > 0:
+            pressure = max(-1.0, min(1.0, (market_avg - our_avg) / market_avg))
+
+        result[hid] = {
+            "city": row["city"],
+            "stars": int(row["stars"]),
+            "market_avg_price": round(market_avg, 2),
+            "market_min_price": round(float(row["market_min_price"] or 0), 2),
+            "market_max_price": round(float(row["market_max_price"] or 0), 2),
+            "competitor_hotels": int(row["competitor_hotels"] or 0),
+            "market_samples": int(row["market_samples"] or 0),
+            "our_avg_price": round(our_avg, 2),
+            "pressure": round(pressure, 4),
+        }
+
+    return result
+
+
+# ---------------------------------------------------------------------------
 # AI Search Hotel Data (8.5M rows — competitor/market pricing)
 # ---------------------------------------------------------------------------
 
@@ -628,3 +742,67 @@ def check_connection() -> bool:
         return True
     except Exception:
         return False
+
+
+# ---------------------------------------------------------------------------
+# App Service structured logs (local JSONL files as data source)
+# ---------------------------------------------------------------------------
+
+def load_appservice_prediction_logs(days_back: int = 90) -> pd.DataFrame:
+    """Load prediction events from App Service structured logs.
+
+    These are written by prediction_logger.py every time the analyzer runs.
+    Returns a DataFrame with hotel_id, current_price, predicted_price,
+    date_from, days_to_checkin, enrichments, momentum, etc.
+    """
+    try:
+        from src.analytics.prediction_logger import load_prediction_logs
+        events = load_prediction_logs(days_back=days_back)
+        if not events:
+            return pd.DataFrame()
+        df = pd.DataFrame(events)
+        # Flatten enrichments into columns
+        if "enrichments" in df.columns:
+            enr = pd.json_normalize(df["enrichments"].apply(
+                lambda x: x if isinstance(x, dict) else {}
+            ))
+            enr.columns = [f"enr_{c}" for c in enr.columns]
+            df = pd.concat([df.drop(columns=["enrichments"]), enr], axis=1)
+        # Flatten momentum into columns
+        if "momentum" in df.columns:
+            mom = pd.json_normalize(df["momentum"].apply(
+                lambda x: x if isinstance(x, dict) else {}
+            ))
+            mom.columns = [f"mom_{c}" for c in mom.columns]
+            df = pd.concat([df.drop(columns=["momentum"]), mom], axis=1)
+        return df
+    except Exception as e:
+        logger.warning("Failed to load prediction logs: %s", e)
+        return pd.DataFrame()
+
+
+def load_appservice_price_logs(days_back: int = 90) -> pd.DataFrame:
+    """Load price observation events from App Service structured logs."""
+    try:
+        from src.analytics.prediction_logger import load_price_logs
+        events = load_price_logs(days_back=days_back)
+        if not events:
+            return pd.DataFrame()
+        return pd.DataFrame(events)
+    except Exception as e:
+        logger.warning("Failed to load price logs: %s", e)
+        return pd.DataFrame()
+
+
+def load_appservice_price_change_logs(days_back: int = 90) -> pd.DataFrame:
+    """Load price change events from App Service structured logs."""
+    try:
+        from src.analytics.prediction_logger import load_price_change_logs
+        events = load_price_change_logs(days_back=days_back)
+        if not events:
+            return pd.DataFrame()
+        return pd.DataFrame(events)
+    except Exception as e:
+        logger.warning("Failed to load price change logs: %s", e)
+        return pd.DataFrame()
+

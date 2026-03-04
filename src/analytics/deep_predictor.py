@@ -88,7 +88,12 @@ class DeepPredictor:
         )
 
         # Signal 3: ML forecast (optional)
-        ml_signal = self._get_ml_signal(hotel_id, days_to_checkin)
+        ml_signal = self._get_ml_signal(
+            hotel_id, days_to_checkin,
+            current_price=current_price,
+            date_from=date_from,
+            enrichments=enrichments,
+        )
 
         # Collect available signals
         signals = [fwd_signal]
@@ -351,8 +356,15 @@ class DeepPredictor:
         self,
         hotel_id: int,
         days_to_checkin: int,
+        current_price: float = 0,
+        date_from=None,
+        enrichments: Enrichments | None = None,
     ) -> dict | None:
-        """Signal 3: ML forecast from Darts HotelPriceForecaster."""
+        """Signal 3: ML forecast from trained LightGBM model.
+
+        Supports both lightweight direct-LightGBM models (type=lightgbm_direct)
+        and legacy Darts models.
+        """
         if self.ml_models_dir is None:
             return None
 
@@ -361,21 +373,90 @@ class DeepPredictor:
             return None
 
         try:
-            from src.models.forecaster import HotelPriceForecaster
-            forecaster = HotelPriceForecaster.load(model_path)
-            pred_df = forecaster.predict(n_days=days_to_checkin)
+            import pickle
+            with open(model_path, "rb") as f:
+                model_data = pickle.load(f)
 
-            if pred_df.empty:
-                return None
+            # ── Lightweight LightGBM model ──
+            if isinstance(model_data, dict) and model_data.get("type") == "lightgbm_direct":
+                model = model_data["model"]
+                feature_cols = model_data["feature_cols"]
+                price_mean = model_data.get("price_mean", current_price)
 
-            predicted_price = float(pred_df.iloc[-1]["predicted_price"])
+                # Build feature vector from what's available at prediction time
+                import numpy as np
+                from datetime import datetime as dt
 
-            return {
-                "source": "ml_forecast",
-                "predicted_price": predicted_price,
-                "confidence": 0.5,
-                "reasoning": f"Darts {forecaster.model_name} model for hotel {hotel_id}",
-            }
+                features = {}
+
+                # Calendar features from checkin date
+                if date_from:
+                    try:
+                        checkin = pd.to_datetime(date_from)
+                        features["day_of_week"] = checkin.dayofweek
+                        features["month"] = checkin.month
+                        features["is_weekend"] = 1 if checkin.dayofweek >= 5 else 0
+                    except Exception:
+                        pass
+
+                # Price-based features
+                if current_price > 0:
+                    features["price_lag_1"] = current_price
+                    features["price_lag_3"] = current_price
+                    features["price_lag_7"] = current_price
+                    features["price_lag_14"] = current_price
+                    features["price_lag_28"] = current_price
+                    features["price_rolling_mean_7"] = current_price
+                    features["price_rolling_std_7"] = 0
+                    features["price_rolling_mean_14"] = current_price
+                    features["price_rolling_std_14"] = 0
+                    features["price_rolling_mean_28"] = current_price
+                    features["price_rolling_std_28"] = 0
+                    features["price_min"] = current_price
+                    features["price_max"] = current_price
+                    features["price_std"] = 0
+                    if price_mean > 0:
+                        features["price_vs_market"] = current_price / price_mean
+
+                # Enrichment features
+                if enrichments:
+                    features["price_update_velocity"] = enrichments.price_velocity
+                    features["cancellation_rate"] = enrichments.cancellation_risk
+                    features["star_rating"] = enrichments.competitor_pressure  # proxy
+
+                # Build feature array in correct order
+                feature_arr = np.array([[features.get(c, 0) for c in feature_cols]])
+                predicted_price = float(model.predict(feature_arr)[0])
+
+                # Sanity check: clamp to reasonable range
+                if current_price > 0:
+                    predicted_price = max(predicted_price, current_price * 0.5)
+                    predicted_price = min(predicted_price, current_price * 2.0)
+
+                return {
+                    "source": "ml_forecast",
+                    "predicted_price": round(predicted_price, 2),
+                    "confidence": 0.5,
+                    "reasoning": f"LightGBM model ({len(feature_cols)} features) for hotel {hotel_id}",
+                }
+
+            # ── Legacy Darts model (requires darts library) ──
+            else:
+                from src.models.forecaster import HotelPriceForecaster
+                forecaster = HotelPriceForecaster.load(model_path)
+                pred_df = forecaster.predict(n_days=days_to_checkin)
+
+                if pred_df.empty:
+                    return None
+
+                predicted_price = float(pred_df.iloc[-1]["predicted_price"])
+                return {
+                    "source": "ml_forecast",
+                    "predicted_price": predicted_price,
+                    "confidence": 0.5,
+                    "reasoning": f"Darts {forecaster.model_name} model for hotel {hotel_id}",
+                }
+
         except Exception as e:
             logger.debug("ML signal unavailable for hotel %d: %s", hotel_id, e)
             return None

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import pandas as pd
@@ -331,6 +332,198 @@ def train_multi_source(request: MultiSourceTrainRequest):
         sources_used=active,
         occupancy_metrics=occ_metrics,
     )
+
+
+@app.post("/train/deep-models")
+def train_deep_models(hotel_id: int | None = None, lite: bool = True):
+    """Train per-hotel ML models for DeepPredictor Signal 3.
+
+    Loads DB sources, builds features, trains per-hotel LightGBM models.
+    These .pkl models are auto-detected by DeepPredictor at prediction time.
+
+    Args:
+        hotel_id: Train single hotel (None=all).
+        lite: If True (default), use fast essential sources only.
+              Set False for full training with all 12 DB sources.
+    """
+    import threading
+    import traceback as _tb
+
+    def _run_training(target_hotel: int | None, use_lite: bool = True):
+        from config.settings import MODELS_DIR
+        import json as _json
+
+        # Write live status so /status endpoint can report it
+        status_path = MODELS_DIR / "training_status.json"
+        MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+        def _write_status(phase: str, detail: str = ""):
+            try:
+                with open(status_path, "w") as sf:
+                    _json.dump({"phase": phase, "detail": detail,
+                                "ts": datetime.utcnow().isoformat()}, sf)
+            except Exception:
+                pass
+
+        try:
+            _write_status("importing", "Loading train_models module")
+            from scripts.train_models import load_training_data, build_hotel_daily_series, train_hotel_model
+
+            mode_label = "lite" if use_lite else "full"
+            _write_status("loading_data", f"Loading training data ({mode_label} mode)")
+            logger.info("Deep model training started (hotel=%s, mode=%s)", target_hotel or "ALL", mode_label)
+            data = load_training_data(lite=use_lite)
+
+            # Log data source sizes
+            source_sizes = {k: len(v) if hasattr(v, '__len__') else 0 for k, v in data.items()}
+            _write_status("data_loaded", _json.dumps(source_sizes, default=str))
+
+            scans = data.get("scans", pd.DataFrame())
+            if scans.empty:
+                _write_status("error", "No scan data available")
+                logger.error("Deep model training: no scan data")
+                return
+
+            hotel_ids = scans["hotel_id"].unique().tolist()
+            if target_hotel:
+                hotel_ids = [target_hotel] if target_hotel in hotel_ids else []
+
+            trained, failed = 0, 0
+            results = {}
+            for i, hid in enumerate(sorted(hotel_ids)):
+                _write_status("training", f"Hotel {hid} ({i+1}/{len(hotel_ids)})")
+                df = build_hotel_daily_series(hid, data)
+                result = train_hotel_model(hid, df)
+                results[str(hid)] = result
+                if result.get("status") == "trained":
+                    trained += 1
+                else:
+                    failed += 1
+
+            report_path = MODELS_DIR / "training_report.json"
+            with open(report_path, "w") as f:
+                _json.dump({"trained": trained, "failed": failed, "models": results,
+                            "completed_at": datetime.utcnow().isoformat()}, f, indent=2, default=str)
+            _write_status("done", f"trained={trained}, failed={failed}")
+            logger.info("Deep model training done: %d trained, %d failed", trained, failed)
+        except Exception as e:
+            err_detail = _tb.format_exc()
+            _write_status("error", err_detail[-2000:])  # last 2000 chars of traceback
+            logger.error("Deep model training failed: %s\n%s", e, err_detail)
+
+    # Run in background thread to avoid HTTP timeout
+    t = threading.Thread(target=_run_training, args=(hotel_id, lite), daemon=True)
+    t.start()
+
+    return {
+        "status": "training_started",
+        "hotel_id": hotel_id or "all",
+        "mode": "lite" if lite else "full",
+        "message": "Training running in background. Check /train/deep-models/status for progress.",
+    }
+
+
+@app.get("/train/deep-models/status")
+def deep_models_status():
+    """Check training status and available models."""
+    from config.settings import MODELS_DIR
+    import json as _json
+
+    models = list(MODELS_DIR.glob("price_model_*.pkl"))
+    report = {}
+    report_path = MODELS_DIR / "training_report.json"
+    if report_path.exists():
+        with open(report_path) as f:
+            report = _json.load(f)
+
+    # Live training status
+    live_status = {}
+    status_path = MODELS_DIR / "training_status.json"
+    if status_path.exists():
+        try:
+            with open(status_path) as f:
+                live_status = _json.load(f)
+        except Exception:
+            pass
+
+    return {
+        "models_count": len(models),
+        "model_files": [m.name for m in models],
+        "training_report": report,
+        "live_status": live_status,
+    }
+
+
+@app.get("/train/deep-models/test")
+def test_deep_training(hotel_id: int | None = None):
+    """Fast synchronous training diagnostic — returns errors immediately.
+
+    Step 1: test import
+    Step 2: test scan data loading (just scans, not all 12 sources)
+    Step 3 (if hotel_id): build series + train single hotel
+
+    Without hotel_id, returns after step 2 with data stats.
+    """
+    import traceback as _tb
+
+    result = {"steps": []}
+
+    try:
+        result["steps"].append("step1_import")
+        from scripts.train_models import load_training_data, build_hotel_daily_series, train_hotel_model
+        result["steps"].append("step1_import_ok")
+
+        # Quick scan data test (just scans, skip heavy DB sources)
+        result["steps"].append("step2_load_scans")
+        from src.analytics.collector import load_historical_prices
+        scan_df = load_historical_prices()
+        scan_count = len(scan_df) if scan_df is not None else 0
+        result["scan_rows"] = scan_count
+
+        if scan_df is not None and not scan_df.empty:
+            result["scan_columns"] = list(scan_df.columns)
+            result["scan_hotels"] = int(scan_df["hotel_id"].nunique()) if "hotel_id" in scan_df.columns else 0
+            result["scan_sample_ids"] = sorted(scan_df["hotel_id"].unique().tolist())[:10] if "hotel_id" in scan_df.columns else []
+        else:
+            result["error"] = "No scan data returned from load_historical_prices()"
+            return result
+
+        result["steps"].append("step2_scans_ok")
+
+        # If hotel_id given, do full single-hotel training
+        if hotel_id:
+            result["steps"].append(f"step3_full_train_hotel_{hotel_id}")
+            data = load_training_data()
+            source_sizes = {k: len(v) if hasattr(v, '__len__') else 0 for k, v in data.items()}
+            result["data_sources"] = source_sizes
+
+            df = build_hotel_daily_series(hotel_id, data)
+            result["series_rows"] = len(df)
+
+            if df.empty:
+                result["error"] = f"Hotel {hotel_id}: empty series"
+                return result
+
+            train_result = train_hotel_model(hotel_id, df)
+            result["train_result"] = train_result
+
+        result["status"] = "ok"
+
+    except Exception as e:
+        result["error"] = str(e)
+        result["traceback"] = _tb.format_exc()
+
+    return result
+
+
+@app.get("/train/logs/stats")
+def prediction_log_stats():
+    """Check structured prediction/price log stats."""
+    try:
+        from src.analytics.prediction_logger import get_log_stats
+        return get_log_stats()
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/market/{city}")

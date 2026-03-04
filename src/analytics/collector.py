@@ -71,6 +71,14 @@ def collect_prices() -> pd.DataFrame:
             df[col] = df[col].astype(str)
 
     count = save_snapshot(df, snapshot_ts=now)
+
+    # Log price observations to structured event log (training data source)
+    try:
+        from src.analytics.prediction_logger import log_price_snapshot
+        log_price_snapshot(df, snapshot_ts=now)
+    except Exception:
+        pass
+
     logger.info(
         "Collected %d rooms across %d hotels. Stored %d new rows. Snapshot: %s",
         len(df),

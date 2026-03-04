@@ -42,7 +42,14 @@ from src.analytics.regime import detect_regime
 from src.analytics.deep_predictor import DeepPredictor
 from src.analytics.historical_patterns import HistoricalPatternMiner
 from src.analytics.miami_weather import get_weather_forecast
-from src.analytics.xotelo_store import get_competitor_pressure
+from src.analytics.prediction_logger import log_prediction, log_price_change
+from src.data.trading_db import (
+    load_market_benchmark,
+    load_price_update_velocity,
+    load_cancellations,
+    load_search_results_summary,
+    load_all_bookings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -419,15 +426,45 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
     weather_signal = _shared.get("weather_signal", {})
     latest_snap = _shared.get("latest_snapshot")
 
-    # Competitor pressure from Xotelo (no key required)
+    # Market benchmark pressure (hotel vs same-star avg in same city)
+    # Replaces old Xotelo cross-OTA comparison with AI_Search_HotelData
     competitor_pressure = 0.0
     if hotel_id:
         try:
-            if latest_snap is not None and not latest_snap.empty and "room_price" in latest_snap.columns:
-                hotel_snap = latest_snap[latest_snap["hotel_id"] == hotel_id]
-                if not hotel_snap.empty:
-                    our_adr = float(hotel_snap["room_price"].median())
-                    competitor_pressure = get_competitor_pressure(hotel_id, our_adr)
+            market_benchmark = _shared.get("market_benchmark", {})
+            bench = market_benchmark.get(hotel_id, {})
+            if bench:
+                competitor_pressure = float(bench.get("pressure", 0.0))
+        except Exception:
+            pass
+
+    # Price velocity — how frequently prices change for this hotel
+    price_velocity = 0.0
+    if hotel_id:
+        try:
+            vel_data = _shared.get("velocity_data", {})
+            vel = vel_data.get(hotel_id, {})
+            total_updates = float(vel.get("total_updates", 0))
+            # Normalize: 100+ updates = max velocity
+            price_velocity = min(1.0, total_updates / 100.0)
+        except Exception:
+            pass
+
+    # Cancellation risk — cancel rate for this hotel
+    cancellation_risk = 0.0
+    if hotel_id:
+        try:
+            cancel_rates = _shared.get("cancel_rates", {})
+            cancellation_risk = float(cancel_rates.get(hotel_id, 0.0))
+        except Exception:
+            pass
+
+    # Provider pressure — search results price trend vs current bookings
+    provider_pressure = 0.0
+    if hotel_id:
+        try:
+            prov_data = _shared.get("provider_pressure", {})
+            provider_pressure = float(prov_data.get(hotel_id, 0.0))
         except Exception:
             pass
 
@@ -437,6 +474,9 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
         seasonality_index=seasonality,
         weather_signal=weather_signal,
         competitor_pressure=competitor_pressure,
+        price_velocity=price_velocity,
+        cancellation_risk=cancellation_risk,
+        provider_pressure=provider_pressure,
     )
 
 
@@ -527,8 +567,88 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
     # instead of making HTTP calls per-room (was 1143 HTTP calls → now 1)
     shared_data = _compute_shared_enrichment_data()
 
-    # Pre-compute enrichments per hotel_id (only competitor pressure varies)
+    # Load market benchmark: avg price of same-star hotels in same city
+    # (replaces Xotelo cross-OTA comparison with AI_Search_HotelData)
     unique_hotel_ids = latest["hotel_id"].unique()
+    try:
+        market_benchmark = load_market_benchmark(
+            [int(h) for h in unique_hotel_ids], days_back=60,
+        )
+        shared_data["market_benchmark"] = market_benchmark
+        logger.info("Market benchmark loaded for %d/%d hotels",
+                    len(market_benchmark), len(unique_hotel_ids))
+    except Exception as e:
+        logger.warning("Failed to load market benchmark: %s", e)
+        shared_data["market_benchmark"] = {}
+
+    # Load price update velocity per hotel (room_price_update_log)
+    try:
+        vel_df = load_price_update_velocity(
+            [int(h) for h in unique_hotel_ids],
+        )
+        velocity_data: dict[int, dict] = {}
+        if vel_df is not None and not vel_df.empty:
+            for _, vr in vel_df.iterrows():
+                velocity_data[int(vr["HotelId"])] = {
+                    "total_updates": float(vr.get("total_updates", 0)),
+                    "unique_rooms": float(vr.get("unique_rooms", 0)),
+                    "avg_price": float(vr.get("avg_price", 0)),
+                    "price_stdev": float(vr.get("price_stdev", 0)),
+                }
+        shared_data["velocity_data"] = velocity_data
+        logger.info("Price velocity loaded for %d hotels", len(velocity_data))
+    except Exception as e:
+        logger.warning("Failed to load price velocity: %s", e)
+        shared_data["velocity_data"] = {}
+
+    # Load cancellation rates per hotel (MED_CancelBook / MED_Book)
+    try:
+        cancel_df = load_cancellations(days_back=365)
+        bookings_df = load_all_bookings(days_back=365)
+        cancel_rates: dict[int, float] = {}
+        if (cancel_df is not None and not cancel_df.empty
+                and bookings_df is not None and not bookings_df.empty):
+            cancel_counts = cancel_df.groupby("HotelId").size()
+            booking_counts = bookings_df.groupby("HotelId").size()
+            for hid in unique_hotel_ids:
+                hid_int = int(hid)
+                n_cancel = float(cancel_counts.get(hid_int, 0))
+                n_book = float(booking_counts.get(hid_int, 0))
+                if n_book > 0:
+                    cancel_rates[hid_int] = min(1.0, n_cancel / n_book)
+        shared_data["cancel_rates"] = cancel_rates
+        logger.info("Cancel rates computed for %d hotels", len(cancel_rates))
+    except Exception as e:
+        logger.warning("Failed to load cancellation data: %s", e)
+        shared_data["cancel_rates"] = {}
+
+    # Load search results provider pressure per hotel
+    try:
+        search_df = load_search_results_summary(
+            [int(h) for h in unique_hotel_ids],
+        )
+        provider_pressure: dict[int, float] = {}
+        if search_df is not None and not search_df.empty:
+            for _, sr in search_df.iterrows():
+                hid = int(sr["HotelId"])
+                avg_gross = float(sr.get("avg_gross_price", 0) or 0)
+                avg_net = float(sr.get("avg_net_price", 0) or 0)
+                # Pressure = margin squeeze direction (-1 to +1)
+                # Negative margin → providers undercutting → downward pressure
+                if avg_gross > 0 and avg_net > 0:
+                    margin_pct = (avg_gross - avg_net) / avg_gross
+                    # Normalize around typical 15% margin
+                    # Below 10% → negative pressure, above 20% → positive
+                    provider_pressure[hid] = max(-1.0, min(1.0,
+                        (margin_pct - 0.15) / 0.10))
+        shared_data["provider_pressure"] = provider_pressure
+        logger.info("Provider pressure computed for %d hotels",
+                    len(provider_pressure))
+    except Exception as e:
+        logger.warning("Failed to load search results: %s", e)
+        shared_data["provider_pressure"] = {}
+
+    # Pre-compute enrichments per hotel_id (competitor + velocity + cancel + provider varies)
     enrichments_by_hotel: dict[int, Enrichments] = {}
     for hid in unique_hotel_ids:
         enrichments_by_hotel[int(hid)] = _build_enrichments(
@@ -589,6 +709,26 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
 
             predictions[detail_id] = deep_result
 
+            # Log prediction event to structured event log
+            try:
+                from dataclasses import asdict
+                log_prediction(
+                    detail_id=detail_id,
+                    hotel_id=hotel_id,
+                    current_price=current_price,
+                    date_from=date_from,
+                    days_to_checkin=days_to_checkin,
+                    category=category,
+                    board=board,
+                    prediction_result=deep_result,
+                    enrichments_dict=asdict(enrichments),
+                    momentum_dict=mom.to_dict(),
+                    regime_dict=regime.to_dict(),
+                    run_ts=now.strftime("%Y-%m-%dT%H:%M:%S"),
+                )
+            except Exception:
+                pass
+
         except Exception as e:
             logger.warning(
                 "Deep predictor failed for detail %d, falling back to forward curve: %s",
@@ -607,6 +747,20 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
             row["room_category"], row["room_board"],
             scan_history_df if scan_history_df is not None else pd.DataFrame(),
         )
+
+        # Attach market benchmark data (hotel vs same-star avg in same city)
+        bench = shared_data.get("market_benchmark", {}).get(hotel_id, {})
+        predictions[detail_id]["market_benchmark"] = {
+            "market_avg_price": bench.get("market_avg_price", 0),
+            "market_min_price": bench.get("market_min_price", 0),
+            "market_max_price": bench.get("market_max_price", 0),
+            "competitor_hotels": bench.get("competitor_hotels", 0),
+            "market_samples": bench.get("market_samples", 0),
+            "our_avg_price": bench.get("our_avg_price", 0),
+            "pressure": bench.get("pressure", 0),
+            "city": bench.get("city", ""),
+            "stars": bench.get("stars", 0),
+        }
 
     return predictions
 
@@ -905,6 +1059,20 @@ def _detect_price_changes(all_snapshots: pd.DataFrame) -> dict:
             })
 
     changes.sort(key=lambda c: abs(c["change_pct"]), reverse=True)
+
+    # Log price change events to structured event log
+    for ch in changes:
+        try:
+            log_price_change(
+                detail_id=ch["detail_id"],
+                hotel_id=int(curr.loc[ch["detail_id"], "hotel_id"]) if "hotel_id" in curr.columns else 0,
+                old_price=ch["old_price"],
+                new_price=ch["new_price"],
+                change_pct=ch["change_pct"],
+                scan_ts=str(curr_ts),
+            )
+        except Exception:
+            pass
 
     return {
         "period": f"{prev_ts} → {curr_ts}",

@@ -158,9 +158,9 @@ DATA_SOURCES = [
         "category": "Competitor Pricing",
         "access": "REST API (no key)",
         "cost": "Free",
-        "status": "active",
-        "metrics": "Multi-OTA rates (Booking, Expedia, Hotels.com), pricing heatmap",
-        "update_freq": "Daily",
+        "status": "replaced",
+        "metrics": "Replaced by AI_Search_HotelData market benchmark (same-star same-city avg). Cross-OTA comparison not relevant.",
+        "update_freq": "N/A",
     },
     {
         "id": "fred",
