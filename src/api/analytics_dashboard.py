@@ -34,7 +34,6 @@ Background:
 """
 from __future__ import annotations
 
-import base64
 import logging
 import threading
 from datetime import datetime, timezone
@@ -219,6 +218,88 @@ async def salesoffice_benchmarks():
     from src.analytics.booking_benchmarks import get_benchmarks_summary
 
     return JSONResponse(content=get_benchmarks_summary())
+
+
+@router.get("/options/detail/{detail_id}")
+def salesoffice_option_detail(detail_id: int):
+    """Return compact detail data for the inline trading chart panel.
+
+    Called lazily when the user expands a row in the HTML dashboard.
+    """
+    analysis = _get_or_run_analysis()
+    predictions = analysis.get("predictions", {})
+    pred = predictions.get(detail_id) or predictions.get(str(detail_id))
+    if not pred:
+        raise HTTPException(status_code=404, detail=f"Room {detail_id} not found")
+
+    curve_points = _extract_curve_points(pred, None)
+    scan = pred.get("scan_history") or {}
+    current_price = float(pred.get("current_price", 0) or 0)
+    predicted_checkin = float(pred.get("predicted_checkin_price", current_price) or current_price)
+
+    path_prices = [p["predicted_price"] for p in curve_points]
+    expected_min = min(path_prices) if path_prices else current_price
+    expected_max = max(path_prices) if path_prices else predicted_checkin
+    option_signal = _derive_option_signal(pred)
+
+    signals_list = pred.get("signals") or []
+    fc_sig = next((s for s in signals_list if s.get("source") == "forward_curve"), None)
+    hist_sig = next((s for s in signals_list if s.get("source") == "historical_pattern"), None)
+
+    fc_pts = pred.get("forward_curve") or []
+    ev_adj = sum(float(p.get("event_adj_pct", 0) or 0) for p in fc_pts)
+    se_adj = sum(float(p.get("season_adj_pct", 0) or 0) for p in fc_pts)
+    dm_adj = sum(float(p.get("demand_adj_pct", 0) or 0) for p in fc_pts)
+    mo_adj = sum(float(p.get("momentum_adj_pct", 0) or 0) for p in fc_pts)
+
+    quality = _build_quality_summary(pred, _extract_sources(pred, analysis))
+    chg = round(float(pred.get("expected_change_pct", 0) or 0), 2)
+
+    # Build scan points with MM-DD dates
+    scan_raw = scan.get("scan_price_series", [])
+    scan_d_counts: dict[str, int] = {}
+    scan_pts: list[dict] = []
+    for s in scan_raw:
+        sd = s["date"][5:10] if len(s.get("date", "")) >= 10 else s.get("date", "")[-5:]
+        scan_d_counts[sd] = scan_d_counts.get(sd, 0) + 1
+        scan_pts.append({"d": sd, "p": round(s["price"], 1)})
+    dup_dates = {d for d, c in scan_d_counts.items() if c > 1}
+    if dup_dates:
+        cnt: dict[str, int] = {}
+        for pt in scan_pts:
+            if pt["d"] in dup_dates:
+                cnt[pt["d"]] = cnt.get(pt["d"], 0) + 1
+                pt["d"] = f'{pt["d"]}#{cnt[pt["d"]]}'
+
+    detail_data = {
+        "fc": [{"d": p["date"][-5:], "p": round(p["predicted_price"], 1),
+                "lo": round(float(p.get("lower_bound") or p["predicted_price"]), 1),
+                "hi": round(float(p.get("upper_bound") or p["predicted_price"]), 1)}
+               for p in curve_points],
+        "scan": scan_pts,
+        "cp": round(current_price, 2),
+        "pp": round(predicted_checkin, 2),
+        "mn": round(expected_min, 2),
+        "mx": round(expected_max, 2),
+        "sig": option_signal,
+        "fcW": round(float(fc_sig.get("weight", 0) or 0), 2) if fc_sig else 0,
+        "fcC": round(float(fc_sig.get("confidence", 0) or 0), 2) if fc_sig else 0,
+        "fcP": round(float(fc_sig["predicted_price"]), 2) if fc_sig and fc_sig.get("predicted_price") else None,
+        "hiW": round(float(hist_sig.get("weight", 0) or 0), 2) if hist_sig else 0,
+        "hiC": round(float(hist_sig.get("confidence", 0) or 0), 2) if hist_sig else 0,
+        "hiP": round(float(hist_sig["predicted_price"]), 2) if hist_sig and hist_sig.get("predicted_price") else None,
+        "adj": {"ev": round(ev_adj, 2), "se": round(se_adj, 2),
+                "dm": round(dm_adj, 2), "mo": round(mo_adj, 2)},
+        "mom": pred.get("momentum", {}),
+        "reg": pred.get("regime", {}),
+        "mkt": (pred.get("market_benchmark") or {}).get("market_avg_price", 0),
+        "q": quality.get("label", ""),
+        "chg": chg,
+        "drops": scan.get("scan_actual_drops", 0),
+        "rises": scan.get("scan_actual_rises", 0),
+        "scans": scan.get("scan_snapshots", 0),
+    }
+    return JSONResponse(content=detail_data)
 
 
 @router.get("/forward-curve/{detail_id}")
@@ -2244,58 +2325,11 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
             f'</tr>'
         )
 
-        # ── Build detail row data for inline trading chart ──
-        # Build scan date list – use MM-DD format to align with FC dates.
-        # When multiple scans happen on the same day, suffix with #N to keep unique.
-        _scan_raw = r.get("scan_price_series", [])
-        _scan_d_counts: dict[str, int] = {}
-        _scan_pts: list[dict] = []
-        for s in _scan_raw:
-            sd = s["date"][5:10] if len(s.get("date", "")) >= 10 else s.get("date", "")[-5:]
-            _scan_d_counts[sd] = _scan_d_counts.get(sd, 0) + 1
-            _scan_pts.append({"d": sd, "p": round(s["price"], 1)})
-        # Deduplicate: if only 1 scan per date, keep as-is; else suffix
-        _dup_dates = {d for d, c in _scan_d_counts.items() if c > 1}
-        if _dup_dates:
-            _cnt: dict[str, int] = {}
-            for pt in _scan_pts:
-                if pt["d"] in _dup_dates:
-                    _cnt[pt["d"]] = _cnt.get(pt["d"], 0) + 1
-                    pt["d"] = f'{pt["d"]}#{_cnt[pt["d"]]}'
-
-        detail_data = {
-            "fc": r.get("fc_series", []),
-            "scan": _scan_pts,
-            "cp": r["current_price"],
-            "pp": r["predicted_checkin_price"],
-            "mn": r["expected_min_price"],
-            "mx": r["expected_max_price"],
-            "sig": sig,
-            "fcW": r.get("fc_weight", 0),
-            "fcC": r.get("fc_confidence", 0),
-            "fcP": r.get("fc_price"),
-            "hiW": r.get("hist_weight", 0),
-            "hiC": r.get("hist_confidence", 0),
-            "hiP": r.get("hist_price"),
-            "adj": {"ev": r.get("event_adj_total", 0), "se": r.get("season_adj_total", 0),
-                     "dm": r.get("demand_adj_total", 0), "mo": r.get("momentum_adj_total", 0)},
-            "mom": r.get("momentum", {}),
-            "reg": r.get("regime", {}),
-            "mkt": r.get("market_avg_price", 0),
-            "q": r.get("quality_label", ""),
-            "chg": chg,
-            "drops": r.get("scan_actual_drops", 0),
-            "rises": r.get("scan_actual_rises", 0),
-            "scans": s_snaps,
-        }
-        detail_json_raw = json.dumps(detail_data, separators=(',', ':'))
-        # Use base64 to safely embed JSON in HTML without escaping issues
-        detail_b64 = base64.b64encode(detail_json_raw.encode()).decode()
-
+# ── Detail row (empty shell — data loaded lazily via AJAX) ──
         table_rows.append(
-            f'<tr class="detail-row" id="detail-{r["detail_id"]}">'
+            f'<tr class="detail-row" id="detail-{r["detail_id"]}">' 
             f'<td colspan="27">'
-            f'<div class="detail-panel" id="dp-{r["detail_id"]}">'
+            f'<div class="detail-panel" id="dp-{r["detail_id"]}">' 
             f'<div class="detail-chart-wrap">'
             f'<div class="detail-chart-title">Price Trajectory &mdash; Forward Curve + Actual Scans</div>'
             f'<canvas class="detail-canvas" id="dc-{r["detail_id"]}" width="700" height="200"></canvas>'
@@ -2306,9 +2340,8 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
             f'<span><span class="leg-line" style="background:#10b981;height:1px;border-top:1px dashed #10b981"></span> Current $</span>'
             f'<span><span class="leg-line" style="background:#a855f7;height:1px;border-top:1px dashed #a855f7"></span> Predicted $</span>'
             f'</div></div>'
-            f'<div class="detail-info-wrap" id="di-{r["detail_id"]}">'
+            f'<div class="detail-info-wrap" id="di-{r["detail_id"]}">' 
             f'</div></div>'
-            f'<script>window._dd=window._dd||{{}};window._dd[{r["detail_id"]}]=JSON.parse(atob("{detail_b64}"));</script>'
             f'</td></tr>'
         )
 
@@ -3177,14 +3210,21 @@ function toggleDetail(detailId) {{
   }} else {{
     row.classList.add('open');
     if (btn) btn.classList.add('open');
-    // Draw chart + populate info on first open
+    // Fetch detail data lazily on first open
     if (!row.dataset.drawn) {{
       row.dataset.drawn = '1';
-      var dd = (window._dd || {{}})[detailId];
-      if (dd) {{
-        drawTradingChart(detailId, dd);
-        buildDetailInfo(detailId, dd);
-      }}
+      var infoWrap = document.getElementById('di-' + detailId);
+      if (infoWrap) infoWrap.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:12px">Loading...</div>';
+      fetch('/api/v1/salesoffice/options/detail/' + detailId)
+        .then(function(r) {{ return r.json(); }})
+        .then(function(dd) {{
+          drawTradingChart(detailId, dd);
+          buildDetailInfo(detailId, dd);
+        }})
+        .catch(function(err) {{
+          console.error('Detail fetch failed:', err);
+          if (infoWrap) infoWrap.innerHTML = '<div style="padding:20px;color:#dc2626;font-size:12px">Failed to load detail data</div>';
+        }});
     }}
   }}
 }}
