@@ -2,6 +2,61 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [1.1.0] - 2026-03-08 - Inline Trading Charts & Lazy Detail Loading
+
+### Added — Inline Trading Chart Panel
+- **Expand button (▼)** in the ID column of every row in the options HTML dashboard
+- **Trading chart per room**: Click ▼ to expand a detail panel below each row showing:
+  - Forward Curve line (blue) with confidence band (light blue fill)
+  - Adjusted Forward Curve line (orange) when enrichment adjustments differ
+  - Actual scan price dots (green = rise, red = drop) overlaid on the same timeline
+  - Current price (dashed blue) and predicted price (dashed green) horizontal lines
+  - Min/Max price markers with labels
+  - Unified date X-axis (MM-DD format) merging FC dates and scan dates
+- **Detail info panel** next to each chart with:
+  - Signal weights breakdown (Forward Curve %, Historical %, ML %)
+  - FC adjustment totals (competitor, cancel, provider, demand, season, velocity)
+  - Key metrics: current price, predicted price, change %, min/max expected
+  - Momentum indicators (signal, strength, velocity)
+  - Regime status (regime type, Z-score, alert level)
+- **`drawTradingChart()`**: ~150 lines of Canvas rendering (FC line, confidence band, scan dots, price lines, markers, axis labels)
+- **`buildDetailInfo()`**: ~60 lines of HTML info panel builder with signal/momentum/regime breakdown
+
+### Added — Lazy AJAX Detail Loading
+- **New endpoint `GET /options/detail/{detail_id}`**: Returns compact JSON for a single room's trading data
+  - `fc[]` — Forward curve series (date, price, lower, upper)
+  - `scan[]` — Scan history series (date, price)
+  - `adj{}` — FC adjustment totals per enrichment source
+  - `mom{}` — Momentum data (signal, strength, velocity)
+  - `reg{}` — Regime data (type, Z-score, alert)
+  - `fcW, fcC, fcP, hiW, hiC, hiP` — Signal weights and confidences
+  - `cp, pp, mn, mx, sig, chg` — Current/predicted price, min/max, signal, change%
+  - `drops, rises, scans` — Count of price drops, rises, total scans
+- **`toggleDetail()` JS** fetches data on-demand via `fetch()` API on first expand
+- **Loading indicator** ("Loading...") shown while data loads; error display on failure
+
+### Performance
+- **Page size reduced 51%**: 31 MB → 16 MB by removing 2,917 inline `<script>` blocks with base64-encoded JSON data
+- Each detail fetch is ~5 KB, loaded only when user clicks expand
+- Detail rows remain in DOM as lightweight shells (no embedded data)
+
+### Fixed
+- **Scan date format**: Changed from HH:MM to MM-DD to align with FC date axis
+- **Duplicate same-day scans**: Handled with `#N` suffix for unique labels (stripped from X-axis display)
+- **JSON escaping**: Resolved special character issues in embedded data (moved to server-side API)
+
+### Technical
+- `analytics_dashboard.py`: +484 lines (now 4,293 lines total)
+- CSS: ~75 lines for detail panel (`.detail-row`, `.detail-content`, `.chart-wrapper`, `.chart-legend`, `.detail-info`)
+- HTML: Hidden `<tr class="detail-row">` after each data row with `<canvas>` + info wrapper
+- Row dict enriched with `fc_series`, `fc_adj_series`, `momentum`, `regime`, `yoy` fields
+- Detail endpoint accesses `_get_or_run_analysis()` predictions cache
+
+### Files Changed
+- `src/api/analytics_dashboard.py` — New endpoint, CSS, JS (drawTradingChart, buildDetailInfo, toggleDetail), detail row HTML
+
+---
+
 ## [1.0.0] - 2026-03-08 - AI Intelligence, Claude Analyst & Rules Engine
 
 ### Added — AI Intelligence Module (`ai_intelligence.py`, 959 lines)

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Medici Price Prediction API",
     description="Hotel price forecasting, dynamic pricing, and analytics with multi-source data",
-    version="0.4.0",
+    version="1.1.0",
 )
 
 # Trading integration endpoints (no heavy deps)

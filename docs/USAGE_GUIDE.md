@@ -125,6 +125,7 @@ Portfolio-level numbers: total rooms, average price, price range, breakdown by c
 | `GET /api/v1/salesoffice/data` | JSON | Full raw analysis data |
 | `GET /api/v1/salesoffice/options` | JSON | Options-style rows with min/max path, touch counts, $20 change counts, sources, and chart payload |
 | `GET /api/v1/salesoffice/options/legend` | JSON | UI legend for `i/?` icon and source/quality interpretation |
+| `GET /api/v1/salesoffice/options/detail/{detail_id}` | JSON | Trading chart data: FC series, scan series, signal weights, momentum, regime |
 | `GET /api/v1/salesoffice/sources/audit` | JSON | Runtime audit of all configured data sources (active/degraded/planned) |
 | `GET /api/v1/salesoffice/forward-curve/{detail_id}` | JSON | Day-by-day prediction for one room |
 | `GET /api/v1/salesoffice/decay-curve` | JSON | The learned price change pattern |
@@ -190,6 +191,41 @@ Additional top-level additive fields:
 
 - `profile_applied`
 - `system_capabilities` (existing system/data coverage summary from forward-curve, historical patterns, events, flights, benchmarks)
+
+### Inline Trading Charts (v1.1.0)
+
+The HTML dashboard (`/options/view`) includes expandable trading chart panels per row:
+
+1. **Click the ▼ button** in the ID column to expand a row
+2. A chart panel appears below the row showing:
+   - **Forward Curve** (blue line) with confidence band (shaded area)
+   - **Adjusted Forward Curve** (orange line) when enrichment adjustments differ
+   - **Actual scan prices** as colored dots (green = rise, red = drop)
+   - **Current price** (dashed blue) and **predicted price** (dashed green) horizontal lines
+   - **Min/Max markers** labeled on the chart
+3. An **info panel** next to the chart shows signal weights, FC adjustments, momentum, regime
+
+**Data is loaded lazily** — chart data is fetched via AJAX only when expanding a row, keeping the page fast.
+
+### Detail Endpoint (v1.1.0)
+
+`GET /api/v1/salesoffice/options/detail/{detail_id}` returns compact JSON for a single room:
+
+```json
+{
+  "fc": [{"d": "03-08", "p": 330.1, "lo": 310, "hi": 350}],
+  "scan": [{"d": "03-05", "p": 325.0}],
+  "cp": 330.1, "pp": 825.25,
+  "mn": 310.0, "mx": 860.0,
+  "sig": "CALL", "chg": 150.0,
+  "fcW": 0.5, "fcC": 0.85,
+  "hiW": 0.3, "hiC": 0.7,
+  "adj": {"comp": -0.02, "cancel": -0.01, "demand": 0.15},
+  "mom": {"signal": "ACCELERATING_UP", "strength": 0.65},
+  "reg": {"regime": "NORMAL", "z_score": 0.5},
+  "drops": 2, "rises": 8, "scans": 10
+}
+```
 
 ### External Data
 | Endpoint | Format | Description |

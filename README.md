@@ -8,6 +8,7 @@ Hotel room options trading system with AI-powered price prediction, real-time sc
 
 Production system for hotel room price prediction and options-style trading signals:
 - **Options Trading Dashboard** — 2,850+ rooms across 10 Miami hotels with CALL/PUT/NEUTRAL signals
+- **Inline Trading Charts** — Expandable per-row chart panels with Forward Curve, scan history, and signal breakdown
 - **Forward Curve Predictions** — Weighted ensemble: Forward Curve (50%), Historical Patterns (30%), ML (20%)
 - **AI Intelligence** — Anomaly detection, risk assessment, Bayesian confidence, signal synthesis
 - **Claude Analyst** — Natural language Q&A, executive briefs, smart metadata enrichment
@@ -70,7 +71,7 @@ medici-price-prediction/
 │   │   ├── seasonality.py       # Seasonal pattern analysis
 │   │   └── ...                  # 17 analytics modules
 │   ├── api/
-│   │   ├── analytics_dashboard.py  # Main API + HTML dashboard (3,810 lines)
+│   │   ├── analytics_dashboard.py  # Main API + HTML dashboard (4,293 lines)
 │   │   ├── rules_api.py            # Rules CRUD endpoints (509 lines)
 │   │   ├── main.py                 # FastAPI app entry point
 │   │   └── integration.py          # External integrations
@@ -102,6 +103,7 @@ medici-price-prediction/
 | `GET /options/view` | Interactive HTML dashboard |
 | `GET /options/legend` | Signal legend & color scale |
 | `GET /options/{detail_id}` | Single room details |
+| `GET /options/detail/{detail_id}` | Trading chart data (FC, scans, signals) |
 
 ### AI Analyst
 | Endpoint | Description |
