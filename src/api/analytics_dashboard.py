@@ -34,6 +34,7 @@ Background:
 """
 from __future__ import annotations
 
+import base64
 import logging
 import threading
 from datetime import datetime, timezone
@@ -940,6 +941,23 @@ async def salesoffice_options_view(
             "ml_reasoning": (ml_sig.get("reasoning", "") if ml_sig else ""),
             "prediction_method": pred.get("prediction_method", ""),
             "explanation_factors": pred.get("explanation", {}).get("factors", []),
+            # Forward curve series for inline trading chart
+            "fc_series": [{"d": p["date"][-5:], "p": round(p["predicted_price"], 1),
+                           "lo": round(float(p.get("lower_bound") or p["predicted_price"]), 1),
+                           "hi": round(float(p.get("upper_bound") or p["predicted_price"]), 1)}
+                          for p in curve_points],
+            # Per-day adjustments for detail panel
+            "fc_adj_series": [{"d": p["date"][-5:],
+                               "ev": round(float(p.get("event_adj_pct", 0) or 0), 2),
+                               "se": round(float(p.get("season_adj_pct", 0) or 0), 2),
+                               "dm": round(float(p.get("demand_adj_pct", 0) or 0), 2),
+                               "mo": round(float(p.get("momentum_adj_pct", 0) or 0), 2)}
+                              for p in (pred.get("forward_curve") or [])[:len(curve_points)]],
+            # Momentum & regime for detail panel
+            "momentum": pred.get("momentum", {}),
+            "regime": pred.get("regime", {}),
+            # YoY comparison
+            "yoy": pred.get("yoy_comparison", {}),
         })
 
     rows.sort(key=lambda x: (
@@ -2187,7 +2205,7 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
             f'data-change="{chg}" '
             f'data-detail-id="{r["detail_id"]}" '
             f'data-current-price="{r["current_price"]}">'
-            f'<td class="col-id sticky-col sc-id">{r["detail_id"]}</td>'
+            f'<td class="col-id sticky-col sc-id"><button class="expand-btn" id="eb-{r["detail_id"]}" onclick="toggleDetail({r["detail_id"]})" title="Expand trading chart">&#9660;</button> {r["detail_id"]}</td>'
             f'<td class="col-hotel sticky-col sc-hotel" title="{_html_escape(r["hotel_name"])}">{_html_escape(r["hotel_name"][:30])}</td>'
             f'<td>{_html_escape(r["category"])}</td>'
             f'<td>{_html_escape(r["board"])}</td>'
@@ -2224,6 +2242,74 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
             f'&#9881; Rules</button></td>'
             f'<td class="col-ai">{ai_badge}</td>'
             f'</tr>'
+        )
+
+        # ── Build detail row data for inline trading chart ──
+        # Build scan date list – use MM-DD format to align with FC dates.
+        # When multiple scans happen on the same day, suffix with #N to keep unique.
+        _scan_raw = r.get("scan_price_series", [])
+        _scan_d_counts: dict[str, int] = {}
+        _scan_pts: list[dict] = []
+        for s in _scan_raw:
+            sd = s["date"][5:10] if len(s.get("date", "")) >= 10 else s.get("date", "")[-5:]
+            _scan_d_counts[sd] = _scan_d_counts.get(sd, 0) + 1
+            _scan_pts.append({"d": sd, "p": round(s["price"], 1)})
+        # Deduplicate: if only 1 scan per date, keep as-is; else suffix
+        _dup_dates = {d for d, c in _scan_d_counts.items() if c > 1}
+        if _dup_dates:
+            _cnt: dict[str, int] = {}
+            for pt in _scan_pts:
+                if pt["d"] in _dup_dates:
+                    _cnt[pt["d"]] = _cnt.get(pt["d"], 0) + 1
+                    pt["d"] = f'{pt["d"]}#{_cnt[pt["d"]]}'
+
+        detail_data = {
+            "fc": r.get("fc_series", []),
+            "scan": _scan_pts,
+            "cp": r["current_price"],
+            "pp": r["predicted_checkin_price"],
+            "mn": r["expected_min_price"],
+            "mx": r["expected_max_price"],
+            "sig": sig,
+            "fcW": r.get("fc_weight", 0),
+            "fcC": r.get("fc_confidence", 0),
+            "fcP": r.get("fc_price"),
+            "hiW": r.get("hist_weight", 0),
+            "hiC": r.get("hist_confidence", 0),
+            "hiP": r.get("hist_price"),
+            "adj": {"ev": r.get("event_adj_total", 0), "se": r.get("season_adj_total", 0),
+                     "dm": r.get("demand_adj_total", 0), "mo": r.get("momentum_adj_total", 0)},
+            "mom": r.get("momentum", {}),
+            "reg": r.get("regime", {}),
+            "mkt": r.get("market_avg_price", 0),
+            "q": r.get("quality_label", ""),
+            "chg": chg,
+            "drops": r.get("scan_actual_drops", 0),
+            "rises": r.get("scan_actual_rises", 0),
+            "scans": s_snaps,
+        }
+        detail_json_raw = json.dumps(detail_data, separators=(',', ':'))
+        # Use base64 to safely embed JSON in HTML without escaping issues
+        detail_b64 = base64.b64encode(detail_json_raw.encode()).decode()
+
+        table_rows.append(
+            f'<tr class="detail-row" id="detail-{r["detail_id"]}">'
+            f'<td colspan="27">'
+            f'<div class="detail-panel" id="dp-{r["detail_id"]}">'
+            f'<div class="detail-chart-wrap">'
+            f'<div class="detail-chart-title">Price Trajectory &mdash; Forward Curve + Actual Scans</div>'
+            f'<canvas class="detail-canvas" id="dc-{r["detail_id"]}" width="700" height="200"></canvas>'
+            f'<div class="detail-legend">'
+            f'<span><span class="leg-line" style="background:#3b82f6"></span> Forward Curve</span>'
+            f'<span><span class="leg-line" style="background:rgba(59,130,246,.15);height:6px"></span> Confidence Band</span>'
+            f'<span><span class="leg-dot" style="background:#f97316"></span> Actual Scans</span>'
+            f'<span><span class="leg-line" style="background:#10b981;height:1px;border-top:1px dashed #10b981"></span> Current $</span>'
+            f'<span><span class="leg-line" style="background:#a855f7;height:1px;border-top:1px dashed #a855f7"></span> Predicted $</span>'
+            f'</div></div>'
+            f'<div class="detail-info-wrap" id="di-{r["detail_id"]}">'
+            f'</div></div>'
+            f'<script>window._dd=window._dd||{{}};window._dd[{r["detail_id"]}]=JSON.parse(atob("{detail_b64}"));</script>'
+            f'</td></tr>'
         )
 
     rows_html = "\n".join(table_rows)
@@ -2470,6 +2556,84 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
   @keyframes ai-pulse {{ 0%,100% {{ opacity: 1; }} 50% {{ opacity: 0.6; }} }}
   .ai-anomaly-dot {{ color: #f59e0b; font-size: 12px; cursor: help; }}
   .ai-ext .ai-anomaly-dot {{ color: #fef08a; }}
+
+  /* ── Inline Trading Detail Row ──────────────────────────────── */
+  .detail-row {{ display: none; }}
+  .detail-row.open {{ display: table-row; }}
+  .detail-row > td {{ padding: 0 !important; border-bottom: 2px solid #3b82f6; background: #f8fafc; }}
+  .detail-panel {{
+    display: flex; gap: 0; padding: 16px 20px; min-height: 220px;
+    border-top: 2px solid #3b82f6;
+  }}
+  .detail-chart-wrap {{
+    flex: 1 1 60%; min-width: 0; position: relative;
+  }}
+  .detail-chart-title {{
+    font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: .5px;
+  }}
+  .detail-canvas {{
+    width: 100%; height: 200px; border: 1px solid #e2e8f0; border-radius: 8px;
+    background: #fff;
+  }}
+  .detail-legend {{
+    display: flex; gap: 14px; margin-top: 6px; font-size: 10px; color: #64748b;
+  }}
+  .detail-legend span {{ display: flex; align-items: center; gap: 4px; }}
+  .detail-legend .leg-dot {{
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  }}
+  .detail-legend .leg-line {{
+    width: 16px; height: 2px; display: inline-block; border-radius: 1px;
+  }}
+  .detail-info-wrap {{
+    flex: 0 0 320px; padding-left: 20px; border-left: 1px solid #e2e8f0;
+    display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 260px;
+  }}
+  .detail-section {{ }}
+  .detail-section h4 {{
+    font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: .6px; margin: 0 0 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px;
+  }}
+  .detail-signals {{ display: flex; flex-direction: column; gap: 4px; }}
+  .detail-sig-row {{
+    display: flex; align-items: center; gap: 6px; font-size: 11px;
+  }}
+  .detail-sig-name {{ width: 80px; font-weight: 600; color: #475569; white-space: nowrap; }}
+  .detail-sig-bar {{ flex: 1; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; position: relative; }}
+  .detail-sig-fill {{ height: 100%; border-radius: 5px; transition: width .3s; }}
+  .detail-sig-fill.fc {{ background: linear-gradient(90deg, #3b82f6, #60a5fa); }}
+  .detail-sig-fill.hist {{ background: linear-gradient(90deg, #f59e0b, #fbbf24); }}
+  .detail-sig-fill.ml {{ background: linear-gradient(90deg, #8b5cf6, #a78bfa); }}
+  .detail-sig-val {{ font-size: 10px; color: #64748b; width: 60px; text-align: right; white-space: nowrap; }}
+  .detail-adj-grid {{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  }}
+  .detail-adj-item {{
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 5px 8px; text-align: center;
+  }}
+  .detail-adj-val {{ font-size: 13px; font-weight: 700; }}
+  .detail-adj-val.pos {{ color: var(--call); }}
+  .detail-adj-val.neg {{ color: var(--put); }}
+  .detail-adj-val.zero {{ color: #94a3b8; }}
+  .detail-adj-label {{ font-size: 8px; color: #94a3b8; text-transform: uppercase; letter-spacing: .3px; }}
+  .detail-meta-grid {{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 3px; font-size: 10px;
+  }}
+  .detail-meta-item {{ display: flex; justify-content: space-between; padding: 2px 0; }}
+  .detail-meta-key {{ color: #94a3b8; }}
+  .detail-meta-val {{ font-weight: 600; color: #475569; }}
+  .expand-btn {{
+    background: none; border: none; cursor: pointer; font-size: 11px;
+    color: #64748b; padding: 0 3px; transition: transform .2s;
+  }}
+  .expand-btn:hover {{ color: #3b82f6; }}
+  .expand-btn.open {{ transform: rotate(180deg); }}
+  @media (max-width: 900px) {{
+    .detail-panel {{ flex-direction: column; }}
+    .detail-info-wrap {{ flex: auto; padding-left: 0; padding-top: 12px; border-left: none; border-top: 1px solid #e2e8f0; max-height: none; }}
+  }}
 
   /* ── Rules Modal / Panel ────────────────────────────────────── */
   .rules-overlay {{
@@ -3000,6 +3164,285 @@ document.getElementById('chart-modal').addEventListener('click', function(e) {{
 document.addEventListener('keydown', function(e) {{
   if (e.key === 'Escape') {{ closeChart(); closeRulesPanel(); closeSources(); }}
 }});
+
+/* ── Inline Trading Detail Panel ────────────────────────────── */
+function toggleDetail(detailId) {{
+  var row = document.getElementById('detail-' + detailId);
+  var btn = document.getElementById('eb-' + detailId);
+  if (!row) return;
+  var isOpen = row.classList.contains('open');
+  if (isOpen) {{
+    row.classList.remove('open');
+    if (btn) btn.classList.remove('open');
+  }} else {{
+    row.classList.add('open');
+    if (btn) btn.classList.add('open');
+    // Draw chart + populate info on first open
+    if (!row.dataset.drawn) {{
+      row.dataset.drawn = '1';
+      var dd = (window._dd || {{}})[detailId];
+      if (dd) {{
+        drawTradingChart(detailId, dd);
+        buildDetailInfo(detailId, dd);
+      }}
+    }}
+  }}
+}}
+
+function drawTradingChart(detailId, dd) {{
+  var canvas = document.getElementById('dc-' + detailId);
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var W = canvas.clientWidth, H = canvas.clientHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  var fc = dd.fc || [];
+  var scan = dd.scan || [];
+  if (fc.length === 0 && scan.length === 0) {{
+    ctx.fillStyle = '#94a3b8'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No chart data available', W/2, H/2);
+    return;
+  }}
+
+  // Collect all prices to determine Y range
+  var allP = [];
+  fc.forEach(function(pt) {{ allP.push(pt.p, pt.lo, pt.hi); }});
+  scan.forEach(function(pt) {{ allP.push(pt.p); }});
+  allP.push(dd.cp, dd.pp);
+  var minP = Math.min.apply(null, allP.filter(function(v){{return v>0;}}));
+  var maxP = Math.max.apply(null, allP);
+  var pPad = (maxP - minP) * 0.08 || 5;
+  minP -= pPad; maxP += pPad;
+  var pRange = maxP - minP || 1;
+
+  // All dates for X axis (forward curve dates are the main timeline)
+  var allDates = fc.map(function(pt){{return pt.d;}});
+
+  // Scans are PAST data, FC is FUTURE. Scans go on the LEFT, FC on the RIGHT
+  // Build a unified timeline: [scan dates] + [fc dates]
+  var scanDates = scan.map(function(s){{return s.d;}});
+  // Remove duplicate dates
+  var seen = {{}};
+  var timeline = [];
+  scanDates.forEach(function(d) {{ if (!seen[d]) {{ seen[d]=1; timeline.push({{d:d, src:'scan'}}); }} }});
+  allDates.forEach(function(d) {{ if (!seen[d]) {{ seen[d]=1; timeline.push({{d:d, src:'fc'}}); }} }});
+
+  var n = timeline.length;
+  if (n === 0) return;
+
+  var padL = 56, padR = 16, padT = 14, padB = 28;
+  var cw = W - padL - padR, ch = H - padT - padB;
+
+  // Helper: date to X
+  var dateIdx = {{}};
+  timeline.forEach(function(t, i) {{ dateIdx[t.d] = i; }});
+  function dateToX(d) {{ var idx = dateIdx[d]; return idx !== undefined ? padL + (idx / Math.max(n-1,1)) * cw : -1; }}
+  function priceToY(p) {{ return padT + ch - ((p - minP) / pRange) * ch; }}
+
+  // Background
+  ctx.fillStyle = '#fafbfc'; ctx.fillRect(padL, padT, cw, ch);
+
+  // Grid lines
+  ctx.strokeStyle = '#f1f5f9'; ctx.lineWidth = 0.5;
+  for (var gi=0; gi<=5; gi++) {{
+    var gy = padT + ch * gi / 5;
+    ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(padL + cw, gy); ctx.stroke();
+    var gp = maxP - (pRange * gi / 5);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('$' + gp.toFixed(0), padL - 4, gy + 3);
+  }}
+
+  // X axis labels (strip #N suffixes used for uniqueness)
+  ctx.fillStyle = '#94a3b8'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+  var xStep = Math.max(1, Math.floor(n / 8));
+  for (var xi=0; xi<n; xi+=xStep) {{
+    var xx = padL + (xi / Math.max(n-1,1)) * cw;
+    var lbl = timeline[xi].d.split('#')[0];
+    ctx.fillText(lbl, xx, H - 6);
+  }}
+
+  // Vertical divider between scan period and FC period
+  var firstFcDate = allDates[0];
+  var divX = dateToX(firstFcDate);
+  if (divX > padL + 10 && scanDates.length > 0) {{
+    ctx.save();
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(divX, padT); ctx.lineTo(divX, padT+ch); ctx.stroke();
+    ctx.restore();
+    // Labels
+    ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'right'; ctx.fillText('ACTUAL', divX - 4, padT + 10);
+    ctx.textAlign = 'left'; ctx.fillText('FORECAST', divX + 4, padT + 10);
+  }}
+
+  // ── Confidence band (FC) ──
+  if (fc.length > 1) {{
+    ctx.beginPath();
+    fc.forEach(function(pt, i) {{
+      var x = dateToX(pt.d); if (x < 0) return;
+      var y = priceToY(pt.hi);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }});
+    for (var i=fc.length-1; i>=0; i--) {{
+      var x = dateToX(fc[i].d); if (x < 0) continue;
+      ctx.lineTo(x, priceToY(fc[i].lo));
+    }}
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(59,130,246,.10)'; ctx.fill();
+  }}
+
+  // ── Forward Curve line ──
+  if (fc.length > 0) {{
+    ctx.beginPath();
+    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+    var started = false;
+    fc.forEach(function(pt) {{
+      var x = dateToX(pt.d); if (x < 0) return;
+      var y = priceToY(pt.p);
+      if (!started) {{ ctx.moveTo(x, y); started = true; }} else ctx.lineTo(x, y);
+    }});
+    ctx.stroke();
+  }}
+
+  // ── Actual scan line ──
+  if (scan.length > 1) {{
+    ctx.beginPath();
+    ctx.strokeStyle = '#f97316'; ctx.lineWidth = 1.5;
+    var started2 = false;
+    scan.forEach(function(pt) {{
+      var x = dateToX(pt.d); if (x < 0) return;
+      var y = priceToY(pt.p);
+      if (!started2) {{ ctx.moveTo(x, y); started2 = true; }} else ctx.lineTo(x, y);
+    }});
+    ctx.stroke();
+  }}
+
+  // ── Scan dots ──
+  scan.forEach(function(pt, i) {{
+    var x = dateToX(pt.d); if (x < 0) return;
+    var y = priceToY(pt.p);
+    var clr = '#f97316';
+    if (i > 0) {{
+      if (pt.p < scan[i-1].p - 0.01) clr = '#dc2626';
+      else if (pt.p > scan[i-1].p + 0.01) clr = '#16a34a';
+    }}
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+    ctx.fillStyle = clr; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.5; ctx.stroke();
+  }});
+
+  // ── Current price dashed line ──
+  ctx.save();
+  ctx.strokeStyle = '#10b981'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+  var cpY = priceToY(dd.cp);
+  ctx.beginPath(); ctx.moveTo(padL, cpY); ctx.lineTo(padL+cw, cpY); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#10b981'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('$' + dd.cp.toFixed(0), padL+cw+2, cpY+3);
+
+  // ── Predicted price dashed line ──
+  ctx.save();
+  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+  var ppY = priceToY(dd.pp);
+  ctx.beginPath(); ctx.moveTo(padL, ppY); ctx.lineTo(padL+cw, ppY); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#a855f7'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('$' + dd.pp.toFixed(0), padL+cw+2, ppY+3);
+
+  // ── Min/Max markers on FC ──
+  if (fc.length > 0) {{
+    var mnPt = fc.reduce(function(a,b){{return a.p < b.p ? a : b;}});
+    var mxPt = fc.reduce(function(a,b){{return a.p > b.p ? a : b;}});
+    // Min marker
+    var mnX = dateToX(mnPt.d), mnY = priceToY(mnPt.p);
+    if (mnX > 0) {{
+      ctx.beginPath(); ctx.arc(mnX, mnY, 4, 0, Math.PI*2);
+      ctx.fillStyle = '#ef4444'; ctx.fill();
+      ctx.fillStyle = '#ef4444'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('$' + mnPt.p.toFixed(0), mnX, mnY + 13);
+    }}
+    // Max marker
+    var mxX = dateToX(mxPt.d), mxY = priceToY(mxPt.p);
+    if (mxX > 0) {{
+      ctx.beginPath(); ctx.arc(mxX, mxY, 4, 0, Math.PI*2);
+      ctx.fillStyle = '#3b82f6'; ctx.fill();
+      ctx.fillStyle = '#3b82f6'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('$' + mxPt.p.toFixed(0), mxX, mxY - 8);
+    }}
+  }}
+}}
+
+function buildDetailInfo(detailId, dd) {{
+  var wrap = document.getElementById('di-' + detailId);
+  if (!wrap) return;
+  var h = '';
+
+  // ── Signal Weights ──
+  h += '<div class="detail-section"><h4>Signal Weights</h4><div class="detail-signals">';
+  if (dd.fcP) {{
+    h += '<div class="detail-sig-row"><span class="detail-sig-name">Forward Curve</span>' +
+         '<div class="detail-sig-bar"><div class="detail-sig-fill fc" style="width:' + (dd.fcW*100).toFixed(0) + '%"></div></div>' +
+         '<span class="detail-sig-val">$' + dd.fcP.toFixed(0) + ' (' + (dd.fcW*100).toFixed(0) + '%)</span></div>';
+  }}
+  if (dd.hiP) {{
+    h += '<div class="detail-sig-row"><span class="detail-sig-name">Historical</span>' +
+         '<div class="detail-sig-bar"><div class="detail-sig-fill hist" style="width:' + (dd.hiW*100).toFixed(0) + '%"></div></div>' +
+         '<span class="detail-sig-val">$' + dd.hiP.toFixed(0) + ' (' + (dd.hiW*100).toFixed(0) + '%)</span></div>';
+  }}
+  h += '</div></div>';
+
+  // ── Adjustments ──
+  var adj = dd.adj || {{}};
+  h += '<div class="detail-section"><h4>FC Adjustments (cumulative %)</h4><div class="detail-adj-grid">';
+  var adjItems = [
+    {{k:'Events', v:adj.ev}}, {{k:'Season', v:adj.se}},
+    {{k:'Demand', v:adj.dm}}, {{k:'Momentum', v:adj.mo}}
+  ];
+  adjItems.forEach(function(a) {{
+    var cls = a.v > 0.01 ? 'pos' : (a.v < -0.01 ? 'neg' : 'zero');
+    h += '<div class="detail-adj-item"><div class="detail-adj-val ' + cls + '">' +
+         (a.v >= 0 ? '+' : '') + a.v.toFixed(1) + '%</div>' +
+         '<div class="detail-adj-label">' + a.k + '</div></div>';
+  }});
+  h += '</div></div>';
+
+  // ── Market & Signals ──
+  h += '<div class="detail-section"><h4>Key Metrics</h4><div class="detail-meta-grid">';
+  var sigClr = dd.sig === 'CALL' ? 'var(--call)' : (dd.sig === 'PUT' ? 'var(--put)' : 'var(--neutral)');
+  h += '<div class="detail-meta-item"><span class="detail-meta-key">Signal</span><span class="detail-meta-val" style="color:' + sigClr + '">' + dd.sig + '</span></div>';
+  h += '<div class="detail-meta-item"><span class="detail-meta-key">Change</span><span class="detail-meta-val" style="color:' + (dd.chg>=0?'var(--call)':'var(--put)') + '">' + (dd.chg>=0?'+':'') + dd.chg.toFixed(1) + '%</span></div>';
+  h += '<div class="detail-meta-item"><span class="detail-meta-key">Quality</span><span class="detail-meta-val">' + dd.q + '</span></div>';
+  if (dd.mkt > 0) {{
+    h += '<div class="detail-meta-item"><span class="detail-meta-key">Mkt Avg</span><span class="detail-meta-val">$' + dd.mkt.toFixed(0) + '</span></div>';
+  }}
+  h += '<div class="detail-meta-item"><span class="detail-meta-key">Scans</span><span class="detail-meta-val">' + dd.scans + '</span></div>';
+  h += '<div class="detail-meta-item"><span class="detail-meta-key">Actual D/R</span><span class="detail-meta-val">' +
+       '<span style="color:var(--put)">' + dd.drops + '&#9660;</span> ' +
+       '<span style="color:var(--call)">' + dd.rises + '&#9650;</span></span></div>';
+  h += '</div></div>';
+
+  // ── Momentum & Regime ──
+  var mom = dd.mom || {{}};
+  var reg = dd.reg || {{}};
+  if (mom.signal || reg.regime) {{
+    h += '<div class="detail-section"><h4>Momentum &amp; Regime</h4><div class="detail-meta-grid">';
+    if (mom.signal) {{
+      h += '<div class="detail-meta-item"><span class="detail-meta-key">Momentum</span><span class="detail-meta-val">' + mom.signal + '</span></div>';
+      if (mom.velocity_24h !== undefined) {{
+        h += '<div class="detail-meta-item"><span class="detail-meta-key">Velocity 24h</span><span class="detail-meta-val">' + (mom.velocity_24h >= 0 ? '+' : '') + Number(mom.velocity_24h).toFixed(1) + '%</span></div>';
+      }}
+    }}
+    if (reg.regime) {{
+      h += '<div class="detail-meta-item"><span class="detail-meta-key">Regime</span><span class="detail-meta-val">' + reg.regime + '</span></div>';
+    }}
+    h += '</div></div>';
+  }}
+
+  wrap.innerHTML = h;
+}}
 
 /* ── Source Detail Modal Functions ───────────────────────────── */
 function showSources(btn) {{
