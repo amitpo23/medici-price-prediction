@@ -31,6 +31,10 @@ app.include_router(integration_router)
 from src.api.analytics_dashboard import router as analytics_dashboard_router
 app.include_router(analytics_dashboard_router)
 
+# Pricing Rules Engine — Step 5 integration
+from src.api.rules_api import router as rules_router
+app.include_router(rules_router)
+
 # Global references (populated at startup if ML deps are available)
 _forecaster = None
 _loader = None

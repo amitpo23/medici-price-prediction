@@ -2,6 +2,102 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [1.0.0] - 2026-03-08 - AI Intelligence, Claude Analyst & Rules Engine
+
+### Added — AI Intelligence Module (`ai_intelligence.py`, 959 lines)
+- **Anomaly Detection**: Z-score based outlier detection across price, change%, and scan history
+- **Signal Synthesis**: Multi-source signal aggregation (forward curve, historical, ML, momentum, regime)
+- **Risk Assessment**: Bayesian risk scoring with composite risk levels (LOW/MEDIUM/HIGH/EXTREME)
+- **Bayesian Confidence**: Prior-posterior confidence updates using prediction accuracy data
+- **Market Narrative**: Auto-generated textual description of market conditions per room
+- **Rule-Based Fallback**: Full functionality without API key — all AI features work offline
+
+### Added — Claude Analyst Module (`claude_analyst.py`, 1033 lines)
+- **Interactive Q&A** (`/ai/ask`): Natural language queries about portfolio, hotels, signals, events
+  - Smart keyword routing: summary, risk/PUT, opportunities/CALL, hotel search, events, momentum, regime
+  - Optional `detail_id` for room-specific questions, `deep=true` for Sonnet-powered analysis
+  - Bilingual support (English/Hebrew)
+- **Executive Market Brief** (`/ai/brief`): Auto-generated market summary with 5 sections
+  - Market Pulse, Top Opportunities, Risk Alerts, Event Impact, Action Items
+  - Language parameter: `lang=en` or `lang=he`
+- **Deep Prediction Explainer** (`/ai/explain/{detail_id}`): Signal-by-signal breakdown
+  - Forward Curve weight/confidence, Historical Pattern analysis, scan history, momentum, regime
+  - AI risk assessment and anomaly flags when available
+- **Smart Metadata Enrichment** (`/ai/metadata`): Per-room intelligent tagging
+  - Tags: `hot_deal`, `watch`, `risky`, `stable`, `momentum_play`, `contrarian`, `premium_opportunity`
+  - Actions: `BUY_NOW`, `WAIT`, `AVOID`, `MONITOR`, `HEDGE`
+  - Confidence emoji, key factor identification, one-liner summary
+  - Batch mode with configurable limit (default 50)
+- **Response Caching**: 200-entry in-memory cache with 10-minute TTL
+- **Claude Models**: Haiku for fast queries, Sonnet for deep analysis (configurable via env vars)
+
+### Added — Rules Engine (7 files, ~2,076 lines)
+- **Rule Types** (11): price_above, price_below, change_pct_above, change_pct_below, signal_is, hotel_is, category_is, board_is, date_before, date_after, composite (AND/OR)
+- **Engine** (`src/rules/engine.py`, 416 lines): Evaluate rules against predictions, composite logic, bulk evaluation
+- **Models** (`src/rules/models.py`, 251 lines): Pydantic models for rules, conditions, actions, results
+- **Store** (`src/rules/store.py`, 417 lines): CRUD operations with JSON file persistence
+- **Auto-Generator** (`src/rules/auto_generator.py`, 259 lines): ML-driven rule suggestions from portfolio data
+- **Presets** (`src/rules/presets.py`, 210 lines): Pre-built rule templates (value hunter, risk monitor, etc.)
+- **API** (`src/api/rules_api.py`, 509 lines): 16 RESTful endpoints for rule management
+  - CRUD: create, read, update, delete, list, toggle
+  - Evaluation: evaluate single, evaluate all, bulk evaluate
+  - Auto-generation: suggest rules, apply suggestions
+  - Presets: list presets, apply preset, get recommendation
+
+### Added — New API Endpoints (20 total)
+- `GET /ai/ask` — Natural language Q&A with portfolio data
+- `GET /ai/brief` — Executive market brief (EN/HE)
+- `GET /ai/explain/{detail_id}` — Deep prediction explanation
+- `GET /ai/metadata` — Smart room tags & metadata enrichment
+- `GET /options/ai-insights` — AI anomaly/risk/signal analysis per room
+- `POST /rules/` — Create alert rule
+- `GET /rules/` — List all rules
+- `GET /rules/{id}` — Get rule by ID
+- `PUT /rules/{id}` — Update rule
+- `DELETE /rules/{id}` — Delete rule
+- `POST /rules/{id}/toggle` — Enable/disable rule
+- `POST /rules/evaluate` — Evaluate single rule
+- `POST /rules/evaluate-all` — Evaluate all active rules
+- `POST /rules/bulk-evaluate` — Bulk evaluate multiple rules
+- `POST /rules/auto-generate` — ML-suggested rules from data
+- `POST /rules/apply-suggestions` — Apply auto-generated rules
+- `GET /rules/presets` — List preset rule templates
+- `POST /rules/presets/{name}/apply` — Apply a preset
+- `GET /rules/recommend` — Get rule recommendations for portfolio
+
+### Fixed — Production Stability
+- **OOM Crash**: Gunicorn 2 workers → 1 worker (prevented duplicate analysis pipelines exhausting memory)
+- **Worker Timeout**: 600s → 900s (allows full 2850-room analysis to complete)
+- **AI Enrichment Memory**: `deep_predictor.py` now filters snapshots by `detail_id` and limits to `tail(100)`
+- **Fallback Keyword Routing**: "riskiest/worst/decline" correctly routes to PUT signals (not CALL)
+
+### Changed — Configuration
+- `startup.sh`: `-w 1 -k uvicorn.workers.UvicornWorker --timeout 900 --graceful-timeout 300`
+- `config/settings.py`: Added `ANTHROPIC_API_KEY`, `CLAUDE_AI_MODEL`, `AI_INTELLIGENCE_ENABLED`
+- `requirements.txt` / `requirements-deploy.txt`: Added `anthropic>=0.80.0`
+- `src/api/main.py`: Registered rules router
+
+### Files Added
+- `src/analytics/ai_intelligence.py` — AI intelligence module (959 lines)
+- `src/analytics/claude_analyst.py` — Claude analyst module (1,033 lines)
+- `src/rules/__init__.py` — Rules package init
+- `src/rules/engine.py` — Rules evaluation engine (416 lines)
+- `src/rules/models.py` — Pydantic rule models (251 lines)
+- `src/rules/store.py` — Rule persistence store (417 lines)
+- `src/rules/auto_generator.py` — Auto rule generator (259 lines)
+- `src/rules/presets.py` — Pre-built rule presets (210 lines)
+- `src/api/rules_api.py` — Rules REST API (509 lines)
+
+### Files Modified
+- `src/api/analytics_dashboard.py` — +1,206 lines (AI endpoints, dashboard columns, AI insights)
+- `src/analytics/deep_predictor.py` — +75 lines (AI enrichment integration)
+- `config/settings.py` — +11 lines (AI configuration)
+- `startup.sh` — Worker/timeout tuning
+- `src/api/main.py` — Rules router registration
+- `requirements.txt` / `requirements-deploy.txt` — Anthropic SDK
+
+---
+
 ## [0.9.1] - 2026-03-04 - Forward Curve Enrichment Recalibration & Price Drop Detection
 
 ### Fixed — Critical Calculation Bugs (5 bugs)

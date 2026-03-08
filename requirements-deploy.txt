@@ -27,3 +27,6 @@ pyarrow>=14.0.0
 # Lightweight ML (no PyTorch/Darts dependency)
 lightgbm>=4.0.0
 scikit-learn>=1.3.0
+
+# AI Intelligence (Anthropic Claude)
+anthropic>=0.80.0

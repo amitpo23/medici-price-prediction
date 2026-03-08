@@ -15,8 +15,12 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 MODELS_DIR = DATA_DIR / "models"
 CACHE_DIR = DATA_DIR / "cache"
 
+# Rules engine database (SQLite)
+RULES_DB_DIR = DATA_DIR / "rules"
+RULES_DB_PATH = RULES_DB_DIR / "pricing_rules.db"
+
 # Ensure directories exist
-for _dir in (DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, CACHE_DIR):
+for _dir in (DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, CACHE_DIR, RULES_DB_DIR):
     _dir.mkdir(parents=True, exist_ok=True)
 
 # Azure SQL Database (prediction system's own DB)
@@ -39,6 +43,11 @@ TICKETMASTER_API_KEY = os.getenv("TICKETMASTER_API_KEY", "")
 SEATGEEK_CLIENT_ID = os.getenv("SEATGEEK_CLIENT_ID", "")
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 MAKCORPS_API_KEY = os.getenv("MAKCORPS_API_KEY", "")
+
+# AI Intelligence (Anthropic Claude)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+CLAUDE_AI_MODEL = os.getenv("CLAUDE_AI_MODEL", "claude-haiku-4-20250514")
+AI_INTELLIGENCE_ENABLED = os.getenv("AI_INTELLIGENCE_ENABLED", "true").lower() in ("true", "1", "yes")
 
 # Cache
 CACHE_TTL_HOURS = int(os.getenv("CACHE_TTL_HOURS", "24"))

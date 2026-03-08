@@ -102,6 +102,21 @@ class DeepPredictor:
         if ml_signal is not None:
             signals.append(ml_signal)
 
+        # ── Sanity clamp: penalise signals that deviate wildly ──────
+        # If a signal predicts >2× or <0.5× the current price,
+        # its confidence is halved per doubling, which scales its
+        # weight down in the normalised ensemble.
+        if current_price > 0:
+            for s in signals:
+                ratio = s["predicted_price"] / current_price
+                if ratio > 2.0 or ratio < 0.5:
+                    penalty = max(0.05, 1.0 / (1.0 + abs(np.log2(max(ratio, 0.01)))))
+                    s["confidence"] = s["confidence"] * penalty
+                    s["reasoning"] = (
+                        s.get("reasoning", "") +
+                        f" [clamped: ratio={ratio:.1f}x, penalty={penalty:.2f}]"
+                    )
+
         # Compute dynamic weights
         weights = self._compute_weights(signals)
 
@@ -109,6 +124,12 @@ class DeepPredictor:
         ensemble_price = sum(
             s["predicted_price"] * w for s, w in zip(signals, weights)
         )
+
+        # Hard clamp: ensemble cannot exceed ±150% of current price
+        if current_price > 0:
+            ensemble_price = max(ensemble_price, current_price * 0.40)
+            ensemble_price = min(ensemble_price, current_price * 2.50)
+
         ensemble_change_pct = (ensemble_price / current_price - 1) * 100
 
         # Use forward curve bounds, widened if signals disagree
@@ -213,6 +234,48 @@ class DeepPredictor:
             "yoy_comparison": yoy,
             "explanation": explanation,
         }
+
+        # ── AI Intelligence enrichment ──────────────────────────────
+        try:
+            from src.analytics.ai_intelligence import enrich_prediction, get_bayesian_tracker
+
+            # Build AI context from available data
+            ai_context = {
+                "hotel_name": "",  # filled by analyzer.py later
+                "current_price": current_price,
+                "days_to_checkin": days_to_checkin,
+                "regime": regime_state.get("regime", "NORMAL") if regime_state else "NORMAL",
+                "momentum_signal": momentum_state.get("signal", "NORMAL") if momentum_state else "NORMAL",
+                "scan_count": len(all_snapshots) if all_snapshots is not None and hasattr(all_snapshots, '__len__') else 0,
+                "quality_score": {"high": 0.8, "medium": 0.5, "low": 0.3}.get(confidence_quality, 0.5),
+            }
+
+            # Extract scan prices for anomaly detection (filter to this room only, limit to last 100)
+            if all_snapshots is not None and hasattr(all_snapshots, 'empty') and not all_snapshots.empty:
+                price_col = next((c for c in ("price", "Price", "current_price") if c in all_snapshots.columns), None)
+                id_col = next((c for c in ("detail_id", "DetailId") if c in all_snapshots.columns), None)
+                if price_col:
+                    room_data = all_snapshots
+                    if id_col and detail_id is not None:
+                        room_data = all_snapshots[all_snapshots[id_col] == detail_id]
+                    ai_context["scan_prices"] = room_data[price_col].dropna().tail(100).tolist()
+                    ai_context["scan_count"] = len(room_data)
+
+            # Extract signal prices for synthesis
+            for s, w in zip(signals, weights):
+                src = s["source"]
+                key = {"forward_curve": "fc", "historical_pattern": "hist", "ml_forecast": "ml"}.get(src, src)
+                result[f"{key}_price"] = s["predicted_price"]
+                result[f"{key}_weight"] = w
+                result[f"{key}_confidence"] = s["confidence"]
+
+            result = enrich_prediction(result, ai_context)
+
+            # Use Bayesian-adjusted weights for logging
+            bt = get_bayesian_tracker()
+            result["bayesian_weights"] = bt.get_adjusted_weights(self.DEFAULT_WEIGHTS)
+        except Exception as e:
+            logger.debug(f"AI enrichment skipped: {e}")
 
         return result
 
@@ -344,6 +407,18 @@ class DeepPredictor:
 
         data_quality = ctx.get("data_quality", 0)
         confidence = min(data_quality, 0.8)
+
+        # Sanity: if historical price is wildly different from current,
+        # blend it toward current price to keep it reasonable.
+        if current_price > 0 and predicted > 0:
+            ratio = predicted / current_price
+            if ratio > 2.0 or ratio < 0.5:
+                # Blend 80% toward current price to tame the outlier
+                predicted = predicted * 0.2 + current_price * 0.8
+                confidence *= 0.3  # reduce confidence heavily
+                reasoning_parts.append(
+                    f"Blended toward current (ratio {ratio:.1f}x out of range)"
+                )
 
         return {
             "source": "historical_pattern",

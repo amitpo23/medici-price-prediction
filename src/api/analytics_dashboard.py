@@ -9,6 +9,11 @@ Endpoints:
   GET /api/v1/salesoffice/options    — Options JSON API
   GET /api/v1/salesoffice/options/view   — Options HTML dashboard (browser) + interactive charts
   GET /api/v1/salesoffice/options/legend — Legend/semantics
+  GET /api/v1/salesoffice/options/ai-insights — AI-powered market intelligence (JSON)
+  GET /api/v1/salesoffice/ai/ask     — Ask Claude about portfolio data (Q&A)
+  GET /api/v1/salesoffice/ai/brief   — AI market brief (EN/HE)
+  GET /api/v1/salesoffice/ai/explain/{detail_id} — Deep prediction explanation
+  GET /api/v1/salesoffice/ai/metadata — Smart tags & metadata per room
   GET /api/v1/salesoffice/charts     — Chart Pack: contract path, term structure, opportunity stats (HTML)
   GET /api/v1/salesoffice/charts/contract-data — Contract path data (JSON, AJAX)
   GET /api/v1/salesoffice/accuracy   — Prediction accuracy tracker (HTML)
@@ -490,6 +495,303 @@ async def salesoffice_options_legend():
     })
 
 
+@router.get("/options/ai-insights")
+async def salesoffice_ai_insights(
+    t_days: int | None = None,
+    hotel_name: str | None = None,
+):
+    """AI-powered market intelligence — aggregate + per-room analysis.
+
+    Query params:
+      - t_days: horizon limit (matches /options)
+      - hotel_name: filter to a specific hotel (partial match)
+
+    Returns AI-generated market summary, alerts, anomalies, risk assessment,
+    signal synthesis, and Bayesian tracker state for the current portfolio.
+    """
+    try:
+        from src.analytics.ai_intelligence import (
+            generate_ai_insights_batch,
+            generate_market_narrative,
+            detect_anomaly,
+            assess_risk,
+            synthesize_signals,
+            get_bayesian_tracker,
+            AI_ENABLED,
+            ANTHROPIC_API_KEY,
+            CLAUDE_MODEL,
+        )
+    except ImportError:
+        return JSONResponse(content={"error": "AI intelligence module not available"}, status_code=503)
+
+    analysis = _get_or_run_analysis()
+    predictions = analysis.get("predictions", {})
+
+    ai_rows = []
+    for detail_id, pred in predictions.items():
+        h_name = pred.get("hotel_name", "")
+        if hotel_name and hotel_name.lower() not in (h_name or "").lower():
+            continue
+
+        current_price = float(pred.get("current_price", 0) or 0)
+        predicted_price = float(pred.get("predicted_checkin_price", current_price) or current_price)
+        change_pct = float(pred.get("expected_change_pct", 0) or 0)
+        days = int(pred.get("days_to_checkin", 0) or 0)
+
+        # Signal data
+        signal = "CALL" if change_pct > 2 else "PUT" if change_pct < -2 else "NEUTRAL"
+        regime = "NORMAL"
+        momentum_sig = "NORMAL"
+        if pred.get("regime"):
+            regime = pred["regime"].get("regime", "NORMAL") if isinstance(pred["regime"], dict) else str(pred["regime"])
+        if pred.get("momentum"):
+            momentum_sig = pred["momentum"].get("signal", "NORMAL") if isinstance(pred["momentum"], dict) else str(pred["momentum"])
+
+        scan = pred.get("scan_history") or {}
+        scan_prices = scan.get("scan_price_series", [])
+        events_data = analysis.get("events", {}).get("next_events", [])
+
+        # Generate per-room AI analysis
+        narrative = generate_market_narrative(
+            hotel_name=h_name,
+            category=pred.get("category", ""),
+            current_price=current_price,
+            predicted_price=predicted_price,
+            change_pct=change_pct,
+            days_to_checkin=days,
+            signal=signal,
+            regime=regime,
+            momentum_signal=momentum_sig,
+            events=events_data,
+            scan_count=scan.get("scan_snapshots", 0),
+            scan_drops=scan.get("scan_actual_drops", 0),
+            scan_rises=scan.get("scan_actual_rises", 0),
+        )
+
+        anomaly = detect_anomaly(
+            hotel_name=h_name,
+            current_price=current_price,
+            predicted_price=predicted_price,
+            change_pct=change_pct,
+            scan_prices=[p.get("price", 0) if isinstance(p, dict) else p for p in scan_prices] if scan_prices else [],
+            regime=regime,
+        )
+
+        risk = assess_risk(
+            current_price=current_price,
+            predicted_price=predicted_price,
+            change_pct=change_pct,
+            days_to_checkin=days,
+            scan_count=scan.get("scan_snapshots", 0),
+            regime=regime,
+        )
+
+        ai_rows.append({
+            "detail_id": int(detail_id),
+            "hotel_name": h_name,
+            "category": pred.get("category"),
+            "current_price": round(current_price, 2),
+            "predicted_price": round(predicted_price, 2),
+            "change_pct": round(change_pct, 2),
+            "signal": signal,
+            "narrative": narrative.to_dict(),
+            "anomaly": anomaly.to_dict(),
+            "risk": risk.to_dict(),
+        })
+
+    # Sort by risk score descending  
+    ai_rows.sort(key=lambda r: r.get("risk", {}).get("risk_score", 0), reverse=True)
+
+    # Aggregate insights
+    batch_rows = []
+    for r in ai_rows:
+        batch_rows.append({
+            "signal": r["signal"],
+            "change_pct": r["change_pct"],
+            "ai_anomaly": r["anomaly"],
+            "ai_risk": r["risk"],
+        })
+    batch_insights = generate_ai_insights_batch(batch_rows)
+
+    return JSONResponse(content={
+        "ai_version": "1.0",
+        "ai_enabled": AI_ENABLED,
+        "claude_connected": bool(ANTHROPIC_API_KEY),
+        "model": CLAUDE_MODEL if ANTHROPIC_API_KEY else "rule_based_fallback",
+        "total_rooms_analyzed": len(ai_rows),
+        "market_insights": batch_insights,
+        "rooms": ai_rows,
+    })
+
+
+# ── Claude Analyst Endpoints ─────────────────────────────────────────
+
+
+@router.get("/ai/ask")
+async def salesoffice_ai_ask(
+    q: str,
+    detail_id: int | None = None,
+    deep: bool = False,
+):
+    """Ask Claude a question about the portfolio data.
+
+    Query params:
+      - q: Your question in natural language (English or Hebrew)
+      - detail_id: Optional — focus analysis on a specific room
+      - deep: Use more powerful model for deeper analysis (slower)
+
+    Examples:
+      - /ai/ask?q=what are the best CALL opportunities right now?
+      - /ai/ask?q=מה המצב של מלון הילטון?
+      - /ai/ask?q=explain the risk for room 12345&detail_id=12345
+      - /ai/ask?q=which hotels have momentum signals?&deep=true
+    """
+    try:
+        from src.analytics.claude_analyst import ask_analyst
+    except ImportError:
+        return JSONResponse(content={"error": "Claude analyst module not available"}, status_code=503)
+
+    analysis = _get_or_run_analysis()
+    result = ask_analyst(question=q, analysis=analysis, detail_id=detail_id, deep=deep)
+
+    return JSONResponse(content={
+        "question": q,
+        "detail_id": detail_id,
+        "deep_mode": deep,
+        **result.to_dict(),
+    })
+
+
+@router.get("/ai/brief")
+async def salesoffice_ai_brief(
+    lang: str = "en",
+):
+    """AI-generated executive market brief for the trading team.
+
+    Query params:
+      - lang: "en" for English, "he" for Hebrew (עברית)
+
+    Returns a formatted market brief covering:
+      - Market pulse and overall tone
+      - Top opportunities (CALL signals)
+      - Risk alerts (PUT signals, anomalies)
+      - Events and external factors
+      - Action items
+    """
+    try:
+        from src.analytics.claude_analyst import generate_market_brief
+    except ImportError:
+        return JSONResponse(content={"error": "Claude analyst module not available"}, status_code=503)
+
+    analysis = _get_or_run_analysis()
+    result = generate_market_brief(analysis=analysis, language=lang)
+
+    return JSONResponse(content={
+        "language": lang,
+        **result.to_dict(),
+    })
+
+
+@router.get("/ai/explain/{detail_id}")
+async def salesoffice_ai_explain(detail_id: int):
+    """Deep AI explanation of a specific room's prediction.
+
+    Walks through each contributing factor:
+      - Forward Curve signal
+      - Historical Pattern
+      - Scan History (actual price behavior)
+      - Events impact
+      - Market positioning
+      - Momentum & Regime
+    """
+    try:
+        from src.analytics.claude_analyst import explain_prediction
+    except ImportError:
+        return JSONResponse(content={"error": "Claude analyst module not available"}, status_code=503)
+
+    analysis = _get_or_run_analysis()
+    predictions = analysis.get("predictions", {})
+    pred = predictions.get(str(detail_id)) or predictions.get(detail_id)
+
+    if not pred:
+        raise HTTPException(status_code=404, detail=f"Room {detail_id} not found")
+
+    result = explain_prediction(pred=pred, detail_id=detail_id, analysis=analysis)
+
+    return JSONResponse(content={
+        "detail_id": detail_id,
+        "hotel_name": pred.get("hotel_name"),
+        "category": pred.get("category"),
+        "current_price": float(pred.get("current_price", 0) or 0),
+        "predicted_price": float(pred.get("predicted_checkin_price", 0) or 0),
+        **result.to_dict(),
+    })
+
+
+@router.get("/ai/metadata")
+async def salesoffice_ai_metadata(
+    limit: int = 50,
+    detail_id: int | None = None,
+):
+    """AI-generated smart tags and metadata for room options.
+
+    Query params:
+      - limit: Max rooms to enrich (default 50, sorted by signal strength)
+      - detail_id: Optional — get metadata for a single room
+
+    Returns per-room:
+      - tag: hot_deal | watch | risky | stable | momentum_play | contrarian | premium_opportunity
+      - one_liner: 1-sentence insight
+      - action: BUY_NOW | WAIT | AVOID | MONITOR | REVIEW
+      - confidence_emoji: 🟢 🟡 🔴
+      - key_factor: Most important driver
+    """
+    try:
+        from src.analytics.claude_analyst import enrich_room_metadata, batch_enrich_metadata
+    except ImportError:
+        return JSONResponse(content={"error": "Claude analyst module not available"}, status_code=503)
+
+    analysis = _get_or_run_analysis()
+    predictions = analysis.get("predictions", {})
+
+    if detail_id is not None:
+        pred = predictions.get(str(detail_id)) or predictions.get(detail_id)
+        if not pred:
+            raise HTTPException(status_code=404, detail=f"Room {detail_id} not found")
+        meta = enrich_room_metadata(pred, detail_id, analysis)
+        return JSONResponse(content={
+            "detail_id": detail_id,
+            "hotel_name": pred.get("hotel_name"),
+            "category": pred.get("category"),
+            **meta,
+        })
+
+    results = batch_enrich_metadata(predictions, limit=limit)
+
+    enriched_rooms = []
+    for pid, meta in results.items():
+        pred = predictions.get(str(pid)) or predictions.get(int(pid), {})
+        enriched_rooms.append({
+            "detail_id": int(pid),
+            "hotel_name": pred.get("hotel_name", ""),
+            "category": pred.get("category", ""),
+            "current_price": round(float(pred.get("current_price", 0) or 0), 2),
+            "predicted_price": round(float(pred.get("predicted_checkin_price", 0) or 0), 2),
+            "change_pct": round(float(pred.get("expected_change_pct", 0) or 0), 2),
+            **meta,
+        })
+
+    # Sort by action priority
+    action_order = {"BUY_NOW": 0, "AVOID": 1, "MONITOR": 2, "REVIEW": 3, "WAIT": 4}
+    enriched_rooms.sort(key=lambda r: action_order.get(r.get("action", "WAIT"), 5))
+
+    return JSONResponse(content={
+        "total_enriched": len(enriched_rooms),
+        "limit": limit,
+        "rooms": enriched_rooms,
+    })
+
+
 @router.get("/options/view", response_class=HTMLResponse)
 async def salesoffice_options_view(
     t_days: int | None = None,
@@ -552,6 +854,19 @@ async def salesoffice_options_view(
         )
         scan = pred.get("scan_history") or {}
 
+        # Per-source predicted prices
+        signals_list = pred.get("signals") or []
+        fc_sig = next((s for s in signals_list if s.get("source") == "forward_curve"), None)
+        hist_sig = next((s for s in signals_list if s.get("source") == "historical_pattern"), None)
+        ml_sig = next((s for s in signals_list if s.get("source") == "ml_forecast"), None)
+
+        # Forward curve adjustment totals
+        fc_pts = pred.get("forward_curve") or []
+        ev_adj = sum(float(p.get("event_adj_pct", 0) or 0) for p in fc_pts)
+        se_adj = sum(float(p.get("season_adj_pct", 0) or 0) for p in fc_pts)
+        dm_adj = sum(float(p.get("demand_adj_pct", 0) or 0) for p in fc_pts)
+        mo_adj = sum(float(p.get("momentum_adj_pct", 0) or 0) for p in fc_pts)
+
         rows.append({
             "detail_id": int(detail_id),
             "hotel_name": pred.get("hotel_name", ""),
@@ -598,12 +913,33 @@ async def salesoffice_options_view(
             "first_scan_date": scan.get("first_scan_date"),
             "latest_scan_date": scan.get("latest_scan_date"),
             "latest_scan_price": scan.get("latest_scan_price"),
+            # Scan min/max from actual monitoring
+            "scan_min_price": min((p.get("price", 0) for p in (scan.get("scan_price_series") or []) if p.get("price")), default=None),
+            "scan_max_price": max((p.get("price", 0) for p in (scan.get("scan_price_series") or []) if p.get("price")), default=None),
             # Market benchmark — hotel vs same-star avg in same city
             "market_avg_price": (pred.get("market_benchmark") or {}).get("market_avg_price", 0),
             "market_pressure": (pred.get("market_benchmark") or {}).get("pressure", 0),
             "market_competitor_hotels": (pred.get("market_benchmark") or {}).get("competitor_hotels", 0),
             "market_city": (pred.get("market_benchmark") or {}).get("city", ""),
             "market_stars": (pred.get("market_benchmark") or {}).get("stars", 0),
+            # Per-source predictions
+            "fc_price": round(float(fc_sig["predicted_price"]), 2) if fc_sig and fc_sig.get("predicted_price") else None,
+            "fc_confidence": round(float(fc_sig.get("confidence", 0) or 0), 2) if fc_sig else 0,
+            "fc_weight": round(float(fc_sig.get("weight", 0) or 0), 2) if fc_sig else 0,
+            "hist_price": round(float(hist_sig["predicted_price"]), 2) if hist_sig and hist_sig.get("predicted_price") else None,
+            "hist_confidence": round(float(hist_sig.get("confidence", 0) or 0), 2) if hist_sig else 0,
+            "hist_weight": round(float(hist_sig.get("weight", 0) or 0), 2) if hist_sig else 0,
+            "ml_price": round(float(ml_sig["predicted_price"]), 2) if ml_sig and ml_sig.get("predicted_price") else None,
+            "event_adj_total": round(ev_adj, 2),
+            "season_adj_total": round(se_adj, 2),
+            "demand_adj_total": round(dm_adj, 2),
+            "momentum_adj_total": round(mo_adj, 2),
+            # Signal reasoning for source detail popup
+            "fc_reasoning": (fc_sig.get("reasoning", "") if fc_sig else ""),
+            "hist_reasoning": (hist_sig.get("reasoning", "") if hist_sig else ""),
+            "ml_reasoning": (ml_sig.get("reasoning", "") if ml_sig else ""),
+            "prediction_method": pred.get("prediction_method", ""),
+            "explanation_factors": pred.get("explanation", {}).get("factors", []),
         })
 
     rows.sort(key=lambda x: (
@@ -615,6 +951,40 @@ async def salesoffice_options_view(
         sig_upper = signal.strip().upper()
         if sig_upper in ("CALL", "PUT", "NEUTRAL"):
             rows = [r for r in rows if r["option_signal"] == sig_upper]
+
+    # ── Enrich rows with AI intelligence ──
+    try:
+        from src.analytics.ai_intelligence import detect_anomaly, assess_risk
+
+        for r in rows:
+            scan_prices_raw = r.get("scan_price_series", [])
+            scan_prices = [
+                p.get("price", 0) if isinstance(p, dict) else p
+                for p in scan_prices_raw
+            ] if scan_prices_raw else []
+
+            anomaly = detect_anomaly(
+                hotel_name=r.get("hotel_name", ""),
+                current_price=r.get("current_price", 0),
+                predicted_price=r.get("predicted_checkin_price", 0),
+                change_pct=r.get("expected_change_pct", 0),
+                scan_prices=scan_prices,
+                regime="NORMAL",
+            )
+            risk = assess_risk(
+                current_price=r.get("current_price", 0),
+                predicted_price=r.get("predicted_checkin_price", 0),
+                change_pct=r.get("expected_change_pct", 0),
+                days_to_checkin=r.get("days_to_checkin", 0) or 0,
+                scan_count=r.get("scan_snapshots", 0),
+                regime="NORMAL",
+                quality_score=r.get("quality_score", 0.5),
+            )
+            r["ai_anomaly"] = anomaly.to_dict()
+            r["ai_risk"] = risk.to_dict()
+            r["ai_conviction"] = ""
+    except Exception as e:
+        logger.debug(f"AI enrichment for HTML skipped: {e}")
 
     html = _generate_options_html(rows, analysis, t_days)
     return HTMLResponse(content=html)
@@ -1658,6 +2028,45 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
         mkt_hotels = r.get("market_competitor_hotels", 0)
         mkt_city = r.get("market_city", "")
         mkt_stars = r.get("market_stars", 0)
+
+        # Per-source prediction cells
+        fc_p = r.get("fc_price")
+        fc_w = r.get("fc_weight", 0)
+        fc_c = r.get("fc_confidence", 0)
+        ev_adj = r.get("event_adj_total", 0)
+        se_adj = r.get("season_adj_total", 0)
+        dm_adj = r.get("demand_adj_total", 0)
+        mo_adj = r.get("momentum_adj_total", 0)
+        if fc_p is not None:
+            fc_cls = "pct-up" if fc_p > r["current_price"] else ("pct-down" if fc_p < r["current_price"] else "")
+            fc_chg = (fc_p - r["current_price"]) / r["current_price"] * 100 if r["current_price"] > 0 else 0
+            fc_title = (
+                f"FC predicted: ${fc_p:,.0f} ({fc_chg:+.1f}%) | "
+                f"Weight: {fc_w:.0%} | Confidence: {fc_c:.0%} | "
+                f"Adjustments: events {ev_adj:+.1f}%, season {se_adj:+.1f}%, "
+                f"demand {dm_adj:+.1f}%, momentum {mo_adj:+.1f}%"
+            )
+            fc_cell = f'${fc_p:,.0f} <small class="{fc_cls}">({fc_chg:+.0f}%)</small>'
+        else:
+            fc_cls = ""
+            fc_title = "No forward curve data"
+            fc_cell = "-"
+
+        hist_p = r.get("hist_price")
+        hist_w = r.get("hist_weight", 0)
+        hist_c = r.get("hist_confidence", 0)
+        if hist_p is not None:
+            hist_cls = "pct-up" if hist_p > r["current_price"] else ("pct-down" if hist_p < r["current_price"] else "")
+            hist_chg = (hist_p - r["current_price"]) / r["current_price"] * 100 if r["current_price"] > 0 else 0
+            hist_title = (
+                f"Historical predicted: ${hist_p:,.0f} ({hist_chg:+.1f}%) | "
+                f"Weight: {hist_w:.0%} | Confidence: {hist_c:.0%}"
+            )
+            hist_cell = f'${hist_p:,.0f} <small class="{hist_cls}">({hist_chg:+.0f}%)</small>'
+        else:
+            hist_cls = ""
+            hist_title = "No historical pattern data for this hotel/period"
+            hist_cell = '<span style="color:#94a3b8">-</span>'
         if mkt_avg and mkt_avg > 0:
             mkt_cls = "pct-up" if r["current_price"] < mkt_avg else ("pct-down" if r["current_price"] > mkt_avg else "")
             mkt_pct = (r["current_price"] - mkt_avg) / mkt_avg * 100
@@ -1673,14 +2082,113 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
             mkt_title = "No market data for this hotel's city/star combo"
             mkt_str = "-"
 
+        # ── Scan min/max from actual monitoring ──
+        scan_min = r.get("scan_min_price")
+        scan_max = r.get("scan_max_price")
+        pred_min = r["expected_min_price"]
+        pred_max = r["expected_max_price"]
+
+        if scan_min is not None and s_snaps > 1:
+            min_title = f"Scan min: ${scan_min:,.0f} (actual) | Predicted min: ${pred_min:,.0f} (FC path)"
+            min_cell = f'<span class="price-dual">${scan_min:,.0f}<small class="pred-sub">pred ${pred_min:,.0f}</small></span>'
+        else:
+            min_title = f"Predicted min: ${pred_min:,.0f} (forward curve path)"
+            min_cell = f'${pred_min:,.2f}'
+
+        if scan_max is not None and s_snaps > 1:
+            max_title = f"Scan max: ${scan_max:,.0f} (actual) | Predicted max: ${pred_max:,.0f} (FC path)"
+            max_cell = f'<span class="price-dual">${scan_max:,.0f}<small class="pred-sub">pred ${pred_max:,.0f}</small></span>'
+        else:
+            max_title = f"Predicted max: ${pred_max:,.0f} (forward curve path)"
+            max_cell = f'${pred_max:,.2f}'
+
+        # ── Source detail JSON for popup ──
+        src_detail = {
+            "method": r.get("prediction_method", ""),
+            "signals": [],
+            "adjustments": {"events": ev_adj, "season": se_adj, "demand": dm_adj, "momentum": mo_adj},
+            "factors": r.get("explanation_factors", []),
+        }
+        if fc_p is not None:
+            src_detail["signals"].append({
+                "source": "Forward Curve", "price": fc_p, "weight": fc_w,
+                "confidence": fc_c, "reasoning": r.get("fc_reasoning", ""),
+            })
+        if hist_p is not None:
+            src_detail["signals"].append({
+                "source": "Historical Pattern", "price": hist_p, "weight": hist_w,
+                "confidence": hist_c, "reasoning": r.get("hist_reasoning", ""),
+            })
+        ml_p = r.get("ml_price")
+        if ml_p is not None:
+            src_detail["signals"].append({
+                "source": "ML Forecast", "price": ml_p, "weight": 0,
+                "confidence": 0, "reasoning": r.get("ml_reasoning", ""),
+            })
+        src_json = json.dumps(src_detail).replace("'", "&#39;").replace('"', "&quot;")
+
+        # ── Chart + Sources combined cell ──
+        if len(scan_series) > 1:
+            chart_cell = (
+                f'<button class="chart-btn" title="Scan price chart" '
+                f"onclick='showChart({det_id}, "
+                f"{esc_hotel}, "
+                f"this.dataset.series)' "
+                f"data-series='{series_json}'>"
+                f'&#128200;</button>'
+                f'<button class="src-btn" title="Source detail" '
+                f'onclick="showSources(this)" '
+                f'data-sources="{src_json}" '
+                f'data-hotel="{_html_escape(r["hotel_name"])}" '
+                f'data-detail-id="{r["detail_id"]}">'
+                f'&#128269;</button>'
+            )
+        else:
+            chart_cell = (
+                f'<button class="src-btn" title="Source detail" '
+                f'onclick="showSources(this)" '
+                f'data-sources="{src_json}" '
+                f'data-hotel="{_html_escape(r["hotel_name"])}" '
+                f'data-detail-id="{r["detail_id"]}">'
+                f'&#128269;</button>'
+            )
+
+        # ── AI Intelligence cell ──
+        ai_risk_data = r.get("ai_risk", {})
+        ai_anomaly_data = r.get("ai_anomaly", {})
+        ai_conviction = r.get("ai_conviction", "")
+        ai_risk_level = ai_risk_data.get("risk_level", "")
+        ai_risk_score = ai_risk_data.get("risk_score", 0)
+        ai_is_anomaly = ai_anomaly_data.get("is_anomaly", False)
+        ai_anomaly_type = ai_anomaly_data.get("anomaly_type", "")
+        ai_anomaly_sev = ai_anomaly_data.get("severity", "none")
+
+        # Build AI badge
+        risk_cls_map = {"low": "ai-low", "medium": "ai-med", "high": "ai-high", "extreme": "ai-ext"}
+        ai_risk_cls = risk_cls_map.get(ai_risk_level, "ai-low")
+        ai_title_parts = [f"Risk: {ai_risk_level} ({ai_risk_score:.0%})"]
+        if ai_conviction:
+            ai_title_parts.append(f"Conviction: {ai_conviction}")
+        if ai_is_anomaly:
+            ai_title_parts.append(f"Anomaly: {ai_anomaly_type} ({ai_anomaly_sev})")
+        ai_title = " | ".join(ai_title_parts)
+
+        ai_badge = f'<span class="ai-badge {ai_risk_cls}" title="{ai_title}">'
+        ai_badge += f'{ai_risk_level[:3].upper()}'
+        if ai_is_anomaly:
+            ai_badge += f' <span class="ai-anomaly-dot" title="{ai_anomaly_type}: {ai_anomaly_data.get("explanation", "")}">&#9888;</span>'
+        ai_badge += '</span>'
+
         table_rows.append(
             f'<tr class="{sig_cls}" '
             f'data-signal="{sig}" '
             f'data-hotel="{_html_escape(r["hotel_name"])}" '
             f'data-category="{_html_escape(r["category"])}" '
-            f'data-change="{chg}">'
-            f'<td class="col-id">{r["detail_id"]}</td>'
-            f'<td class="col-hotel" title="{_html_escape(r["hotel_name"])}">{_html_escape(r["hotel_name"][:30])}</td>'
+            f'data-change="{chg}" '
+            f'data-detail-id="{r["detail_id"]}" '
+            f'data-current-price="{r["current_price"]}">'
+            f'<td class="col-id sticky-col sc-id">{r["detail_id"]}</td>'
+            f'<td class="col-hotel sticky-col sc-hotel" title="{_html_escape(r["hotel_name"])}">{_html_escape(r["hotel_name"][:30])}</td>'
             f'<td>{_html_escape(r["category"])}</td>'
             f'<td>{_html_escape(r["board"])}</td>'
             f'<td>{_html_escape(str(r["date_from"] or ""))}</td>'
@@ -1689,20 +2197,32 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
             f'<td class="num">${r["current_price"]:,.2f}</td>'
             f'<td class="num">${r["predicted_checkin_price"]:,.2f}</td>'
             f'<td class="num {chg_cls}">{chg_arrow} {chg:+.1f}%</td>'
-            f'<td class="num">${r["expected_min_price"]:,.2f}</td>'
-            f'<td class="num">${r["expected_max_price"]:,.2f}</td>'
+            f'<td class="num {fc_cls}" title="{fc_title}">{fc_cell}</td>'
+            f'<td class="num {hist_cls}" title="{hist_title}">{hist_cell}</td>'
+            f'<td class="num" title="{min_title}">{min_cell}</td>'
+            f'<td class="num" title="{max_title}">{max_cell}</td>'
             f'<td class="num">{r["touches_min"]}/{r["touches_max"]}</td>'
             f'<td class="num">{r["changes_gt_20"]}</td>'
             f'<td class="num">{r["put_decline_count"]}</td>'
-            f'<td><span class="q-dot {q_cls}" title="{r["quality_label"]} ({q_score:.2f})">' 
+            f'<td><span class="q-dot {q_cls}" title="{r["quality_label"]} ({q_score:.2f})">'
             f'{r["quality_label"]}</span></td>'
             f'<td class="num">{s_snaps}</td>'
             f'<td class="num">{scan_first_str}</td>'
             f'<td class="scan-col">{scan_hist_str}</td>'
             f'<td class="num {scan_chg_cls}" title="drop ${s_total_drop:.0f} / rise ${s_total_rise:.0f}">{trend_badge} {scan_chg_arrow} {s_chg_pct:+.1f}%</td>'
-            f'<td class="col-chart">{chart_icon}</td>'
+            f'<td class="col-chart">{chart_cell}</td>'
             f'<td class="col-put">{put_info}</td>'
             f'<td class="num {mkt_cls}" title="{mkt_title}">{mkt_str}</td>'
+            f'<td class="col-rules"><button class="rules-btn" title="Set pricing rules" '
+            f'onclick="openRulesPanel(this)" '
+            f'data-detail-id="{r["detail_id"]}" '
+            f'data-hotel="{_html_escape(r["hotel_name"])}" '
+            f'data-category="{_html_escape(r["category"])}" '
+            f'data-board="{_html_escape(r["board"])}" '
+            f'data-price="{r["current_price"]}" '
+            f'data-signal="{sig}">'
+            f'&#9881; Rules</button></td>'
+            f'<td class="col-ai">{ai_badge}</td>'
             f'</tr>'
         )
 
@@ -1786,6 +2306,22 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
   .q-low  {{ background: #fee2e2; color: #b91c1c; }}
 
   .col-hotel {{ max-width: 180px; overflow: hidden; text-overflow: ellipsis; }}
+
+  /* ── Sticky first columns ───────────────────────────────────── */
+  .sticky-col {{ position: sticky; z-index: 3; background: inherit; }}
+  .sc-id {{ left: 0; min-width: 55px; }}
+  .sc-hotel {{ left: 55px; min-width: 160px; border-right: 2px solid #cbd5e1; }}
+  thead .sticky-col {{ z-index: 5; background: #f1f5f9; }}
+  tr.sig-call .sticky-col {{ background: var(--call-row); }}
+  tr.sig-put .sticky-col {{ background: var(--put-row); }}
+  tr:hover .sticky-col {{ background: #f1f5f9; }}
+  td.sticky-col {{ background: #fff; }}
+  tr.sig-call td.sticky-col {{ background: var(--call-row); }}
+  tr.sig-put td.sticky-col {{ background: var(--put-row); }}
+
+  /* ── Source columns ─────────────────────────────────────────── */
+  .src-col {{ background: #f5f3ff !important; }}
+  td:nth-child(11), td:nth-child(12) {{ background: rgba(245,243,255,.45); font-size: 12px; }}
   .col-put {{ font-size: 11px; color: #64748b; max-width: 200px;
               overflow: hidden; text-overflow: ellipsis; }}
   .col-id {{ color: #94a3b8; font-size: 11px; }}
@@ -1808,6 +2344,48 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
   .chart-btn:hover {{ background: #e2e8f0; }}
   .chart-btn-empty {{ color: #cbd5e1; font-size: 12px; }}
   .col-chart {{ text-align: center; }}
+
+  /* ── Source detail button ─── */
+  .src-btn {{ background: none; border: 1px solid #c7d2fe; border-radius: 5px;
+              cursor: pointer; font-size: 13px; padding: 2px 5px; line-height: 1;
+              transition: background .15s; margin-left: 3px; }}
+  .src-btn:hover {{ background: #eef2ff; }}
+
+  /* ── Price dual display (scan / pred) ─── */
+  .price-dual {{ display: flex; flex-direction: column; line-height: 1.2; }}
+  .price-dual .pred-sub {{ font-size: 9px; color: #94a3b8; }}
+
+  /* ── Source detail modal ─── */
+  .src-overlay {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                  background: rgba(0,0,0,.4); z-index: 150; justify-content: center; align-items: center; }}
+  .src-overlay.open {{ display: flex; }}
+  .src-box {{ background: #fff; border-radius: 14px; padding: 24px; width: 560px;
+              max-width: 95vw; max-height: 85vh; overflow-y: auto;
+              box-shadow: 0 12px 40px rgba(0,0,0,.3); position: relative; }}
+  .src-close {{ position: absolute; top: 12px; right: 16px; font-size: 20px;
+                cursor: pointer; color: #64748b; background: none; border: none; }}
+  .src-close:hover {{ color: #1e293b; }}
+  .src-title {{ font-size: 15px; font-weight: 700; margin-bottom: 4px; color:#1e293b; }}
+  .src-subtitle {{ font-size: 11px; color:#64748b; margin-bottom: 14px; }}
+  .src-signals {{ display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }}
+  .src-signal {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; }}
+  .src-signal-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
+  .src-signal-name {{ font-weight: 700; font-size: 13px; color: #1e293b; }}
+  .src-signal-price {{ font-size: 15px; font-weight: 700; }}
+  .src-signal-bar {{ height: 6px; border-radius: 3px; background: #e2e8f0; margin-bottom: 4px; }}
+  .src-signal-fill {{ height: 100%; border-radius: 3px; }}
+  .src-signal-meta {{ font-size: 10px; color: #64748b; }}
+  .src-signal-reasoning {{ font-size: 10px; color: #475569; margin-top: 4px; padding: 4px 6px;
+                           background: #f1f5f9; border-radius: 4px; line-height: 1.4; }}
+  .src-adj {{ margin-bottom: 16px; }}
+  .src-adj h4 {{ font-size: 12px; font-weight: 700; color: #475569; margin: 0 0 8px; }}
+  .src-adj-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }}
+  .src-adj-item {{ background: #f1f5f9; border-radius: 8px; padding: 8px; text-align: center; }}
+  .src-adj-val {{ font-size: 16px; font-weight: 700; }}
+  .src-adj-val.pos {{ color: var(--call); }}
+  .src-adj-val.neg {{ color: var(--put); }}
+  .src-adj-label {{ font-size: 9px; color: #64748b; text-transform: uppercase; }}
+  .src-factors {{ font-size: 10px; color: #64748b; margin-top: 8px; }}
 
   /* Modal overlay */
   .modal-overlay {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -1846,16 +2424,16 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
     background: #1e293b; color: #f1f5f9; font-size: 11px; font-weight: 400;
     line-height: 1.45; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.3);
     z-index: 200; text-transform: none; letter-spacing: 0; white-space: normal;
-    pointer-events: none;
+    pointer-events: auto;
   }}
   .info-tip::after {{
     content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
     border: 6px solid transparent; border-top-color: #1e293b;
   }}
-  .info-icon:hover .info-tip {{ display: block; }}
+  .info-icon:hover .info-tip, .info-tip.active {{ display: block; }}
   /* Right-edge tooltips: shift left so they don't overflow */
-  th:nth-child(n+16) .info-tip {{ left: auto; right: 0; transform: none; }}
-  th:nth-child(n+16) .info-tip::after {{ left: auto; right: 12px; transform: none; }}
+  th:nth-child(n+18) .info-tip {{ left: auto; right: 0; transform: none; }}
+  th:nth-child(n+18) .info-tip::after {{ left: auto; right: 12px; transform: none; }}
   .info-tip b {{ color: #93c5fd; }}
   .info-tip .src-tag {{ display: inline-block; background: #334155; padding: 1px 5px;
     border-radius: 3px; font-size: 10px; margin: 2px 2px 0 0; }}
@@ -1867,6 +2445,145 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
     .controls input {{ width: 100%; }}
     .info-tip {{ width: 220px; }}
   }}
+
+  /* ── Rules Column ───────────────────────────────────────────── */
+  .col-rules {{ text-align: center; white-space: nowrap; }}
+  .rules-btn {{
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff; border: none; border-radius: 6px; padding: 4px 10px;
+    font-size: 11px; font-weight: 600; cursor: pointer; letter-spacing: .3px;
+    transition: all .2s; display: inline-flex; align-items: center; gap: 4px;
+  }}
+  .rules-btn:hover {{ background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(99,102,241,.35); }}
+
+  /* ── AI Intelligence Column ─────────────────────────────────── */
+  .col-ai {{ text-align: center; white-space: nowrap; }}
+  .ai-badge {{
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
+    letter-spacing: .4px; border: 1.5px solid transparent;
+  }}
+  .ai-low {{ background: #dcfce7; color: #166534; border-color: #86efac; }}
+  .ai-med {{ background: #fef9c3; color: #854d0e; border-color: #fde047; }}
+  .ai-high {{ background: #fee2e2; color: #991b1b; border-color: #fca5a5; }}
+  .ai-ext {{ background: #dc2626; color: #fff; border-color: #b91c1c; animation: ai-pulse 1.5s infinite; }}
+  @keyframes ai-pulse {{ 0%,100% {{ opacity: 1; }} 50% {{ opacity: 0.6; }} }}
+  .ai-anomaly-dot {{ color: #f59e0b; font-size: 12px; cursor: help; }}
+  .ai-ext .ai-anomaly-dot {{ color: #fef08a; }}
+
+  /* ── Rules Modal / Panel ────────────────────────────────────── */
+  .rules-overlay {{
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,.5); z-index: 300; justify-content: center; align-items: flex-start;
+    padding-top: 60px;
+  }}
+  .rules-overlay.open {{ display: flex; }}
+  .rules-panel {{
+    background: #fff; border-radius: 14px; padding: 0; width: 520px;
+    max-width: 95vw; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 12px 48px rgba(0,0,0,.3); position: relative;
+  }}
+  .rules-panel-header {{
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff; padding: 18px 24px; border-radius: 14px 14px 0 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }}
+  .rules-panel-header h2 {{ font-size: 16px; font-weight: 700; margin: 0; }}
+  .rules-panel-header .rules-close {{
+    background: rgba(255,255,255,.2); border: none; color: #fff; font-size: 18px;
+    cursor: pointer; border-radius: 50%; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+  }}
+  .rules-panel-header .rules-close:hover {{ background: rgba(255,255,255,.35); }}
+  .rules-panel-body {{ padding: 20px 24px; }}
+
+  .rules-context {{
+    background: #f1f5f9; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px;
+    font-size: 12px; color: #475569; line-height: 1.5;
+  }}
+  .rules-context .ctx-label {{ font-weight: 700; color: #1e293b; }}
+  .rules-context .ctx-val {{ color: #6366f1; font-weight: 600; }}
+
+  /* Scope selector */
+  .rules-scope {{ margin-bottom: 18px; }}
+  .rules-scope h3 {{ font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }}
+  .scope-options {{ display: flex; gap: 8px; flex-wrap: wrap; }}
+  .scope-opt {{
+    flex: 1; min-width: 130px; padding: 10px 12px; border: 2px solid var(--border);
+    border-radius: 8px; cursor: pointer; text-align: center; transition: all .15s;
+    background: #fff;
+  }}
+  .scope-opt:hover {{ border-color: #a5b4fc; background: #eef2ff; }}
+  .scope-opt.selected {{ border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }}
+  .scope-opt .scope-icon {{ font-size: 20px; display: block; margin-bottom: 4px; }}
+  .scope-opt .scope-label {{ font-size: 12px; font-weight: 600; color: #1e293b; }}
+  .scope-opt .scope-desc {{ font-size: 10px; color: #64748b; margin-top: 2px; }}
+
+  /* Preset buttons */
+  .rules-presets {{ margin-bottom: 18px; }}
+  .rules-presets h3 {{ font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }}
+  .preset-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }}
+  .preset-card {{
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; transition: all .15s; background: #fff; text-align: center;
+  }}
+  .preset-card:hover {{ border-color: #a5b4fc; background: #eef2ff; transform: translateY(-1px); }}
+  .preset-card.selected {{ border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 2px rgba(99,102,241,.2); }}
+  .preset-card .preset-icon {{ font-size: 22px; display: block; margin-bottom: 2px; }}
+  .preset-card .preset-name {{ font-size: 11px; font-weight: 700; color: #1e293b; }}
+  .preset-card .preset-desc {{ font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.3; }}
+
+  /* Custom rules section */
+  .rules-custom {{ margin-bottom: 18px; }}
+  .rules-custom h3 {{ font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }}
+  .custom-rule-row {{
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    padding: 8px 12px; background: #f8fafc; border-radius: 6px; border: 1px solid var(--border);
+  }}
+  .custom-rule-row label {{ font-size: 11px; font-weight: 600; color: #475569; min-width: 90px; }}
+  .custom-rule-row input, .custom-rule-row select {{
+    padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px;
+    font-size: 12px; width: 120px;
+  }}
+  .custom-rule-row .rule-toggle {{
+    width: 36px; height: 20px; border-radius: 10px; border: none;
+    background: #cbd5e1; cursor: pointer; position: relative; transition: background .2s;
+  }}
+  .custom-rule-row .rule-toggle.on {{ background: #6366f1; }}
+  .custom-rule-row .rule-toggle::after {{
+    content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: #fff; transition: left .2s;
+  }}
+  .custom-rule-row .rule-toggle.on::after {{ left: 18px; }}
+
+  /* Action buttons */
+  .rules-actions {{
+    display: flex; gap: 10px; justify-content: flex-end; padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }}
+  .rules-actions button {{
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+  }}
+  .btn-cancel {{
+    background: #fff; color: #64748b; border: 1px solid var(--border);
+  }}
+  .btn-cancel:hover {{ background: #f1f5f9; }}
+  .btn-apply {{
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff; border: none;
+  }}
+  .btn-apply:hover {{ background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); box-shadow: 0 2px 8px rgba(99,102,241,.35); }}
+
+  /* Toast notification */
+  .rules-toast {{
+    position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #f8fafc;
+    padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 400;
+    transform: translateY(80px); opacity: 0; transition: all .3s ease;
+  }}
+  .rules-toast.show {{ transform: translateY(0); opacity: 1; }}
+  .rules-toast .toast-icon {{ margin-right: 8px; }}
 </style>
 </head>
 <body>
@@ -1905,29 +2622,33 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
 <div class="table-wrap">
 <table id="opts-table">
 <thead><tr>
-  <th data-col="0" data-type="num">ID<span class="info-icon">i<span class="info-tip"><b>Detail ID</b><br>Unique room identifier from SalesOffice DB.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="1" data-type="str">Hotel<span class="info-icon">i<span class="info-tip"><b>Hotel Name</b><br>Property name from Med_Hotels table joined via HotelID.<br><span class="src-tag">Med_Hotels</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="2" data-type="str">Category<span class="info-icon">i<span class="info-tip"><b>Room Category</b><br>Mapped from RoomCategoryID: 1=Standard, 2=Superior, 4=Deluxe, 12=Suite. Affects forward-curve category offset in prediction.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="3" data-type="str">Board<span class="info-icon">i<span class="info-tip"><b>Board Type</b><br>Meal plan from BoardId: RO, BB, HB, FB, AI, etc. Adds a board offset to the forward curve prediction.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="4" data-type="str">Check-in<span class="info-icon">i<span class="info-tip"><b>Check-in Date</b><br>Booked arrival date from the order. This is the target date (T=0) for the forward curve walk.<br><span class="src-tag">SalesOffice.Orders</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="5" data-type="num">Days<span class="info-icon">i<span class="info-tip"><b>Days to Check-in</b><br>Calendar days from today to check-in. This is the T value &mdash; how many steps the forward curve walks.<br>Formula: <b>check_in_date &minus; today</b></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="6" data-type="str">Signal<span class="info-icon">i<span class="info-tip"><b>Option Signal (CALL / PUT / NEUTRAL)</b><br>&bull; <b>CALL</b>: price expected to rise (&ge;0.5%) or prob_up &gt; prob_down+0.1<br>&bull; <b>PUT</b>: price expected to drop (&le;&minus;0.5%) or prob_down &gt; prob_up+0.1<br>&bull; <b>L1-L10</b>: confidence level (65% change magnitude + 35% probability &times; quality)<br><span class="src-tag">Forward Curve 50%</span> <span class="src-tag">Historical 30%</span> <span class="src-tag">ML 20%</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="7" data-type="num">Current $<span class="info-icon">i<span class="info-tip"><b>Current Room Price</b><br>Latest price from the most recent hourly scan of SalesOffice.Details. This is the starting point for the forward curve.<br><span class="src-tag">SalesOffice.Details</span> <span class="src-tag">Hourly scan</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="8" data-type="num">Predicted $<span class="info-icon">i<span class="info-tip"><b>Predicted Check-in Price</b><br>Weighted ensemble of 2-3 signals:<br>&bull; <b>Forward Curve (50%)</b>: day-by-day walk with decay + events + season + weather adjustments<br>&bull; <b>Historical Pattern (30%)</b>: same-month prior-year average + lead-time adjustment<br>&bull; <b>ML Model (20%)</b>: if trained model exists (currently inactive)<br>Weights are scaled by each signal's confidence then normalized.<br><span class="src-tag">SalesOffice DB</span> <span class="src-tag">Open-Meteo</span> <span class="src-tag">Events</span> <span class="src-tag">Seasonality</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="9" data-type="num">Change %<span class="info-icon">i<span class="info-tip"><b>Expected Price Change %</b><br>Percentage difference between predicted check-in price and current price.<br>Formula: <b>(predicted &divide; current &minus; 1) &times; 100</b><br>Green = price expected to rise, Red = expected to drop.</span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="10" data-type="num">Min $<span class="info-icon">i<span class="info-tip"><b>Expected Minimum Price</b><br>Lowest price point on the forward curve between now and check-in.<br>Formula: <b>min(all daily predicted prices)</b><br>This is the predicted best buying opportunity in the path.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="11" data-type="num">Max $<span class="info-icon">i<span class="info-tip"><b>Expected Maximum Price</b><br>Highest price point on the forward curve between now and check-in.<br>Formula: <b>max(all daily predicted prices)</b><br>Peak predicted price before check-in.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="12" data-type="str">Touches<span class="info-icon">i<span class="info-tip"><b>Touches Min / Max</b><br>How many times the forward curve touches the min and max price levels (within $0.01).<br>Format: <b>min_touches / max_touches</b><br>High touch count = price lingers at that level (support/resistance).</span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="13" data-type="num">Big Moves<span class="info-icon">i<span class="info-tip"><b>Big Price Moves (&gt;$20)</b><br>Count of day-to-day predicted price changes greater than $20 on the forward curve.<br>More big moves = higher volatility expected.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="14" data-type="num">Exp Drops<span class="info-icon">i<span class="info-tip"><b>Expected Price Drops</b><br>Number of day-to-day drops predicted by the forward curve between now and check-in.<br>Higher count for PUT signals = more predicted decline episodes.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="15" data-type="str">Quality<span class="info-icon">i<span class="info-tip"><b>Prediction Quality Score</b><br>Blended confidence metric:<br>&bull; 60% from data availability (scan count, price history depth, hotel coverage)<br>&bull; 40% from mean signal confidence<br>Levels: <b>HIGH</b> (&ge;0.75), <b>MEDIUM</b> (&ge;0.50), <b>LOW</b> (&lt;0.50)<br>Higher = more data backing the prediction.</span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="16" data-type="num">Scans<span class="info-icon">i<span class="info-tip"><b>Scan Count (Actual)</b><br>Number of real price snapshots collected from medici-db since tracking started (Feb 23).<br>Scanned every ~3 hours. More scans = better trend visibility.<br><span class="src-tag">SalesOffice.Details.DateCreated</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="17" data-type="num">1st Price<span class="info-icon">i<span class="info-tip"><b>First Scan Price</b><br>The room price at the earliest recorded scan. Used as baseline to measure actual price movement since tracking began.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="18" data-type="str">Actual D/R<span class="info-icon">i<span class="info-tip"><b>Actual Drops / Rises (Observed)</b><br>Real price drops and rises observed across actual scans &mdash; NOT predictions.<br>&bull; <b style="color:#ef4444">Red number&#9660;</b> = count of scans where price decreased<br>&bull; <b style="color:#22c55e">Green number&#9650;</b> = count of scans where price increased<br>Hover for total $ amounts and max single move.<br><span class="src-tag">medici-db scans</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="19" data-type="num">Scan Chg%<span class="info-icon">i<span class="info-tip"><b>Scan Price Change %</b><br>Actual price change from first scan to current price.<br>Formula: <b>(latest &minus; first) &divide; first &times; 100</b><br>Trend badge: &#9650; up, &#9660; down, &#9644; stable.<br>This is REAL observed data, not a prediction.<br><span class="src-tag">medici-db scans</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="20" data-type="str">Chart<span class="info-icon">i<span class="info-tip"><b>Scan Price Chart</b><br>Click &#128200; to view price history chart showing all actual scan prices over time with colored dots (red=drop, green=rise).<br>Requires &ge;2 scans.</span></span></th>
-  <th data-col="21" data-type="str">PUT Detail<span class="info-icon">i<span class="info-tip"><b>PUT Decline Details</b><br>Breakdown of predicted downward moves on the forward curve:<br>&bull; <b>drops</b>: count of decline days<br>&bull; <b>total $</b>: sum of all daily drops<br>&bull; <b>max $</b>: largest single-day drop<br>Only shown for rooms with predicted declines.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="22" data-type="num">Mkt &#9733;$<span class="info-icon">i<span class="info-tip"><b>Market Benchmark (same &#9733; avg)</b><br>Average price of all other hotels with the <b>same star rating</b> in the <b>same city</b> from AI_Search_HotelData (8.5M records, 6K+ hotels, 323 cities).<br>&bull; <b style="color:#22c55e">Green</b>: our price &lt; market avg (well-positioned)<br>&bull; <b style="color:#ef4444">Red</b>: our price &gt; market avg (premium priced)<br>Hover for N competitor hotels and city.<br><span class="src-tag">AI_Search_HotelData</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="0" data-type="num" class="sticky-col sc-id">ID<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Detail ID</b><br>Unique room identifier from SalesOffice DB.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="1" data-type="str" class="sticky-col sc-hotel">Hotel<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Hotel Name</b><br>Property name from Med_Hotels table joined via HotelID.<br><span class="src-tag">Med_Hotels</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="2" data-type="str">Category<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Room Category</b><br>Mapped from RoomCategoryID: 1=Standard, 2=Superior, 4=Deluxe, 12=Suite. Affects forward-curve category offset in prediction.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="3" data-type="str">Board<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Board Type</b><br>Meal plan from BoardId: RO, BB, HB, FB, AI, etc. Adds a board offset to the forward curve prediction.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="4" data-type="str">Check-in<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Check-in Date</b><br>Booked arrival date from the order. This is the target date (T=0) for the forward curve walk.<br><span class="src-tag">SalesOffice.Orders</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="5" data-type="num">Days<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Days to Check-in</b><br>Calendar days from today to check-in. This is the T value &mdash; how many steps the forward curve walks.<br>Formula: <b>check_in_date &minus; today</b></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="6" data-type="str">Signal<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Option Signal (CALL / PUT / NEUTRAL)</b><br>&bull; <b>CALL</b>: price expected to rise (&ge;0.5%) or prob_up &gt; prob_down+0.1<br>&bull; <b>PUT</b>: price expected to drop (&le;&minus;0.5%) or prob_down &gt; prob_up+0.1<br>&bull; <b>L1-L10</b>: confidence level (65% change magnitude + 35% probability &times; quality)<br><span class="src-tag">Forward Curve 50%</span> <span class="src-tag">Historical 30%</span> <span class="src-tag">ML 20%</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="7" data-type="num">Current $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Current Room Price</b><br>Latest price from the most recent hourly scan of SalesOffice.Details. This is the starting point for the forward curve.<br><span class="src-tag">SalesOffice.Details</span> <span class="src-tag">Hourly scan</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="8" data-type="num">Predicted $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Predicted Check-in Price (Ensemble)</b><br>Weighted ensemble of 2-3 signals:<br>&bull; <b>Forward Curve (50%)</b>: day-by-day walk with decay + events + season + weather adjustments<br>&bull; <b>Historical Pattern (30%)</b>: same-month prior-year average + lead-time adjustment<br>&bull; <b>ML Model (20%)</b>: if trained model exists (currently inactive)<br>Weights are scaled by each signal's confidence then normalized.<br><span class="src-tag">SalesOffice DB</span> <span class="src-tag">Open-Meteo</span> <span class="src-tag">Events</span> <span class="src-tag">Seasonality</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="9" data-type="num">Change %<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Expected Price Change %</b><br>Percentage difference between predicted check-in price and current price.<br>Formula: <b>(predicted &divide; current &minus; 1) &times; 100</b><br>Green = price expected to rise, Red = expected to drop.</span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="10" data-type="num" class="src-col">FC $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Forward Curve Prediction</b><br>Price predicted by the <b>Forward Curve</b> model alone (weight ~50%).<br>Day-by-day random walk with:<br>&bull; Decay rate from {'{'}model_info.total_tracks{'}'} price tracks<br>&bull; Event adjustments (Miami events, holidays)<br>&bull; Season adjustments (monthly ADR patterns)<br>&bull; Demand adjustments (flight demand index)<br>&bull; Momentum adjustments (recent price trend)<br>Hover for full adjustment breakdown.<br><span class="src-tag">SalesOffice DB</span> <span class="src-tag">Events</span> <span class="src-tag">Seasonality</span> <span class="src-tag">Flights</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="11" data-type="num" class="src-col">Hist $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Historical Pattern Prediction</b><br>Price predicted by <b>Historical Patterns</b> alone (weight ~30%).<br>Same-month prior-year average price adjusted by:<br>&bull; Lead-time offset (how far from check-in)<br>&bull; Day-of-week patterns<br>&bull; Year-over-year trend<br>Only available when historical data exists for this hotel/period combination.<br><span class="src-tag">medici-db Historical</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="12" data-type="num">Min $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Expected Minimum Price</b><br>Lowest price point on the forward curve between now and check-in.<br>Formula: <b>min(all daily predicted prices)</b><br>This is the predicted best buying opportunity in the path.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="13" data-type="num">Max $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Expected Maximum Price</b><br>Highest price point on the forward curve between now and check-in.<br>Formula: <b>max(all daily predicted prices)</b><br>Peak predicted price before check-in.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="14" data-type="str">Touches<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Touches Min / Max</b><br>How many times the forward curve touches the min and max price levels (within $0.01).<br>Format: <b>min_touches / max_touches</b><br>High touch count = price lingers at that level (support/resistance).</span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="15" data-type="num">Big Moves<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Big Price Moves (&gt;$20)</b><br>Count of day-to-day predicted price changes greater than $20 on the forward curve.<br>More big moves = higher volatility expected.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="16" data-type="num">Exp Drops<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Expected Price Drops</b><br>Number of day-to-day drops predicted by the forward curve between now and check-in.<br>Higher count for PUT signals = more predicted decline episodes.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="17" data-type="str">Quality<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Prediction Quality Score</b><br>Blended confidence metric:<br>&bull; 60% from data availability (scan count, price history depth, hotel coverage)<br>&bull; 40% from mean signal confidence<br>Levels: <b>HIGH</b> (&ge;0.75), <b>MEDIUM</b> (&ge;0.50), <b>LOW</b> (&lt;0.50)<br>Higher = more data backing the prediction.</span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="18" data-type="num">Scans<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Scan Count (Actual)</b><br>Number of real price snapshots collected from medici-db since tracking started (Feb 23).<br>Scanned every ~3 hours. More scans = better trend visibility.<br><span class="src-tag">SalesOffice.Details.DateCreated</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="19" data-type="num">1st Price<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>First Scan Price</b><br>The room price at the earliest recorded scan. Used as baseline to measure actual price movement since tracking began.<br><span class="src-tag">SalesOffice.Details</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="20" data-type="str">Actual D/R<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Actual Drops / Rises (Observed)</b><br>Real price drops and rises observed across actual scans &mdash; NOT predictions.<br>&bull; <b style="color:#ef4444">Red number&#9660;</b> = count of scans where price decreased<br>&bull; <b style="color:#22c55e">Green number&#9650;</b> = count of scans where price increased<br>Hover for total $ amounts and max single move.<br><span class="src-tag">medici-db scans</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="21" data-type="num">Scan Chg%<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Scan Price Change %</b><br>Actual price change from first scan to current price.<br>Formula: <b>(latest &minus; first) &divide; first &times; 100</b><br>Trend badge: &#9650; up, &#9660; down, &#9644; stable.<br>This is REAL observed data, not a prediction.<br><span class="src-tag">medici-db scans</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="22" data-type="str">Chart<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Scan Price Chart</b><br>Click &#128200; to view price history chart showing all actual scan prices over time with colored dots (red=drop, green=rise).<br>Requires &ge;2 scans.</span></span></th>
+  <th data-col="23" data-type="str">PUT Detail<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>PUT Decline Details</b><br>Breakdown of predicted downward moves on the forward curve:<br>&bull; <b>drops</b>: count of decline days<br>&bull; <b>total $</b>: sum of all daily drops<br>&bull; <b>max $</b>: largest single-day drop<br>Only shown for rooms with predicted declines.<br><span class="src-tag">Forward Curve</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="24" data-type="num">Mkt &#9733;$<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Market Benchmark (same &#9733; avg)</b><br>Average price of all other hotels with the <b>same star rating</b> in the <b>same city</b> from AI_Search_HotelData (8.5M records, 6K+ hotels, 323 cities).<br>&bull; <b style="color:#22c55e">Green</b>: our price &lt; market avg (well-positioned)<br>&bull; <b style="color:#ef4444">Red</b>: our price &gt; market avg (premium priced)<br>Hover for N competitor hotels and city.<br><span class="src-tag">AI_Search_HotelData</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="25" data-type="str">Rules<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Pricing Rules</b><br>Set pricing rules for this room, hotel, or all hotels.<br>&bull; <b>Scope</b>: This row / This hotel / All hotels<br>&bull; <b>Presets</b>: Conservative, Moderate, Aggressive, Seasonal High, Fire Sale, Wait for Drop, Exclude AI<br>&bull; <b>Custom</b>: Price ceiling/floor, markup %, target price, category/board exclusions<br>Rules are applied at Step 5 (Flatten &amp; Group) of the SalesOffice scanning pipeline.<br><span class="src-tag">Rules Engine</span></span></span></th>
+  <th data-col="26" data-type="str">AI<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>AI Intelligence</b><br>Claude-powered risk assessment and anomaly detection.<br>&bull; <b style="color:#22c55e">LOW</b>: Standard conditions, low risk<br>&bull; <b style="color:#f59e0b">MED</b>: Moderate risk, some uncertainty<br>&bull; <b style="color:#ef4444">HIG</b>: High risk, large predicted moves or limited data<br>&bull; <b style="color:#dc2626">EXT</b>: Extreme risk, urgent review needed<br>&bull; &#9888; = Anomaly detected (spike, dip, stale, divergence)<br>Click <a href="/api/v1/salesoffice/options/ai-insights" style="color:#60a5fa">AI Insights</a> for full analysis.<br><span class="src-tag">AI Intelligence Engine</span></span></span></th>
 </tr></thead>
 <tbody>
 {rows_html}
@@ -1941,6 +2662,7 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
   &bull; T={t_days or "all"} days
   &bull; <a href="/api/v1/salesoffice/options?profile=lite" style="color:#3b82f6">JSON API</a>
   &bull; <a href="/api/v1/salesoffice/options/legend" style="color:#3b82f6">Legend</a>
+  &bull; <a href="/api/v1/salesoffice/options/ai-insights" style="color:#a78bfa">&#129302; AI Insights</a>
 </div>
 
 <!-- Scan Chart Modal -->
@@ -1954,7 +2676,165 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
   </div>
 </div>
 
+<!-- Source Detail Modal -->
+<div id="src-overlay" class="src-overlay">
+  <div class="src-box">
+    <button class="src-close" onclick="closeSources()">&times;</button>
+    <div class="src-title" id="src-title">Prediction Sources</div>
+    <div class="src-subtitle" id="src-subtitle"></div>
+    <div class="src-signals" id="src-signals"></div>
+    <div class="src-adj">
+      <h4>&#128200; Forward Curve Adjustments</h4>
+      <div class="src-adj-grid" id="src-adjustments"></div>
+    </div>
+    <div class="src-factors" id="src-factors" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Rules Panel Modal -->
+<div id="rules-overlay" class="rules-overlay">
+  <div class="rules-panel">
+    <div class="rules-panel-header">
+      <h2>&#9881; Pricing Rules</h2>
+      <button class="rules-close" onclick="closeRulesPanel()">&times;</button>
+    </div>
+    <div class="rules-panel-body">
+      <!-- Context info -->
+      <div class="rules-context" id="rules-context">
+        <span class="ctx-label">Room:</span> <span class="ctx-val" id="rc-room">-</span> &nbsp;|&nbsp;
+        <span class="ctx-label">Hotel:</span> <span class="ctx-val" id="rc-hotel">-</span> &nbsp;|&nbsp;
+        <span class="ctx-label">Price:</span> <span class="ctx-val" id="rc-price">-</span> &nbsp;|&nbsp;
+        <span class="ctx-label">Signal:</span> <span class="ctx-val" id="rc-signal">-</span>
+      </div>
+
+      <!-- Scope selector -->
+      <div class="rules-scope">
+        <h3>&#127919; Apply Scope</h3>
+        <div class="scope-options">
+          <div class="scope-opt selected" data-scope="row" onclick="selectScope(this)">
+            <span class="scope-icon">&#128196;</span>
+            <span class="scope-label">This Room</span>
+            <span class="scope-desc">Only this specific room option</span>
+          </div>
+          <div class="scope-opt" data-scope="hotel" onclick="selectScope(this)">
+            <span class="scope-icon">&#127976;</span>
+            <span class="scope-label" id="scope-hotel-label">This Hotel</span>
+            <span class="scope-desc">All rooms for this hotel</span>
+          </div>
+          <div class="scope-opt" data-scope="all" onclick="selectScope(this)">
+            <span class="scope-icon">&#127758;</span>
+            <span class="scope-label">All Hotels</span>
+            <span class="scope-desc">Apply to every hotel</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preset selection -->
+      <div class="rules-presets">
+        <h3>&#9889; Quick Presets</h3>
+        <div class="preset-grid">
+          <div class="preset-card" data-preset="conservative" onclick="selectPreset(this)">
+            <span class="preset-icon">&#128737;</span>
+            <span class="preset-name">Conservative</span>
+            <span class="preset-desc">Low markup, tight ceiling, safe floor</span>
+          </div>
+          <div class="preset-card" data-preset="moderate" onclick="selectPreset(this)">
+            <span class="preset-icon">&#9878;</span>
+            <span class="preset-name">Moderate</span>
+            <span class="preset-desc">Balanced markup with reasonable bounds</span>
+          </div>
+          <div class="preset-card" data-preset="aggressive" onclick="selectPreset(this)">
+            <span class="preset-icon">&#128640;</span>
+            <span class="preset-name">Aggressive</span>
+            <span class="preset-desc">Higher markup, wider price range</span>
+          </div>
+          <div class="preset-card" data-preset="seasonal_high" onclick="selectPreset(this)">
+            <span class="preset-icon">&#9728;</span>
+            <span class="preset-name">Seasonal High</span>
+            <span class="preset-desc">Peak season premium pricing</span>
+          </div>
+          <div class="preset-card" data-preset="fire_sale" onclick="selectPreset(this)">
+            <span class="preset-icon">&#128293;</span>
+            <span class="preset-name">Fire Sale</span>
+            <span class="preset-desc">Deep discount, move inventory fast</span>
+          </div>
+          <div class="preset-card" data-preset="wait_for_drop" onclick="selectPreset(this)">
+            <span class="preset-icon">&#9202;</span>
+            <span class="preset-name">Wait for Drop</span>
+            <span class="preset-desc">Hold until price drops below threshold</span>
+          </div>
+          <div class="preset-card" data-preset="exclude_ai" onclick="selectPreset(this)">
+            <span class="preset-icon">&#128683;</span>
+            <span class="preset-name">Exclude AI</span>
+            <span class="preset-desc">No AI pricing &mdash; use supplier price</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom rules -->
+      <div class="rules-custom">
+        <h3>&#128295; Custom Rules</h3>
+        <div class="custom-rule-row">
+          <label>Price Ceiling</label>
+          <input type="number" id="rule-ceiling" placeholder="Max price $" step="1">
+          <span style="font-size:11px;color:#64748b">Maximum allowed price</span>
+        </div>
+        <div class="custom-rule-row">
+          <label>Price Floor</label>
+          <input type="number" id="rule-floor" placeholder="Min price $" step="1">
+          <span style="font-size:11px;color:#64748b">Minimum allowed price</span>
+        </div>
+        <div class="custom-rule-row">
+          <label>Markup %</label>
+          <input type="number" id="rule-markup" placeholder="e.g. 5" step="0.5" min="-50" max="100">
+          <span style="font-size:11px;color:#64748b">Add/subtract % from predicted</span>
+        </div>
+        <div class="custom-rule-row">
+          <label>Target Price</label>
+          <input type="number" id="rule-target" placeholder="Override price $" step="1">
+          <span style="font-size:11px;color:#64748b">Force a specific price</span>
+        </div>
+      </div>
+
+      <!-- Summary of what will be applied -->
+      <div id="rules-summary" style="display:none; background:#eef2ff; border-radius:8px; padding:12px 16px; margin-bottom:14px; font-size:12px; color:#4338ca; border:1px solid #c7d2fe;">
+        <strong>&#9989; Rules to apply:</strong> <span id="rules-summary-text"></span>
+      </div>
+
+      <!-- Actions -->
+      <div class="rules-actions">
+        <button class="btn-cancel" onclick="closeRulesPanel()">Cancel</button>
+        <button class="btn-apply" onclick="applyRules()">&#9889; Apply Rules</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="rules-toast" class="rules-toast">
+  <span class="toast-icon">&#9989;</span> <span id="toast-msg">Rules applied</span>
+</div>
+
 <script>
+/* ── Info-tip click toggle (global) ──────────────────────── */
+function toggleTip(el, e) {{
+  if (!e) e = window.event;
+  /* If clicked on the tooltip text itself, stop propagation and return (don't close) */
+  if (e && e.target && e.target.closest && e.target.closest('.info-tip')) {{
+    if (e.stopPropagation) e.stopPropagation();
+    return;
+  }}
+  var tip = el.querySelector('.info-tip');
+  if (!tip) return;
+  var isOpen = tip.classList.contains('active');
+  document.querySelectorAll('.info-tip.active').forEach(function(t) {{ t.classList.remove('active'); }});
+  if (!isOpen) tip.classList.add('active');
+  if (e && e.stopPropagation) e.stopPropagation();
+}}
+document.addEventListener('click', function() {{
+  document.querySelectorAll('.info-tip.active').forEach(function(t) {{ t.classList.remove('active'); }});
+}});
+
 (function() {{
   const table = document.getElementById('opts-table');
   const tbody = table.querySelector('tbody');
@@ -1966,7 +2846,8 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
   // Sort
   let sortCol = -1, sortAsc = true;
   headers.forEach(th => {{
-    th.addEventListener('click', function() {{
+    th.addEventListener('click', function(e) {{
+      if (e.target.closest('.info-icon')) return;   /* skip sort when clicking info */
       const col = parseInt(this.dataset.col);
       const type = this.dataset.type;
       if (sortCol === col) {{ sortAsc = !sortAsc; }} else {{ sortCol = col; sortAsc = true; }}
@@ -2117,8 +2998,261 @@ document.getElementById('chart-modal').addEventListener('click', function(e) {{
   if (e.target === this) closeChart();
 }});
 document.addEventListener('keydown', function(e) {{
-  if (e.key === 'Escape') closeChart();
+  if (e.key === 'Escape') {{ closeChart(); closeRulesPanel(); closeSources(); }}
 }});
+
+/* ── Source Detail Modal Functions ───────────────────────────── */
+function showSources(btn) {{
+  var raw = btn.getAttribute('data-sources');
+  if (!raw) return;
+  raw = raw.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  var data;
+  try {{ data = JSON.parse(raw); }} catch(e) {{ console.error('src parse', e); return; }}
+
+  var hotel = btn.getAttribute('data-hotel') || '';
+  var detId = btn.getAttribute('data-detail-id') || '';
+
+  document.getElementById('src-title').textContent = 'Prediction Sources \u2014 ' + hotel;
+  document.getElementById('src-subtitle').textContent = 'ID: ' + detId + ' | Method: ' + (data.method || 'ensemble');
+
+  /* Signals */
+  var sigHtml = '';
+  var colors = {{'Forward Curve':'#3b82f6', 'Historical Pattern':'#f59e0b', 'ML Forecast':'#8b5cf6'}};
+  (data.signals || []).forEach(function(s) {{
+    var c = colors[s.source] || '#64748b';
+    var wPct = Math.round((s.weight || 0) * 100);
+    var confPct = Math.round((s.confidence || 0) * 100);
+    var priceCls = '';
+    sigHtml += '<div class="src-signal">';
+    sigHtml += '<div class="src-signal-header">';
+    sigHtml += '<span class="src-signal-name" style="color:' + c + '">' + s.source + '</span>';
+    sigHtml += '<span class="src-signal-price">$' + (s.price ? s.price.toFixed(0) : '-') + '</span>';
+    sigHtml += '</div>';
+    sigHtml += '<div class="src-signal-bar"><div class="src-signal-fill" style="width:' + wPct + '%;background:' + c + '"></div></div>';
+    sigHtml += '<div class="src-signal-meta">Weight: ' + wPct + '% | Confidence: ' + confPct + '%</div>';
+    if (s.reasoning) {{
+      sigHtml += '<div class="src-signal-reasoning">' + s.reasoning + '</div>';
+    }}
+    sigHtml += '</div>';
+  }});
+  document.getElementById('src-signals').innerHTML = sigHtml || '<div style="color:#94a3b8">No signal data available</div>';
+
+  /* Adjustments */
+  var adj = data.adjustments || {{}};
+  var adjHtml = '';
+  ['events','season','demand','momentum'].forEach(function(k) {{
+    var v = adj[k] || 0;
+    var pct = (v * 100).toFixed(1);
+    var cls = v > 0.001 ? 'pos' : (v < -0.001 ? 'neg' : '');
+    adjHtml += '<div class="src-adj-item"><div class="src-adj-val ' + cls + '">' + (v >= 0 ? '+' : '') + pct + '%</div>';
+    adjHtml += '<div class="src-adj-label">' + k + '</div></div>';
+  }});
+  document.getElementById('src-adjustments').innerHTML = adjHtml;
+
+  /* Factors */
+  var factors = data.factors || [];
+  if (factors.length > 0) {{
+    document.getElementById('src-factors').innerHTML = '<strong>Key factors:</strong> ' + factors.join(' &bull; ');
+    document.getElementById('src-factors').style.display = '';
+  }} else {{
+    document.getElementById('src-factors').style.display = 'none';
+  }}
+
+  document.getElementById('src-overlay').classList.add('open');
+}}
+
+function closeSources() {{
+  document.getElementById('src-overlay').classList.remove('open');
+}}
+document.getElementById('src-overlay').addEventListener('click', function(e) {{
+  if (e.target === this) closeSources();
+}});
+
+/* ── Rules Panel Logic ──────────────────────────────────────── */
+var _rulesState = {{
+  detailId: null,
+  hotel: '',
+  category: '',
+  board: '',
+  price: 0,
+  signal: '',
+  scope: 'row',
+  preset: null,
+}};
+
+function openRulesPanel(btn) {{
+  _rulesState.detailId = btn.dataset.detailId;
+  _rulesState.hotel = btn.dataset.hotel;
+  _rulesState.category = btn.dataset.category;
+  _rulesState.board = btn.dataset.board;
+  _rulesState.price = parseFloat(btn.dataset.price) || 0;
+  _rulesState.signal = btn.dataset.signal;
+  _rulesState.scope = 'row';
+  _rulesState.preset = null;
+
+  // Fill context
+  document.getElementById('rc-room').textContent = '#' + _rulesState.detailId + ' (' + _rulesState.category + ' / ' + _rulesState.board + ')';
+  document.getElementById('rc-hotel').textContent = _rulesState.hotel;
+  document.getElementById('rc-price').textContent = '$' + _rulesState.price.toFixed(2);
+  var sigEl = document.getElementById('rc-signal');
+  sigEl.textContent = _rulesState.signal;
+  sigEl.style.color = _rulesState.signal === 'CALL' ? 'var(--call)' : (_rulesState.signal === 'PUT' ? 'var(--put)' : 'var(--neutral)');
+
+  // Update hotel scope label
+  document.getElementById('scope-hotel-label').textContent = _rulesState.hotel.substring(0, 20) || 'This Hotel';
+
+  // Reset selections
+  document.querySelectorAll('.scope-opt').forEach(function(el) {{ el.classList.remove('selected'); }});
+  document.querySelector('.scope-opt[data-scope="row"]').classList.add('selected');
+  document.querySelectorAll('.preset-card').forEach(function(el) {{ el.classList.remove('selected'); }});
+
+  // Clear custom inputs
+  document.getElementById('rule-ceiling').value = '';
+  document.getElementById('rule-floor').value = '';
+  document.getElementById('rule-markup').value = '';
+  document.getElementById('rule-target').value = '';
+  document.getElementById('rules-summary').style.display = 'none';
+
+  document.getElementById('rules-overlay').classList.add('open');
+}}
+
+function closeRulesPanel() {{
+  document.getElementById('rules-overlay').classList.remove('open');
+}}
+
+document.getElementById('rules-overlay').addEventListener('click', function(e) {{
+  if (e.target === this) closeRulesPanel();
+}});
+
+function selectScope(el) {{
+  document.querySelectorAll('.scope-opt').forEach(function(s) {{ s.classList.remove('selected'); }});
+  el.classList.add('selected');
+  _rulesState.scope = el.dataset.scope;
+  updateRulesSummary();
+}}
+
+function selectPreset(el) {{
+  var wasSelected = el.classList.contains('selected');
+  document.querySelectorAll('.preset-card').forEach(function(c) {{ c.classList.remove('selected'); }});
+  if (!wasSelected) {{
+    el.classList.add('selected');
+    _rulesState.preset = el.dataset.preset;
+  }} else {{
+    _rulesState.preset = null;
+  }}
+  updateRulesSummary();
+}}
+
+function updateRulesSummary() {{
+  var parts = [];
+  var scopeText = _rulesState.scope === 'row' ? 'Room #' + _rulesState.detailId :
+                  _rulesState.scope === 'hotel' ? 'All rooms in ' + _rulesState.hotel :
+                  'All hotels';
+
+  if (_rulesState.preset) {{
+    parts.push('Preset: <b>' + _rulesState.preset + '</b>');
+  }}
+
+  var ceiling = document.getElementById('rule-ceiling').value;
+  var floor = document.getElementById('rule-floor').value;
+  var markup = document.getElementById('rule-markup').value;
+  var target = document.getElementById('rule-target').value;
+
+  if (ceiling) parts.push('Ceiling: $' + ceiling);
+  if (floor) parts.push('Floor: $' + floor);
+  if (markup) parts.push('Markup: ' + markup + '%');
+  if (target) parts.push('Target: $' + target);
+
+  var summaryEl = document.getElementById('rules-summary');
+  if (parts.length > 0) {{
+    document.getElementById('rules-summary-text').innerHTML =
+      '<b>Scope:</b> ' + scopeText + ' &nbsp;|&nbsp; ' + parts.join(' &nbsp;|&nbsp; ');
+    summaryEl.style.display = 'block';
+  }} else {{
+    summaryEl.style.display = 'none';
+  }}
+}}
+
+// Update summary when custom inputs change
+['rule-ceiling', 'rule-floor', 'rule-markup', 'rule-target'].forEach(function(id) {{
+  document.getElementById(id).addEventListener('input', updateRulesSummary);
+}});
+
+function applyRules() {{
+  var scopeText = _rulesState.scope === 'row' ? 'Room #' + _rulesState.detailId :
+                  _rulesState.scope === 'hotel' ? _rulesState.hotel :
+                  'All Hotels';
+
+  var rulesCount = 0;
+  var rulesList = [];
+
+  if (_rulesState.preset) {{
+    rulesCount++;
+    rulesList.push(_rulesState.preset);
+  }}
+  if (document.getElementById('rule-ceiling').value) {{
+    rulesCount++;
+    rulesList.push('ceiling=$' + document.getElementById('rule-ceiling').value);
+  }}
+  if (document.getElementById('rule-floor').value) {{
+    rulesCount++;
+    rulesList.push('floor=$' + document.getElementById('rule-floor').value);
+  }}
+  if (document.getElementById('rule-markup').value) {{
+    rulesCount++;
+    rulesList.push('markup=' + document.getElementById('rule-markup').value + '%');
+  }}
+  if (document.getElementById('rule-target').value) {{
+    rulesCount++;
+    rulesList.push('target=$' + document.getElementById('rule-target').value);
+  }}
+
+  if (rulesCount === 0) {{
+    showToast('&#9888; Please select a preset or set custom rules', '#f59e0b');
+    return;
+  }}
+
+  // Update button(s) in the table to show rules are set
+  var targetBtns = [];
+  if (_rulesState.scope === 'row') {{
+    var btn = document.querySelector('.rules-btn[data-detail-id="' + _rulesState.detailId + '"]');
+    if (btn) targetBtns.push(btn);
+  }} else if (_rulesState.scope === 'hotel') {{
+    document.querySelectorAll('.rules-btn[data-hotel="' + _rulesState.hotel.replace(/"/g, '\\\\"') + '"]').forEach(function(b) {{ targetBtns.push(b); }});
+  }} else {{
+    document.querySelectorAll('.rules-btn').forEach(function(b) {{ targetBtns.push(b); }});
+  }}
+
+  targetBtns.forEach(function(b) {{
+    b.innerHTML = '&#9881; ' + rulesCount + ' rule' + (rulesCount > 1 ? 's' : '');
+    b.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)';
+    b.title = 'Active rules: ' + rulesList.join(', ') + ' | Scope: ' + scopeText;
+  }});
+
+  closeRulesPanel();
+  showToast('&#9989; ' + rulesCount + ' rule' + (rulesCount > 1 ? 's' : '') + ' set for ' + scopeText, '#16a34a');
+
+  // TODO: Wire to API  POST /api/v1/salesoffice/rules/
+  // The backend connection will be wired in the next step
+  console.log('Rules applied:', {{
+    scope: _rulesState.scope,
+    detailId: _rulesState.detailId,
+    hotel: _rulesState.hotel,
+    preset: _rulesState.preset,
+    ceiling: document.getElementById('rule-ceiling').value,
+    floor: document.getElementById('rule-floor').value,
+    markup: document.getElementById('rule-markup').value,
+    target: document.getElementById('rule-target').value,
+  }});
+}}
+
+function showToast(msg, bgColor) {{
+  var toast = document.getElementById('rules-toast');
+  document.getElementById('toast-msg').innerHTML = msg;
+  if (bgColor) toast.style.background = bgColor;
+  toast.classList.add('show');
+  setTimeout(function() {{ toast.classList.remove('show'); }}, 3000);
+}}
 </script>
 </body>
 </html>"""
