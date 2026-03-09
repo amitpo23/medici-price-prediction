@@ -2,6 +2,23 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [2.0.1] - 2026-03-09 - Production Readiness Hotfixes
+
+### Fixed — Azure Runtime Dependencies
+- Restored missing deployment-only runtime packages in `requirements-deploy.txt`
+- Added `jinja2`, `python-json-logger`, `slowapi`, `scipy`, and `statsmodels`
+- Resolved Azure startup failure caused by `ModuleNotFoundError: pythonjsonlogger`
+
+### Fixed — Xotelo Background Refresh Stability
+- Hardened `fetch_rates()` against malformed/null Xotelo payloads
+- Prevented the SalesOffice background collector thread from crashing on bad competitor API responses
+- Added regression test `tests/unit/test_xotelo_store.py`
+
+### Changed
+- FastAPI / OpenAPI app version: `2.0.0` → `2.0.1`
+
+---
+
 ## [2.0.0] - 2026-03-09 - Complete Engineering Overhaul
 
 17 sprints completed. 340 tests. Production-grade architecture.

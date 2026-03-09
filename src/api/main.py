@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Medici Price Prediction API",
     description="Hotel price forecasting, dynamic pricing, and analytics with multi-source data",
-    version="2.0.0",
+    version="2.0.1",
 )
 
 # Middleware: correlation IDs, rate limiting, CORS
