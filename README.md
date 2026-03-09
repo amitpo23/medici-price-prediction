@@ -64,10 +64,10 @@ medici-price-prediction/
 │   └── salesoffice/            # SalesOffice system docs
 ├── src/
 │   ├── analytics/              # Core analysis engine (17 modules)
-│   │   ├── forward_curve.py       # Forward curve generation (680 lines)
-│   │   ├── deep_predictor.py      # Weighted ensemble predictor (764 lines)
-│   │   ├── ai_intelligence.py     # Anomaly, risk, Bayesian, signal synthesis (959 lines)
-│   │   ├── claude_analyst.py      # Claude-powered Q&A & briefs (1,033 lines)
+│   │   ├── forward_curve.py       # Forward curve generation (700 lines)
+│   │   ├── deep_predictor.py      # Weighted ensemble predictor (784 lines)
+│   │   ├── ai_intelligence.py     # Anomaly, risk, Bayesian, signal synthesis (948 lines)
+│   │   ├── claude_analyst.py      # Claude-powered Q&A & briefs (1,024 lines)
 │   │   ├── scenario_engine.py     # What-if scenario analysis
 │   │   ├── accuracy_tracker.py    # Prediction accuracy tracking
 │   │   ├── data_quality.py        # Source freshness/reliability scoring
@@ -75,12 +75,12 @@ medici-price-prediction/
 │   │   ├── regime.py              # Market regime detection
 │   │   └── ...
 │   ├── api/
-│   │   ├── main.py                # FastAPI entry point (750 lines)
+│   │   ├── main.py                # FastAPI entry point (917 lines)
 │   │   ├── analytics_dashboard.py # Thin shell assembling 5 sub-routers (~35 lines)
 │   │   ├── middleware.py          # Correlation IDs, rate limiting, CORS
 │   │   ├── models/                # Pagination models
 │   │   └── routers/
-│   │       ├── _shared_state.py       # Scheduler, caches, helpers (~770 lines)
+│   │       ├── _shared_state.py       # Scheduler, caches, helpers (~795 lines)
 │   │       ├── analytics_router.py    # JSON APIs: /options, /data, /forward-curve
 │   │       ├── dashboard_router.py    # HTML pages: /dashboard, /yoy, /charts
 │   │       ├── ai_router.py           # AI: /ai/ask, /ai/brief, /ai/explain
