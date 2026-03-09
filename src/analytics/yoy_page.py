@@ -9,9 +9,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 
 from src.analytics.yoy_analysis import _safe_color, _safe_price_color
+from src.utils.template_engine import render_template
+
+logger = logging.getLogger(__name__)
 
 # Maps our T-bucket values → lead-time bucket keys in booking_benchmarks.json
 _T_TO_LEAD: dict[int, str] = {
@@ -308,7 +312,13 @@ def generate_yoy_html(yoy_data: dict) -> str:
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
     if not yoy_data:
-        return _empty_page(now)
+        return render_template(
+            "error.html",
+            title="YoY Comparison",
+            message="No YoY Data Available",
+            detail="The historical data query is still loading. Please try again in a moment.",
+            now=now,
+        )
 
     tab1 = _build_decay_tab(yoy_data)
     tab2 = _build_yoy_comparison_tab(yoy_data, _BENCHMARKS)
@@ -317,7 +327,15 @@ def generate_yoy_html(yoy_data: dict) -> str:
     term_data = {hid: data.get("term_structure", {}) for hid, data in yoy_data.items()}
     tab5 = _build_term_structure_tab(term_data)
 
-    return _wrap_page(now, tab1, tab2, tab3, tab4, tab5)
+    return render_template(
+        "yoy.html",
+        now=now,
+        tab1_html=tab1,
+        tab2_html=tab2,
+        tab3_html=tab3,
+        tab4_html=tab4,
+        tab5_html=tab5,
+    )
 
 
 # ── Tab 1: Decay Curve by Year ────────────────────────────────────────
@@ -878,8 +896,8 @@ def _build_external_benchmarks_tab(benchmarks: dict, tbo_stats: dict) -> str:
                 </table>
             </div>
         </div>"""
-    except Exception:
-        pass
+    except (ImportError, ConnectionError, TimeoutError, KeyError, ValueError) as e:
+        logger.warning("FRED indicators section failed: %s", e)
 
     # ── Section 7: TBO supply ─────────────────────────────────────────
     tbo_html = ""
@@ -1348,210 +1366,3 @@ def _build_term_structure_tab(term_data: dict) -> str:
     )
 
     return html + js
-
-
-# ── Page wrapper ──────────────────────────────────────────────────────
-
-def _empty_page(now: str) -> str:
-    return f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>YoY Comparison</title></head>
-<body style="background:#0f1117;color:#e4e7ec;font-family:sans-serif;padding:40px;text-align:center;">
-<h1>No YoY Data Available</h1>
-<p>The historical data query is still loading. Please try again in a moment.</p>
-<p style="color:#8b90a0;font-size:0.85em;">Generated {now}</p>
-</body></html>"""
-
-
-def _wrap_page(now: str, tab1: str, tab2: str, tab3: str, tab4: str, tab5: str) -> str:
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Medici — Year-over-Year Price Comparison</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-:root {{
-    --bg:#0f1117; --surface:#1a1d27; --surface2:#232733;
-    --border:#2d3140; --text:#e4e7ec; --text-dim:#8b90a0;
-    --accent:#6366f1; --accent2:#818cf8;
-    --green:#22c55e; --red:#ef4444; --yellow:#eab308; --cyan:#06b6d4;
-}}
-*{{margin:0;padding:0;box-sizing:border-box;}}
-body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}}
-.container{{max-width:1400px;margin:0 auto;padding:0 24px;}}
-.header{{background:linear-gradient(135deg,#1e1b4b,#312e81);padding:32px 0;border-bottom:1px solid var(--border);}}
-.header h1{{font-size:2em;font-weight:700;background:linear-gradient(135deg,#c7d2fe,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}}
-.header p{{color:var(--text-dim);margin-top:6px;}}
-.nav-links{{display:flex;gap:16px;padding:10px 0;}}
-.nav-links a{{color:var(--text-dim);text-decoration:none;font-size:0.85em;}}
-.nav-links a:hover{{color:var(--accent2);}}
-
-/* Tabs */
-.tab-bar{{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}}
-.tab-bar .container{{display:flex;}}
-.tab-btn{{padding:14px 24px;background:none;border:none;border-bottom:3px solid transparent;color:var(--text-dim);font-size:0.95em;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:inherit;}}
-.tab-btn:hover{{color:var(--text);background:var(--surface2);}}
-.tab-btn.active{{color:var(--accent2);border-bottom-color:var(--accent2);background:rgba(99,102,241,0.08);}}
-.tab-content{{display:none;padding:24px 0;}}
-.tab-content.active{{display:block;}}
-
-/* Hotel headers */
-.hotel-header{{font-size:1.2em;font-weight:700;color:var(--accent2);margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border);}}
-.hotel-header:first-child{{margin-top:0;}}
-
-/* Explainer */
-.explainer{{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin:0 0 20px;font-size:0.9em;color:var(--text-dim);}}
-.explainer strong{{color:var(--text);}}
-
-/* Heatmap table */
-.table-wrap{{overflow-x:auto;margin-bottom:20px;}}
-.heatmap-table{{width:100%;border-collapse:collapse;font-size:0.85em;}}
-.heatmap-table th{{background:var(--surface2);padding:10px 12px;text-align:center;font-weight:600;color:var(--text);border-bottom:2px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;}}
-.heatmap-table td{{padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:0.88em;color:var(--text);position:relative;}}
-.heatmap-table tbody tr:hover td{{filter:brightness(1.2);}}
-.t-cell{{font-weight:600;color:var(--accent2);text-align:right;background:var(--surface)!important;}}
-.empty-cell{{color:var(--text-dim);}}
-.n-obs{{display:block;font-size:0.7em;color:var(--text-dim);}}
-
-/* Comparison rows (Tab 2) */
-.comp-row{{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:4px 0;}}
-.comp-row-header{{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;cursor:pointer;font-size:0.9em;gap:16px;flex-wrap:wrap;}}
-.comp-row-header:hover{{background:var(--surface2);}}
-.comp-room{{font-weight:600;min-width:100px;}}
-.comp-toggle{{color:var(--text-dim);transition:transform 0.2s;}}
-.comp-toggle.open{{transform:rotate(90deg);}}
-.comp-detail{{padding:0 16px 16px;overflow-x:auto;}}
-.comp-table{{width:100%;border-collapse:collapse;font-size:0.85em;}}
-.comp-table th{{background:var(--surface2);padding:8px 10px;text-align:left;font-weight:600;color:var(--text);border-bottom:2px solid var(--border);}}
-.comp-table td{{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-dim);}}
-.comp-table .row-warning td{{background:rgba(239,68,68,0.06);}}
-.comp-table .row-watch td{{background:rgba(234,179,8,0.06);}}
-
-/* Alert pills */
-.alert-warning-pill{{background:rgba(239,68,68,0.15);color:var(--red);padding:2px 8px;border-radius:10px;font-size:0.78em;font-weight:600;}}
-.alert-watch-pill{{background:rgba(234,179,8,0.15);color:var(--yellow);padding:2px 8px;border-radius:10px;font-size:0.78em;font-weight:600;}}
-
-/* Z-score colors */
-.z-warning{{color:var(--red);font-weight:700;}}
-.z-watch{{color:var(--yellow);font-weight:600;}}
-.z-normal{{color:var(--green);}}
-
-/* Calendar spread (Tab 3) */
-.spread-section{{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:6px 0;}}
-.spread-header{{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;cursor:pointer;}}
-.spread-header:hover{{background:var(--surface2);}}
-.month-label{{font-weight:600;color:var(--text);}}
-
-/* Shared */
-.savings{{color:var(--green);font-weight:600;}}
-.premium{{color:var(--red);font-weight:600;}}
-.footer{{text-align:center;padding:32px 0;color:var(--text-dim);font-size:0.85em;border-top:1px solid var(--border);margin-top:24px;}}
-
-/* External Benchmarks (Tab 4) */
-.bm-meta{{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}}
-.bm-badge{{background:rgba(99,102,241,0.15);color:var(--accent2);border:1px solid rgba(99,102,241,0.3);border-radius:20px;padding:4px 12px;font-size:0.8em;font-weight:600;}}
-.bm-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-bottom:24px;}}
-.bm-panel{{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}}
-.bm-panel-title{{font-size:1em;font-weight:700;color:var(--text);margin-bottom:6px;}}
-.bm-desc{{font-size:0.82em;color:var(--text-dim);margin-bottom:12px;line-height:1.4;}}
-.bm-table{{width:100%;border-collapse:collapse;font-size:0.83em;}}
-.bm-table th{{background:var(--surface2);padding:7px 10px;text-align:left;font-weight:600;color:var(--text);border-bottom:2px solid var(--border);}}
-.bm-table td{{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-dim);}}
-.bm-month{{font-weight:600;color:var(--text);white-space:nowrap;}}
-.bm-idx,.bm-note{{white-space:nowrap;}}
-.bar-bg{{background:var(--surface2);border-radius:4px;height:10px;width:120px;overflow:hidden;}}
-.bar-fill{{height:100%;border-radius:4px;}}
-.bar-high{{background:var(--red);}}
-.bar-mid{{background:var(--cyan);}}
-.bar-low{{background:var(--text-dim);}}
-.no-data{{color:var(--text-dim);font-style:italic;padding:20px 0;}}
-
-/* Term Structure (Tab 5) */
-.ts-filters{{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;}}
-.ts-label{{font-size:0.85em;color:var(--text-dim);display:flex;flex-direction:column;gap:4px;}}
-.ts-label select{{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:0.9em;font-family:inherit;cursor:pointer;min-width:200px;}}
-.ts-label select:focus{{outline:none;border-color:var(--accent);}}
-.ts-grid{{display:grid;grid-template-columns:1fr 1fr;gap:16px;}}
-@media(max-width:900px){{.ts-grid{{grid-template-columns:1fr;}}}}
-.ts-panel{{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}}
-.ts-panel--full{{grid-column:1/-1;}}
-.ts-panel-title{{font-size:0.95em;font-weight:700;color:var(--accent2);margin-bottom:4px;}}
-.ts-panel-desc{{font-size:0.8em;color:var(--text-dim);margin-bottom:12px;line-height:1.4;}}
-.ts-canvas-wrap{{height:280px;position:relative;}}
-.ts-canvas-wrap--bar{{height:260px;}}
-</style>
-</head>
-<body>
-
-<div class="header">
-<div class="container">
-    <h1>Year-over-Year Price Comparison</h1>
-    <p>Calendar spread analysis &mdash; how prices behave at each T across multiple years</p>
-    <div class="nav-links">
-        <a href="/api/v1/salesoffice/insights">Insights</a>
-        <a href="/api/v1/salesoffice/options">Options</a>
-        <a href="/api/v1/salesoffice/charts">Charts</a>
-        <a href="/api/v1/salesoffice/dashboard">Dashboard</a>
-        <a href="/api/v1/salesoffice/info">Documentation</a>
-    </div>
-</div>
-</div>
-
-<div class="tab-bar">
-<div class="container">
-    <button class="tab-btn active" onclick="switchTab('decay',this)">Decay Curve by Year</button>
-    <button class="tab-btn" onclick="switchTab('yoy',this)">YoY Comparison</button>
-    <button class="tab-btn" onclick="switchTab('spread',this)">Calendar Spread</button>
-    <button class="tab-btn" onclick="switchTab('benchmarks',this)">External Benchmarks</button>
-    <button class="tab-btn" onclick="switchTab('ts',this)">Term Structure</button>
-</div>
-</div>
-
-<div class="container">
-    <div id="tab-decay" class="tab-content active">{tab1}</div>
-    <div id="tab-yoy" class="tab-content">{tab2}</div>
-    <div id="tab-spread" class="tab-content">{tab3}</div>
-    <div id="tab-benchmarks" class="tab-content">{tab4}</div>
-    <div id="tab-ts" class="tab-content">{tab5}</div>
-</div>
-
-<div class="footer">
-    <p>Medici Price Prediction Engine &mdash; Generated {now}</p>
-</div>
-
-<script>
-function switchTab(name, btn) {{
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
-    btn.classList.add('active');
-    if (name === 'ts' && typeof tsRender === 'function') {{ tsRender(); }}
-}}
-function toggle(id) {{
-    const el = document.getElementById(id);
-    const arrow = document.getElementById('arrow_' + id);
-    if (!el) return;
-    if (el.style.display === 'none') {{
-        el.style.display = 'block';
-        if (arrow) arrow.classList.add('open');
-    }} else {{
-        el.style.display = 'none';
-        if (arrow) arrow.classList.remove('open');
-    }}
-}}
-function toggleSpread(id) {{
-    const el = document.getElementById('spread_' + id);
-    const arrow = document.getElementById('arrow_' + id);
-    if (!el) return;
-    if (el.style.display === 'none') {{
-        el.style.display = 'block';
-        if (arrow) arrow.classList.add('open');
-    }} else {{
-        el.style.display = 'none';
-        if (arrow) arrow.classList.remove('open');
-    }}
-}}
-</script>
-</body>
-</html>"""

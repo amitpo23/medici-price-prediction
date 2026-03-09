@@ -48,8 +48,8 @@ class HistoricalBacktester:
             try:
                 from src.analytics.collector import load_historical_prices
                 historical_df = load_historical_prices()
-            except Exception as e:
-                logger.error("Cannot load historical data for backtest: %s", e)
+            except (OSError, ConnectionError, TimeoutError, ValueError) as e:
+                logger.error("Cannot load historical data for backtest: %s", e, exc_info=True)
                 return {"error": str(e), "n_trials": 0}
 
         if historical_df.empty:
@@ -181,7 +181,8 @@ class HistoricalBacktester:
                 enrichments=Enrichments(),
             )
             fwd_predicted = fwd.points[-1].predicted_price if fwd.points else prediction_price
-        except Exception:
+        except (ValueError, TypeError, ZeroDivisionError, RuntimeError) as e:
+            logger.warning("Forward curve prediction failed in backtest: %s", e)
             fwd_predicted = prediction_price
 
         # Compute errors

@@ -39,25 +39,16 @@ CLAUDE_DEEP_MODEL = os.getenv("CLAUDE_DEEP_MODEL", "claude-sonnet-4-20250514")
 ANALYST_MAX_TOKENS = int(os.getenv("ANALYST_MAX_TOKENS", "2048"))
 ANALYST_CACHE_TTL = int(os.getenv("ANALYST_CACHE_TTL", "600"))  # 10 min
 
-# Response cache
-_analyst_cache: dict[str, tuple[float, Any]] = {}
+# Cache via unified CacheManager (region "analyst")
+from src.utils.cache_manager import cache as _cm
 
 
 def _cache_get(key: str) -> Any | None:
-    if key in _analyst_cache:
-        ts, val = _analyst_cache[key]
-        if time.time() - ts < ANALYST_CACHE_TTL:
-            return val
-        del _analyst_cache[key]
-    return None
+    return _cm.get("analyst", key)
 
 
 def _cache_set(key: str, val: Any) -> None:
-    _analyst_cache[key] = (time.time(), val)
-    if len(_analyst_cache) > 200:
-        cutoff = time.time() - ANALYST_CACHE_TTL
-        for k in [k for k, (t, _) in _analyst_cache.items() if t < cutoff]:
-            del _analyst_cache[k]
+    _cm.set("analyst", key, val)
 
 
 # ---------------------------------------------------------------------------
@@ -432,8 +423,8 @@ def _call_claude(
             messages=[{"role": "user", "content": user_message}],
         )
         return response.content[0].text if response.content else None
-    except Exception as e:
-        logger.warning(f"Claude analyst call failed: {e}")
+    except (ConnectionError, TimeoutError, ValueError, RuntimeError) as e:
+        logger.warning("Claude analyst call failed: %s", e)
         return None
 
 
@@ -718,8 +709,8 @@ def batch_enrich_metadata(
     for pid, pred, _ in items[:limit]:
         try:
             results[str(pid)] = enrich_room_metadata(pred, pid)
-        except Exception as e:
-            logger.debug(f"Metadata enrichment failed for {pid}: {e}")
+        except (KeyError, ValueError, TypeError, ConnectionError) as e:
+            logger.debug("Metadata enrichment failed for %s: %s", pid, e)
             results[str(pid)] = _fallback_metadata(pred, pid)
 
     return results

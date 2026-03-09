@@ -1,8 +1,12 @@
 """Geolocation features for hotels."""
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 from geopy.distance import geodesic
 
 from config.settings import ISRAEL_CITIES
@@ -74,7 +78,8 @@ def _safe_distance(lat1, lon1, lat2, lon2) -> float:
         if pd.isna(lat1) or pd.isna(lon1):
             return np.nan
         return geodesic((lat1, lon1), (lat2, lon2)).km
-    except Exception:
+    except (ValueError, TypeError) as e:
+        logger.warning("Distance calculation failed: %s", e)
         return np.nan
 
 

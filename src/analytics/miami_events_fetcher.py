@@ -68,7 +68,7 @@ def fetch_ticketmaster_events(days_ahead: int = 90) -> int:
         )
         r.raise_for_status()
         raw_events = r.json().get("_embedded", {}).get("events", [])
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
         logger.warning("Ticketmaster API error: %s", exc)
         return 0
 
@@ -141,7 +141,7 @@ def fetch_seatgeek_events(days_ahead: int = 90) -> int:
         )
         r.raise_for_status()
         raw_events = r.json().get("events", [])
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
         logger.warning("SeatGeek API error: %s", exc)
         return 0
 

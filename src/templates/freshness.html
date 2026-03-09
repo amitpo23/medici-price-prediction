@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Data Freshness Monitor — Medici{% endblock %}
+
+{% block extra_css %}
+h1{font-size:1.8em;background:linear-gradient(135deg,#86efac,#22c55e);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+.subtitle{color:var(--text-dim);margin-bottom:24px;}
+.overall-banner{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+padding:20px;margin-bottom:24px;text-align:center;}
+.overall-status{font-size:1.5em;font-weight:700;}
+.overall-detail{color:var(--text-dim);margin-top:8px;font-size:0.95em;}
+.status-pills{display:flex;gap:12px;justify-content:center;margin-top:12px;}
+.sources-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;}
+.src-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+.src-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.src-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.src-name{font-weight:600;flex:1;}
+.src-age{font-size:0.9em;font-weight:600;}
+.src-desc{color:var(--text-dim);font-size:0.85em;margin-bottom:6px;}
+.src-meta{display:flex;gap:16px;font-size:0.8em;color:var(--text-dim);}
+.src-error{color:var(--red);font-size:0.8em;margin-top:4px;}
+.refresh-btn{display:inline-block;margin-top:16px;padding:8px 24px;background:var(--accent);
+color:white;border-radius:8px;text-decoration:none;font-size:0.9em;}
+.refresh-btn:hover{background:var(--accent2);}
+{% endblock %}
+
+{% set status_colors = {"green": "var(--green)", "yellow": "var(--yellow)", "red": "var(--red)"} %}
+{% set dot_colors = {"green": "#22c55e", "yellow": "#eab308", "red": "#ef4444"} %}
+{% set status_labels = {"green": "All Systems Healthy", "yellow": "Some Sources Stale", "red": "Critical Staleness Detected"} %}
+
+{% block nav %}
+{% include "partials/nav.html" %}
+{% endblock %}
+
+{% block body %}
+<div class="container">
+<h1>Data Freshness Monitor</h1>
+<p class="subtitle">Real-time status of all {{ summary.total | default(0) }} data sources powering the prediction engine</p>
+
+<div class="overall-banner">
+    <div class="overall-status" style="color:{{ status_colors.get(summary.overall_status, 'var(--text-dim)') }};">{{ status_labels.get(summary.overall_status, 'Unknown') }}</div>
+    <div class="overall-detail">Checked at {{ checked_at }}</div>
+    <div class="status-pills">
+        <span class="pill pill-green">{{ summary.green | default(0) }} Healthy</span>
+        <span class="pill pill-yellow">{{ summary.yellow | default(0) }} Stale</span>
+        <span class="pill pill-red">{{ summary.red | default(0) }} Critical</span>
+        <span class="pill pill-gray">{{ summary.unknown | default(0) }} Unknown</span>
+    </div>
+    <a href="/api/v1/salesoffice/freshness" class="refresh-btn">Refresh</a>
+</div>
+
+<div class="sources-grid">
+    {% for s in sources %}
+    {% set color = status_colors.get(s.status, 'var(--text-dim)') %}
+    {% set dot = dot_colors.get(s.status, '#4b5563') %}
+    <div class="src-card" style="border-left:3px solid {{ color }};">
+        <div class="src-header">
+            <span class="src-dot" style="background:{{ dot }};"></span>
+            <span class="src-name">{{ s.name }}</span>
+            <span class="src-age" style="color:{{ color }};">{{ s.age_display | default('N/A') }}</span>
+        </div>
+        <div class="src-desc">{{ s.description | default('') }}</div>
+        <div class="src-meta">
+            <span>Last: {{ s.last_updated | default('Never') }}</span>
+            <span>Freq: {{ s.frequency | default('unknown') }}</span>
+        </div>
+        {% if s.error %}
+        <div class="src-error">{{ s.error }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<footer>
+    Data Freshness Monitor | {{ summary.total | default(0) }} sources checked | Generated {{ now }}<br>
+    <a href="/api/v1/salesoffice/home" style="color:var(--accent2)">Back to Home</a>
+</footer>
+</div>
+{% endblock %}

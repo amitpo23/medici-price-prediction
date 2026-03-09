@@ -18,6 +18,26 @@ from math import exp, sqrt
 import numpy as np
 import pandas as pd
 
+from config.constants import (
+    MIN_VOLATILITY,
+    BAYESIAN_K,
+    MAX_PREDICTION_HORIZON,
+    DATA_DENSITY_HIGH,
+    DATA_DENSITY_MEDIUM,
+    DEMAND_IMPACT_HIGH,
+    DEMAND_IMPACT_LOW,
+    COMPETITOR_IMPACT_MAX,
+    CANCELLATION_IMPACT_MAX,
+    PROVIDER_IMPACT_MAX,
+    SEASONALITY_MULTIPLIER,
+    MOMENTUM_DECAY_RATE,
+    MOMENTUM_IMPACT_SCALE,
+    EVENT_RAMP_DAYS,
+    EVENT_TAPER_DAYS,
+    DAILY_CHANGE_CAP,
+    CI_Z_SCORE,
+)
+
 logger = logging.getLogger(__name__)
 
 # ── Data classes ─────────────────────────────────────────────────────
@@ -45,7 +65,7 @@ class DecayCurve:
     global_std_daily_pct: float = 1.0
     total_observations: int = 0
     total_tracks: int = 0
-    max_t: int = 180
+    max_t: int = MAX_PREDICTION_HORIZON
 
     def get_daily_change(self, t: int) -> float:
         """Expected daily % change at T days before check-in."""
@@ -75,9 +95,9 @@ class DecayCurve:
         t = max(1, min(t, self.max_t))
         if t in self.points:
             n = self.points[t].n_observations
-            if n >= 15:
+            if n >= DATA_DENSITY_HIGH:
                 return "high"
-            if n >= 7:
+            if n >= DATA_DENSITY_MEDIUM:
                 return "medium"
             return "low"
         return "extrapolated"
@@ -163,8 +183,8 @@ class ForwardCurve:
 
 # ── Constants ────────────────────────────────────────────────────────
 
-_MIN_VOL = 0.5  # Minimum daily volatility floor (%)
-_BAYESIAN_K = 5  # Prior strength for shrinkage
+_MIN_VOL = MIN_VOLATILITY
+_BAYESIAN_K = BAYESIAN_K
 _DOW_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 # Bin configuration: (max_t, bin_width, step)
@@ -233,7 +253,7 @@ def build_decay_curve(historical_df: pd.DataFrame) -> DecayCurve:
         global_std_daily_pct=round(global_std, 4),
         total_observations=len(obs_df),
         total_tracks=n_tracks,
-        max_t=min(max_t, 180),
+        max_t=min(max_t, MAX_PREDICTION_HORIZON),
     )
 
     logger.info(
@@ -284,7 +304,7 @@ def _extract_t_observations(df: pd.DataFrame) -> list[dict]:
             daily_pct = pct_change / gap_days
 
             # Cap extreme outliers
-            daily_pct = max(-10.0, min(10.0, daily_pct))
+            daily_pct = max(-DAILY_CHANGE_CAP, min(DAILY_CHANGE_CAP, daily_pct))
 
             # T at midpoint of observation window
             midpoint = scan_prev + (scan_curr - scan_prev) / 2
@@ -427,7 +447,7 @@ def _compute_offsets(obs_df: pd.DataFrame, group_col: str, global_mean: float) -
 def _default_curve() -> DecayCurve:
     """Fallback curve when not enough historical data."""
     points = {}
-    for t in range(1, 181):
+    for t in range(1, MAX_PREDICTION_HORIZON + 1):
         points[t] = DecayCurvePoint(
             t=t,
             n_observations=0,
@@ -444,7 +464,7 @@ def _default_curve() -> DecayCurve:
         global_std_daily_pct=1.0,
         total_observations=0,
         total_tracks=0,
-        max_t=180,
+        max_t=MAX_PREDICTION_HORIZON,
     )
 
 
@@ -477,17 +497,17 @@ class Enrichments:
             date_ts = pd.Timestamp(date)
 
             # Impact window: 3 days before to 2 days after
-            impact_start = start_dt - timedelta(days=3)
-            impact_end = end_dt + timedelta(days=2)
+            impact_start = start_dt - timedelta(days=EVENT_RAMP_DAYS)
+            impact_end = end_dt + timedelta(days=EVENT_TAPER_DAYS)
 
             if impact_start <= date_ts <= impact_end:
                 impact_days = max((impact_end - impact_start).days, 1)
                 # Ramp up before event, peak during, taper after
                 if date_ts < start_dt:
-                    ramp = (date_ts - impact_start).days / 3
+                    ramp = (date_ts - impact_start).days / EVENT_RAMP_DAYS
                     total_adj += mult * 100 * max(ramp, 0.1) / impact_days
                 elif date_ts > end_dt:
-                    taper = 1.0 - (date_ts - end_dt).days / 3
+                    taper = 1.0 - (date_ts - end_dt).days / EVENT_TAPER_DAYS
                     total_adj += mult * 100 * max(taper, 0.1) / impact_days
                 else:
                     total_adj += mult * 100 / impact_days
@@ -503,14 +523,14 @@ class Enrichments:
         # Convert monthly index deviation to daily adjustment
         # idx=1.099 (Feb/Dec, Miami snowbird peak) → ~+0.30%/day upward pressure
         # idx=0.845 (Sep, Miami hurricane season trough) → ~-0.47%/day downward
-        return (idx - 1.0) * 3.0  # 3x monthly deviation as daily pct
+        return (idx - 1.0) * SEASONALITY_MULTIPLIER
 
     def get_demand_daily_adj(self) -> float:
         """Demand-based daily adjustment."""
         if self.demand_indicator == "HIGH":
-            return 0.15  # upward pressure per day from high demand
+            return DEMAND_IMPACT_HIGH
         if self.demand_indicator == "LOW":
-            return -0.15  # downward pressure per day from low demand
+            return DEMAND_IMPACT_LOW
         return 0.0
 
     def get_weather_daily_adj(self, date: datetime) -> float:
@@ -527,7 +547,7 @@ class Enrichments:
         Positive pressure (we're cheaper) → upward pressure on prices.
         Negative pressure (we're expensive) → downward pressure on prices.
         """
-        return self.competitor_pressure * 0.20
+        return self.competitor_pressure * COMPETITOR_IMPACT_MAX
 
     def get_velocity_daily_adj(self) -> float:
         """Daily adjustment from price update velocity.
@@ -545,7 +565,7 @@ class Enrichments:
         (rooms may become available, increasing supply).
         Scaled to -0.25%/day maximum impact at 100% cancel rate.
         """
-        return -self.cancellation_risk * 0.25
+        return -self.cancellation_risk * CANCELLATION_IMPACT_MAX
 
     def get_provider_pressure_adj(self) -> float:
         """Daily adjustment from multi-provider search results.
@@ -554,7 +574,7 @@ class Enrichments:
         Negative = providers dropping prices → downward pressure.
         Scaled to ±0.20%/day maximum impact.
         """
-        return self.provider_pressure * 0.20
+        return self.provider_pressure * PROVIDER_IMPACT_MAX
 
 
 # ── Forward Curve Prediction ─────────────────────────────────────────
@@ -618,8 +638,8 @@ def predict_forward_curve(
         offset_pct = cat_offset + board_offset
 
         # Momentum adjustment (decays with ~7-day half-life)
-        mom_decay = exp(-0.15 * day_idx)
-        mom_adj = mom_vs_expected * mom_decay * 0.3
+        mom_decay = exp(-MOMENTUM_DECAY_RATE * day_idx)
+        mom_adj = mom_vs_expected * mom_decay * MOMENTUM_IMPACT_SCALE
 
         # Enrichment adjustments
         event_adj = enrichments.get_event_daily_adj(pred_date)
@@ -652,8 +672,8 @@ def predict_forward_curve(
             predicted_price=round(predicted_price, 2),
             daily_change_pct=round(total_daily_pct, 4),
             cumulative_change_pct=round(cumulative_pct, 2),
-            lower_bound=round(predicted_price - 1.96 * cum_std, 2),
-            upper_bound=round(predicted_price + 1.96 * cum_std, 2),
+            lower_bound=round(predicted_price - CI_Z_SCORE * cum_std, 2),
+            upper_bound=round(predicted_price + CI_Z_SCORE * cum_std, 2),
             volatility_at_t=round(vol, 4),
             dow=_DOW_NAMES[pred_date.weekday()],
             event_adj_pct=round(event_adj, 4),

@@ -1,10 +1,14 @@
 """Collect tourism statistics from Israel Central Bureau of Statistics."""
 
+import logging
+
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
 from src.collectors.base import BaseCollector
+
+logger = logging.getLogger(__name__)
 
 
 class CBSCollector(BaseCollector):
@@ -20,7 +24,8 @@ class CBSCollector(BaseCollector):
         try:
             r = requests.get(self.CBS_BASE_URL, timeout=5)
             return r.status_code == 200
-        except Exception:
+        except (requests.RequestException, ConnectionError, TimeoutError) as e:
+            logger.warning(f"CBS website not available: {e}")
             return False
 
     def collect(self, **kwargs) -> pd.DataFrame:
@@ -31,7 +36,8 @@ class CBSCollector(BaseCollector):
         """
         try:
             return self._scrape_occupancy_data()
-        except Exception:
+        except (requests.RequestException, ConnectionError, TimeoutError, ValueError) as e:
+            logger.warning(f"Failed to scrape CBS occupancy data, using fallback: {e}")
             return self._get_fallback_data()
 
     def _scrape_occupancy_data(self) -> pd.DataFrame:

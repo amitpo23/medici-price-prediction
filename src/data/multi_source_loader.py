@@ -1,33 +1,26 @@
 """Unified ETL pipeline combining all data sources."""
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from src.data.cache import DataCache
 from src.data.db_loader import load_daily_pricing, discover_schema
 from src.collectors.registry import CollectorRegistry
-from src.collectors.weather_collector import WeatherCollector
-from src.collectors.events_collector import EventsCollector
-from src.collectors.kaggle_collector import KaggleCollector
-from src.collectors.market_collector import MarketCollector
-from src.collectors.cbs_collector import CBSCollector
-from src.collectors.trading_collector import TradingCollector
 from src.features.engineering import prepare_features
 from config.settings import CACHE_DIR
 
 
 def build_registry(cache: DataCache | None = None) -> CollectorRegistry:
-    """Create and register all available collectors."""
+    """Create and register all available collectors via auto-discovery."""
     if cache is None:
         cache = DataCache(CACHE_DIR)
 
     registry = CollectorRegistry()
-    registry.register("weather", WeatherCollector(cache=cache))
-    registry.register("events", EventsCollector(cache=cache))
-    registry.register("kaggle", KaggleCollector(cache=cache))
-    registry.register("market", MarketCollector(cache=cache))
-    registry.register("cbs", CBSCollector(cache=cache))
-    registry.register("trading", TradingCollector(cache=cache))
+    registry.auto_discover(cache=cache)
     return registry
 
 
@@ -41,7 +34,7 @@ class MultiSourceLoader:
     def available_sources(self) -> dict[str, bool]:
         """Check which data sources are currently accessible."""
         result = {}
-        for name in ["weather", "events", "kaggle", "market", "cbs", "trading"]:
+        for name in self.registry.all_names():
             try:
                 collector = self.registry.get(name)
                 result[name] = collector.is_available()
@@ -52,7 +45,8 @@ class MultiSourceLoader:
         try:
             discover_schema()
             result["azure_sql"] = True
-        except Exception:
+        except (OSError, ConnectionError, ValueError) as e:
+            logger.warning("Azure SQL schema discovery failed: %s", e)
             result["azure_sql"] = False
 
         return result
@@ -77,8 +71,8 @@ class MultiSourceLoader:
             if not azure_df.empty:
                 azure_df["source"] = "azure_sql"
                 parts.append(azure_df)
-        except Exception:
-            pass
+        except (OSError, ConnectionError, ValueError) as e:
+            logger.warning("Azure SQL pricing load failed: %s", e)
 
         # 2. Kaggle historical data (for training breadth)
         if include_kaggle and "kaggle" in self.registry.available():
@@ -89,8 +83,8 @@ class MultiSourceLoader:
                 )
                 if not kaggle_df.empty:
                     parts.append(kaggle_df)
-            except Exception:
-                pass
+            except (FileNotFoundError, OSError, ValueError, KeyError) as e:
+                logger.warning("Kaggle data load failed: %s", e)
 
         # 3. Market snapshot (competitor context)
         if include_market and "market" in self.registry.available():
@@ -101,8 +95,8 @@ class MultiSourceLoader:
                 if not market_df.empty:
                     market_df["source"] = "google_hotels"
                     parts.append(market_df)
-            except Exception:
-                pass
+            except (ConnectionError, TimeoutError, ValueError, KeyError) as e:
+                logger.warning("Market data load failed: %s", e)
 
         if not parts:
             return pd.DataFrame()
@@ -132,7 +126,8 @@ class MultiSourceLoader:
                     cache_key=f"events_{year or 'current'}",
                     year=year,
                 )
-            except Exception:
+            except (ConnectionError, TimeoutError, ValueError, KeyError) as e:
+                logger.warning("Events enrichment load failed: %s", e)
                 result["events"] = pd.DataFrame()
         else:
             result["events"] = pd.DataFrame()
@@ -145,7 +140,8 @@ class MultiSourceLoader:
                     start_date=start_date,
                     end_date=end_date,
                 )
-            except Exception:
+            except (ConnectionError, TimeoutError, ValueError, KeyError) as e:
+                logger.warning("Weather enrichment load failed: %s", e)
                 result["weather"] = pd.DataFrame()
         else:
             result["weather"] = pd.DataFrame()
@@ -156,7 +152,8 @@ class MultiSourceLoader:
                 result["cbs"] = self.registry.get("cbs").collect_cached(
                     cache_key="cbs_stats",
                 )
-            except Exception:
+            except (ConnectionError, TimeoutError, ValueError, KeyError) as e:
+                logger.warning("CBS enrichment load failed: %s", e)
                 result["cbs"] = pd.DataFrame()
         else:
             result["cbs"] = pd.DataFrame()
@@ -185,7 +182,8 @@ class MultiSourceLoader:
                     cache_key="trading_all_bookings",
                     data_type="all_bookings",
                 )
-            except Exception:
+            except (ConnectionError, TimeoutError, OSError, ValueError) as e:
+                logger.warning("Trading data load failed: %s", e)
                 trading_df = None
 
         # 3. Run feature engineering with all available data

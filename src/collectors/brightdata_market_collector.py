@@ -10,12 +10,15 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import logging
 from pathlib import Path
 
 import pandas as pd
 
 from config.settings import DATA_DIR, PROCESSED_DATA_DIR
 from src.collectors.base import BaseCollector
+
+logger = logging.getLogger(__name__)
 
 
 class BrightDataMarketCollector(BaseCollector):
@@ -132,7 +135,8 @@ class BrightDataMarketCollector(BaseCollector):
     def _parse_json(self, path: Path, city: str) -> list[dict]:
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to read JSON file {path}: {e}")
             return []
 
         if isinstance(payload, dict):
@@ -152,7 +156,8 @@ class BrightDataMarketCollector(BaseCollector):
     def _parse_csv(self, path: Path, city: str) -> list[dict]:
         try:
             df = pd.read_csv(path)
-        except Exception:
+        except (FileNotFoundError, OSError, ValueError) as e:
+            logger.warning(f"Failed to read CSV file {path}: {e}")
             return []
 
         return [
@@ -221,7 +226,7 @@ class BrightDataMarketCollector(BaseCollector):
         text = str(value).strip().replace("$", "").replace(",", "")
         try:
             return float(text)
-        except Exception:
+        except (ValueError, TypeError):
             return None
 
     @staticmethod

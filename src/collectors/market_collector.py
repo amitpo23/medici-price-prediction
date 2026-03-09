@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+import logging
 
 import pandas as pd
 
 from src.collectors.base import BaseCollector
 from config.settings import SERPAPI_KEY, ISRAEL_CITIES
+
+logger = logging.getLogger(__name__)
 
 
 class MarketCollector(BaseCollector):
@@ -29,7 +32,8 @@ class MarketCollector(BaseCollector):
             })
             result = search.get_dict()
             return "error" not in result
-        except Exception:
+        except (ImportError, ConnectionError, TimeoutError, ValueError) as e:
+            logger.warning(f"SerpApi/Google Hotels not available: {e}")
             return False
 
     def collect(
@@ -59,7 +63,8 @@ class MarketCollector(BaseCollector):
                 "api_key": SERPAPI_KEY,
             })
             result = search.get_dict()
-        except Exception:
+        except (ConnectionError, TimeoutError, ValueError) as e:
+            logger.warning(f"Failed to fetch Google Hotels data for {city}: {e}")
             return pd.DataFrame()
 
         properties = result.get("properties", [])

@@ -137,7 +137,7 @@ def find_hotel_id(hotel_id: int) -> str | None:
 
         logger.warning("Makcorps: no document_id found for '%s' (response: %s)", search_name, str(results)[:200])
 
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
         logger.warning("Makcorps mapping failed for hotel %d ('%s'): %s", hotel_id, search_name, exc)
     return None
 
@@ -230,7 +230,7 @@ def fetch_historical_prices(
                     )
                     count += 1
 
-            except Exception as exc:
+            except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
                 logger.debug("Makcorps price fetch failed %s hotel=%d: %s", checkin, hotel_id, exc)
 
             current += timedelta(days=7)  # weekly sampling to preserve API quota
@@ -257,7 +257,8 @@ def get_price_history(hotel_id: int, days: int = 365) -> list[dict]:
             {"checkin_date": r[0], "min_price": r[1], "median_price": r[2], "fetched_ts": r[3]}
             for r in rows
         ]
-    except Exception:
+    except (OSError, ValueError, sqlite3.Error) as e:
+        logger.warning("Failed to load Makcorps price history for hotel %d: %s", hotel_id, e)
         return []
 
 
@@ -275,7 +276,8 @@ def get_summary() -> dict:
                     "SELECT COUNT(*) FROM historical_prices WHERE our_hotel_id=?", (hid,)
                 ).fetchone()[0]
                 by_hotel[str(hid)] = cnt
-    except Exception:
+    except (OSError, ValueError, sqlite3.Error) as e:
+        logger.warning("Failed to load Makcorps summary: %s", e)
         total_prices = 0
         mappings = []
         by_hotel = {}

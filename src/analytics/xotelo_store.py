@@ -102,7 +102,7 @@ def fetch_rates(hotel_id: int, days_ahead: int = 60) -> int:
                     (hotel_id, checkin, checkout, min(rates), median, len(rates), ts),
                 )
                 count += 1
-            except Exception as exc:
+            except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
                 logger.debug("Xotelo fetch failed for hotel %d on %s: %s", hotel_id, checkin, exc)
                 continue
 
@@ -142,7 +142,7 @@ def get_competitor_pressure(hotel_id: int, our_adr: float) -> float:
         ratio = (market_median - our_adr) / market_median
         return max(-1.0, min(1.0, ratio))
 
-    except Exception as exc:
+    except (OSError, ValueError, TypeError, ZeroDivisionError) as exc:
         logger.debug("Competitor pressure calc failed for hotel %d: %s", hotel_id, exc)
         return 0.0
 
@@ -177,5 +177,5 @@ def get_rates_summary(hotel_id: int) -> dict:
                 for r in rows
             ],
         }
-    except Exception as exc:
+    except (OSError, ValueError, TypeError) as exc:
         return {"hotel_id": hotel_id, "status": "error", "error": str(exc)}

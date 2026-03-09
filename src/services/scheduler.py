@@ -77,7 +77,7 @@ class AnalysisScheduler:
         """Execute one analysis cycle."""
         try:
             self.run_portfolio_analysis()
-        except Exception:
+        except (OSError, ConnectionError, ValueError, TypeError, RuntimeError):
             logger.exception("Portfolio analysis cycle failed")
         finally:
             self._schedule_next()

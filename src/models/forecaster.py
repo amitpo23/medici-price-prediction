@@ -1,8 +1,11 @@
 """Price forecasting using Darts time series library."""
 from __future__ import annotations
 
+import logging
 import pickle
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 import numpy as np
@@ -191,7 +194,8 @@ class HotelPriceForecaster:
                 self.save(name=f"price_model_{hotel_id}")
                 metrics["hotel_id"] = str(hotel_id)
                 results[str(hotel_id)] = metrics
-            except Exception as e:
+            except (ValueError, TypeError, RuntimeError) as e:
+                logger.warning("Training failed for hotel %s: %s", hotel_id, e)
                 results[str(hotel_id)] = {"error": str(e)}
 
         return results
@@ -255,7 +259,8 @@ class HotelPriceForecaster:
                 )
                 result[f"lower_{pct}"] = lower
                 result[f"upper_{pct}"] = upper
-            except Exception:
+            except (ValueError, TypeError, RuntimeError) as e:
+                logger.warning("Interval computation failed for level %s: %s", level, e)
                 # Fallback: percentage-based intervals
                 width = (1 - level) * 0.5
                 result[f"lower_{pct}"] = result["predicted_price"] * (1 - width)
@@ -316,7 +321,8 @@ class HotelPriceForecaster:
                     actual_slice.values().flatten()
                     - hist_rescaled.values().flatten()
                 )
-            except Exception:
+            except (ValueError, TypeError, RuntimeError) as e:
+                logger.warning("Historical forecast failed, using fallback residuals: %s", e)
                 # Fallback: estimate residuals as 10% of price std
                 residuals = point_vals.mean() * 0.10 * np.random.randn(100)
         else:
@@ -413,7 +419,8 @@ def compare_models(
             metrics = forecaster.train(df, date_col, target_col)
             metrics["model"] = model_name
             results.append(metrics)
-        except Exception as e:
+        except (ValueError, TypeError, RuntimeError) as e:
+            logger.warning("Model comparison failed for %s: %s", model_name, e)
             results.append({"model": model_name, "error": str(e)})
 
     return pd.DataFrame(results)

@@ -1,8 +1,12 @@
 """Feature engineering for hotel price prediction."""
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def add_calendar_features(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
@@ -128,8 +132,8 @@ def add_seasonality_features(
             df["price_trend"] = result.trend.values
             df["price_seasonal"] = result.seasonal.values
             df["price_residual"] = result.resid.values
-    except Exception:
-        pass  # Graceful degradation
+    except (ImportError, ValueError, TypeError) as e:
+        logger.warning("STL decomposition failed, skipping: %s", e)
 
     return df
 

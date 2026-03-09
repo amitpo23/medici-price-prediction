@@ -210,8 +210,8 @@ class RulesAutoGenerator:
                     "reason": result.reason,
                     "confidence": result.confidence,
                 })
-            except Exception as e:
-                logger.error("Failed to create rule: %s", e)
+            except (ValueError, TypeError, KeyError, OSError) as e:
+                logger.error("Failed to create rule: %s", e, exc_info=True)
 
         logger.info(
             "Auto-generated %d rules for hotel %d from FC (price=%.2f, "

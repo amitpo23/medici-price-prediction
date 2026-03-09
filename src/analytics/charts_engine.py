@@ -317,7 +317,7 @@ def _build_market_benchmark(
 
     try:
         raw = run_trading_query(sql, params)
-    except Exception as e:
+    except (ConnectionError, TimeoutError, OSError) as e:
         logger.warning("Market benchmark query failed: %s", e)
         return pd.DataFrame()
 
@@ -614,7 +614,7 @@ def _load_seasonality_enrichment() -> dict:
             "months": seasonal,
             "source": "117K hotel bookings (Kaggle), scaled to Miami ADR $222",
         }
-    except Exception as e:
+    except (ImportError, KeyError, ValueError, TypeError) as e:
         logger.warning("Seasonality enrichment failed: %s", e)
         return {}
 
@@ -638,7 +638,7 @@ def _load_velocity_enrichment(hotel_ids: list[int]) -> dict:
                 "source": "RoomPriceUpdateLog (82K price change events)",
             }
         return result
-    except Exception as e:
+    except (ConnectionError, TimeoutError, OSError, ValueError) as e:
         logger.warning("Velocity enrichment failed: %s", e)
         return {}
 
@@ -658,7 +658,7 @@ def _load_contract_enrichments(hotel_id: int, checkin_date: str) -> dict:
                 "event_names": [e.get("name", "") for e in impact["events"]],
                 "source": "SeatGeek + Ticketmaster + hardcoded Miami events",
             }
-    except Exception as e:
+    except (ImportError, KeyError, ValueError, TypeError) as e:
         logger.debug("Events enrichment skipped: %s", e)
 
     # Weather for check-in date
@@ -681,7 +681,7 @@ def _load_contract_enrichments(hotel_id: int, checkin_date: str) -> dict:
                 "summary": summary,
                 "source": "Open-Meteo + NOAA NHC",
             }
-    except Exception as e:
+    except (ImportError, ConnectionError, TimeoutError, KeyError, ValueError) as e:
         logger.debug("Weather enrichment skipped: %s", e)
 
     # Flight demand
@@ -695,7 +695,7 @@ def _load_contract_enrichments(hotel_id: int, checkin_date: str) -> dict:
                 "total_flights": demand.get("total_flights", 0),
                 "source": "Kiwi.com flight search data",
             }
-    except Exception as e:
+    except (ImportError, ConnectionError, TimeoutError, KeyError, ValueError) as e:
         logger.debug("Flights enrichment skipped: %s", e)
 
     # Xotelo competitor rates
@@ -708,7 +708,7 @@ def _load_contract_enrichments(hotel_id: int, checkin_date: str) -> dict:
                 "latest_rates": rates,
                 "source": "Xotelo (Booking.com, Expedia, Hotels.com)",
             }
-    except Exception as e:
+    except (ImportError, ConnectionError, TimeoutError, OSError, ValueError) as e:
         logger.debug("Xotelo enrichment skipped: %s", e)
 
     return enrichments

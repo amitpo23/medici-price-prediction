@@ -150,7 +150,7 @@ def generate_weekly_summary() -> dict:
 
             summary["hotels"][int(hid)] = hotel_summary
 
-    except Exception as e:
+    except (OSError, ConnectionError, ValueError, KeyError, TypeError) as e:
         logger.error("Weekly summary generation failed: %s", e, exc_info=True)
         summary["error"] = str(e)
 

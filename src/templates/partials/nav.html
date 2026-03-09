@@ -1,0 +1,9 @@
+<nav>
+    <a href="/api/v1/salesoffice/home"{% if active_page == "home" %} class="active"{% endif %}>Home</a>
+    <a href="/api/v1/salesoffice/dashboard"{% if active_page == "dashboard" %} class="active"{% endif %}>Dashboard</a>
+    <a href="/api/v1/salesoffice/charts"{% if active_page == "charts" %} class="active"{% endif %}>Charts</a>
+    <a href="/api/v1/salesoffice/accuracy"{% if active_page == "accuracy" %} class="active"{% endif %}>Accuracy</a>
+    <a href="/api/v1/salesoffice/providers"{% if active_page == "providers" %} class="active"{% endif %}>Providers</a>
+    <a href="/api/v1/salesoffice/alerts"{% if active_page == "alerts" %} class="active"{% endif %}>Alerts</a>
+    <a href="/api/v1/salesoffice/freshness"{% if active_page == "freshness" %} class="active"{% endif %}>Freshness</a>
+</nav>

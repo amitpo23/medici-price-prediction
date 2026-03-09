@@ -52,6 +52,19 @@ AI_INTELLIGENCE_ENABLED = os.getenv("AI_INTELLIGENCE_ENABLED", "true").lower() i
 # Cache
 CACHE_TTL_HOURS = int(os.getenv("CACHE_TTL_HOURS", "24"))
 
+# Unified cache regions — {name: {ttl_seconds, max_size}}
+# ttl=0 means no expiry; max_size=0 means unlimited
+CACHE_CONFIG: dict[str, dict[str, int]] = {
+    "analytics":      {"ttl": 0,     "max_size": 0},     # main analysis, refreshed by scheduler
+    "yoy":            {"ttl": 21600, "max_size": 0},     # 6 hours
+    "options_expiry": {"ttl": 21600, "max_size": 0},     # 6 hours
+    "charts":         {"ttl": 21600, "max_size": 0},     # 6 hours
+    "accuracy":       {"ttl": 21600, "max_size": 0},     # 6 hours
+    "provider":       {"ttl": 21600, "max_size": 0},     # 6 hours
+    "ai":             {"ttl": int(os.getenv("AI_CACHE_TTL_SECONDS", "1800")),  "max_size": 500},
+    "analyst":        {"ttl": int(os.getenv("ANALYST_CACHE_TTL", "600")),      "max_size": 200},
+}
+
 # API
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))

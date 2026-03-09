@@ -7,6 +7,7 @@ Two layers:
 from __future__ import annotations
 
 import enum
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -134,13 +135,15 @@ _engine = create_engine(
 
 SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
 
+logger = logging.getLogger(__name__)
+
 
 def init_db() -> None:
     """Create all tables if they don't exist."""
     try:
         Base.metadata.create_all(_engine, checkfirst=True)
-    except Exception:
-        pass  # tables already exist
+    except (OSError, ImportError) as e:
+        logger.warning("DB table init skipped: %s", e)
 
 
 # Auto-init on import

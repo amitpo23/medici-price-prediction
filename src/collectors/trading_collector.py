@@ -5,7 +5,11 @@ and hotel reference data for analysis by the prediction engine.
 """
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from src.collectors.base import BaseCollector
 from src.data.trading_db import (
@@ -90,7 +94,8 @@ class TradingCollector(BaseCollector):
 
         try:
             datasets["reference"] = load_reference_data()
-        except Exception:
+        except (ConnectionError, OSError, ValueError) as e:
+            logger.warning(f"Failed to load reference data from trading DB: {e}")
             datasets["reference"] = {}
 
         return datasets

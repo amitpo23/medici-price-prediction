@@ -40,29 +40,18 @@ AI_ENABLED = os.getenv("AI_INTELLIGENCE_ENABLED", "true").lower() in ("true", "1
 AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "1024"))
 AI_TEMPERATURE = float(os.getenv("AI_TEMPERATURE", "0.2"))  # Low temp for analytical tasks
 
-# In-memory cache
-_ai_cache: dict[str, tuple[float, Any]] = {}
+# Cache via unified CacheManager (region "ai")
+from src.utils.cache_manager import cache as _cm
 
 
 def _cache_get(key: str) -> Any | None:
     """Get from cache if not expired."""
-    if key in _ai_cache:
-        ts, val = _ai_cache[key]
-        if time.time() - ts < AI_CACHE_TTL_SECONDS:
-            return val
-        del _ai_cache[key]
-    return None
+    return _cm.get("ai", key)
 
 
 def _cache_set(key: str, val: Any) -> None:
     """Set cache with TTL."""
-    _ai_cache[key] = (time.time(), val)
-    # Evict old entries if cache grows too large
-    if len(_ai_cache) > 500:
-        cutoff = time.time() - AI_CACHE_TTL_SECONDS
-        keys_to_del = [k for k, (t, _) in _ai_cache.items() if t < cutoff]
-        for k in keys_to_del:
-            del _ai_cache[k]
+    _cm.set("ai", key, val)
 
 
 def _get_client():
@@ -75,8 +64,8 @@ def _get_client():
     except ImportError:
         logger.warning("anthropic SDK not installed")
         return None
-    except Exception as e:
-        logger.warning(f"Failed to create Anthropic client: {e}")
+    except (ConnectionError, ValueError, RuntimeError) as e:
+        logger.warning("Failed to create Anthropic client: %s", e)
         return None
 
 
@@ -635,8 +624,8 @@ def _call_claude(system: str, user_prompt: str, cache_key: str | None = None) ->
     except json.JSONDecodeError as e:
         logger.warning(f"Claude returned non-JSON: {e}")
         return None
-    except Exception as e:
-        logger.warning(f"Claude API call failed: {e}")
+    except (ConnectionError, TimeoutError, ValueError, RuntimeError) as e:
+        logger.warning("Claude API call failed: %s", e)
         return None
 
 

@@ -65,7 +65,7 @@ def get_weather_forecast(days: int = 14) -> dict[str, float]:
 
         logger.debug("Weather forecast: %d days with adjustments (hurricane_adj=%.2f)", len(adjustments), hurricane_adj)
 
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
         logger.debug("Weather forecast unavailable: %s", exc)
 
     return adjustments
@@ -91,7 +91,7 @@ def _check_hurricane_proximity() -> float:
             if abs(lat - MIAMI_LAT) < 5 and abs(lon - MIAMI_LON) < 5:
                 logger.warning("Hurricane proximity detected: %s at (%.1f, %.1f)", storm.get("name", "?"), lat, lon)
                 return -0.15
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
         logger.debug("NHC check unavailable: %s", exc)
 
     return 0.0

@@ -18,9 +18,11 @@ logger = logging.getLogger(__name__)
 # Contract key columns (uniquely identify a comparable room product)
 CONTRACT_KEY = ["hotel_id", "checkin_date", "category", "board"]
 
+from config.constants import SIGNAL_THRESHOLD_HIGH, SIGNAL_THRESHOLD_MEDIUM
+
 # Thresholds
-P_THRESHOLD_HIGH = 0.70   # High-confidence signal
-P_THRESHOLD_MED  = 0.60   # Medium-confidence signal
+P_THRESHOLD_HIGH = SIGNAL_THRESHOLD_HIGH   # High-confidence signal
+P_THRESHOLD_MED  = SIGNAL_THRESHOLD_MEDIUM   # Medium-confidence signal
 BREACH_THRESHOLDS = (-5.0, -10.0)
 
 
@@ -125,7 +127,7 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 "recommendation":   rec,
                 "confidence":       conf,
             })
-        except Exception as exc:
+        except (KeyError, ValueError, TypeError, AttributeError, ZeroDivisionError) as exc:
             logger.debug("options signal failed for %s: %s", detail_id, exc)
             continue
 

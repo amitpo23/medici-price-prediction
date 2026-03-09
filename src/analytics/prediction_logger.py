@@ -45,7 +45,7 @@ def _write_event(filename_prefix: str, event: dict):
         line = json.dumps(event, default=str, ensure_ascii=False)
         with open(path, "a", encoding="utf-8") as f:
             f.write(line + "\n")
-    except Exception as e:
+    except (FileNotFoundError, OSError, ValueError, TypeError) as e:
         logger.debug("Failed to write %s event: %s", filename_prefix, e)
 
 
@@ -213,7 +213,7 @@ def _load_logs(prefix: str, days_back: int) -> list[dict]:
                     line = line.strip()
                     if line:
                         events.append(json.loads(line))
-        except Exception as e:
+        except (FileNotFoundError, OSError, ValueError) as e:
             logger.warning("Failed to read log file %s: %s", path, e)
 
     return events
@@ -236,8 +236,8 @@ def get_log_stats() -> dict:
             try:
                 with open(f) as fh:
                     total_lines += sum(1 for _ in fh)
-            except Exception:
-                pass
+            except (FileNotFoundError, OSError) as e:
+                logger.warning("Failed to count lines in %s: %s", f, e)
         stats["files"][prefix] = {
             "count": len(files),
             "total_events": total_lines,

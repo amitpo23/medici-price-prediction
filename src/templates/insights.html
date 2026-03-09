@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Medici Price Insights{% endblock %}
+
+{% block extra_css %}
+.container{max-width:1300px;margin:0 auto;padding:0 24px;}
+.header{background:linear-gradient(135deg,#1e1b4b,#312e81);padding:32px 0;border-bottom:1px solid var(--border);}
+.header h1{font-size:2em;font-weight:700;background:linear-gradient(135deg,#c7d2fe,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header p{color:var(--text-dim);margin-top:6px;}
+.nav-links{display:flex;gap:16px;padding:10px 0;}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:0.85em;}
+.nav-links a:hover{color:var(--accent2);}
+
+/* Tabs */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.tab-bar .container{display:flex;gap:0;}
+.tab-btn{padding:14px 24px;background:none;border:none;border-bottom:3px solid transparent;color:var(--text-dim);font-size:0.95em;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:inherit;}
+.tab-btn:hover{color:var(--text);background:var(--surface2);}
+.tab-btn.active{color:var(--accent2);border-bottom-color:var(--accent2);background:rgba(99,102,241,0.08);}
+.tab-badge{background:var(--surface2);padding:1px 8px;border-radius:10px;font-size:0.8em;margin-left:6px;}
+.tab-content{display:none;padding:24px 0;}
+.tab-content.active{display:block;}
+
+/* Hotel headers */
+.hotel-header{font-size:1.2em;font-weight:700;color:var(--accent2);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.hotel-header:first-child{margin-top:0;}
+.hotel-summary{font-size:0.7em;font-weight:400;color:var(--text-dim);margin-left:12px;}
+
+/* Insight rows (Tab 1) */
+.date-group{margin:8px 0 16px;}
+.date-label{font-size:0.85em;color:var(--text-dim);padding:6px 0;font-weight:500;}
+.insight-row{
+    display:grid;grid-template-columns:140px 80px 30px 80px 70px 120px 100px 1fr 60px;
+    gap:8px;align-items:center;padding:8px 12px;background:var(--surface);
+    border:1px solid var(--border);border-radius:8px;margin:4px 0;font-size:0.88em;
+}
+.insight-row:hover{border-color:var(--accent);}
+.insight-row.alert-warning{border-left:3px solid var(--red);}
+.insight-row.alert-watch{border-left:3px solid var(--yellow);}
+.row-room{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-price{font-weight:600;text-align:right;}
+.row-arrow{color:var(--text-dim);text-align:center;}
+.row-trend{font-weight:600;white-space:nowrap;}
+.trend-up{color:var(--red);}
+.trend-down{color:var(--green);}
+.trend-stable{color:#3b82f6;}
+.row-signal{color:var(--cyan);font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-regime{color:var(--text-dim);font-size:0.82em;white-space:nowrap;}
+.row-best{font-size:0.82em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.row-id{color:var(--text-dim);font-size:0.78em;text-align:right;}
+
+/* Comparison rows (Tab 2 & 3) */
+.comp-row{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:4px 0;}
+.comp-row-header{
+    display:grid;grid-template-columns:140px 160px 80px 80px 1fr 30px;
+    gap:8px;align-items:center;padding:10px 14px;cursor:pointer;font-size:0.88em;
+}
+.comp-row-header:hover{background:var(--surface2);}
+.comp-room{font-weight:600;}
+.comp-date{color:var(--text-dim);font-size:0.85em;}
+.comp-now{font-weight:600;text-align:right;}
+.comp-match-count{color:var(--accent2);font-weight:500;}
+.comp-toggle{color:var(--text-dim);transition:transform 0.2s;}
+.comp-toggle.open{transform:rotate(90deg);}
+.comp-detail{padding:0 14px 14px;}
+.comp-table{width:100%;border-collapse:collapse;font-size:0.85em;}
+.comp-table th{background:var(--surface2);padding:8px 10px;text-align:left;font-weight:600;color:var(--text);border-bottom:2px solid var(--border);}
+.comp-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-dim);}
+.comp-table tbody tr:hover td{background:rgba(99,102,241,0.05);}
+.comp-table .highlight-row td{background:rgba(99,102,241,0.1);font-weight:600;color:var(--text);}
+
+.savings{color:var(--green);font-weight:600;}
+.premium{color:var(--red);font-weight:600;}
+.no-data{color:var(--text-dim);font-style:italic;padding:24px;text-align:center;}
+.footer{text-align:center;padding:32px 0;color:var(--text-dim);font-size:0.85em;border-top:1px solid var(--border);margin-top:24px;}
+
+@media (max-width:900px){
+    .insight-row{grid-template-columns:1fr 1fr;gap:4px;}
+    .comp-row-header{grid-template-columns:1fr 1fr;}
+}
+{% endblock %}
+
+{% block body %}
+{% if empty %}
+<div style="padding:40px;text-align:center;">
+<h1 style="background:linear-gradient(135deg,#c7d2fe,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">No Predictions Available</h1>
+<p>Run an analysis cycle first. The system collects prices every 3 hours.</p>
+<p style="color:var(--text-dim);font-size:0.85em;">Generated {{ now }}</p>
+</div>
+{% else %}
+
+<div class="header">
+<div class="container">
+    <h1>Price Insights</h1>
+    <p>Forward curve analysis &mdash; when prices go up, when they drop, and how they compare to today</p>
+    <div class="nav-links">
+        <a href="/api/v1/salesoffice/charts">Charts</a>
+        <a href="/api/v1/salesoffice/dashboard">Dashboard</a>
+        <a href="/api/v1/salesoffice/info">Documentation</a>
+        <a href="/api/v1/salesoffice/data">Raw Data</a>
+    </div>
+</div>
+</div>
+
+<div class="tab-bar">
+<div class="container">
+    <button class="tab-btn active" onclick="switchTab('insights',this)">Insights <span class="tab-badge">{{ total_rooms }}</span></button>
+    <button class="tab-btn" onclick="switchTab('below',this)">Days Below Today <span class="tab-badge savings">{{ below_count }}</span></button>
+    <button class="tab-btn" onclick="switchTab('above',this)">Days Above Today <span class="tab-badge premium">{{ above_count }}</span></button>
+</div>
+</div>
+
+<div class="container">
+    <div id="tab-insights" class="tab-content active">
+    {% for hotel in insights_hotels %}
+        <div class="hotel-section">
+            <h3 class="hotel-header">{{ hotel.name }}
+                <span class="hotel-summary">{{ hotel.n_rooms }} rooms &middot;
+                    <span class="{{ 'premium' if hotel.avg_change > 0 else 'savings' }}">{{ '%+.1f'|format(hotel.avg_change) }}% avg</span>
+                    &middot; {{ hotel.rising }} rising, {{ hotel.dropping }} dropping, {{ hotel.stable }} stable
+                </span>
+            </h3>
+            {% for dg in hotel.date_groups %}
+            <div class="date-group">
+                <div class="date-label">Check-in: {{ dg.date_from }} ({{ dg.days }}d away) &mdash; {{ dg.rooms|length }} rooms</div>
+                {% for room in dg.rooms %}
+                <div class="insight-row {{ room.row_cls }}">
+                    <span class="row-room">{{ room.category }} / {{ room.board }}</span>
+                    <span class="row-price">${{ "{:,.0f}".format(room.current) }}</span>
+                    <span class="row-arrow">&rarr;</span>
+                    <span class="row-price">${{ "{:,.0f}".format(room.predicted) }}</span>
+                    <span class="row-trend {{ room.trend_cls }}">{{ room.trend_icon }} {{ room.trend_text }}</span>
+                    <span class="row-signal">{{ room.mom_signal }}</span>
+                    <span class="row-regime">{{ room.regime_name }}</span>
+                    <span class="row-best">
+                        {% if room.best_low %}<span class="savings">Low: ${{ "{:,.0f}".format(room.best_low.price) }} ({{ room.best_low.date }})</span>{% endif %}
+                        {% if room.best_high %} <span class="premium">High: ${{ "{:,.0f}".format(room.best_high.price) }} ({{ room.best_high.date }})</span>{% endif %}
+                    </span>
+                    <span class="row-id">#{{ room.detail_id }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+    </div>
+
+    <div id="tab-below" class="tab-content">
+    {% if not below_hotels %}
+        <div class="no-data">No predicted days below current prices found</div>
+    {% endif %}
+    {% for hotel in below_hotels %}
+        <h3 class="hotel-header">{{ hotel.name }}
+            <span class="hotel-summary">{{ hotel.total_count }} day-room pairs below today's price</span>
+        </h3>
+        {% for room in hotel.rooms %}
+        <div class="comp-row">
+            <div class="comp-row-header" onclick="toggle('{{ room.uid }}')">
+                <span class="comp-room">{{ room.category }} / {{ room.board }}</span>
+                <span class="comp-date">Check-in: {{ room.date_from }} ({{ room.days }}d)</span>
+                <span class="comp-now">${{ "{:,.0f}".format(room.current) }}</span>
+                <span class="comp-match-count">{{ room.n_matching }} days</span>
+                <span class="{{ room.summary_cls }}">{{ room.summary_text }}</span>
+                <span class="comp-toggle" id="arrow_{{ room.uid }}">&#9654;</span>
+            </div>
+            <div class="comp-detail" id="{{ room.uid }}" style="display:none">
+                <table class="comp-table">
+                    <thead><tr>
+                        <th>Date</th><th>Day</th><th>T</th>
+                        <th>Predicted</th><th>vs Today</th><th>95% Range</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for d in room.matching %}
+                    <tr class="{{ 'highlight-row' if d.is_highlight else '' }}">
+                        <td>{{ d.date }}</td><td>{{ d.dow }}</td>
+                        <td>{{ d.days_remaining }}d</td>
+                        <td>${{ "{:,.0f}".format(d.predicted_price) }}</td>
+                        <td class="{{ d.diff_cls }}">${{ "{:+,.0f}".format(d.diff) }} ({{ "%+.1f"|format(d.diff_pct) }}%)</td>
+                        <td>${{ "{:,.0f}".format(d.lower_bound) }} - ${{ "{:,.0f}".format(d.upper_bound) }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    {% endfor %}
+    </div>
+
+    <div id="tab-above" class="tab-content">
+    {% if not above_hotels %}
+        <div class="no-data">No predicted days above current prices found</div>
+    {% endif %}
+    {% for hotel in above_hotels %}
+        <h3 class="hotel-header">{{ hotel.name }}
+            <span class="hotel-summary">{{ hotel.total_count }} day-room pairs above today's price</span>
+        </h3>
+        {% for room in hotel.rooms %}
+        <div class="comp-row">
+            <div class="comp-row-header" onclick="toggle('{{ room.uid }}')">
+                <span class="comp-room">{{ room.category }} / {{ room.board }}</span>
+                <span class="comp-date">Check-in: {{ room.date_from }} ({{ room.days }}d)</span>
+                <span class="comp-now">${{ "{:,.0f}".format(room.current) }}</span>
+                <span class="comp-match-count">{{ room.n_matching }} days</span>
+                <span class="{{ room.summary_cls }}">{{ room.summary_text }}</span>
+                <span class="comp-toggle" id="arrow_{{ room.uid }}">&#9654;</span>
+            </div>
+            <div class="comp-detail" id="{{ room.uid }}" style="display:none">
+                <table class="comp-table">
+                    <thead><tr>
+                        <th>Date</th><th>Day</th><th>T</th>
+                        <th>Predicted</th><th>vs Today</th><th>95% Range</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for d in room.matching %}
+                    <tr class="{{ 'highlight-row' if d.is_highlight else '' }}">
+                        <td>{{ d.date }}</td><td>{{ d.dow }}</td>
+                        <td>{{ d.days_remaining }}d</td>
+                        <td>${{ "{:,.0f}".format(d.predicted_price) }}</td>
+                        <td class="{{ d.diff_cls }}">${{ "{:+,.0f}".format(d.diff) }} ({{ "%+.1f"|format(d.diff_pct) }}%)</td>
+                        <td>${{ "{:,.0f}".format(d.lower_bound) }} - ${{ "{:,.0f}".format(d.upper_bound) }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    {% endfor %}
+    </div>
+</div>
+
+<div class="footer">
+    <p>Medici Price Prediction Engine &mdash; Generated {{ now }} &mdash; {{ total_rooms }} rooms analyzed</p>
+</div>
+
+<script>
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+}
+function toggle(id) {
+    const el = document.getElementById(id);
+    const arrow = document.getElementById('arrow_' + id);
+    if (el.style.display === 'none') {
+        el.style.display = 'block';
+        arrow.classList.add('open');
+    } else {
+        el.style.display = 'none';
+        arrow.classList.remove('open');
+    }
+}
+</script>
+{% endif %}
+{% endblock %}

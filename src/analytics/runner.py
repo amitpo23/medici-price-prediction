@@ -76,72 +76,71 @@ def run_cycle() -> dict | None:
 
 
 def print_summary(analysis: dict) -> None:
-    """Print a text summary to console."""
+    """Log a text summary of the analysis results."""
     stats = analysis.get("statistics", {})
     hotels = analysis.get("hotels", [])
     predictions = analysis.get("predictions", {})
     bw = analysis.get("booking_window", {})
 
-    print("\n" + "=" * 70)
-    print(f"  SALESOFFICE PRICE ANALYSIS - {analysis.get('run_ts', '')}")
-    print("=" * 70)
+    logger.info("SALESOFFICE PRICE ANALYSIS - %s", analysis.get("run_ts", ""))
+    logger.info(
+        "Rooms: %d | Hotels: %d | Price: $%s–$%s (avg $%s) | Inventory: $%s",
+        stats.get("total_rooms", 0),
+        stats.get("total_hotels", 0),
+        f"{stats.get('price_min', 0):,.0f}",
+        f"{stats.get('price_max', 0):,.0f}",
+        f"{stats.get('price_mean', 0):,.0f}",
+        f"{stats.get('total_inventory_value', 0):,.0f}",
+    )
 
-    print(f"\n  Total Rooms: {stats.get('total_rooms', 0)} | Hotels: {stats.get('total_hotels', 0)}")
-    print(f"  Price: ${stats.get('price_min', 0):,.0f} - ${stats.get('price_max', 0):,.0f} "
-          f"(avg: ${stats.get('price_mean', 0):,.0f}, median: ${stats.get('price_median', 0):,.0f})")
-    print(f"  Total Inventory Value: ${stats.get('total_inventory_value', 0):,.0f}")
-    print(f"  Avg Days to Check-in: {stats.get('avg_days_to_checkin', 0):.0f}")
-
-    print(f"\n  {'Hotel':<35} {'Rooms':>6} {'Min':>8} {'Avg':>8} {'Max':>8} {'Std':>8}")
-    print("  " + "-" * 75)
     for h in hotels:
-        print(f"  {h['hotel_name'][:35]:<35} {h['total_rooms']:>6} "
-              f"${h['price_min']:>7,.0f} ${h['price_mean']:>7,.0f} "
-              f"${h['price_max']:>7,.0f} ${h['price_std']:>7,.0f}")
+        logger.info(
+            "  %s: %d rooms, $%s–$%s (avg $%s)",
+            h["hotel_name"][:35], h["total_rooms"],
+            f"{h['price_min']:,.0f}", f"{h['price_max']:,.0f}", f"{h['price_mean']:,.0f}",
+        )
 
-    # Category breakdown
     by_cat = stats.get("by_category", {})
     if by_cat:
-        print(f"\n  By Category:")
         for cat, info in by_cat.items():
-            print(f"    {cat}: {info['count']} rooms, avg ${info['avg_price']:,.0f}")
+            logger.info("  Category %s: %d rooms, avg $%s", cat, info["count"], f"{info['avg_price']:,.0f}")
 
-    # Booking window
     windows = bw.get("windows", [])
     if windows:
-        print(f"\n  Booking Window (correlation: {bw.get('price_days_correlation', 0)}):")
+        logger.info("Booking window correlation: %s", bw.get("price_days_correlation", 0))
         for w in windows:
-            print(f"    {w['window']}: {w['rooms']} rooms, avg ${w['avg_price']:,.0f} "
-                  f"(${w['min_price']:,.0f}–${w['max_price']:,.0f})")
+            logger.info("  %s: %d rooms, avg $%s", w["window"], w["rooms"], f"{w['avg_price']:,.0f}")
 
-    # Predictions summary
     if predictions:
         increases = sum(1 for p in predictions.values() if p.get("expected_change_pct", 0) > 0)
         decreases = sum(1 for p in predictions.values() if p.get("expected_change_pct", 0) < 0)
         avg_change = sum(p.get("expected_change_pct", 0) for p in predictions.values()) / len(predictions)
-        print(f"\n  Predictions ({len(predictions)} rooms):")
-        print(f"    Expected increases: {increases} | Decreases: {decreases}")
-        print(f"    Avg expected change: {avg_change:+.1f}%")
+        logger.info(
+            "Predictions: %d rooms, %d increases, %d decreases, avg change %+.1f%%",
+            len(predictions), increases, decreases, avg_change,
+        )
 
-        # Top 5 biggest expected changes
         sorted_preds = sorted(predictions.values(), key=lambda p: abs(p.get("expected_change_pct", 0)), reverse=True)
-        print(f"\n  Top 5 Expected Changes:")
         for p in sorted_preds[:5]:
-            print(f"    {p['hotel_name'][:25]} | {p['category']}/{p['board']} | "
-                  f"{p['date_from'][:10]} | ${p['current_price']:,.0f} -> ${p['predicted_checkin_price']:,.0f} "
-                  f"({p['expected_change_pct']:+.1f}%)")
+            logger.info(
+                "  Top change: %s | $%s -> $%s (%+.1f%%)",
+                p["hotel_name"][:25],
+                f"{p['current_price']:,.0f}",
+                f"{p['predicted_checkin_price']:,.0f}",
+                p["expected_change_pct"],
+            )
 
-    # Price changes
     changes = analysis.get("price_changes", {})
     if changes.get("changes"):
-        print(f"\n  Price Changes ({changes['total_changes']} detected):")
+        logger.info("Price changes: %d detected", changes["total_changes"])
         for c in changes["changes"][:5]:
-            print(f"    {c['hotel_name'][:25]} | {c['date_from'][:10]} | "
-                  f"${c['old_price']:,.0f} -> ${c['new_price']:,.0f} ({c['change_pct']:+.1f}%)")
+            logger.info(
+                "  %s | %s | $%s -> $%s (%+.1f%%)",
+                c["hotel_name"][:25], c["date_from"][:10],
+                f"{c['old_price']:,.0f}", f"{c['new_price']:,.0f}", c["change_pct"],
+            )
     elif changes.get("note"):
-        print(f"\n  Price Changes: {changes['note']}")
-
-    print("\n" + "=" * 70)
+        logger.info("Price changes: %s", changes["note"])
 
 
 def run_scheduler(interval_seconds: int = HOUR) -> None:
@@ -156,7 +155,7 @@ def run_scheduler(interval_seconds: int = HOUR) -> None:
                 analysis = run_cycle()
                 if analysis:
                     print_summary(analysis)
-            except Exception as e:
+            except (OSError, ConnectionError, ValueError, RuntimeError) as e:
                 logger.error("Cycle failed: %s", e, exc_info=True)
             stop.wait(interval_seconds)
 
@@ -180,18 +179,15 @@ def main():
     parser.add_argument("--analyze-only", action="store_true", help="Only run analysis on existing data")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    from src.utils.logging_config import configure_logging
+    configure_logging()
 
     init_db()
 
     if args.collect_only:
         df = collect_prices()
         if not df.empty:
-            print(f"Collected {len(df)} rooms from {df['hotel_id'].nunique()} hotels")
+            logger.info("Collected %d rooms from %d hotels", len(df), df["hotel_id"].nunique())
         return
 
     if args.analyze_only:
@@ -199,9 +195,9 @@ def main():
         if "error" not in analysis:
             report_path = generate_report(analysis)
             print_summary(analysis)
-            print(f"\nReport: {report_path}")
+            logger.info("Report: %s", report_path)
         else:
-            print(f"Error: {analysis['error']}")
+            logger.error("Analysis error: %s", analysis["error"])
         return
 
     if args.schedule:

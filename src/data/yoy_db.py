@@ -47,7 +47,7 @@ def load_salesoffice_scan_history(hotel_ids: list[int]) -> pd.DataFrame:
     """
     try:
         df = run_trading_query(sql)
-    except Exception as e:
+    except (OSError, ConnectionError, TimeoutError, ValueError) as e:
         logger.warning("SalesOffice YoY query failed: %s", e)
         return pd.DataFrame()
 
@@ -95,7 +95,7 @@ def load_med_search_scan_history(hotel_ids: list[int]) -> pd.DataFrame:
     """
     try:
         df = run_trading_query(sql)
-    except Exception as e:
+    except (OSError, ConnectionError, TimeoutError, ValueError) as e:
         logger.warning("MED_SearchHotels YoY query failed: %s", e)
         return pd.DataFrame()
 

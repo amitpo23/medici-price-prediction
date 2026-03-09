@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+import logging
 
 import pandas as pd
 import requests
 
 from src.collectors.base import BaseCollector
 from config.settings import ISRAEL_CITIES
+
+logger = logging.getLogger(__name__)
 
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -26,7 +29,8 @@ class WeatherCollector(BaseCollector):
                 "forecast_days": 1,
             }, timeout=5)
             return r.status_code == 200
-        except Exception:
+        except (requests.RequestException, ConnectionError, TimeoutError) as e:
+            logger.warning(f"Open-Meteo API not available: {e}")
             return False
 
     def collect(
@@ -83,7 +87,8 @@ class WeatherCollector(BaseCollector):
                     "weather_code": data["weather_code"],
                 })
                 all_data.append(df)
-            except Exception:
+            except (requests.RequestException, KeyError, ValueError) as e:
+                logger.warning(f"Failed to fetch weather forecast for {city}: {e}")
                 continue
 
         if not all_data:
@@ -111,5 +116,6 @@ class WeatherCollector(BaseCollector):
                 "precipitation_mm": data["precipitation_sum"],
                 "weather_code": data["weather_code"],
             })
-        except Exception:
+        except (requests.RequestException, KeyError, ValueError) as e:
+            logger.warning(f"Failed to fetch historical weather for {city}: {e}")
             return pd.DataFrame()

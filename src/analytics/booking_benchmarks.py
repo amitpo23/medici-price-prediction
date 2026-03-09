@@ -103,7 +103,7 @@ def _load_benchmarks() -> dict:
                 _benchmarks.get("source", "unknown"),
             )
             return _benchmarks
-        except Exception as exc:
+        except (FileNotFoundError, OSError, ValueError, KeyError) as exc:
             logger.warning("Failed to load benchmarks file, using embedded data: %s", exc)
 
     _benchmarks = _EMBEDDED_DATA

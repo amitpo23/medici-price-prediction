@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from datetime import date
+import json
+import logging
 
 import pandas as pd
 import requests
@@ -9,6 +11,8 @@ from bs4 import BeautifulSoup
 
 from src.collectors.base import BaseCollector
 from config.settings import PREDICTHQ_API_KEY
+
+logger = logging.getLogger(__name__)
 
 HEBCAL_URL = "https://www.hebcal.com/hebcal"
 
@@ -25,7 +29,8 @@ class EventsCollector(BaseCollector):
                 "maj": "on", "min": "on",
             }, timeout=5)
             return r.status_code == 200
-        except Exception:
+        except (requests.RequestException, ConnectionError, TimeoutError) as e:
+            logger.warning(f"Hebcal API not available: {e}")
             return False
 
     def collect(self, year: int | None = None, city: str | None = None, **kwargs) -> pd.DataFrame:
@@ -54,7 +59,8 @@ class EventsCollector(BaseCollector):
             }, timeout=10)
             r.raise_for_status()
             items = r.json().get("items", [])
-        except Exception:
+        except (requests.RequestException, json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.warning(f"Failed to fetch Hebcal holidays for year {year}: {e}")
             return pd.DataFrame()
 
         records = []
@@ -104,7 +110,8 @@ class EventsCollector(BaseCollector):
             )
             r.raise_for_status()
             results = r.json().get("results", [])
-        except Exception:
+        except (requests.RequestException, json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.warning(f"Failed to fetch PredictHQ events for year {year}: {e}")
             return pd.DataFrame()
 
         records = []
@@ -161,5 +168,6 @@ class EventsCollector(BaseCollector):
                 df["start_date"] = pd.to_datetime(df["start_date"], errors="coerce")
                 df["end_date"] = pd.to_datetime(df["end_date"], errors="coerce")
             return df
-        except Exception:
+        except (requests.RequestException, ConnectionError, TimeoutError, ValueError) as e:
+            logger.warning(f"Failed to scrape Israeli expos for year {year}: {e}")
             return pd.DataFrame()

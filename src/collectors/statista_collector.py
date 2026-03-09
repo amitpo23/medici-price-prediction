@@ -11,12 +11,15 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import logging
 from pathlib import Path
 
 import pandas as pd
 
 from config.settings import DATA_DIR, PROCESSED_DATA_DIR
 from src.collectors.base import BaseCollector
+
+logger = logging.getLogger(__name__)
 
 
 class StatistaCollector(BaseCollector):
@@ -171,7 +174,8 @@ class StatistaCollector(BaseCollector):
     def _parse_json_file(self, path: Path, city: str) -> list[dict]:
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to read JSON file {path}: {e}")
             return []
 
         source_name = self._extract_source_name(payload, default="trivago_statista")
@@ -182,7 +186,8 @@ class StatistaCollector(BaseCollector):
     def _parse_csv_file(self, path: Path, city: str) -> list[dict]:
         try:
             df = pd.read_csv(path)
-        except Exception:
+        except (FileNotFoundError, OSError, ValueError) as e:
+            logger.warning(f"Failed to read CSV file {path}: {e}")
             return []
 
         if df.empty:
@@ -328,7 +333,7 @@ class StatistaCollector(BaseCollector):
         try:
             parsed = pd.to_datetime(text, errors="raise")
             return int(parsed.month), parsed.strftime("%B")
-        except Exception:
+        except (ValueError, TypeError):
             return None, None
 
     @staticmethod
@@ -350,5 +355,5 @@ class StatistaCollector(BaseCollector):
         )
         try:
             return float(cleaned)
-        except Exception:
+        except (ValueError, TypeError):
             return None

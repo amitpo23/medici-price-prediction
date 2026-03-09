@@ -13,12 +13,13 @@ All endpoints are advisory only — no actions are executed.
 """
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from config.settings import PREDICTION_API_KEY
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["trading-integration"])
 
@@ -27,7 +28,9 @@ router = APIRouter(prefix="/api/v1", tags=["trading-integration"])
 
 def verify_api_key(x_api_key: str = Header(default="")) -> str:
     """Validate API key if one is configured."""
-    if PREDICTION_API_KEY and x_api_key != PREDICTION_API_KEY:
+    from src.api.middleware import verify_api_key as _check
+    if not _check(x_api_key):
+        logger.warning("Failed auth attempt with key prefix: %s...", x_api_key[:8] if x_api_key else "(empty)")
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
     return x_api_key
 
@@ -111,7 +114,7 @@ def trading_health():
             "status": "ok" if connected else "disconnected",
             "message": "Trading DB accessible" if connected else "Cannot reach medici-db — check MEDICI_DB_URL",
         }
-    except Exception as e:
+    except (OSError, ConnectionError, ValueError) as e:
         return {
             "trading_db_connected": False,
             "status": "error",
@@ -160,8 +163,8 @@ def analyze_opportunity(
                 hotel_row = metrics_df[metrics_df["HotelId"] == request.hotel_id]
                 if not hotel_row.empty:
                     hotel_metrics = hotel_row.iloc[0].to_dict()
-        except Exception:
-            pass
+        except (OSError, ConnectionError, ValueError) as e:
+            logger.warning("Failed to load trading metrics for hotel %d: %s", request.hotel_id, e)
 
     # Pick best supplier if multiple options provided
     best_buy_price = request.buy_price
@@ -387,8 +390,8 @@ def _get_predicted_price(hotel_id: int, date_from: str) -> float:
             predictions = _forecaster.predict(n_days=30)
             if not predictions.empty:
                 return float(predictions["predicted_price"].mean())
-    except Exception:
-        pass
+    except (ValueError, TypeError, KeyError, OSError) as e:
+        logger.warning("ML price prediction failed for hotel %d: %s", hotel_id, e)
 
     # Fallback: use historical average from trading data
     try:
@@ -400,8 +403,8 @@ def _get_predicted_price(hotel_id: int, date_from: str) -> float:
                 if not hotel_bookings.empty:
                     return float(hotel_bookings["PushPrice"].mean())
                 return float(bookings["PushPrice"].mean())
-    except Exception:
-        pass
+    except (OSError, ConnectionError, ValueError) as e:
+        logger.warning("DB fallback price lookup failed for hotel %d: %s", hotel_id, e)
 
     return 250.0  # Last resort default
 
@@ -419,8 +422,8 @@ def _get_confidence_interval(
                     float(predictions["lower_80"].mean()),
                     float(predictions["upper_80"].mean()),
                 )
-    except Exception:
-        pass
+    except (ValueError, TypeError, KeyError, OSError) as e:
+        logger.warning("Confidence interval prediction failed for hotel %d: %s", hotel_id, e)
     return None
 
 
@@ -437,8 +440,8 @@ def _get_occupancy_forecast(hotel_id: int, date_from: str) -> float | None:
             result = _occupancy_predictor.predict(future)
             if "predicted_occupancy" in result.columns:
                 return float(result["predicted_occupancy"].iloc[0])
-    except Exception:
-        pass
+    except (ValueError, TypeError, KeyError, OSError) as e:
+        logger.warning("Occupancy forecast failed for hotel %d: %s", hotel_id, e)
     return None
 
 
@@ -452,8 +455,8 @@ def _get_competitor_price(hotel_id: int) -> float | None:
                 market = collector.collect_cached(cache_key="market_snapshot")
                 if not market.empty and "price" in market.columns:
                     return float(market["price"].mean())
-    except Exception:
-        pass
+    except (ConnectionError, TimeoutError, ValueError) as e:
+        logger.warning("Competitor price lookup failed for hotel %d: %s", hotel_id, e)
     return None
 
 
@@ -482,8 +485,8 @@ def _get_seasonal_context(date_str: str) -> dict:
                 if hasattr(holiday, "date") and holiday.date == hd:
                     is_holiday = True
                     break
-        except Exception:
-            pass
+        except ImportError:
+            logger.warning("pyluach not installed — Hebrew holiday detection disabled")
 
         return {
             "season": season_map.get(month, "unknown"),
@@ -491,5 +494,6 @@ def _get_seasonal_context(date_str: str) -> dict:
             "is_weekend": dt.dayofweek in (4, 5),
             "month": month,
         }
-    except Exception:
+    except (ValueError, TypeError) as e:
+        logger.warning("Failed to parse seasonal context from date '%s': %s", date_str, e)
         return {"season": "unknown", "is_holiday": False, "is_weekend": False}

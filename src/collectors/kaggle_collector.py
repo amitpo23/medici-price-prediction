@@ -1,5 +1,6 @@
 """Collect hotel pricing datasets from Kaggle."""
 
+import logging
 import os
 import zipfile
 from pathlib import Path
@@ -8,6 +9,8 @@ import pandas as pd
 
 from src.collectors.base import BaseCollector
 from config.settings import KAGGLE_USERNAME, KAGGLE_KEY, RAW_DATA_DIR
+
+logger = logging.getLogger(__name__)
 
 
 class KaggleCollector(BaseCollector):
@@ -35,7 +38,8 @@ class KaggleCollector(BaseCollector):
             api = KaggleApi()
             api.authenticate()
             return True
-        except Exception:
+        except (ImportError, ConnectionError, OSError) as e:
+            logger.warning(f"Kaggle API not available: {e}")
             return False
 
     def collect(self, dataset_key: str = "hotel_booking_demand", **kwargs) -> pd.DataFrame:

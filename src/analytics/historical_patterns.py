@@ -65,7 +65,7 @@ class HistoricalPatternMiner:
                     "Historical patterns: loaded %d SalesOffice records",
                     len(self._historical_df),
                 )
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, ValueError) as e:
             logger.warning("Failed to load SalesOffice history: %s", e)
             self._historical_df = pd.DataFrame()
 
@@ -78,7 +78,7 @@ class HistoricalPatternMiner:
                     "Historical patterns: loaded %d tprice records",
                     len(self._tprice_df),
                 )
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, ValueError) as e:
             logger.warning("Failed to load tprice: %s", e)
             self._tprice_df = pd.DataFrame()
 
@@ -91,7 +91,7 @@ class HistoricalPatternMiner:
                     "Historical patterns: loaded %d booking records",
                     len(self._bookings_df),
                 )
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, ValueError) as e:
             logger.warning("Failed to load bookings: %s", e)
             self._bookings_df = pd.DataFrame()
 
@@ -99,7 +99,8 @@ class HistoricalPatternMiner:
         try:
             from src.analytics.booking_benchmarks import get_seasonality_all
             self._seasonality = get_seasonality_all()
-        except Exception:
+        except (ImportError, KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to load seasonality benchmarks: %s", e)
             self._seasonality = {}
 
         self._loaded = True
@@ -458,7 +459,7 @@ class HistoricalPatternMiner:
                         context["same_period"][month] = sp
 
                 contexts[(hotel_id, category)] = context
-            except Exception as e:
+            except (ValueError, TypeError, ZeroDivisionError, KeyError) as e:
                 logger.warning(
                     "Failed to mine patterns for hotel=%d cat=%s: %s",
                     hotel_id, category, e,

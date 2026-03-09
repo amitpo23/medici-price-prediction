@@ -5,7 +5,11 @@ operations are permitted. The prediction system is a decision brain only.
 """
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 
@@ -162,8 +166,8 @@ def _get_opportunities_table_name() -> str:
         )
         if not df.empty:
             return df.iloc[0]["name"]
-    except Exception:
-        pass
+    except (OSError, ConnectionError, ValueError) as e:
+        logger.warning("Could not resolve Opportunities table name: %s", e)
     return "MED_Opportunities"  # fallback
 
 
@@ -347,7 +351,7 @@ def load_market_benchmark(hotel_ids: list[int],
 
     try:
         df = run_trading_query(query, params)
-    except Exception as exc:
+    except (OSError, ConnectionError, TimeoutError, ValueError) as exc:
         logger.warning("Market benchmark query failed: %s", exc)
         return {}
 
@@ -740,7 +744,8 @@ def check_connection() -> bool:
     try:
         run_trading_query("SELECT 1 AS ok")
         return True
-    except Exception:
+    except (OSError, ConnectionError, TimeoutError, ValueError) as e:
+        logger.warning("Trading DB connection check failed: %s", e)
         return False
 
 
@@ -776,7 +781,7 @@ def load_appservice_prediction_logs(days_back: int = 90) -> pd.DataFrame:
             mom.columns = [f"mom_{c}" for c in mom.columns]
             df = pd.concat([df.drop(columns=["momentum"]), mom], axis=1)
         return df
-    except Exception as e:
+    except (FileNotFoundError, OSError, KeyError, ValueError, TypeError) as e:
         logger.warning("Failed to load prediction logs: %s", e)
         return pd.DataFrame()
 
@@ -789,7 +794,7 @@ def load_appservice_price_logs(days_back: int = 90) -> pd.DataFrame:
         if not events:
             return pd.DataFrame()
         return pd.DataFrame(events)
-    except Exception as e:
+    except (FileNotFoundError, OSError, KeyError, ValueError, TypeError) as e:
         logger.warning("Failed to load price logs: %s", e)
         return pd.DataFrame()
 
@@ -802,7 +807,7 @@ def load_appservice_price_change_logs(days_back: int = 90) -> pd.DataFrame:
         if not events:
             return pd.DataFrame()
         return pd.DataFrame(events)
-    except Exception as e:
+    except (FileNotFoundError, OSError, KeyError, ValueError, TypeError) as e:
         logger.warning("Failed to load price change logs: %s", e)
         return pd.DataFrame()
 

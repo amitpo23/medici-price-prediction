@@ -62,7 +62,7 @@ def download_if_missing() -> bool:
         CSV_PATH.write_bytes(r.content)
         logger.info("Downloaded %s (%.1f MB)", CSV_PATH.name, len(r.content) / 1_048_576)
         return True
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, OSError, ValueError) as exc:
         logger.warning("Failed to download Kaggle dataset: %s", exc)
         return False
 
@@ -91,7 +91,7 @@ def _load() -> pd.DataFrame | None:
         _df_cache = df
         logger.info("Kaggle hotel bookings loaded: %d rows", len(df))
         return df
-    except Exception as exc:
+    except (FileNotFoundError, OSError, ValueError, KeyError) as exc:
         logger.warning("Failed to load Kaggle dataset: %s", exc)
         return None
 

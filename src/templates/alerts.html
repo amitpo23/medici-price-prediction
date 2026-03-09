@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Price Alerts — Medici{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+.container{max-width:1400px;margin:0 auto;padding:20px 24px;}
+h1{font-size:1.8em;background:linear-gradient(135deg,#fca5a5,#ef4444);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+.subtitle{color:var(--text-dim);margin-bottom:24px;}
+.kpi-row{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+padding:16px 24px;flex:1;min-width:150px;text-align:center;}
+.kpi .val{font-size:2em;font-weight:700;}
+.kpi .label{color:var(--text-dim);font-size:0.85em;margin-top:4px;}
+.alerts-section{margin-bottom:32px;}
+.alerts-section h2{color:var(--text);margin-bottom:16px;font-size:1.2em;}
+.alert-card{display:flex;gap:12px;align-items:center;background:var(--surface);
+border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:8px;}
+.alert-critical{border-left:4px solid var(--red);}
+.alert-warning{border-left:4px solid var(--yellow);}
+.alert-info{border-left:4px solid #3b82f6;}
+.alert-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+justify-content:center;font-weight:700;font-size:1.1em;flex-shrink:0;}
+.alert-critical .alert-icon{background:rgba(239,68,68,0.2);color:var(--red);}
+.alert-warning .alert-icon{background:rgba(234,179,8,0.2);color:var(--yellow);}
+.alert-info .alert-icon{background:rgba(99,102,241,0.2);color:var(--accent);}
+.alert-hotel{font-weight:600;font-size:0.95em;}
+.alert-msg{color:var(--text-dim);font-size:0.9em;}
+.no-alerts{background:var(--surface);border:1px solid var(--green);border-radius:8px;
+padding:24px;text-align:center;color:var(--green);}
+.hotels-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin:24px 0;}
+.hotel-alert-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.hotel-alert-card h3{color:var(--accent2);margin-bottom:12px;font-size:1.05em;}
+.alert-stats{display:flex;gap:24px;}
+.alert-stat{text-align:center;}
+.alert-stat .val{display:block;font-size:1.6em;font-weight:700;}
+.alert-stat .lbl{color:var(--text-dim);font-size:0.8em;}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+padding:16px;margin:24px 0;}
+.chart-box h3{color:var(--text-dim);margin-bottom:12px;}
+{% endblock %}
+
+{% set alert_icons = {"critical": "!!", "warning": "!", "info": "i"} %}
+{% set severity_colors = {"critical": "var(--red)", "warning": "var(--yellow)", "caution": "var(--orange, #f97316)", "normal": "var(--green)"} %}
+
+{% block nav %}
+{% include "partials/nav.html" %}
+{% endblock %}
+
+{% block body %}
+<div class="container">
+<h1>Price Alert System</h1>
+<p class="subtitle">Real-time monitoring of contracts breaching -5% and -10% thresholds</p>
+
+<div class="kpi-row">
+    <div class="kpi"><div class="val" style="color:{{ 'var(--red)' if n_critical > 0 else 'var(--green)' }};">{{ n_alerts }}</div><div class="label">Active Alerts</div></div>
+    <div class="kpi"><div class="val" style="color:var(--red);">{{ n_critical }}</div><div class="label">Critical</div></div>
+    <div class="kpi"><div class="val">{{ n_hotels }}</div><div class="label">Hotels Monitored</div></div>
+</div>
+
+<div class="alerts-section">
+    <h2>Active Alerts</h2>
+    {% if not alerts %}
+    <div class="no-alerts">No active alerts — all contracts within normal range</div>
+    {% else %}
+    {% for a in alerts %}
+    <div class="alert-card alert-{{ a.type }}">
+        <div class="alert-icon">{{ alert_icons.get(a.type, '?') }}</div>
+        <div class="alert-body">
+            <div class="alert-hotel">{{ a.hotel }}</div>
+            <div class="alert-msg">{{ a.message }}</div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+
+<div class="hotels-grid">
+    {% for hs in hotel_summaries_list %}
+    <div class="hotel-alert-card" style="border-left:4px solid {{ severity_colors.get(hs.severity, 'var(--border)') }};">
+        <h3>{{ hs.hotel_name }}</h3>
+        <div class="alert-stats">
+            <div class="alert-stat">
+                <span class="val" style="color:var(--yellow);">{{ "%.0f"|format(hs.breach_5_pct) }}%</span>
+                <span class="lbl">Breach -5%</span>
+            </div>
+            <div class="alert-stat">
+                <span class="val" style="color:var(--red);">{{ "%.0f"|format(hs.breach_10_pct) }}%</span>
+                <span class="lbl">Breach -10%</span>
+            </div>
+            <div class="alert-stat">
+                <span class="val">{{ hs.n_contracts }}</span>
+                <span class="lbl">Contracts ({{ hs.year }})</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="chart-box">
+    <h3>Monthly Breach Rate Trend (-5% threshold)</h3>
+    <canvas id="chartTrend"></canvas>
+</div>
+
+<footer>
+    Price Alert System | Thresholds: -5% (warning) / -10% (critical) | Generated {{ now }}<br>
+    <a href="/api/v1/salesoffice/home" style="color:var(--accent2)">Back to Home</a>
+</footer>
+</div>
+
+<script>
+const labels = {{ monthly_labels_json }};
+const datasets = {{ chart_datasets_json }};
+new Chart(document.getElementById('chartTrend'), {
+    type: 'line',
+    data: {labels, datasets},
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {labels: {color: '#8b90a0'}},
+            title: {display: false}
+        },
+        scales: {
+            x: {ticks: {color: '#8b90a0', maxRotation: 45}, grid: {color: '#2d3140'}},
+            y: {
+                ticks: {color: '#8b90a0', callback: v => v + '%'},
+                grid: {color: '#2d3140'},
+                title: {display: true, text: '% contracts breaching -5%', color: '#8b90a0'}
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,9 +1,12 @@
 """Accurate Hebrew calendar holidays using pyluach."""
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 from pyluach import dates as hebrew_dates
 from pyluach import hebrewcal
 
@@ -28,7 +31,8 @@ def _get_holiday_name(gregorian_date: date) -> str | None:
         heb = hebrew_dates.HebrewDate.from_pydate(gregorian_date)
         holiday = heb.holiday()
         return holiday if holiday else None
-    except Exception:
+    except (ValueError, TypeError, OverflowError) as e:
+        logger.warning("Hebrew date conversion failed for %s: %s", gregorian_date, e)
         return None
 
 

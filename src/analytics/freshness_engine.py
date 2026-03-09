@@ -130,7 +130,7 @@ def _check_sql_source(
             "status": status,
             "frequency": freq,
         }
-    except Exception as e:
+    except (OSError, ConnectionError, TimeoutError, ValueError) as e:
         logger.warning("Freshness check failed for %s: %s", name, e)
         return {
             "name": name, "description": description,
@@ -185,7 +185,7 @@ def _check_external(name: str, source_type: str, freq: str, now: datetime) -> di
             "status": status,
             "frequency": freq,
         }
-    except Exception as e:
+    except (FileNotFoundError, OSError, ValueError) as e:
         logger.debug("External freshness check failed for %s: %s", name, e)
         return {
             "name": name, "description": description,

@@ -75,7 +75,7 @@ def get_fred_indicators() -> dict:
                     for o in obs[:13]
                 ],
             }
-        except Exception as exc:
+        except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
             logger.debug("FRED series %s unavailable: %s", series_id, exc)
 
     return result

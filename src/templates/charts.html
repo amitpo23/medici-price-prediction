@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Medici — Chart Pack{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+.container{max-width:1400px;margin:0 auto;padding:0 24px;}
+.header{background:linear-gradient(135deg,#1e1b4b,#312e81);padding:32px 0;border-bottom:1px solid var(--border);}
+.header h1{font-size:2em;font-weight:700;background:linear-gradient(135deg,#c7d2fe,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header p{color:var(--text-dim);margin-top:6px;}
+.nav-links{display:flex;gap:16px;padding:10px 0;}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:0.85em;}
+.nav-links a:hover{color:var(--accent2);}
+
+/* Tabs */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.tab-bar .container{display:flex;}
+.tab-btn{padding:14px 24px;background:none;border:none;border-bottom:3px solid transparent;color:var(--text-dim);font-size:0.95em;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:inherit;}
+.tab-btn:hover{color:var(--text);background:var(--surface2);}
+.tab-btn.active{color:var(--accent2);border-bottom-color:var(--accent2);background:rgba(99,102,241,0.08);}
+.tab-content{display:none;padding:24px 0;}
+.tab-content.active{display:block;}
+
+/* Shared */
+.hotel-header{font-size:1.2em;font-weight:700;color:var(--accent2);margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.explainer{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin:0 0 20px;font-size:0.9em;color:var(--text-dim);}
+.explainer strong{color:var(--text);}
+.savings{color:var(--green);font-weight:600;}
+.premium{color:var(--red);font-weight:600;}
+.no-data{color:var(--text-dim);font-style:italic;padding:20px 0;}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin-bottom:20px;}
+.heatmap-table{width:100%;border-collapse:collapse;font-size:0.85em;}
+.heatmap-table th{background:var(--surface2);padding:10px 12px;text-align:center;font-weight:600;color:var(--text);border-bottom:2px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;}
+.heatmap-table td{padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:0.88em;color:var(--text);}
+.heatmap-table tbody tr:hover td{filter:brightness(1.2);}
+.t-cell{font-weight:600;color:var(--accent2);text-align:right;background:var(--surface)!important;}
+.empty-cell{color:var(--text-dim);}
+
+/* Filters & Charts */
+.ts-filters{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;}
+.ts-label{font-size:0.85em;color:var(--text-dim);display:flex;flex-direction:column;gap:4px;}
+.ts-label select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:0.9em;font-family:inherit;cursor:pointer;min-width:200px;}
+.ts-label select:focus{outline:none;border-color:var(--accent);}
+.ts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:900px){.ts-grid{grid-template-columns:1fr;}}
+.ts-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.ts-panel--full{grid-column:1/-1;}
+.ts-panel-title{font-size:0.95em;font-weight:700;color:var(--accent2);margin-bottom:4px;}
+.ts-panel-desc{font-size:0.8em;color:var(--text-dim);margin-bottom:12px;line-height:1.4;}
+.ts-canvas-wrap{height:280px;position:relative;}
+.ts-canvas-wrap--bar{height:260px;}
+
+/* Contract meta tags (Tab 1) */
+.cp-meta{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:16px;}
+.cp-meta-row{display:flex;flex-wrap:wrap;gap:10px;}
+.cp-tag{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:0.82em;font-weight:500;}
+.cp-loading{display:none;align-items:center;justify-content:center;gap:12px;padding:40px;color:var(--text-dim);}
+.cp-spinner{width:24px;height:24px;border:3px solid var(--border);border-top:3px solid var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Source attribution strips */
+.source-strip{margin:0 0 16px;}
+.source-summary{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:0.82em;color:var(--text-dim);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;}
+.source-summary::-webkit-details-marker{display:none;}
+.source-summary strong{color:var(--accent2);}
+.source-toggle{color:var(--accent);font-size:0.85em;font-weight:500;}
+.source-strip[open] .source-toggle::after{content:" ▲";}
+.source-strip:not([open]) .source-toggle::after{content:" ▼";}
+.source-details{display:flex;flex-wrap:wrap;gap:10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;}
+.source-mini-card{display:flex;gap:8px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:0.8em;}
+.source-mini-name{font-weight:600;color:var(--text);}
+.source-mini-rows{color:var(--cyan);}
+.source-mini-years{color:var(--text-dim);}
+.source-mini-freq{color:var(--text-dim);font-size:0.9em;}
+.badge{padding:2px 8px;border-radius:10px;font-size:0.75em;font-weight:600;}
+.badge-live{background:rgba(34,197,94,0.15);color:var(--green);}
+.badge-archive{background:rgba(234,179,8,0.15);color:var(--yellow);}
+
+/* Coverage bar */
+.coverage-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 0;font-size:0.8em;color:var(--text-dim);}
+.coverage-bar .container{display:flex;gap:24px;flex-wrap:wrap;align-items:center;}
+.cov-item strong{color:var(--accent2);}
+
+/* Enrichment tags (Tab 1) */
+.cp-enrichments{display:flex;flex-wrap:wrap;gap:8px;padding:8px 18px;margin-bottom:12px;}
+.cp-sources-used{display:flex;flex-wrap:wrap;gap:6px;padding:4px 18px 12px;}
+.cp-tag--event{background:rgba(249,115,22,0.15);border-color:rgba(249,115,22,0.3);color:#fb923c;}
+.cp-tag--weather{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);color:#60a5fa;}
+.cp-tag--flights-high{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;}
+.cp-tag--flights-med{background:rgba(234,179,8,0.15);border-color:rgba(234,179,8,0.3);color:#fbbf24;}
+.cp-tag--flights-low{background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.3);color:#4ade80;}
+.cp-tag--xotelo{background:rgba(6,182,212,0.15);border-color:rgba(6,182,212,0.3);color:#22d3ee;}
+.cp-tag--src{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.2);color:var(--accent2);font-size:0.78em;}
+
+/* Velocity KPI row (Tab 3) */
+.kpi-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding:10px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;}
+.kpi-mini{display:flex;flex-direction:column;align-items:center;padding:8px 16px;min-width:100px;}
+.kpi-mini-value{font-size:1.3em;font-weight:700;color:var(--accent2);}
+.kpi-mini-label{font-size:0.75em;color:var(--text-dim);margin-top:2px;}
+.kpi-mini--src{justify-content:center;}
+
+.footer{text-align:center;padding:32px 0;color:var(--text-dim);font-size:0.85em;border-top:1px solid var(--border);margin-top:24px;}
+{% endblock %}
+
+{% block body %}
+<div class="header">
+<div class="container">
+    <h1>Chart Pack — Price Behavior Analysis</h1>
+    <p>Contract-level deep dive, multi-year term structure, and opportunity statistics</p>
+    <div class="nav-links">
+        <a href="/api/v1/salesoffice/home">Home</a>
+        <a href="/api/v1/salesoffice/dashboard">Dashboard</a>
+        <a href="/api/v1/salesoffice/insights">Insights</a>
+        <a href="/api/v1/salesoffice/options">Options</a>
+        <a href="/api/v1/salesoffice/yoy">Year-over-Year</a>
+        <a href="/api/v1/salesoffice/accuracy">Accuracy</a>
+        <a href="/api/v1/salesoffice/providers">Providers</a>
+        <a href="/api/v1/salesoffice/alerts">Alerts</a>
+        <a href="/api/v1/salesoffice/freshness">Freshness</a>
+        <a href="/api/v1/salesoffice/info">Docs</a>
+    </div>
+</div>
+</div>
+
+{{ coverage_bar_html }}
+
+<div class="tab-bar">
+<div class="container">
+    <button class="tab-btn active" onclick="switchTab('contract',this)">Room/Contract Path</button>
+    <button class="tab-btn" onclick="switchTab('ts3yr',this)">3-Year Term Structure</button>
+    <button class="tab-btn" onclick="switchTab('opportunity',this)">Expiry-Relative Stats</button>
+</div>
+</div>
+
+<div class="container">
+    <div id="tab-contract" class="tab-content active">{{ tab1_html }}</div>
+    <div id="tab-ts3yr" class="tab-content">{{ tab2_html }}</div>
+    <div id="tab-opportunity" class="tab-content">{{ tab3_html }}</div>
+</div>
+
+<div class="footer">
+    <p>Medici Price Prediction Engine &mdash; Chart Pack &mdash;
+    {{ footer_sources_text }}
+    Generated {{ now }}</p>
+</div>
+
+<script>
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    // Trigger render for tabs that defer rendering
+    if (name === 'ts3yr' && typeof tsRender === 'function') { tsRender(); }
+    if (name === 'opportunity' && typeof oppRender === 'function') { oppRender(); }
+}
+</script>
+{% endblock %}

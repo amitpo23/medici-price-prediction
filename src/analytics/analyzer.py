@@ -124,7 +124,7 @@ def _load_flight_demand() -> dict:
             summary.get("origins_checked", 0),
         )
         return summary
-    except Exception as e:
+    except (ImportError, OSError, ConnectionError, ValueError, KeyError) as e:
         logger.warning("Failed to load flight demand: %s", e)
         return {"indicator": "NO_DATA"}
 
@@ -147,7 +147,7 @@ def _load_events_data() -> dict:
             summary.get("upcoming_events", 0),
         )
         return summary
-    except Exception as e:
+    except (ImportError, OSError, ConnectionError, ValueError, KeyError) as e:
         logger.warning("Failed to load events data: %s", e)
         return {"total_events": 0, "upcoming_events": 0, "next_events": []}
 
@@ -163,7 +163,7 @@ def _load_hotel_knowledge() -> dict:
         total = summary.get("market", {}).get("total_hotels", 0)
         logger.info("Hotel knowledge loaded: %d Miami market hotels", total)
         return summary
-    except Exception as e:
+    except (ImportError, OSError, ConnectionError, ValueError, KeyError) as e:
         logger.warning("Failed to load hotel knowledge: %s", e)
         return {"market": {"status": "no_data"}, "our_hotels": []}
 
@@ -183,7 +183,7 @@ def _load_booking_benchmarks() -> dict:
                 summary.get("years", ""),
             )
         return summary
-    except Exception as e:
+    except (ImportError, OSError, ConnectionError, ValueError, KeyError) as e:
         logger.warning("Failed to load booking benchmarks: %s", e)
         return {"status": "no_data"}
 
@@ -207,7 +207,7 @@ def _load_historical_patterns(hotel_ids: list[int] | None = None) -> dict:
             len(patterns),
         )
         return patterns
-    except Exception as e:
+    except (ImportError, OSError, ConnectionError, ValueError, KeyError, TypeError) as e:
         logger.warning("Failed to load historical patterns: %s", e)
         _historical_patterns_cache = {}
         return {}
@@ -238,7 +238,7 @@ def run_analysis() -> dict:
     # Build empirical decay curve from historical DB data
     try:
         _decay_curve = _build_decay_curve()
-    except Exception as e:
+    except (ValueError, TypeError, KeyError, OSError) as e:
         logger.warning("Failed to build decay curve, using defaults: %s", e)
         _decay_curve = DecayCurve()
 
@@ -302,12 +302,20 @@ def run_analysis() -> dict:
     try:
         from src.analytics.collector import load_scan_history
         scan_history_df = load_scan_history()
-    except Exception as e:
+    except (ImportError, OSError, ConnectionError, ValueError) as e:
         logger.warning("Failed to load scan history from medici-db: %s", e)
         scan_history_df = pd.DataFrame()
 
     predictions = _predict_prices(all_snapshots, latest, now, scan_history_df)
     results["predictions"] = predictions
+
+    # Log predictions to accuracy tracker (closed-loop feedback)
+    try:
+        from src.analytics.accuracy_tracker import init_tracker_db, log_prediction_batch
+        init_tracker_db()
+        log_prediction_batch(predictions, run_ts=now.strftime("%Y-%m-%dT%H:%M:%S"))
+    except (ImportError, OSError, ValueError) as e:
+        logger.warning("Failed to log predictions to tracker: %s", e)
 
     # ── 4. Booking window analysis ──────────────────────────────────
     booking_window = _analyze_booking_window(latest, now)
@@ -435,8 +443,8 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
             bench = market_benchmark.get(hotel_id, {})
             if bench:
                 competitor_pressure = float(bench.get("pressure", 0.0))
-        except Exception:
-            pass
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to compute competitor pressure for hotel %s: %s", hotel_id, e)
 
     # Price velocity — how frequently prices change for this hotel
     price_velocity = 0.0
@@ -447,8 +455,8 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
             total_updates = float(vel.get("total_updates", 0))
             # Normalize: 100+ updates = max velocity
             price_velocity = min(1.0, total_updates / 100.0)
-        except Exception:
-            pass
+        except (KeyError, ValueError, TypeError, ZeroDivisionError) as e:
+            logger.warning("Failed to compute price velocity for hotel %s: %s", hotel_id, e)
 
     # Cancellation risk — cancel rate for this hotel
     cancellation_risk = 0.0
@@ -456,8 +464,8 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
         try:
             cancel_rates = _shared.get("cancel_rates", {})
             cancellation_risk = float(cancel_rates.get(hotel_id, 0.0))
-        except Exception:
-            pass
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to compute cancellation risk for hotel %s: %s", hotel_id, e)
 
     # Provider pressure — search results price trend vs current bookings
     provider_pressure = 0.0
@@ -465,8 +473,8 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
         try:
             prov_data = _shared.get("provider_pressure", {})
             provider_pressure = float(prov_data.get(hotel_id, 0.0))
-        except Exception:
-            pass
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to compute provider pressure for hotel %s: %s", hotel_id, e)
 
     return Enrichments(
         demand_indicator=_flight_demand_cache.get("indicator", "NO_DATA"),
@@ -502,30 +510,30 @@ def _compute_shared_enrichment_data() -> dict:
                 "multiplier": impact_mults.get(impact_level, 0),
                 "name": ev.get("name", ""),
             })
-    except Exception:
-        pass
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Failed to process events data for enrichment: %s", e)
 
     # Seasonality index (from JSON file, read once)
     seasonality = {}
     try:
         from src.analytics.booking_benchmarks import get_seasonality_all
         seasonality = get_seasonality_all()
-    except Exception:
-        pass
+    except (ImportError, FileNotFoundError, OSError, ValueError, KeyError) as e:
+        logger.warning("Failed to load seasonality index: %s", e)
 
     # Weather signal (Open-Meteo + NHC, single HTTP call)
     weather_signal: dict[str, float] = {}
     try:
         weather_signal = get_weather_forecast(days=14)
-    except Exception:
-        pass
+    except (ConnectionError, OSError, ValueError, KeyError, TypeError) as e:
+        logger.warning("Failed to load weather forecast: %s", e)
 
     # Latest price snapshot (for competitor pressure computation)
     latest_snapshot = None
     try:
         latest_snapshot = load_latest_snapshot()
-    except Exception:
-        pass
+    except (OSError, ConnectionError, ValueError) as e:
+        logger.warning("Failed to load latest snapshot for enrichment: %s", e)
 
     return {
         "events_list": events_list,
@@ -554,7 +562,7 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
     try:
         from config.settings import MODELS_DIR
         ml_models_dir = MODELS_DIR
-    except Exception:
+    except ImportError:
         ml_models_dir = None
 
     deep_predictor = DeepPredictor(
@@ -577,7 +585,7 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
         shared_data["market_benchmark"] = market_benchmark
         logger.info("Market benchmark loaded for %d/%d hotels",
                     len(market_benchmark), len(unique_hotel_ids))
-    except Exception as e:
+    except (OSError, ConnectionError, ValueError, KeyError, TypeError) as e:
         logger.warning("Failed to load market benchmark: %s", e)
         shared_data["market_benchmark"] = {}
 
@@ -597,7 +605,7 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
                 }
         shared_data["velocity_data"] = velocity_data
         logger.info("Price velocity loaded for %d hotels", len(velocity_data))
-    except Exception as e:
+    except (OSError, ConnectionError, ValueError, KeyError, TypeError) as e:
         logger.warning("Failed to load price velocity: %s", e)
         shared_data["velocity_data"] = {}
 
@@ -618,7 +626,7 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
                     cancel_rates[hid_int] = min(1.0, n_cancel / n_book)
         shared_data["cancel_rates"] = cancel_rates
         logger.info("Cancel rates computed for %d hotels", len(cancel_rates))
-    except Exception as e:
+    except (OSError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
         logger.warning("Failed to load cancellation data: %s", e)
         shared_data["cancel_rates"] = {}
 
@@ -644,7 +652,7 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
         shared_data["provider_pressure"] = provider_pressure
         logger.info("Provider pressure computed for %d hotels",
                     len(provider_pressure))
-    except Exception as e:
+    except (OSError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
         logger.warning("Failed to load search results: %s", e)
         shared_data["provider_pressure"] = {}
 
@@ -726,10 +734,10 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
                     regime_dict=regime.to_dict(),
                     run_ts=now.strftime("%Y-%m-%dT%H:%M:%S"),
                 )
-            except Exception:
-                pass
+            except (ImportError, OSError, ValueError, TypeError) as e:
+                logger.warning("Failed to log prediction for detail %d: %s", detail_id, e)
 
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, OSError, RuntimeError) as e:
             logger.warning(
                 "Deep predictor failed for detail %d, falling back to forward curve: %s",
                 detail_id, e,
@@ -925,8 +933,8 @@ def _predict_forward_curve_only(
     try:
         from src.analytics.booking_benchmarks import get_cancel_probability
         cancel_prob = get_cancel_probability(days_to_checkin)
-    except Exception:
-        pass
+    except (ImportError, ValueError, TypeError, KeyError) as e:
+        logger.warning("Failed to get cancel probability: %s", e)
 
     prob_info = curve.get_probabilities(days_to_checkin)
     final_price = fwd.points[-1].predicted_price if fwd.points else current_price
@@ -1071,8 +1079,8 @@ def _detect_price_changes(all_snapshots: pd.DataFrame) -> dict:
                 change_pct=ch["change_pct"],
                 scan_ts=str(curr_ts),
             )
-        except Exception:
-            pass
+        except (OSError, ValueError, TypeError, KeyError) as e:
+            logger.warning("Failed to log price change for detail %d: %s", ch["detail_id"], e)
 
     return {
         "period": f"{prev_ts} → {curr_ts}",

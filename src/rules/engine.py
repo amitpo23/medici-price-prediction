@@ -322,8 +322,8 @@ class RulesEngine:
                         result_price=adjusted_price,
                         details=r_dict.get("effect", ""),
                     )
-                except Exception:
-                    pass
+                except (OSError, ValueError, TypeError) as e:
+                    logger.warning("Failed to log rule application for rule %s: %s", r_dict.get("rule_id"), e)
 
         return RuleApplyResult(
             hotel_id=hotel_id,
@@ -384,8 +384,8 @@ class RulesEngine:
                 result_price=result_price,
                 details=f"type={r.rule_type}",
             )
-        except Exception:
-            pass
+        except (OSError, ValueError, TypeError) as e:
+            logger.warning("Failed to log rule application for rule %s: %s", r.id, e)
 
     @staticmethod
     def _avg_confidence(confidences: list[float]) -> Optional[float]:

@@ -10,6 +10,10 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from config.settings import API_HOST, API_PORT, MODEL_PATH
+from src.utils.logging_config import configure_logging
+
+# Configure structured JSON logging at import time (before any other loggers)
+configure_logging()
 
 # Lazy imports — heavy ML modules (darts, sklearn) loaded only when needed
 # This allows the server to start even if darts is not installed,
@@ -22,6 +26,10 @@ app = FastAPI(
     description="Hotel price forecasting, dynamic pricing, and analytics with multi-source data",
     version="1.1.0",
 )
+
+# Middleware: correlation IDs, rate limiting, CORS
+from src.api.middleware import setup_middleware
+setup_middleware(app)
 
 # Trading integration endpoints (no heavy deps)
 from src.api.integration import router as integration_router
@@ -57,7 +65,15 @@ def _init_pricer():
 
 @app.on_event("startup")
 async def startup():
-    global _forecaster, _loader, _occupancy_predictor
+    global _forecaster, _loader, _occupancy_predictor, _startup_time
+    _startup_time = datetime.utcnow()
+
+    # Validate configuration
+    from src.utils.config_validator import validate_config, log_config_report
+    report = validate_config()
+    log_config_report(report)
+    if not report["valid"]:
+        logger.error("Startup continuing despite config errors — some features may fail")
 
     # Try loading ML models — skip gracefully if deps missing
     try:
@@ -190,13 +206,164 @@ async def root():
     return RedirectResponse(url="/docs")
 
 
+_startup_time: datetime | None = None
+
+
 @app.get("/health")
-async def health():
+async def health(detail: bool = False):
+    """Health check — basic or detailed.
+
+    Use ?detail=true for comprehensive status with data source freshness,
+    cache stats, and prediction signals.
+
+    Alerting thresholds:
+    - "healthy": all critical sources fresh
+    - "degraded": any source stale (2x expected interval)
+    - "unhealthy": primary DB unreachable or predictions stale >6 hours
+    """
+    uptime = (datetime.utcnow() - _startup_time).total_seconds() if _startup_time else 0
+
+    if not detail:
+        return {
+            "status": "ok",
+            "uptime_seconds": int(uptime),
+            "version": app.version,
+            "model_loaded": _forecaster is not None,
+            "occupancy_model_loaded": _occupancy_predictor is not None,
+        }
+
+    # Detailed health check
+    from src.analytics.freshness_engine import build_freshness_data
+    from src.utils.cache_manager import cache
+
+    # Data source freshness
+    try:
+        freshness = build_freshness_data()
+        data_sources = {}
+        for src_info in freshness.get("sources", []):
+            data_sources[src_info["name"]] = {
+                "status": src_info["status"],
+                "last_updated": src_info.get("last_updated"),
+                "age_display": src_info.get("age_display"),
+            }
+        freshness_overall = freshness.get("summary", {}).get("overall_status", "unknown")
+    except (OSError, ConnectionError, ValueError, TypeError):
+        data_sources = {"error": "Unable to check data sources"}
+        freshness_overall = "unknown"
+
+    # Cache stats
+    cache_stats = cache.status()
+
+    # Prediction signals
+    predictions_info = {}
+    analytics_data = cache.get_data("analytics")
+    if analytics_data:
+        predictions = analytics_data.get("predictions", {})
+        signals = {"CALL": 0, "PUT": 0, "NEUTRAL": 0}
+        for pred in predictions.values():
+            change = float(pred.get("expected_change_pct", 0) or 0)
+            if change > 2:
+                signals["CALL"] += 1
+            elif change < -2:
+                signals["PUT"] += 1
+            else:
+                signals["NEUTRAL"] += 1
+        predictions_info = {
+            "total_rooms": len(predictions),
+            "last_scan": analytics_data.get("run_ts"),
+            "signals": signals,
+        }
+
+    # Determine overall health status
+    status = "healthy"
+    last_scan = predictions_info.get("last_scan")
+    if last_scan:
+        try:
+            scan_dt = datetime.fromisoformat(last_scan.replace("Z", "+00:00")) if isinstance(last_scan, str) else last_scan
+            scan_age_hours = (datetime.utcnow() - scan_dt.replace(tzinfo=None)).total_seconds() / 3600
+            if scan_age_hours > 6:
+                status = "unhealthy"
+        except (ValueError, TypeError, AttributeError):
+            pass
+
+    if freshness_overall == "red":
+        status = "unhealthy"
+    elif freshness_overall == "yellow" and status == "healthy":
+        status = "degraded"
+
     return {
-        "status": "ok",
-        "model_loaded": _forecaster is not None,
-        "occupancy_model_loaded": _occupancy_predictor is not None,
+        "status": status,
+        "uptime_seconds": int(uptime),
+        "version": app.version,
+        "data_sources": data_sources,
+        "cache": cache_stats,
+        "predictions": predictions_info,
+        "models": {
+            "forecaster_loaded": _forecaster is not None,
+            "occupancy_model_loaded": _occupancy_predictor is not None,
+        },
     }
+
+
+@app.get("/health/view", include_in_schema=False)
+async def health_dashboard():
+    """HTML health dashboard with auto-refresh."""
+    from fastapi.responses import HTMLResponse
+    from src.utils.template_engine import render_template
+    from src.analytics.freshness_engine import build_freshness_data
+    from src.utils.cache_manager import cache
+
+    uptime = (datetime.utcnow() - _startup_time).total_seconds() if _startup_time else 0
+
+    # Format uptime
+    hours = int(uptime // 3600)
+    minutes = int((uptime % 3600) // 60)
+    uptime_display = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+
+    # Freshness data
+    try:
+        freshness = build_freshness_data()
+        sources = freshness.get("sources", [])
+        overall_status = freshness.get("summary", {}).get("overall_status", "unknown")
+    except (OSError, ConnectionError, ValueError, TypeError):
+        sources = []
+        overall_status = "unknown"
+
+    # Predictions
+    analytics_data = cache.get_data("analytics")
+    total_rooms = 0
+    signals_call = signals_put = signals_neutral = 0
+    last_scan = None
+    if analytics_data:
+        predictions = analytics_data.get("predictions", {})
+        total_rooms = len(predictions)
+        last_scan = analytics_data.get("run_ts")
+        for pred in predictions.values():
+            change = float(pred.get("expected_change_pct", 0) or 0)
+            if change > 2:
+                signals_call += 1
+            elif change < -2:
+                signals_put += 1
+            else:
+                signals_neutral += 1
+
+    html = render_template(
+        "health.html",
+        overall_status=overall_status,
+        uptime_display=uptime_display,
+        version=app.version,
+        checked_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        sources=sources,
+        cache_regions=cache.status(),
+        total_rooms=total_rooms,
+        signals_call=signals_call,
+        signals_put=signals_put,
+        signals_neutral=signals_neutral,
+        last_scan=last_scan,
+        forecaster_loaded=_forecaster is not None,
+        occupancy_loaded=_occupancy_predictor is not None,
+    )
+    return HTMLResponse(content=html)
 
 
 @app.get("/data/sources")
@@ -366,8 +533,8 @@ def train_deep_models(hotel_id: int | None = None, lite: bool = True):
                 with open(status_path, "w") as sf:
                     _json.dump({"phase": phase, "detail": detail,
                                 "ts": datetime.utcnow().isoformat()}, sf)
-            except Exception:
-                pass
+            except (OSError, ValueError):
+                logger.warning("Failed to write training status file to %s", status_path)
 
         try:
             _write_status("importing", "Loading train_models module")
@@ -410,7 +577,7 @@ def train_deep_models(hotel_id: int | None = None, lite: bool = True):
                             "completed_at": datetime.utcnow().isoformat()}, f, indent=2, default=str)
             _write_status("done", f"trained={trained}, failed={failed}")
             logger.info("Deep model training done: %d trained, %d failed", trained, failed)
-        except Exception as e:
+        except (OSError, ValueError, TypeError, ImportError) as e:
             err_detail = _tb.format_exc()
             _write_status("error", err_detail[-2000:])  # last 2000 chars of traceback
             logger.error("Deep model training failed: %s\n%s", e, err_detail)
@@ -447,8 +614,8 @@ def deep_models_status():
         try:
             with open(status_path) as f:
                 live_status = _json.load(f)
-        except Exception:
-            pass
+        except (OSError, ValueError):
+            logger.warning("Failed to parse live training status from %s", status_path)
 
     return {
         "models_count": len(models),
@@ -513,7 +680,7 @@ def test_deep_training(hotel_id: int | None = None):
 
         result["status"] = "ok"
 
-    except Exception as e:
+    except (ValueError, TypeError, KeyError, OSError, ImportError) as e:
         result["error"] = str(e)
         result["traceback"] = _tb.format_exc()
 
@@ -526,7 +693,7 @@ def prediction_log_stats():
     try:
         from src.analytics.prediction_logger import get_log_stats
         return get_log_stats()
-    except Exception as e:
+    except (ValueError, TypeError, KeyError, OSError, ImportError) as e:
         return {"error": str(e)}
 
 
@@ -658,7 +825,8 @@ def analytics_revpar(
 
             revpar_fc = forecast_revpar(price_fc, occ_fc)
             forecast_data = revpar_fc.to_dict(orient="records")
-        except Exception:
+        except (ValueError, TypeError, KeyError, OSError) as e:
+            logger.warning("RevPAR forecast computation failed: %s", e)
             forecast_data = None
 
     return RevPARResponse(

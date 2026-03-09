@@ -20,6 +20,26 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from config.constants import (
+    ENSEMBLE_WEIGHT_FORWARD_CURVE,
+    ENSEMBLE_WEIGHT_HISTORICAL,
+    ENSEMBLE_WEIGHT_ML,
+    PRICE_CLAMP_MIN,
+    PRICE_CLAMP_MAX,
+    SANITY_RATIO_HIGH,
+    SANITY_RATIO_LOW,
+    SANITY_PENALTY_FLOOR,
+    OUTLIER_BLEND_PREDICTION,
+    OUTLIER_BLEND_CURRENT,
+    OUTLIER_CONFIDENCE_PENALTY,
+    CONFIDENCE_HIGH,
+    CONFIDENCE_MEDIUM,
+    CONFIDENCE_LOW,
+    CONFIDENCE_EXTRAPOLATED,
+    WEIGHT_SCALE_BASE,
+    WEIGHT_SCALE_CONF,
+    CONFIDENCE_BAND_SPREAD,
+)
 from src.analytics.forward_curve import (
     DecayCurve,
     Enrichments,
@@ -33,9 +53,9 @@ class DeepPredictor:
     """Unified prediction engine combining all available signals."""
 
     DEFAULT_WEIGHTS = {
-        "forward_curve": 0.50,
-        "historical_pattern": 0.30,
-        "ml_forecast": 0.20,
+        "forward_curve": ENSEMBLE_WEIGHT_FORWARD_CURVE,
+        "historical_pattern": ENSEMBLE_WEIGHT_HISTORICAL,
+        "ml_forecast": ENSEMBLE_WEIGHT_ML,
     }
 
     def __init__(
@@ -109,8 +129,8 @@ class DeepPredictor:
         if current_price > 0:
             for s in signals:
                 ratio = s["predicted_price"] / current_price
-                if ratio > 2.0 or ratio < 0.5:
-                    penalty = max(0.05, 1.0 / (1.0 + abs(np.log2(max(ratio, 0.01)))))
+                if ratio > SANITY_RATIO_HIGH or ratio < SANITY_RATIO_LOW:
+                    penalty = max(SANITY_PENALTY_FLOOR, 1.0 / (1.0 + abs(np.log2(max(ratio, 0.01)))))
                     s["confidence"] = s["confidence"] * penalty
                     s["reasoning"] = (
                         s.get("reasoning", "") +
@@ -127,8 +147,8 @@ class DeepPredictor:
 
         # Hard clamp: ensemble cannot exceed ±150% of current price
         if current_price > 0:
-            ensemble_price = max(ensemble_price, current_price * 0.40)
-            ensemble_price = min(ensemble_price, current_price * 2.50)
+            ensemble_price = max(ensemble_price, current_price * PRICE_CLAMP_MIN)
+            ensemble_price = min(ensemble_price, current_price * PRICE_CLAMP_MAX)
 
         ensemble_change_pct = (ensemble_price / current_price - 1) * 100
 
@@ -137,8 +157,8 @@ class DeepPredictor:
         fwd_upper = fwd_signal.get("upper_bound", ensemble_price * 1.10)
         signal_spread = max(s["predicted_price"] for s in signals) - min(s["predicted_price"] for s in signals)
         if signal_spread > 0:
-            fwd_lower -= signal_spread * 0.3
-            fwd_upper += signal_spread * 0.3
+            fwd_lower -= signal_spread * CONFIDENCE_BAND_SPREAD
+            fwd_upper += signal_spread * CONFIDENCE_BAND_SPREAD
 
         # YoY comparison
         yoy = self._build_yoy_comparison(hotel_id, category, current_price, date_from)
@@ -158,7 +178,7 @@ class DeepPredictor:
         try:
             from src.analytics.booking_benchmarks import get_cancel_probability
             cancel_prob = get_cancel_probability(days_to_checkin)
-        except Exception:
+        except (ImportError, ValueError, TypeError):
             pass
 
         # Forward curve daily points (for compatibility)
@@ -274,7 +294,7 @@ class DeepPredictor:
             # Use Bayesian-adjusted weights for logging
             bt = get_bayesian_tracker()
             result["bayesian_weights"] = bt.get_adjusted_weights(self.DEFAULT_WEIGHTS)
-        except Exception as e:
+        except (ImportError, ValueError, TypeError, KeyError) as e:
             logger.debug(f"AI enrichment skipped: {e}")
 
         return result
@@ -310,7 +330,7 @@ class DeepPredictor:
         upper = fwd.points[-1].upper_bound if fwd.points else current_price * 1.10
 
         density = self.decay_curve.get_data_density(days_to_checkin)
-        confidence_map = {"high": 0.8, "medium": 0.6, "low": 0.4, "extrapolated": 0.2}
+        confidence_map = {"high": CONFIDENCE_HIGH, "medium": CONFIDENCE_MEDIUM, "low": CONFIDENCE_LOW, "extrapolated": CONFIDENCE_EXTRAPOLATED}
         confidence = confidence_map.get(density, 0.3)
 
         return {
@@ -339,7 +359,7 @@ class DeepPredictor:
         try:
             target_date = pd.Timestamp(date_from)
             target_month = target_date.month
-        except Exception:
+        except (ValueError, TypeError):
             return None
 
         # Start with same-period average price
@@ -402,7 +422,7 @@ class DeepPredictor:
             if abs(dow_adj) > 0.5:
                 predicted *= (1 + dow_adj / 100)
                 reasoning_parts.append(f"DOW pattern: {dow_adj:+.1f}% for day {target_dow}")
-        except Exception:
+        except (ValueError, TypeError, KeyError):
             pass
 
         data_quality = ctx.get("data_quality", 0)
@@ -412,10 +432,10 @@ class DeepPredictor:
         # blend it toward current price to keep it reasonable.
         if current_price > 0 and predicted > 0:
             ratio = predicted / current_price
-            if ratio > 2.0 or ratio < 0.5:
-                # Blend 80% toward current price to tame the outlier
-                predicted = predicted * 0.2 + current_price * 0.8
-                confidence *= 0.3  # reduce confidence heavily
+            if ratio > SANITY_RATIO_HIGH or ratio < SANITY_RATIO_LOW:
+                # Blend toward current price to tame the outlier
+                predicted = predicted * OUTLIER_BLEND_PREDICTION + current_price * OUTLIER_BLEND_CURRENT
+                confidence *= OUTLIER_CONFIDENCE_PENALTY
                 reasoning_parts.append(
                     f"Blended toward current (ratio {ratio:.1f}x out of range)"
                 )
@@ -471,7 +491,7 @@ class DeepPredictor:
                         features["day_of_week"] = checkin.dayofweek
                         features["month"] = checkin.month
                         features["is_weekend"] = 1 if checkin.dayofweek >= 5 else 0
-                    except Exception:
+                    except (ValueError, TypeError):
                         pass
 
                 # Price-based features
@@ -532,7 +552,7 @@ class DeepPredictor:
                     "reasoning": f"Darts {forecaster.model_name} model for hotel {hotel_id}",
                 }
 
-        except Exception as e:
+        except (ImportError, FileNotFoundError, OSError, ValueError, TypeError, KeyError) as e:
             logger.debug("ML signal unavailable for hotel %d: %s", hotel_id, e)
             return None
 
@@ -548,7 +568,7 @@ class DeepPredictor:
             source = s["source"]
             base_w = self.DEFAULT_WEIGHTS.get(source, 0.1)
             # Scale by confidence
-            w = base_w * (0.5 + 0.5 * s["confidence"])
+            w = base_w * (WEIGHT_SCALE_BASE + WEIGHT_SCALE_CONF * s["confidence"])
             raw_weights.append(w)
 
         # Normalize to sum to 1.0
@@ -571,7 +591,7 @@ class DeepPredictor:
         try:
             target_date = pd.Timestamp(date_from)
             target_month = target_date.month
-        except Exception:
+        except (ValueError, TypeError):
             return None
 
         ctx = self._get_context(hotel_id, category)
@@ -651,7 +671,7 @@ class DeepPredictor:
                     "effect": f"{event_adj:+.2f}%/day",
                     "detail": "Active event near check-in date affecting prices",
                 })
-        except Exception:
+        except (ValueError, TypeError):
             pass
 
         # Momentum factor
@@ -703,7 +723,7 @@ class DeepPredictor:
                         "detail": f"This month's prices are typically "
                                   f"{abs(idx - 1) * 100:.0f}% {direction} annual average",
                     })
-            except Exception:
+            except (ValueError, TypeError, KeyError):
                 pass
 
         # Build summary

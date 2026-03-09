@@ -57,8 +57,8 @@ def collect_prices() -> pd.DataFrame:
 
     try:
         df = pd.read_sql_query(QUERY, engine)
-    except Exception as e:
-        logger.error("Failed to query SalesOffice: %s", e)
+    except (OSError, ConnectionError, TimeoutError, ValueError) as e:
+        logger.error("Failed to query SalesOffice: %s", e, exc_info=True)
         return pd.DataFrame()
 
     if df.empty:
@@ -76,8 +76,8 @@ def collect_prices() -> pd.DataFrame:
     try:
         from src.analytics.prediction_logger import log_price_snapshot
         log_price_snapshot(df, snapshot_ts=now)
-    except Exception:
-        pass
+    except (ImportError, FileNotFoundError, OSError, ValueError) as e:
+        logger.warning("Failed to log price snapshot: %s", e)
 
     logger.info(
         "Collected %d rooms across %d hotels. Stored %d new rows. Snapshot: %s",
@@ -132,8 +132,8 @@ def load_historical_prices() -> pd.DataFrame:
 
     try:
         df = pd.read_sql_query(HISTORY_QUERY, engine)
-    except Exception as e:
-        logger.error("Failed to load historical prices: %s", e)
+    except (OSError, ConnectionError, TimeoutError, ValueError) as e:
+        logger.error("Failed to load historical prices: %s", e, exc_info=True)
         return pd.DataFrame()
 
     if df.empty:
@@ -191,8 +191,8 @@ def load_scan_history() -> pd.DataFrame:
 
     try:
         df = pd.read_sql_query(SCAN_HISTORY_QUERY, engine)
-    except Exception as e:
-        logger.error("Failed to load scan history: %s", e)
+    except (OSError, ConnectionError, TimeoutError, ValueError) as e:
+        logger.error("Failed to load scan history: %s", e, exc_info=True)
         return pd.DataFrame()
 
     if df.empty:
@@ -208,13 +208,14 @@ def load_scan_history() -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+    from src.utils.logging_config import configure_logging
+    configure_logging()
     df = collect_prices()
     if not df.empty:
-        print(f"\nCollected {len(df)} rooms:")
-        print(df.groupby(["hotel_id", "hotel_name"]).agg(
+        summary = df.groupby(["hotel_id", "hotel_name"]).agg(
             rooms=("detail_id", "count"),
             min_price=("room_price", "min"),
             max_price=("room_price", "max"),
             avg_price=("room_price", "mean"),
-        ).round(2))
+        ).round(2)
+        logger.info("Collected %d rooms:\n%s", len(df), summary)

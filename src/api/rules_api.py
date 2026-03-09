@@ -13,7 +13,6 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
-from config.settings import PREDICTION_API_KEY
 from src.rules.engine import RulesEngine
 from src.rules.models import (
     PricingRuleCreate,
@@ -44,7 +43,9 @@ _engine = RulesEngine(store=_store)
 
 def verify_api_key(x_api_key: str = Header(default="")) -> str:
     """Validate API key if one is configured."""
-    if PREDICTION_API_KEY and x_api_key != PREDICTION_API_KEY:
+    from src.api.middleware import verify_api_key as _check
+    if not _check(x_api_key):
+        logger.warning("Failed auth attempt with key prefix: %s...", x_api_key[:8] if x_api_key else "(empty)")
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
     return x_api_key
 
@@ -76,8 +77,8 @@ def apply_rules(
             board=board,
         )
         return result
-    except Exception as e:
-        logger.error("Rules apply error for hotel %d: %s", hotel_id, e)
+    except (ValueError, TypeError, KeyError, OSError) as e:
+        logger.error("Rules apply error for hotel %d: %s", hotel_id, e, exc_info=True)
         # Graceful degradation: if rules engine fails, accept with default markup
         return RuleApplyResult(
             hotel_id=hotel_id,
@@ -109,7 +110,7 @@ def apply_rules_batch(
                 category=room.category,
                 board=room.board,
             )
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, OSError) as e:
             result = RuleApplyResult(
                 hotel_id=room.hotel_id,
                 original_price=room.price,
@@ -450,8 +451,8 @@ def _get_forward_curve_data(hotel_id: int) -> Optional[dict]:
                     }
 
         return None
-    except Exception as e:
-        logger.error("Failed to get FC for hotel %d: %s", hotel_id, e)
+    except (ValueError, TypeError, KeyError, OSError) as e:
+        logger.error("Failed to get FC for hotel %d: %s", hotel_id, e, exc_info=True)
         return None
 
 
@@ -478,8 +479,8 @@ def _get_all_forward_curves() -> list[dict]:
                 })
 
         return results
-    except Exception as e:
-        logger.error("Failed to get all FCs: %s", e)
+    except (ValueError, TypeError, KeyError, OSError) as e:
+        logger.error("Failed to get all FCs: %s", e, exc_info=True)
         return []
 
 
@@ -504,6 +505,6 @@ def _get_recent_prices(hotel_id: int) -> list[dict]:
             })
 
         return prices
-    except Exception as e:
+    except (OSError, ConnectionError, ValueError) as e:
         logger.debug("Could not load recent prices for hotel %d: %s", hotel_id, e)
         return []
