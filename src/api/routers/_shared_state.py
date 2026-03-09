@@ -182,7 +182,7 @@ def _run_collection_cycle() -> dict | None:
             hotel_ids = [66814, 854881, 20702, 24982]
             xotelo_total = sum(fetch_rates(hid, days_ahead=60) for hid in hotel_ids)
             logger.info("Xotelo competitor rates refreshed: %d records", xotelo_total)
-        except (ConnectionError, TimeoutError, ValueError) as exc:
+        except (AttributeError, ConnectionError, OSError, TimeoutError, TypeError, ValueError) as exc:
             logger.warning("Xotelo refresh failed: %s", exc)
 
         # Makcorps historical prices (needs API key)

@@ -85,9 +85,22 @@ def fetch_rates(hotel_id: int, days_ahead: int = 60) -> int:
                     timeout=10,
                 )
                 r.raise_for_status()
-                result = r.json().get("result", {})
+                payload = r.json()
+                if not isinstance(payload, dict):
+                    logger.debug("Xotelo returned non-dict payload for hotel %d on %s", hotel_id, checkin)
+                    continue
+
+                result = payload.get("result") or {}
+                if not isinstance(result, dict):
+                    logger.debug("Xotelo returned malformed result for hotel %d on %s", hotel_id, checkin)
+                    continue
+
                 rate_list = result.get("rates", [])
-                rates = [float(item["rate"]) for item in rate_list if item.get("rate")]
+                rates = [
+                    float(item["rate"])
+                    for item in rate_list
+                    if isinstance(item, dict) and item.get("rate") is not None
+                ]
                 if not rates:
                     continue
 
@@ -102,7 +115,14 @@ def fetch_rates(hotel_id: int, days_ahead: int = 60) -> int:
                     (hotel_id, checkin, checkout, min(rates), median, len(rates), ts),
                 )
                 count += 1
-            except (ConnectionError, TimeoutError, requests.RequestException, KeyError, ValueError) as exc:
+            except (
+                ConnectionError,
+                TimeoutError,
+                requests.RequestException,
+                KeyError,
+                TypeError,
+                ValueError,
+            ) as exc:
                 logger.debug("Xotelo fetch failed for hotel %d on %s: %s", hotel_id, checkin, exc)
                 continue
 
