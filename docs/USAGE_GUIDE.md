@@ -235,11 +235,57 @@ The HTML dashboard (`/options/view`) includes expandable trading chart panels pe
 | `GET /api/v1/salesoffice/benchmarks` | JSON | Booking behavior benchmarks |
 | `GET /api/v1/salesoffice/knowledge` | JSON | Hotel competitive landscape |
 
-### System
+### Scenario Analysis (v2.0.0)
 | Endpoint | Format | Description |
 |----------|--------|-------------|
+| `POST /api/v1/salesoffice/scenario/run` | JSON | Run what-if scenario with override factors |
+| `GET /api/v1/salesoffice/scenario/presets` | JSON | List 5 preset scenarios |
+| `POST /api/v1/salesoffice/scenario/compare` | JSON | Compare multiple scenarios side-by-side |
+
+Override factors for `POST /scenario/run`:
+- `event_impact` (0–200): percentage of normal event impact (0 = cancelled)
+- `flight_delta` (-50 to +50): % change in flight demand
+- `weather_severity`: normal / rain / storm / heatwave / hurricane / clear
+- `competitor_delta` (-20 to +20): % competitor price change
+- `demand_multiplier` (0.5–2.0): demand scaling factor
+- `seasonal_override`: peak / shoulder / off
+
+Example:
+```json
+POST /api/v1/salesoffice/scenario/run
+{"demand_multiplier": 1.5, "competitor_delta": 15}
+```
+
+Returns delta table: baseline_price, scenario_price, delta_dollars, delta_pct, signal_changed for each room.
+
+### Alerts & Monitoring (v2.0.0)
+| Endpoint | Format | Description |
+|----------|--------|-------------|
+| `GET /api/v1/salesoffice/alerts/history?days=7` | JSON | Alert log with timestamps, severity, rooms |
+| `POST /api/v1/salesoffice/alerts/test` | JSON | Fire test alert to all configured channels |
+| `GET /api/v1/salesoffice/alerts/stats` | JSON | Alert volume, top rules, counts |
+| `GET /api/v1/salesoffice/data-quality/status` | JSON | All sources with freshness/reliability scores |
+| `GET /api/v1/salesoffice/data-quality/history?source=open_meteo&days=30` | JSON | Source health history |
+
+### Prediction Accuracy (v2.0.0)
+| Endpoint | Format | Description |
+|----------|--------|-------------|
+| `GET /api/v1/salesoffice/accuracy/summary?days=30` | JSON | MAE, MAPE, directional accuracy |
+| `GET /api/v1/salesoffice/accuracy/by-signal` | JSON | Precision/recall per CALL/PUT/NEUTRAL |
+| `GET /api/v1/salesoffice/accuracy/by-t-bucket` | JSON | Accuracy for T ranges: 1-7, 8-14, 15-30, 31-60, 61+ |
+| `GET /api/v1/salesoffice/accuracy/by-hotel` | JSON | Per-hotel accuracy breakdown |
+| `GET /api/v1/salesoffice/accuracy/trend` | JSON | Rolling 7/30-day accuracy trend |
+
+### System & Health
+| Endpoint | Format | Description |
+|----------|--------|-------------|
+| `GET /health` | JSON | Health check with source status, cache metrics, prediction summary |
+| `GET /health/view` | HTML | Health dashboard with green/yellow/red indicators |
 | `GET /api/v1/salesoffice/status` | JSON | System health and snapshot count |
 | `GET /api/v1/salesoffice/debug` | JSON | Debug info with error details |
+| `GET /api/v1/salesoffice/export/csv/contracts` | CSV | Export all contracts |
+| `GET /api/v1/salesoffice/export/csv/providers` | CSV | Export provider data |
+| `GET /api/v1/salesoffice/export/summary` | JSON | Portfolio summary |
 
 ---
 
@@ -296,6 +342,65 @@ How to verify Airbnb and other OTA data was loaded:
 
 ---
 
+## Pagination (v2.0.0)
+
+Endpoints returning large datasets support pagination:
+
+```
+GET /api/v1/salesoffice/options?limit=100&offset=0
+```
+
+| Parameter | Default | Max | Description |
+|-----------|---------|-----|-------------|
+| `limit` | 100 | 1000 | Number of items per page |
+| `offset` | 0 | — | Items to skip |
+| `all` | false | — | Return all items (escape hatch) |
+
+Response includes pagination metadata:
+```json
+{
+  "items": [...],
+  "total": 2850,
+  "limit": 100,
+  "offset": 0,
+  "has_more": true
+}
+```
+
+Paginated endpoints: `/options`, `/data`, `/simple`, `/ai/metadata`
+
+---
+
+## API Authentication (v2.0.0)
+
+If `API_KEYS` is set in the environment, all `/api/` endpoints require authentication:
+
+```
+GET /api/v1/salesoffice/options
+Authorization: Bearer your-api-key
+```
+
+Or via query parameter:
+```
+GET /api/v1/salesoffice/options?api_key=your-api-key
+```
+
+Multiple API keys are supported (comma-separated in `API_KEYS` env var).
+
+---
+
+## Rate Limiting (v2.0.0)
+
+| Endpoint Group | Limit |
+|----------------|-------|
+| Data endpoints | 100 requests/minute per IP |
+| AI endpoints (`/ai/*`) | 20 requests/minute per IP |
+| Export endpoints (`/export/*`) | 10 requests/minute per IP |
+
+When rate limited, the API returns `429 Too Many Requests` with a `Retry-After` header.
+
+---
+
 ## FAQ
 
 **Q: Why is confidence LOW?**
@@ -321,3 +426,12 @@ A: Use the confidence level and interval. HIGH confidence with a narrow range = 
 
 **Q: What's the difference between `/simple` and `/data`?**
 A: `/simple` is human-readable with plain language (RISING/FALLING/STABLE). `/data` is the full technical output with momentum velocities, Z-scores, and regime classifications — useful for debugging or building custom analysis.
+
+**Q: How do I run a what-if scenario?**
+A: Use `POST /scenario/run` with override factors (e.g., `{"demand_multiplier": 1.5}`). The engine applies adjustments to cached predictions without re-running the full pipeline. Use `GET /scenario/presets` to see 5 pre-built scenarios like "Art Basel Cancelled" or "Hurricane Warning".
+
+**Q: How do I set up alerts?**
+A: Configure `ALERT_WEBHOOK_URL` and/or `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` in your environment. Alerts fire automatically during scan cycles when surge (>10% up, 5+ rooms) or drop events are detected. Use `POST /alerts/test` to verify your channels work. Check `GET /alerts/history` for recent alerts.
+
+**Q: How accurate are the predictions?**
+A: Check `GET /accuracy/summary?days=30` for MAE, MAPE, and directional accuracy. The system tracks every prediction and scores it against actual prices once check-in passes. Use `/accuracy/by-t-bucket` to see how accuracy varies by booking window.

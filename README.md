@@ -1,4 +1,4 @@
-# Medici Price Prediction 🏨📈
+# Medici Price Prediction
 
 Hotel room options trading system with AI-powered price prediction, real-time scanning, and intelligent portfolio analytics.
 
@@ -13,96 +13,111 @@ Production system for hotel room price prediction and options-style trading sign
 - **AI Intelligence** — Anomaly detection, risk assessment, Bayesian confidence, signal synthesis
 - **Claude Analyst** — Natural language Q&A, executive briefs, smart metadata enrichment
 - **Rules Engine** — 11 rule types, auto-generated alerts, preset templates
+- **Scenario Analysis** — What-if modeling with 5 presets (Art Basel, Hurricane, Peak Season, etc.)
+- **Real-Time Alerts** — Multi-channel dispatch (log, webhook, Telegram) with cooldown deduplication
+- **Data Quality Scoring** — Per-source freshness/reliability/anomaly monitoring with auto weight adjustment
+- **Prediction Accuracy** — Closed-loop tracking with MAE, MAPE, directional accuracy by signal/T-bucket/hotel
 - **Real-time Scanning** — 3-hourly price collection from SalesOffice with scan history charts
 - **12 Data Sources** — SalesOffice DB, weather, events, flights, competitor pricing, market benchmarks
+- **340 Tests** — Unit + integration tests with GitHub Actions CI
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   Data Sources (12)                  │
-│  SalesOffice DB │ Weather │ Events │ Flights │ CBS  │
-│  Market Bench.  │ Kaggle  │ Competitors │ Trading   │
-└────────────────────────┬────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────┐
-│              Prediction Engine                       │
-│  Forward Curve (50%) │ Historical (30%) │ ML (20%)  │
-│  Momentum │ Regime │ Seasonality │ Booking Window   │
-└────────────────────────┬────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────┐
-│              AI Layer                                │
-│  AI Intelligence │ Claude Analyst │ Rules Engine     │
-│  Anomaly Detection │ Risk Assessment │ Smart Tags   │
-└────────────────────────┬────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────┐
-│              API Layer (90+ endpoints)               │
-│  FastAPI │ HTML Dashboard │ JSON APIs │ AI Q&A      │
-│  Options Trading │ Rules CRUD │ Source Validation    │
-└─────────────────────────────────────────────────────┘
++---------------------------------------------------------+
+|                   Data Sources (12)                      |
+|  SalesOffice DB | Weather | Events | Flights | CBS      |
+|  Market Bench.  | Kaggle  | Competitors | Trading       |
++--------------------------+------------------------------+
+                           |
++--------------------------v------------------------------+
+|              Prediction Engine                          |
+|  Forward Curve (50%) | Historical (30%) | ML (20%)     |
+|  Momentum | Regime | Seasonality | Booking Window      |
++--------------------------+------------------------------+
+                           |
++--------------------------v------------------------------+
+|              AI & Analytics Layer                       |
+|  AI Intelligence | Claude Analyst | Rules Engine        |
+|  Scenario Engine | Accuracy Tracker | Data Quality      |
+|  Alert Dispatcher | Anomaly Detection | Risk Assessment |
++--------------------------+------------------------------+
+                           |
++--------------------------v------------------------------+
+|              API Layer (90+ endpoints)                  |
+|  5 Sub-Routers | Pagination | Rate Limiting | Auth     |
+|  HTML Dashboard | JSON APIs | CSV Export | Health       |
++---------------------------------------------------------+
 ```
 
 ## Project Structure
 
 ```
 medici-price-prediction/
-├── config/                 # Settings & environment config
-├── data/                   # Data storage (gitignored)
-│   ├── raw/                # Raw data from sources
-│   ├── processed/          # Cleaned & transformed data
-│   ├── models/             # Trained model artifacts
-│   └── cache/              # Runtime caches
-├── docs/                   # Documentation
-│   ├── PREDICTION_ALGORITHM.md
-│   └── USAGE_GUIDE.md
-├── notebooks/              # Jupyter exploration notebooks
+├── config/
+│   ├── settings.py             # Environment config
+│   └── constants.py            # 30+ documented constants (ensemble weights, thresholds, caps)
+├── data/                       # Data storage (gitignored)
+├── docs/
+│   ├── PREDICTION_ALGORITHM.md # 8-step prediction pipeline
+│   ├── USAGE_GUIDE.md          # API usage & endpoint reference
+│   └── salesoffice/            # SalesOffice system docs
 ├── src/
-│   ├── analytics/          # Core analysis engine
-│   │   ├── ai_intelligence.py   # Anomaly, risk, Bayesian, signal synthesis (959 lines)
-│   │   ├── claude_analyst.py    # Claude-powered Q&A, briefs, metadata (1,033 lines)
-│   │   ├── deep_predictor.py    # Weighted ensemble predictor (764 lines)
-│   │   ├── forward_curve.py     # Forward curve generation
-│   │   ├── collector.py         # SalesOffice data collection
-│   │   ├── analyzer.py          # Portfolio analysis
-│   │   ├── momentum.py          # Price momentum signals
-│   │   ├── regime.py            # Market regime detection
-│   │   ├── seasonality.py       # Seasonal pattern analysis
-│   │   └── ...                  # 17 analytics modules
+│   ├── analytics/              # Core analysis engine (17 modules)
+│   │   ├── forward_curve.py       # Forward curve generation (680 lines)
+│   │   ├── deep_predictor.py      # Weighted ensemble predictor (764 lines)
+│   │   ├── ai_intelligence.py     # Anomaly, risk, Bayesian, signal synthesis (959 lines)
+│   │   ├── claude_analyst.py      # Claude-powered Q&A & briefs (1,033 lines)
+│   │   ├── scenario_engine.py     # What-if scenario analysis
+│   │   ├── accuracy_tracker.py    # Prediction accuracy tracking
+│   │   ├── data_quality.py        # Source freshness/reliability scoring
+│   │   ├── momentum.py            # Price momentum signals
+│   │   ├── regime.py              # Market regime detection
+│   │   └── ...
 │   ├── api/
-│   │   ├── analytics_dashboard.py  # Main API + HTML dashboard (4,293 lines)
-│   │   ├── rules_api.py            # Rules CRUD endpoints (509 lines)
-│   │   ├── main.py                 # FastAPI app entry point
-│   │   └── integration.py          # External integrations
-│   ├── rules/               # Rules engine
-│   │   ├── engine.py        # Rule evaluation (416 lines)
-│   │   ├── models.py        # Pydantic models (251 lines)
-│   │   ├── store.py         # JSON persistence (417 lines)
-│   │   ├── auto_generator.py # ML-driven suggestions (259 lines)
-│   │   └── presets.py       # Pre-built templates (210 lines)
-│   ├── collectors/          # Data source collectors
-│   ├── data/                # DB loaders & schemas
-│   ├── features/            # Feature engineering
-│   ├── models/              # ML model definitions
-│   ├── services/            # Scheduler & services
-│   └── utils/               # Helpers
-├── tests/                   # Unit & integration tests
-├── scripts/                 # DB setup scripts
-├── startup.sh               # Azure deployment startup
-├── requirements.txt         # Development dependencies
-└── requirements-deploy.txt  # Production dependencies
+│   │   ├── main.py                # FastAPI entry point (750 lines)
+│   │   ├── analytics_dashboard.py # Thin shell assembling 5 sub-routers (~35 lines)
+│   │   ├── middleware.py          # Correlation IDs, rate limiting, CORS
+│   │   ├── models/                # Pagination models
+│   │   └── routers/
+│   │       ├── _shared_state.py       # Scheduler, caches, helpers (~770 lines)
+│   │       ├── analytics_router.py    # JSON APIs: /options, /data, /forward-curve
+│   │       ├── dashboard_router.py    # HTML pages: /dashboard, /yoy, /charts
+│   │       ├── ai_router.py           # AI: /ai/ask, /ai/brief, /ai/explain
+│   │       ├── market_router.py       # Market: /market/*, /flights, /events
+│   │       └── export_router.py       # Exports: /export/csv/*, /export/summary
+│   ├── rules/                  # Rules engine (5 modules, ~1,550 lines)
+│   ├── collectors/             # Data source collectors (auto-discovery)
+│   ├── data/                   # DB loaders & schemas (read-only enforced)
+│   ├── features/               # Feature engineering
+│   ├── models/                 # ML model definitions
+│   ├── services/
+│   │   ├── alert_dispatcher.py # Multi-channel alerts with deduplication
+│   │   └── scheduler.py       # Background job scheduling
+│   ├── templates/              # 11 Jinja2 HTML templates
+│   └── utils/
+│       ├── cache_manager.py    # Unified CacheManager (8 regions, TTL, LRU)
+│       ├── config_validator.py # Startup environment validation
+│       ├── logging_config.py   # Structured JSON logging
+│       └── template_engine.py  # Jinja2 environment setup
+├── tests/
+│   ├── unit/                   # 193+ unit tests
+│   └── integration/            # 14 integration tests
+├── .github/workflows/test.yml  # CI pipeline
+├── startup.sh                  # Azure deployment startup
+└── requirements.txt            # Dependencies
 ```
 
 ## Key API Endpoints
 
+All endpoints are under `/api/v1/salesoffice` unless noted.
+
 ### Options Trading
 | Endpoint | Description |
 |----------|-------------|
-| `GET /options` | Full portfolio with predictions (2,850 rows) |
+| `GET /options` | Full portfolio with predictions (paginated, default 100) |
 | `GET /options/view` | Interactive HTML dashboard |
 | `GET /options/legend` | Signal legend & color scale |
-| `GET /options/{detail_id}` | Single room details |
 | `GET /options/detail/{detail_id}` | Trading chart data (FC, scans, signals) |
 
 ### AI Analyst
@@ -112,7 +127,31 @@ medici-price-prediction/
 | `GET /ai/brief?lang=en` | Executive market brief |
 | `GET /ai/explain/{id}` | Deep prediction breakdown |
 | `GET /ai/metadata?limit=50` | Smart tags & enrichment |
-| `GET /options/ai-insights` | Anomaly & risk analysis |
+
+### Scenario Analysis
+| Endpoint | Description |
+|----------|-------------|
+| `POST /scenario/run` | Run what-if scenario with overrides |
+| `GET /scenario/presets` | List 5 preset scenarios |
+| `POST /scenario/compare` | Compare multiple scenarios side-by-side |
+
+### Alerts & Monitoring
+| Endpoint | Description |
+|----------|-------------|
+| `GET /alerts/history?days=7` | Alert log |
+| `POST /alerts/test` | Fire test alert to all channels |
+| `GET /alerts/stats` | Alert volume & top rules |
+| `GET /data-quality/status` | All sources with quality scores |
+| `GET /data-quality/history?source=...&days=30` | Source health history |
+
+### Prediction Accuracy
+| Endpoint | Description |
+|----------|-------------|
+| `GET /accuracy/summary?days=30` | MAE, MAPE, directional accuracy |
+| `GET /accuracy/by-signal` | Precision/recall per CALL/PUT/NEUTRAL |
+| `GET /accuracy/by-t-bucket` | Accuracy by T ranges (1-7, 8-14, ...) |
+| `GET /accuracy/by-hotel` | Per-hotel accuracy |
+| `GET /accuracy/trend` | Rolling 7/30-day accuracy |
 
 ### Rules Engine
 | Endpoint | Description |
@@ -121,14 +160,16 @@ medici-price-prediction/
 | `GET /rules/` | List rules |
 | `POST /rules/evaluate-all` | Run all active rules |
 | `POST /rules/auto-generate` | ML-suggested rules |
-| `GET /rules/presets` | Available templates |
 
-### Data & Status
+### System & Health
 | Endpoint | Description |
 |----------|-------------|
-| `GET /health` | Health check |
-| `GET /salesoffice/status` | Collection & analysis status |
+| `GET /health` | Health check with source status, cache metrics |
+| `GET /health/view` | HTML health dashboard |
+| `GET /status` | Collection & analysis status |
 | `GET /sources/audit` | Data source validation |
+| `GET /export/csv/contracts` | CSV export of contracts |
+| `GET /export/summary` | Portfolio summary export |
 
 ## Getting Started
 
@@ -138,7 +179,7 @@ medici-price-prediction/
 
 ### Installation
 ```bash
-git clone https://github.com/YOUR_USERNAME/medici-price-prediction.git
+git clone https://github.com/amitpo23/medici-price-prediction.git
 cd medici-price-prediction
 python -m venv venv
 source venv/bin/activate
@@ -149,6 +190,11 @@ cp .env.example .env      # Configure environment variables
 ### Run Locally
 ```bash
 uvicorn src.api.main:app --reload --port 8000
+```
+
+### Run Tests
+```bash
+python -m pytest tests/ -q
 ```
 
 ### Deploy to Azure
@@ -167,12 +213,21 @@ az webapp deploy -g medici-prediction-rg -n medici-prediction-api \
 | `ANTHROPIC_API_KEY` | Claude API key (optional — fallback works without) | None |
 | `CLAUDE_AI_MODEL` | Claude model for queries | `claude-haiku-4-20250514` |
 | `AI_INTELLIGENCE_ENABLED` | Enable AI intelligence module | `true` |
+| `API_KEYS` | Comma-separated API keys for auth | None (no auth) |
+| `CORS_ORIGINS` | Allowed CORS origins | Same-origin |
+| `ALERT_WEBHOOK_URL` | Webhook URL for alerts | None |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token for alerts | None |
+| `TELEGRAM_CHAT_ID` | Telegram chat ID for alerts | None |
+| `ALERT_COOLDOWN_HOURS` | Alert deduplication cooldown | `4` |
+| `LOG_LEVEL` | Logging level | `INFO` |
 
 ## Tech Stack
 
 - **Framework**: FastAPI + Uvicorn + Gunicorn
 - **ML**: scikit-learn, XGBoost, pandas, numpy
 - **AI**: Anthropic Claude (Haiku/Sonnet) with rule-based fallback
-- **Database**: Azure SQL (pyodbc/SQLAlchemy)
+- **Database**: Azure SQL (pyodbc/SQLAlchemy) read-only + SQLite for history
+- **Templates**: Jinja2 with shared base template
+- **Middleware**: slowapi (rate limiting), correlation IDs, CORS
+- **Testing**: pytest with 340 tests, GitHub Actions CI
 - **Deployment**: Azure App Service (Python 3.12)
-- **Frontend**: Server-rendered HTML dashboard with vanilla JS charts

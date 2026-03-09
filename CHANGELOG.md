@@ -2,6 +2,124 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [2.0.0] - 2026-03-09 - Complete Engineering Overhaul
+
+17 sprints completed. 340 tests. Production-grade architecture.
+
+### Added — Test Infrastructure (Sprints 1.1–1.3)
+- **pytest + conftest.py** with auto-discovery, coverage reporting, GitHub Actions CI
+- **14 integration tests** for critical API endpoints via Starlette TestClient
+- **120+ unit tests** for prediction core: forward_curve, deep_predictor, options_engine
+- All tests use real objects — no mocks
+
+### Added — Startup Config Validation (Sprint 1.5)
+- **`src/utils/config_validator.py`** — validates all env vars at startup
+- Checks: DB URL format, API key presence, numeric ranges, port validity
+- 23 tests covering all validation rules
+
+### Added — Unified Cache System (Sprint 2.2)
+- **`src/utils/cache_manager.py`** — single CacheManager replacing 8 independent caches
+- 8 named regions: analytics, yoy, options_expiry, charts, accuracy, provider, ai, analyst
+- TTL-based expiry, LRU eviction, hit/miss tracking, thread-safe
+- 40 tests for all cache operations
+
+### Added — Jinja2 Templates (Sprint 2.3)
+- **`src/templates/`** — 11 HTML templates extracted from Python string generation
+- Base template with shared nav, CSS, responsive layout
+- Templates: landing, dashboard, options, yoy, charts, accuracy, alerts, freshness, info, insights, provider
+- `src/utils/template_engine.py` — Jinja2 environment setup
+
+### Added — API Pagination (Sprint 3.1)
+- **`src/api/models/pagination.py`** — shared `PaginationParams` and `PaginatedResponse`
+- 4 endpoints paginated: `/options`, `/data`, `/simple`, `/ai/metadata`
+- Query params: `?limit=100&offset=0`, `?all=true` escape hatch
+- Default limit=100, max limit=1000
+- 16 tests including edge cases
+
+### Added — Structured Logging (Sprint 3.2)
+- **`src/utils/logging_config.py`** — JSON formatter with correlation IDs
+- **`src/api/middleware.py`** — `CorrelationIdMiddleware` (X-Request-ID header)
+- Request start/end logging with method, path, status, duration
+- All print() calls replaced with structured logger calls
+- 13 tests
+
+### Added — Rate Limiting & API Auth (Sprint 3.3)
+- **slowapi** rate limiting: 100/min data, 20/min AI, 10/min export endpoints
+- Multi-key API auth (comma-separated `API_KEYS` env var)
+- CORS middleware with configurable origins
+- 13 tests
+
+### Added — Health Check Dashboard (Sprint 3.4)
+- Enhanced `GET /health` with data source status, cache metrics, prediction summary
+- `GET /health/view` — HTML dashboard with green/yellow/red status indicators
+- Status: healthy/degraded/unhealthy based on source freshness thresholds
+- Auto-refresh every 60 seconds
+
+### Added — Prediction Accuracy Tracking (Sprint 4.1)
+- **`src/analytics/accuracy_tracker.py`** — closed-loop prediction scoring
+- SQLite `prediction_log` table tracking predicted vs actual prices
+- 5 API endpoints: `/accuracy/summary`, `/accuracy/by-signal`, `/accuracy/by-t-bucket`, `/accuracy/by-hotel`, `/accuracy/trend`
+- Daily scoring job computes MAE, MAPE, directional accuracy
+- 19 tests
+
+### Added — Real-Time Alert System (Sprint 4.2)
+- **`src/services/alert_dispatcher.py`** — multi-channel alert dispatch
+- 3 channels: LogChannel (always-on), WebhookChannel (HTTP POST), TelegramChannel (Bot API)
+- SQLite `alert_log` table with cooldown-based deduplication (default 4h)
+- Hooked into scan cycle: detects surge (>10% increase, 5+ rooms) and drop events
+- 3 API endpoints: `GET /alerts/history`, `POST /alerts/test`, `GET /alerts/stats`
+- 21 tests
+
+### Added — Data Quality Scoring (Sprint 4.3)
+- **`src/analytics/data_quality.py`** — per-source freshness/reliability/anomaly scoring
+- Exponential decay freshness: `exp(-age/expected + 1)`
+- 30-day rolling reliability from source_health SQLite table
+- Auto weight reduction for degraded sources (protected: salesoffice)
+- 2 API endpoints: `GET /data-quality/status`, `GET /data-quality/history`
+- Hooked into daily scan cycle
+- 21 tests
+
+### Added — Scenario Analysis Engine (Sprint 4.4)
+- **`src/analytics/scenario_engine.py`** — what-if analysis on cached predictions
+- 6 override factors: event_impact, flight_delta, weather_severity, competitor_delta, demand_multiplier, seasonal_override
+- 5 preset scenarios: Art Basel Cancelled, Hurricane Warning, Peak Season Surge, Recession Impact, Flight Surge
+- Delta table output: baseline vs scenario price, signal changes
+- 3 API endpoints: `POST /scenario/run`, `GET /scenario/presets`, `POST /scenario/compare`
+- 29 tests
+
+### Changed — Router Architecture (Sprint 2.1)
+- **Split 4,293-line monolith** `analytics_dashboard.py` into thin shell (~35 lines) + 5 sub-routers:
+  - `analytics_router.py` — ~25 JSON endpoints (options, data, forward-curve, backtest)
+  - `dashboard_router.py` — 12 HTML endpoints (dashboard, yoy, charts, accuracy)
+  - `ai_router.py` — 5 AI endpoints (ask, brief, explain, metadata)
+  - `market_router.py` — 18 market endpoints (market/*, flights, events, knowledge)
+  - `export_router.py` — 3 export endpoints (CSV, summary)
+- **`src/api/routers/_shared_state.py`** — scheduler, caches, computation helpers (~770 lines)
+
+### Changed — Collector Auto-Discovery (Sprint 2.4)
+- **`src/collectors/registry.py`** rewritten with `auto_discover()` method
+- Dynamically scans `*_collector.py` files for `BaseCollector` subclasses
+- Enable/disable via `COLLECTOR_{NAME}_ENABLED` env var
+- 13 tests
+
+### Changed — Constants Extraction (Sprint 2.5)
+- **`config/constants.py`** — 30+ documented constants
+- Ensemble weights, Bayesian K, volatility floor, price clamps, confidence bands
+- Signal thresholds, enrichment caps, momentum/event parameters
+- Replaced magic numbers in `deep_predictor.py`, `forward_curve.py`, `options_engine.py`
+
+### Fixed — Exception Handling (Sprint 1.4)
+- Fixed 81 bare `except Exception` handlers with specific exception types
+- Added structured logging to all error handlers
+
+### Technical
+- 116 files changed, +14,174 / -7,305 lines
+- 340 tests (193 unit + 14 integration + 133 new)
+- 24% code coverage (up from 0%)
+- All endpoint URLs preserved — fully backward compatible
+
+---
+
 ## [1.1.0] - 2026-03-08 - Inline Trading Charts & Lazy Detail Loading
 
 ### Added — Inline Trading Chart Panel
