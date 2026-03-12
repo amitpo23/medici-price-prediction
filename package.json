@@ -1,0 +1,31 @@
+{
+  "name": "medici-price-prediction",
+  "version": "1.0.0",
+  "description": "Hotel price prediction and dynamic pricing system for the Medici Hotels platform.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amitpo23/medici-price-prediction.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/amitpo23/medici-price-prediction/issues"
+  },
+  "homepage": "https://github.com/amitpo23/medici-price-prediction#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
