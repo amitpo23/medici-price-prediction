@@ -207,6 +207,7 @@ class DeepPredictor:
                     "season_adj_pct": pt.season_adj_pct,
                     "demand_adj_pct": pt.demand_adj_pct,
                     "momentum_adj_pct": pt.momentum_adj_pct,
+                    "weather_adj_pct": pt.weather_adj_pct,
                 })
 
         # Determine confidence quality

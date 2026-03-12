@@ -16,7 +16,7 @@ _PAGES = [
      "icon": "&#x1F4C8;", "description": "12 Chart.js charts across 3 tabs: contract path, term structure, opportunity stats", "category": "core"},
     {"title": "Year-over-Year", "url": "/api/v1/salesoffice/yoy",
      "icon": "&#x1F4C5;", "description": "Multi-year decay curve comparison, calendar spread, and benchmarks", "category": "core"},
-    {"title": "Options Trading", "url": "/api/v1/salesoffice/options",
+    {"title": "Options Trading", "url": "/api/v1/salesoffice/options/view",
      "icon": "&#x1F3AF;", "description": "CALL/PUT signals, expiry-relative analytics, and hedging strategies", "category": "core"},
     {"title": "Price Insights", "url": "/api/v1/salesoffice/insights",
      "icon": "&#x1F4A1;", "description": "When prices go up/down, days below/above today's price, volatility", "category": "core"},

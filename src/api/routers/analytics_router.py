@@ -6,14 +6,18 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
+from config.constants import CANCELLATION_IMPACT_MAX, COMPETITOR_IMPACT_MAX, PROVIDER_IMPACT_MAX
+from config.settings import SALESOFFICE_PRECOMPUTE_DETAIL_LIMIT, SALESOFFICE_PRECOMPUTE_T_DAYS
 from src.api.middleware import limiter, RATE_LIMIT_DATA
 from src.api.models.pagination import pagination_params, paginate
 
 from src.api.routers._shared_state import (
     _analysis_warming,
-    _scheduler_thread,
     _optional_api_key,
+    _get_cached_analysis,
     _get_or_run_analysis,
+    _kickoff_analysis_warmup,
+    _is_scheduler_running,
     _run_collection_cycle,
     _extract_curve_points,
     _derive_option_signal,
@@ -33,6 +37,868 @@ from src.utils.cache_manager import cache as _cm
 logger = logging.getLogger(__name__)
 
 analytics_router = APIRouter()
+
+DIRECT_SIGNAL_SOURCES = {"forward_curve", "historical_pattern", "ml_forecast"}
+
+SOURCE_ALIAS_TO_METHOD = {
+    "salesoffice": "forward_curve",
+    "med_search_hotels": "historical_pattern",
+    "room_price_update_log": "momentum",
+    "hotel_booking_dataset": "seasonality",
+    "cancellation_data": "cancellation",
+    "kiwi_flights": "demand",
+    "open_meteo": "weather",
+    "miami_events_hardcoded": "events",
+    "seatgeek": "events",
+    "predicthq": "events",
+    "ai_search_hotel_data": "market_benchmark",
+    "tbo_hotels": "market_benchmark",
+    "ota_brightdata_exports": "market_benchmark",
+    "destinations_geo": "market_benchmark",
+    "xotelo": "market_benchmark",
+    "serpapi_hotels": "market_benchmark",
+    "trivago_statista": "market_benchmark",
+    "search_results_poll_log": "provider_pressure",
+    "med_prebook": "provider_pressure",
+    "salesoffice_log": "price_velocity",
+}
+
+SUPPORTED_ANALYSIS_SOURCES = DIRECT_SIGNAL_SOURCES | set(SOURCE_ALIAS_TO_METHOD)
+OPTIONS_CACHE_REGION = "salesoffice_options"
+DETAIL_CACHE_REGION = "salesoffice_detail"
+PRECOMPUTE_SOURCE_ONLY_SOURCES = ("forward_curve", "historical_pattern", "ml_forecast")
+
+
+def _normalize_source_key(source: str | None) -> str | None:
+    if not source:
+        return None
+    value = source.strip().lower()
+    return value if value in SUPPORTED_ANALYSIS_SOURCES else None
+
+
+def _build_linear_curve_from_target(
+    pred: dict,
+    target_price: float,
+    t_days: int | None,
+) -> list[dict]:
+    synthetic_signal = {"predicted_price": target_price}
+    return _build_source_only_forward_curve(pred, "synthetic", synthetic_signal, t_days)
+
+
+def _build_adjustment_only_curve(
+    pred: dict,
+    adjustment_key: str,
+    t_days: int | None,
+) -> list[dict]:
+    base_curve = list(pred.get("forward_curve") or [])
+    if isinstance(t_days, int) and t_days > 0:
+        base_curve = base_curve[:t_days]
+
+    current_price = float(pred.get("current_price", 0) or 0)
+    days_to_checkin = max(int(pred.get("days_to_checkin", 0) or 0), 1)
+    curve = [{
+        "date": "today",
+        "t": days_to_checkin,
+        "predicted_price": round(current_price, 2),
+        "daily_change_pct": 0.0,
+        "cumulative_change_pct": 0.0,
+        "lower_bound": round(current_price, 2),
+        "upper_bound": round(current_price, 2),
+        "volatility_at_t": 0.0,
+        "event_adj_pct": 0.0,
+        "season_adj_pct": 0.0,
+        "demand_adj_pct": 0.0,
+        "momentum_adj_pct": 0.0,
+        "weather_adj_pct": 0.0,
+    }]
+    if not base_curve:
+        return curve
+
+    price = current_price
+    for idx, point in enumerate(base_curve, start=1):
+        daily_adj = float(point.get(adjustment_key, 0) or 0)
+        price *= (1.0 + (daily_adj / 100.0))
+        cumulative = ((price / current_price - 1.0) * 100.0) if current_price > 0 else 0.0
+        curve.append({
+            "date": point.get("date") or f"T+{idx}",
+            "t": point.get("t", max(days_to_checkin - idx, 0)),
+            "predicted_price": round(price, 2),
+            "daily_change_pct": round(daily_adj, 4),
+            "cumulative_change_pct": round(cumulative, 4),
+            "lower_bound": round(price, 2),
+            "upper_bound": round(price, 2),
+            "volatility_at_t": 0.0,
+            "event_adj_pct": round(float(point.get("event_adj_pct", 0) or 0), 4),
+            "season_adj_pct": round(float(point.get("season_adj_pct", 0) or 0), 4),
+            "demand_adj_pct": round(float(point.get("demand_adj_pct", 0) or 0), 4),
+            "momentum_adj_pct": round(float(point.get("momentum_adj_pct", 0) or 0), 4),
+            "weather_adj_pct": round(float(point.get("weather_adj_pct", 0) or 0), 4),
+        })
+    return curve
+
+
+def _curve_confidence(curve: list[dict], default: float = 0.45) -> float:
+    if len(curve) <= 1:
+        return default
+    adjustments = [
+        abs(float(point.get("daily_change_pct", 0) or 0))
+        for point in curve[1:]
+    ]
+    if not adjustments:
+        return default
+    non_zero = sum(1 for value in adjustments if value > 0.0001)
+    return min(0.85, max(default, 0.35 + (non_zero / max(len(adjustments), 1)) * 0.4))
+
+
+def _serialize_source_prediction(prediction: dict) -> dict:
+    return {
+        "source": prediction.get("source"),
+        "predicted_price": prediction.get("predicted_price"),
+        "confidence": prediction.get("confidence"),
+        "weight": prediction.get("weight", 1.0),
+        "reasoning": prediction.get("reasoning", ""),
+        "basis": prediction.get("basis"),
+        "reliability": prediction.get("reliability"),
+    }
+
+
+def _serialize_compact_source_prediction(prediction: dict) -> dict:
+    return {
+        "predicted_price": prediction.get("predicted_price"),
+        "confidence": prediction.get("confidence"),
+        "basis": prediction.get("basis"),
+        "reliability": prediction.get("reliability"),
+    }
+
+
+def _build_source_prediction_summary_catalog(pred: dict) -> dict[str, dict]:
+    current_price = float(pred.get("current_price", 0) or 0)
+    market = pred.get("market_benchmark") or {}
+    source_inputs = pred.get("source_inputs") or {}
+    catalog: dict[str, dict] = {}
+
+    for signal in (pred.get("signals") or []):
+        signal_source = str(signal.get("source", "")).strip().lower()
+        if not signal_source:
+            continue
+        catalog[signal_source] = {
+            "source": signal_source,
+            "predicted_price": round(float(signal.get("predicted_price", current_price) or current_price), 2),
+            "confidence": round(float(signal.get("confidence", 0) or 0), 2),
+            "weight": round(float(signal.get("weight", 1.0) or 1.0), 3),
+            "reasoning": signal.get("reasoning", ""),
+            "basis": "native_signal",
+            "reliability": _confidence_quality_from_value(signal.get("confidence")),
+        }
+
+    alias_signal_map = {
+        "salesoffice": "forward_curve",
+        "med_search_hotels": "historical_pattern",
+    }
+    for alias_key, native_key in alias_signal_map.items():
+        native = catalog.get(native_key)
+        if native:
+            catalog[alias_key] = {
+                "source": alias_key,
+                "predicted_price": native["predicted_price"],
+                "confidence": native.get("confidence"),
+                "weight": 1.0,
+                "reasoning": native.get("reasoning", "") or f"Standalone view mapped from {native_key}",
+                "basis": native_key,
+                "reliability": native.get("reliability"),
+            }
+
+    adjustment_sources = {
+        "room_price_update_log": ("momentum_adj_pct", "Momentum-only path from Room Price Update Log velocity and recent directional pressure."),
+        "kiwi_flights": ("demand_adj_pct", "Demand-only path from Kiwi flight demand indicator for Miami."),
+        "open_meteo": ("weather_adj_pct", "Weather-only path from Open-Meteo forecast adjustments."),
+        "miami_events_hardcoded": ("event_adj_pct", "Event-only path from Miami Major Events calendar."),
+        "seatgeek": ("event_adj_pct", "Event-only path from SeatGeek-driven event enrichment."),
+        "predicthq": ("event_adj_pct", "Event-only path from PredictHQ event enrichment when available."),
+        "hotel_booking_dataset": ("season_adj_pct", "Seasonality-only path from Hotel Booking Demand benchmark dataset."),
+    }
+    for source_key, (adj_key, reasoning) in adjustment_sources.items():
+        curve = _build_adjustment_only_curve(pred, adj_key, None)
+        catalog[source_key] = {
+            "source": source_key,
+            "predicted_price": round(float(curve[-1].get("predicted_price", current_price) or current_price), 2),
+            "confidence": round(_curve_confidence(curve), 2),
+            "weight": 1.0,
+            "reasoning": reasoning,
+            "basis": adj_key,
+            "reliability": _confidence_quality_from_value(_curve_confidence(curve)),
+        }
+
+    market_avg_price = float(market.get("market_avg_price", 0) or 0)
+    market_confidence = 0.65 if market_avg_price > 0 else 0.25
+    market_target = market_avg_price if market_avg_price > 0 else current_price
+    market_reasoning = (
+        f"Market benchmark view from same-star city competitors: avg=${market_avg_price:.2f}, "
+        f"pressure={float(market.get('pressure', 0) or 0):+.2f}, competitors={int(market.get('competitor_hotels', 0) or 0)}"
+    )
+    for source_key in ("ai_search_hotel_data", "tbo_hotels", "ota_brightdata_exports", "destinations_geo", "xotelo", "serpapi_hotels", "trivago_statista"):
+        catalog[source_key] = {
+            "source": source_key,
+            "predicted_price": round(market_target, 2),
+            "confidence": round(market_confidence, 2),
+            "weight": 1.0,
+            "reasoning": market_reasoning,
+            "basis": "market_benchmark",
+            "reliability": _confidence_quality_from_value(market_confidence),
+        }
+
+    days_to_checkin = max(int(pred.get("days_to_checkin", 0) or 0), 1)
+    cancel_prob = float(pred.get("cancel_probability", source_inputs.get("cancellation_risk", 0)) or 0)
+    cancel_daily_adj = -(cancel_prob * CANCELLATION_IMPACT_MAX)
+    cancel_target = current_price * ((1.0 + (cancel_daily_adj / 100.0)) ** days_to_checkin)
+    catalog["cancellation_data"] = {
+        "source": "cancellation_data",
+        "predicted_price": round(cancel_target, 2),
+        "confidence": round(min(0.75, 0.35 + cancel_prob), 2),
+        "weight": 1.0,
+        "reasoning": f"Cancellation-risk-only path using cancel probability {cancel_prob:.3f} with daily cap {CANCELLATION_IMPACT_MAX:.2f}%.",
+        "basis": "cancellation_risk",
+        "reliability": _confidence_quality_from_value(min(0.75, 0.35 + cancel_prob)),
+    }
+
+    provider_pressure = float(source_inputs.get("provider_pressure", 0) or 0)
+    provider_daily_adj = provider_pressure * PROVIDER_IMPACT_MAX
+    provider_target = current_price * ((1.0 + (provider_daily_adj / 100.0)) ** days_to_checkin)
+    provider_conf = min(0.7, 0.35 + abs(provider_pressure) * 0.35)
+    for source_key in ("search_results_poll_log", "med_prebook"):
+        catalog[source_key] = {
+            "source": source_key,
+            "predicted_price": round(provider_target, 2),
+            "confidence": round(provider_conf, 2),
+            "weight": 1.0,
+            "reasoning": f"Provider-pressure-only path from search and prebook data (pressure={provider_pressure:+.3f}, daily_adj={provider_daily_adj:+.3f}%).",
+            "basis": "provider_pressure",
+            "reliability": _confidence_quality_from_value(provider_conf),
+        }
+
+    velocity = float(source_inputs.get("price_velocity", 0) or 0)
+    catalog["salesoffice_log"] = {
+        "source": "salesoffice_log",
+        "predicted_price": round(current_price, 2),
+        "confidence": round(min(0.55, 0.25 + velocity * 0.3), 2),
+        "weight": 1.0,
+        "reasoning": f"Operational scan-log view: velocity={velocity:.3f}. This source affects volatility and reliability more than direction.",
+        "basis": "price_velocity",
+        "reliability": _confidence_quality_from_value(min(0.55, 0.25 + velocity * 0.3)),
+    }
+
+    return catalog
+
+
+def _get_source_prediction_summary_catalog(pred: dict) -> dict[str, dict]:
+    cached_catalog = pred.get("_source_prediction_summary_catalog")
+    if isinstance(cached_catalog, dict) and cached_catalog:
+        return cached_catalog
+
+    catalog = _build_source_prediction_summary_catalog(pred)
+    pred["_source_prediction_summary_catalog"] = catalog
+    return catalog
+
+
+def _build_source_prediction_curve(
+    pred: dict,
+    source_key: str,
+    source_prediction: dict,
+    t_days: int | None,
+) -> list[dict]:
+    basis = source_prediction.get("basis")
+    if source_key == "forward_curve" or basis == "native_signal":
+        return _build_source_only_forward_curve(pred, source_key, source_prediction, t_days)
+    if basis in {"forward_curve", "historical_pattern"}:
+        return _build_linear_curve_from_target(pred, float(source_prediction.get("predicted_price", 0) or 0), t_days)
+    if basis in {"momentum_adj_pct", "demand_adj_pct", "weather_adj_pct", "event_adj_pct", "season_adj_pct"}:
+        return _build_adjustment_only_curve(pred, str(basis), t_days)
+    return _build_linear_curve_from_target(pred, float(source_prediction.get("predicted_price", 0) or 0), t_days)
+
+
+def _confidence_quality_from_value(confidence: float | None) -> str:
+    value = float(confidence or 0)
+    if value >= 0.75:
+        return "high"
+    if value >= 0.5:
+        return "medium"
+    return "low"
+
+
+def _build_source_only_forward_curve(
+    pred: dict,
+    source_key: str,
+    source_signal: dict,
+    t_days: int | None,
+) -> list[dict]:
+    if source_key == "forward_curve":
+        return list(pred.get("forward_curve") or [])
+
+    current_price = float(pred.get("current_price", 0) or 0)
+    target_price = float(source_signal.get("predicted_price", current_price) or current_price)
+    days_to_checkin = max(int(pred.get("days_to_checkin", 0) or 0), 1)
+    horizon_days = days_to_checkin
+    if isinstance(t_days, int) and t_days > 0:
+        horizon_days = max(1, min(days_to_checkin, t_days))
+
+    ratio = min(1.0, horizon_days / max(days_to_checkin, 1))
+    horizon_price = current_price + ((target_price - current_price) * ratio)
+    horizon_label = str(pred.get("date_from") or "checkin") if ratio >= 1.0 else f"T+{horizon_days}"
+    cumulative_change_pct = ((horizon_price / current_price - 1.0) * 100.0) if current_price > 0 else 0.0
+
+    return [
+        {
+            "date": "today",
+            "t": horizon_days,
+            "predicted_price": round(current_price, 2),
+            "daily_change_pct": 0.0,
+            "cumulative_change_pct": 0.0,
+            "lower_bound": round(current_price, 2),
+            "upper_bound": round(current_price, 2),
+            "volatility_at_t": 0.0,
+            "event_adj_pct": 0.0,
+            "season_adj_pct": 0.0,
+            "demand_adj_pct": 0.0,
+            "momentum_adj_pct": 0.0,
+        },
+        {
+            "date": horizon_label,
+            "t": max(days_to_checkin - horizon_days, 0),
+            "predicted_price": round(horizon_price, 2),
+            "daily_change_pct": round(cumulative_change_pct, 2),
+            "cumulative_change_pct": round(cumulative_change_pct, 2),
+            "lower_bound": round(horizon_price, 2),
+            "upper_bound": round(horizon_price, 2),
+            "volatility_at_t": 0.0,
+            "event_adj_pct": 0.0,
+            "season_adj_pct": 0.0,
+            "demand_adj_pct": 0.0,
+            "momentum_adj_pct": 0.0,
+        },
+    ]
+
+
+def _build_prediction_view(
+    pred: dict,
+    source_key: str | None,
+    source_only: bool,
+    t_days: int | None = None,
+) -> dict:
+    normalized_source = _normalize_source_key(source_key)
+    source_catalog = _get_source_prediction_summary_catalog(pred)
+    if not source_only or not normalized_source:
+        pred_view = dict(pred)
+        pred_view["source_predictions"] = {
+            key: _serialize_source_prediction(value)
+            for key, value in source_catalog.items()
+        }
+        return pred_view
+
+    source_signal = source_catalog.get(normalized_source)
+    if source_signal is None:
+        pred_view = dict(pred)
+        pred_view["source_predictions"] = {
+            key: _serialize_source_prediction(value)
+            for key, value in source_catalog.items()
+        }
+        return pred_view
+
+    current_price = float(pred.get("current_price", 0) or 0)
+    forward_curve = list(_build_source_prediction_curve(pred, normalized_source, source_signal, t_days))
+    predicted_price = float(forward_curve[-1].get("predicted_price", current_price) or current_price)
+    expected_change_pct = ((predicted_price / current_price - 1.0) * 100.0) if current_price > 0 else 0.0
+    confidence = float(source_signal.get("confidence", 0) or 0)
+    if source_signal.get("basis") in {"momentum_adj_pct", "demand_adj_pct", "weather_adj_pct", "event_adj_pct", "season_adj_pct"}:
+        confidence = float(_curve_confidence(forward_curve, default=confidence or 0.45) or 0)
+
+    pred_view = dict(pred)
+    pred_view["predicted_checkin_price"] = round(predicted_price, 2)
+    pred_view["expected_change_pct"] = round(expected_change_pct, 2)
+    pred_view["confidence_quality"] = _confidence_quality_from_value(confidence)
+    pred_view["model_type"] = f"source_only:{normalized_source}"
+    pred_view["prediction_method"] = f"source_only:{normalized_source}"
+    pred_view["signals"] = [{
+        "source": normalized_source,
+        "predicted_price": round(predicted_price, 2),
+        "confidence": round(confidence, 2),
+        "weight": 1.0,
+        "reasoning": source_signal.get("reasoning", ""),
+    }]
+    pred_view["source_predictions"] = {
+        key: _serialize_source_prediction(value)
+        for key, value in source_catalog.items()
+    }
+    pred_view["source_predictions"][normalized_source] = _serialize_source_prediction({
+        **source_signal,
+        "predicted_price": round(predicted_price, 2),
+        "confidence": round(confidence, 2),
+        "reliability": _confidence_quality_from_value(confidence),
+    })
+    pred_view["source_analysis"] = {
+        "mode": "source_only",
+        "selected_source": normalized_source,
+        "native_curve": normalized_source == "forward_curve",
+        "available_sources": list(source_catalog.keys()),
+    }
+
+    if normalized_source != "forward_curve":
+        pred_view["probability"] = {}
+
+    pred_view["forward_curve"] = forward_curve
+    pred_view["daily"] = [
+        {
+            "date": point.get("date"),
+            "days_remaining": point.get("t"),
+            "predicted_price": point.get("predicted_price"),
+            "lower_bound": point.get("lower_bound"),
+            "upper_bound": point.get("upper_bound"),
+            "dow": None,
+        }
+        for point in forward_curve
+    ]
+    return pred_view
+
+
+def _build_row_scan_history(scan: dict, include_series: bool = True) -> dict:
+    row_scan_history = {
+        "scan_snapshots": scan.get("scan_snapshots", 0),
+        "first_scan_date": scan.get("first_scan_date"),
+        "first_scan_price": scan.get("first_scan_price"),
+        "latest_scan_date": scan.get("latest_scan_date"),
+        "latest_scan_price": scan.get("latest_scan_price"),
+        "scan_price_change": scan.get("scan_price_change", 0),
+        "scan_price_change_pct": scan.get("scan_price_change_pct", 0),
+        "scan_actual_drops": scan.get("scan_actual_drops", 0),
+        "scan_actual_rises": scan.get("scan_actual_rises", 0),
+        "scan_total_drop_amount": scan.get("scan_total_drop_amount", 0),
+        "scan_total_rise_amount": scan.get("scan_total_rise_amount", 0),
+        "scan_max_single_drop": scan.get("scan_max_single_drop", 0),
+        "scan_max_single_rise": scan.get("scan_max_single_rise", 0),
+        "scan_trend": scan.get("scan_trend", "no_data"),
+    }
+    if include_series:
+        row_scan_history["scan_price_series"] = scan.get("scan_price_series", [])
+    return row_scan_history
+
+
+def _options_base_cache_key(
+    analysis: dict,
+    t_days: int | None,
+    include_chart: bool,
+    profile: str,
+    source: str | None,
+    source_only: bool,
+) -> str:
+    normalized_source = _normalize_source_key(source) if source_only else None
+    run_ts = str(analysis.get("run_ts") or "no-run-ts")
+    return "|".join([
+        f"run={run_ts}",
+        f"profile={profile}",
+        f"chart={1 if include_chart else 0}",
+        f"t_days={t_days or 0}",
+        f"source={normalized_source or 'ensemble'}",
+        f"source_only={1 if source_only and normalized_source else 0}",
+    ])
+
+
+def _detail_cache_key(analysis: dict, detail_id: int, source: str | None, source_only: bool) -> str:
+    normalized_source = _normalize_source_key(source) if source_only else None
+    run_ts = str(analysis.get("run_ts") or "no-run-ts")
+    return "|".join([
+        f"run={run_ts}",
+        f"detail_id={detail_id}",
+        f"source={normalized_source or 'ensemble'}",
+        f"source_only={1 if source_only and normalized_source else 0}",
+    ])
+
+
+def _build_options_rows(
+    analysis: dict,
+    t_days: int | None,
+    include_chart: bool,
+    profile: str,
+    source: str | None,
+    source_only: bool,
+) -> dict:
+    predictions = analysis.get("predictions", {})
+    normalized_source = _normalize_source_key(source)
+    profile_applied = (profile or "full").strip().lower()
+    if profile_applied not in {"full", "lite"}:
+        profile_applied = "full"
+
+    effective_include_chart = include_chart
+    if profile_applied == "lite":
+        effective_include_chart = False
+    is_lite_profile = profile_applied == "lite"
+
+    rows: list[dict] = []
+    for detail_id, pred in predictions.items():
+        pred_view = _build_prediction_view(pred, normalized_source, source_only, t_days=t_days)
+        source_predictions = pred_view.get("source_predictions") or {}
+        row_source_predictions = (
+            {
+                key: _serialize_compact_source_prediction(value)
+                for key, value in source_predictions.items()
+            }
+            if is_lite_profile
+            else source_predictions
+        )
+        curve_points = _extract_curve_points(pred_view, t_days)
+        path_prices = [p["predicted_price"] for p in curve_points]
+
+        current_price = float(pred_view.get("current_price", 0) or 0)
+        predicted_checkin = float(pred_view.get("predicted_checkin_price", current_price) or current_price)
+
+        if path_prices:
+            expected_min_price = min(path_prices)
+            expected_max_price = max(path_prices)
+            price_range = max(expected_max_price - expected_min_price, 1.0)
+            touch_band = max(price_range * 0.10, 1.0)
+            touches_min = sum(1 for px in path_prices if abs(px - expected_min_price) <= touch_band)
+            touches_max = sum(1 for px in path_prices if abs(px - expected_max_price) <= touch_band)
+
+            changes_gt_20 = 0
+            changes_lte_20 = 0
+            for i in range(1, len(path_prices)):
+                prev_px = path_prices[i - 1]
+                if prev_px > 0:
+                    delta = path_prices[i] - prev_px
+                    if delta < -0.001:
+                        changes_gt_20 += 1
+                    else:
+                        changes_lte_20 += 1
+        else:
+            expected_min_price = predicted_checkin
+            expected_max_price = predicted_checkin
+            touches_min = 1
+            touches_max = 1
+            changes_gt_20 = 0
+            changes_lte_20 = 0
+
+        option_signal = _derive_option_signal(pred_view)
+        sources = _extract_sources(pred_view, analysis)
+        quality = _build_quality_summary(pred_view, sources)
+        option_levels = _build_option_levels(pred_view, option_signal, quality)
+        info = _build_info_badge(option_signal, quality, sources)
+        put_path_insights = _build_put_path_insights(
+            curve_points=curve_points,
+            current_price=current_price,
+            predicted_checkin=predicted_checkin,
+            probability=pred_view.get("probability"),
+            include_decline_events=not is_lite_profile,
+        )
+
+        row = {
+            "detail_id": int(detail_id),
+            "hotel_id": pred_view.get("hotel_id"),
+            "hotel_name": pred_view.get("hotel_name"),
+            "category": pred_view.get("category"),
+            "board": pred_view.get("board"),
+            "date_from": pred_view.get("date_from"),
+            "days_to_checkin": pred_view.get("days_to_checkin"),
+            "t_horizon_days": len(path_prices),
+            "option_signal": option_signal,
+            "analysis_mode": "source_only" if source_only and normalized_source else "ensemble",
+            "analysis_source": normalized_source if source_only and normalized_source else None,
+            "current_price": round(current_price, 2),
+            "predicted_checkin_price": round(predicted_checkin, 2),
+            "source_predictions": row_source_predictions,
+            "expected_change_pct": round(float(pred_view.get("expected_change_pct", 0) or 0), 2),
+            "expected_min_price": round(float(expected_min_price), 2),
+            "expected_max_price": round(float(expected_max_price), 2),
+            "expected_min_delta_from_now": round(float(expected_min_price - current_price), 2),
+            "expected_max_delta_from_now": round(float(expected_max_price - current_price), 2),
+            "touches_expected_min": touches_min,
+            "touches_expected_max": touches_max,
+            "count_price_changes_gt_20": changes_gt_20,
+            "count_price_changes_lte_20": changes_lte_20,
+            "sources": sources,
+            "quality": quality,
+            "option_levels": option_levels,
+            "info": info,
+            "forward_curve_url": f"/api/v1/salesoffice/forward-curve/{int(detail_id)}",
+        }
+
+        if effective_include_chart:
+            row["chart"] = _build_row_chart(curve_points)
+
+        row.update(put_path_insights)
+
+        scan = pred_view.get("scan_history") or {}
+        row["scan_history"] = _build_row_scan_history(scan, include_series=not is_lite_profile)
+
+        if not is_lite_profile:
+            row["market_benchmark"] = pred_view.get("market_benchmark") or {}
+
+        rows.append(row)
+
+    rows.sort(
+        key=lambda x: (
+            0 if x["option_signal"] in ("CALL", "PUT") else 1,
+            -abs(float(x.get("expected_change_pct", 0))),
+        )
+    )
+
+    return {
+        "run_ts": analysis.get("run_ts"),
+        "t_days_requested": t_days,
+        "profile_applied": profile_applied,
+        "analysis_mode": "source_only" if source_only and normalized_source else "ensemble",
+        "selected_source": normalized_source if source_only and normalized_source else None,
+        "include_chart": effective_include_chart,
+        "rows": rows,
+    }
+
+
+def _filter_options_rows(rows: list[dict], signal: str | None, source: str | None) -> list[dict]:
+    filtered_rows = rows
+    normalized_source = _normalize_source_key(source)
+
+    if signal:
+        signal_upper = signal.strip().upper()
+        if signal_upper in {"CALL", "PUT", "NEUTRAL"}:
+            filtered_rows = [row for row in filtered_rows if row.get("option_signal") == signal_upper]
+
+    if normalized_source:
+        filtered_rows = [
+            row for row in filtered_rows
+            if (
+                normalized_source in (row.get("source_predictions") or {})
+                or any(
+                    str((item or {}).get("source", "")).strip().lower() == normalized_source
+                    for item in (row.get("sources") or [])
+                )
+            )
+        ]
+
+    return filtered_rows
+
+
+def _build_options_response_payload(
+    analysis: dict,
+    base_payload: dict,
+    signal: str | None,
+    source: str | None,
+    include_metadata: bool,
+    include_system_context: bool,
+    page: dict,
+) -> JSONResponse:
+    rows = _filter_options_rows(base_payload.get("rows") or [], signal, source)
+    paged = paginate(rows, page["limit"], page["offset"], page["all"])
+
+    response_payload = {
+        "run_ts": base_payload.get("run_ts"),
+        "total_rows": paged["total"],
+        "limit": paged["limit"],
+        "offset": paged["offset"],
+        "has_more": paged["has_more"],
+        "t_days_requested": base_payload.get("t_days_requested"),
+        "profile_applied": base_payload.get("profile_applied"),
+        "analysis_mode": base_payload.get("analysis_mode"),
+        "selected_source": base_payload.get("selected_source"),
+        "rows": paged["items"],
+    }
+
+    if include_metadata:
+        response_payload.update({
+            "source_validation": _build_source_validation(analysis),
+            "sources_audit_summary": _build_sources_audit(analysis, summary_only=True),
+            "data_sources": {
+                "model_info": analysis.get("model_info", {}),
+                "flight_demand": analysis.get("flight_demand", {}),
+                "events": {
+                    "upcoming_events": analysis.get("events", {}).get("upcoming_events", 0),
+                    "next_events": analysis.get("events", {}).get("next_events", []),
+                },
+                "benchmarks_status": analysis.get("benchmarks", {}).get("status"),
+                "historical_patterns": analysis.get("historical_patterns_summary", {}),
+            },
+        })
+
+    if include_system_context:
+        response_payload["system_capabilities"] = _build_system_capabilities(
+            analysis,
+            total_rows=paged["total"],
+        )
+
+    response = JSONResponse(content=response_payload)
+    if paged.get("_all"):
+        response.headers["X-Pagination-Warning"] = "All items returned; consider using pagination"
+    return response
+
+
+def _build_option_detail_payload(
+    analysis: dict,
+    detail_id: int,
+    source: str | None,
+    source_only: bool,
+) -> dict:
+    predictions = analysis.get("predictions", {})
+    pred = predictions.get(detail_id) or predictions.get(str(detail_id))
+    if not pred:
+        raise HTTPException(status_code=404, detail=f"Room {detail_id} not found")
+
+    pred_view = _build_prediction_view(pred, source, source_only)
+    selected_source = _normalize_source_key(source) if source_only else None
+    source_predictions = pred_view.get("source_predictions") or {}
+
+    curve_points = _extract_curve_points(pred_view, None)
+    scan = pred_view.get("scan_history") or {}
+    current_price = float(pred_view.get("current_price", 0) or 0)
+    predicted_checkin = float(pred_view.get("predicted_checkin_price", current_price) or current_price)
+
+    path_prices = [p["predicted_price"] for p in curve_points]
+    expected_min = min(path_prices) if path_prices else current_price
+    expected_max = max(path_prices) if path_prices else predicted_checkin
+    option_signal = _derive_option_signal(pred_view)
+
+    signals_list = pred_view.get("signals") or []
+    fc_sig = next((s for s in signals_list if s.get("source") == "forward_curve"), None)
+    hist_sig = next((s for s in signals_list if s.get("source") == "historical_pattern"), None)
+    sel_sig = source_predictions.get(selected_source) if selected_source else None
+
+    fc_pts = pred_view.get("forward_curve") or []
+    ev_adj = sum(float(p.get("event_adj_pct", 0) or 0) for p in fc_pts)
+    se_adj = sum(float(p.get("season_adj_pct", 0) or 0) for p in fc_pts)
+    dm_adj = sum(float(p.get("demand_adj_pct", 0) or 0) for p in fc_pts)
+    mo_adj = sum(float(p.get("momentum_adj_pct", 0) or 0) for p in fc_pts)
+    we_adj = sum(float(p.get("weather_adj_pct", 0) or 0) for p in fc_pts)
+
+    quality = _build_quality_summary(pred_view, _extract_sources(pred_view, analysis))
+    chg = round(float(pred_view.get("expected_change_pct", 0) or 0), 2)
+
+    scan_raw = scan.get("scan_price_series", [])
+    scan_d_counts: dict[str, int] = {}
+    scan_pts: list[dict] = []
+    for s in scan_raw:
+        sd = s["date"][5:10] if len(s.get("date", "")) >= 10 else s.get("date", "")[-5:]
+        scan_d_counts[sd] = scan_d_counts.get(sd, 0) + 1
+        scan_pts.append({"d": sd, "p": round(s["price"], 1)})
+    dup_dates = {d for d, c in scan_d_counts.items() if c > 1}
+    if dup_dates:
+        cnt: dict[str, int] = {}
+        for pt in scan_pts:
+            if pt["d"] in dup_dates:
+                cnt[pt["d"]] = cnt.get(pt["d"], 0) + 1
+                pt["d"] = f'{pt["d"]}#{cnt[pt["d"]]}'
+
+    return {
+        "fc": [{
+            "d": p["date"][-5:],
+            "p": round(p["predicted_price"], 1),
+            "lo": round(float(p.get("lower_bound") or p["predicted_price"]), 1),
+            "hi": round(float(p.get("upper_bound") or p["predicted_price"]), 1),
+        } for p in curve_points],
+        "scan": scan_pts,
+        "cp": round(current_price, 2),
+        "pp": round(predicted_checkin, 2),
+        "mn": round(expected_min, 2),
+        "mx": round(expected_max, 2),
+        "sig": option_signal,
+        "analysis_mode": "source_only" if selected_source else "ensemble",
+        "selected_source": selected_source,
+        "available_sources": list(source_predictions.keys()),
+        "selected_source_price": round(float(sel_sig.get("predicted_price", 0) or 0), 2) if sel_sig else None,
+        "selected_source_confidence": round(float(sel_sig.get("confidence", 0) or 0), 2) if sel_sig else None,
+        "selected_source_reasoning": sel_sig.get("reasoning") if sel_sig else None,
+        "source_predictions": source_predictions,
+        "fcW": round(float(fc_sig.get("weight", 0) or 0), 2) if fc_sig else 0,
+        "fcC": round(float(fc_sig.get("confidence", 0) or 0), 2) if fc_sig else 0,
+        "fcP": round(float(fc_sig["predicted_price"]), 2) if fc_sig and fc_sig.get("predicted_price") else None,
+        "hiW": round(float(hist_sig.get("weight", 0) or 0), 2) if hist_sig else 0,
+        "hiC": round(float(hist_sig.get("confidence", 0) or 0), 2) if hist_sig else 0,
+        "hiP": round(float(hist_sig["predicted_price"]), 2) if hist_sig and hist_sig.get("predicted_price") else None,
+        "adj": {"ev": round(ev_adj, 2), "se": round(se_adj, 2), "dm": round(dm_adj, 2), "mo": round(mo_adj, 2), "we": round(we_adj, 2)},
+        "mom": pred_view.get("momentum", {}),
+        "reg": pred_view.get("regime", {}),
+        "mkt": (pred_view.get("market_benchmark") or {}).get("market_avg_price", 0),
+        "q": quality.get("label", ""),
+        "chg": chg,
+        "drops": scan.get("scan_actual_drops", 0),
+        "rises": scan.get("scan_actual_rises", 0),
+        "scans": scan.get("scan_snapshots", 0),
+    }
+
+
+def _get_or_build_options_base_payload(
+    analysis: dict,
+    t_days: int | None,
+    include_chart: bool,
+    profile: str,
+    source: str | None,
+    source_only: bool,
+) -> dict:
+    cache_key = _options_base_cache_key(analysis, t_days, include_chart, profile, source, source_only)
+    cached_payload = _cm.get(OPTIONS_CACHE_REGION, cache_key)
+    if isinstance(cached_payload, dict) and cached_payload.get("rows") is not None:
+        return cached_payload
+
+    payload = _build_options_rows(analysis, t_days, include_chart, profile, source, source_only)
+    _cm.set(OPTIONS_CACHE_REGION, cache_key, payload)
+    return payload
+
+
+def _get_or_build_detail_payload(analysis: dict, detail_id: int, source: str | None, source_only: bool) -> dict:
+    cache_key = _detail_cache_key(analysis, detail_id, source, source_only)
+    cached_payload = _cm.get(DETAIL_CACHE_REGION, cache_key)
+    if isinstance(cached_payload, dict) and cached_payload:
+        return cached_payload
+
+    payload = _build_option_detail_payload(analysis, detail_id, source, source_only)
+    _cm.set(DETAIL_CACHE_REGION, cache_key, payload)
+    return payload
+
+
+def _prime_salesoffice_route_caches(analysis: dict) -> dict[str, int]:
+    cached_options = 0
+    cached_details = 0
+
+    precompute_configs = [
+        {
+            "t_days": SALESOFFICE_PRECOMPUTE_T_DAYS,
+            "include_chart": False,
+            "profile": "lite",
+            "source": None,
+            "source_only": False,
+        },
+        {
+            "t_days": SALESOFFICE_PRECOMPUTE_T_DAYS,
+            "include_chart": False,
+            "profile": "full",
+            "source": None,
+            "source_only": False,
+        },
+    ]
+    precompute_configs.extend({
+        "t_days": SALESOFFICE_PRECOMPUTE_T_DAYS,
+        "include_chart": False,
+        "profile": "lite",
+        "source": source_key,
+        "source_only": True,
+    } for source_key in PRECOMPUTE_SOURCE_ONLY_SOURCES)
+
+    detail_ids: list[int] = []
+    for config in precompute_configs:
+        payload = _get_or_build_options_base_payload(analysis, **config)
+        cached_options += 1
+        if not detail_ids and config["profile"] == "lite" and not config["source_only"]:
+            detail_ids = [
+                int(row["detail_id"])
+                for row in (payload.get("rows") or [])[:SALESOFFICE_PRECOMPUTE_DETAIL_LIMIT]
+                if row.get("detail_id") is not None
+            ]
+
+    for detail_id in detail_ids:
+        _get_or_build_detail_payload(analysis, detail_id, None, False)
+        cached_details += 1
+        for source_key in PRECOMPUTE_SOURCE_ONLY_SOURCES:
+            _get_or_build_detail_payload(analysis, detail_id, source_key, True)
+            cached_details += 1
+
+    return {
+        "options": cached_options,
+        "details": cached_details,
+    }
 
 
 @analytics_router.get("/data")
@@ -127,82 +993,14 @@ def salesoffice_debug():
 
 
 @analytics_router.get("/options/detail/{detail_id}")
-def salesoffice_option_detail(detail_id: int):
+def salesoffice_option_detail(
+    detail_id: int,
+    source: str | None = None,
+    source_only: bool = False,
+):
     """Return compact detail data for the inline trading chart panel."""
     analysis = _get_or_run_analysis()
-    predictions = analysis.get("predictions", {})
-    pred = predictions.get(detail_id) or predictions.get(str(detail_id))
-    if not pred:
-        raise HTTPException(status_code=404, detail=f"Room {detail_id} not found")
-
-    curve_points = _extract_curve_points(pred, None)
-    scan = pred.get("scan_history") or {}
-    current_price = float(pred.get("current_price", 0) or 0)
-    predicted_checkin = float(pred.get("predicted_checkin_price", current_price) or current_price)
-
-    path_prices = [p["predicted_price"] for p in curve_points]
-    expected_min = min(path_prices) if path_prices else current_price
-    expected_max = max(path_prices) if path_prices else predicted_checkin
-    option_signal = _derive_option_signal(pred)
-
-    signals_list = pred.get("signals") or []
-    fc_sig = next((s for s in signals_list if s.get("source") == "forward_curve"), None)
-    hist_sig = next((s for s in signals_list if s.get("source") == "historical_pattern"), None)
-
-    fc_pts = pred.get("forward_curve") or []
-    ev_adj = sum(float(p.get("event_adj_pct", 0) or 0) for p in fc_pts)
-    se_adj = sum(float(p.get("season_adj_pct", 0) or 0) for p in fc_pts)
-    dm_adj = sum(float(p.get("demand_adj_pct", 0) or 0) for p in fc_pts)
-    mo_adj = sum(float(p.get("momentum_adj_pct", 0) or 0) for p in fc_pts)
-
-    quality = _build_quality_summary(pred, _extract_sources(pred, analysis))
-    chg = round(float(pred.get("expected_change_pct", 0) or 0), 2)
-
-    # Build scan points with MM-DD dates
-    scan_raw = scan.get("scan_price_series", [])
-    scan_d_counts: dict[str, int] = {}
-    scan_pts: list[dict] = []
-    for s in scan_raw:
-        sd = s["date"][5:10] if len(s.get("date", "")) >= 10 else s.get("date", "")[-5:]
-        scan_d_counts[sd] = scan_d_counts.get(sd, 0) + 1
-        scan_pts.append({"d": sd, "p": round(s["price"], 1)})
-    dup_dates = {d for d, c in scan_d_counts.items() if c > 1}
-    if dup_dates:
-        cnt: dict[str, int] = {}
-        for pt in scan_pts:
-            if pt["d"] in dup_dates:
-                cnt[pt["d"]] = cnt.get(pt["d"], 0) + 1
-                pt["d"] = f'{pt["d"]}#{cnt[pt["d"]]}'
-
-    detail_data = {
-        "fc": [{"d": p["date"][-5:], "p": round(p["predicted_price"], 1),
-                "lo": round(float(p.get("lower_bound") or p["predicted_price"]), 1),
-                "hi": round(float(p.get("upper_bound") or p["predicted_price"]), 1)}
-               for p in curve_points],
-        "scan": scan_pts,
-        "cp": round(current_price, 2),
-        "pp": round(predicted_checkin, 2),
-        "mn": round(expected_min, 2),
-        "mx": round(expected_max, 2),
-        "sig": option_signal,
-        "fcW": round(float(fc_sig.get("weight", 0) or 0), 2) if fc_sig else 0,
-        "fcC": round(float(fc_sig.get("confidence", 0) or 0), 2) if fc_sig else 0,
-        "fcP": round(float(fc_sig["predicted_price"]), 2) if fc_sig and fc_sig.get("predicted_price") else None,
-        "hiW": round(float(hist_sig.get("weight", 0) or 0), 2) if hist_sig else 0,
-        "hiC": round(float(hist_sig.get("confidence", 0) or 0), 2) if hist_sig else 0,
-        "hiP": round(float(hist_sig["predicted_price"]), 2) if hist_sig and hist_sig.get("predicted_price") else None,
-        "adj": {"ev": round(ev_adj, 2), "se": round(se_adj, 2),
-                "dm": round(dm_adj, 2), "mo": round(mo_adj, 2)},
-        "mom": pred.get("momentum", {}),
-        "reg": pred.get("regime", {}),
-        "mkt": (pred.get("market_benchmark") or {}).get("market_avg_price", 0),
-        "q": quality.get("label", ""),
-        "chg": chg,
-        "drops": scan.get("scan_actual_drops", 0),
-        "rises": scan.get("scan_actual_rises", 0),
-        "scans": scan.get("scan_snapshots", 0),
-    }
-    return JSONResponse(content=detail_data)
+    return JSONResponse(content=_get_or_build_detail_payload(analysis, detail_id, source, source_only))
 
 
 @analytics_router.get("/forward-curve/{detail_id}")
@@ -250,12 +1048,16 @@ async def salesoffice_options(
     include_chart: bool = True,
     profile: str = "full",
     include_system_context: bool = True,
+    include_metadata: bool = True,
+    signal: str | None = None,
+    source: str | None = None,
+    source_only: bool = False,
     _key: str = Depends(_optional_api_key),
     page: dict = Depends(pagination_params),
 ):
     """Options-style row output with min/max path stats and source transparency."""
     analysis = _get_or_run_analysis()
-    predictions = analysis.get("predictions", {})
+    normalized_source = _normalize_source_key(source)
 
     profile_applied = (profile or "full").strip().lower()
     if profile_applied not in {"full", "lite"}:
@@ -264,153 +1066,23 @@ async def salesoffice_options(
     effective_include_chart = include_chart
     if profile_applied == "lite":
         effective_include_chart = False
-
-    rows: list[dict] = []
-    for detail_id, pred in predictions.items():
-        curve_points = _extract_curve_points(pred, t_days)
-        path_prices = [p["predicted_price"] for p in curve_points]
-
-        current_price = float(pred.get("current_price", 0) or 0)
-        predicted_checkin = float(pred.get("predicted_checkin_price", current_price) or current_price)
-
-        if path_prices:
-            expected_min_price = min(path_prices)
-            expected_max_price = max(path_prices)
-
-            # Touches: count days price is within 2% of min/max band
-            price_range = max(expected_max_price - expected_min_price, 1.0)
-            touch_band = max(price_range * 0.10, 1.0)  # 10% of range, min $1
-            touches_min = sum(1 for px in path_prices if abs(px - expected_min_price) <= touch_band)
-            touches_max = sum(1 for px in path_prices if abs(px - expected_max_price) <= touch_band)
-
-            changes_gt_20 = 0  # decline days
-            changes_lte_20 = 0  # rise/flat days
-            for i in range(1, len(path_prices)):
-                prev_px = path_prices[i - 1]
-                if prev_px > 0:
-                    delta = path_prices[i] - prev_px
-                    if delta < -0.001:  # price dropped
-                        changes_gt_20 += 1
-                    else:  # price rose or flat
-                        changes_lte_20 += 1
-        else:
-            expected_min_price = predicted_checkin
-            expected_max_price = predicted_checkin
-            touches_min = 1
-            touches_max = 1
-            changes_gt_20 = 0
-            changes_lte_20 = 0
-
-        option_signal = _derive_option_signal(pred)
-        sources = _extract_sources(pred, analysis)
-        quality = _build_quality_summary(pred, sources)
-        option_levels = _build_option_levels(pred, option_signal, quality)
-        info = _build_info_badge(option_signal, quality, sources)
-        put_path_insights = _build_put_path_insights(
-            curve_points=curve_points,
-            current_price=current_price,
-            predicted_checkin=predicted_checkin,
-            probability=pred.get("probability"),
-        )
-
-        row = {
-            "detail_id": int(detail_id),
-            "hotel_id": pred.get("hotel_id"),
-            "hotel_name": pred.get("hotel_name"),
-            "category": pred.get("category"),
-            "board": pred.get("board"),
-            "date_from": pred.get("date_from"),
-            "days_to_checkin": pred.get("days_to_checkin"),
-            "t_horizon_days": len(path_prices),
-            "option_signal": option_signal,
-            "current_price": round(current_price, 2),
-            "predicted_checkin_price": round(predicted_checkin, 2),
-            "expected_change_pct": round(float(pred.get("expected_change_pct", 0) or 0), 2),
-            "expected_min_price": round(float(expected_min_price), 2),
-            "expected_max_price": round(float(expected_max_price), 2),
-            "expected_min_delta_from_now": round(float(expected_min_price - current_price), 2),
-            "expected_max_delta_from_now": round(float(expected_max_price - current_price), 2),
-            "touches_expected_min": touches_min,
-            "touches_expected_max": touches_max,
-            "count_price_changes_gt_20": changes_gt_20,
-            "count_price_changes_lte_20": changes_lte_20,
-            "sources": sources,
-            "quality": quality,
-            "option_levels": option_levels,
-            "info": info,
-            "forward_curve_url": f"/api/v1/salesoffice/forward-curve/{int(detail_id)}",
-        }
-
-        if effective_include_chart:
-            row["chart"] = _build_row_chart(curve_points)
-
-        row.update(put_path_insights)
-
-        # Scan history — actual observed price behavior since tracking started
-        scan = pred.get("scan_history") or {}
-        row["scan_history"] = {
-            "scan_snapshots": scan.get("scan_snapshots", 0),
-            "first_scan_date": scan.get("first_scan_date"),
-            "first_scan_price": scan.get("first_scan_price"),
-            "latest_scan_date": scan.get("latest_scan_date"),
-            "latest_scan_price": scan.get("latest_scan_price"),
-            "scan_price_change": scan.get("scan_price_change", 0),
-            "scan_price_change_pct": scan.get("scan_price_change_pct", 0),
-            "scan_actual_drops": scan.get("scan_actual_drops", 0),
-            "scan_actual_rises": scan.get("scan_actual_rises", 0),
-            "scan_total_drop_amount": scan.get("scan_total_drop_amount", 0),
-            "scan_total_rise_amount": scan.get("scan_total_rise_amount", 0),
-            "scan_max_single_drop": scan.get("scan_max_single_drop", 0),
-            "scan_max_single_rise": scan.get("scan_max_single_rise", 0),
-            "scan_trend": scan.get("scan_trend", "no_data"),
-            "scan_price_series": scan.get("scan_price_series", []),
-        }
-
-        # Market benchmark — hotel vs same-star avg in same city
-        bench = pred.get("market_benchmark") or {}
-        row["market_benchmark"] = bench
-
-        rows.append(row)
-
-    rows.sort(
-        key=lambda x: (
-            0 if x["option_signal"] in ("CALL", "PUT") else 1,
-            -abs(float(x.get("expected_change_pct", 0))),
-        )
+    base_payload = _get_or_build_options_base_payload(
+        analysis,
+        t_days=t_days,
+        include_chart=effective_include_chart,
+        profile=profile_applied,
+        source=normalized_source,
+        source_only=source_only,
     )
-
-    paged = paginate(rows, page["limit"], page["offset"], page["all"])
-
-    response_payload = {
-        "run_ts": analysis.get("run_ts"),
-        "total_rows": paged["total"],
-        "limit": paged["limit"],
-        "offset": paged["offset"],
-        "has_more": paged["has_more"],
-        "t_days_requested": t_days,
-        "profile_applied": profile_applied,
-        "source_validation": _build_source_validation(analysis),
-        "sources_audit_summary": _build_sources_audit(analysis, summary_only=True),
-        "data_sources": {
-            "model_info": analysis.get("model_info", {}),
-            "flight_demand": analysis.get("flight_demand", {}),
-            "events": {
-                "upcoming_events": analysis.get("events", {}).get("upcoming_events", 0),
-                "next_events": analysis.get("events", {}).get("next_events", []),
-            },
-            "benchmarks_status": analysis.get("benchmarks", {}).get("status"),
-            "historical_patterns": analysis.get("historical_patterns_summary", {}),
-        },
-        "rows": paged["items"],
-    }
-
-    if include_system_context:
-        response_payload["system_capabilities"] = _build_system_capabilities(analysis, total_rows=paged["total"])
-
-    response = JSONResponse(content=response_payload)
-    if paged.get("_all"):
-        response.headers["X-Pagination-Warning"] = "All items returned; consider using pagination"
-    return response
+    return _build_options_response_payload(
+        analysis,
+        base_payload,
+        signal=signal,
+        source=normalized_source,
+        include_metadata=include_metadata,
+        include_system_context=include_system_context,
+        page=page,
+    )
 
 
 @analytics_router.get("/options/legend")
@@ -476,6 +1148,14 @@ async def salesoffice_options_legend():
             {"field": "reasoning", "description": "Human-readable explanation of how this source contributed."},
         ],
     })
+
+
+@analytics_router.post("/options/warmup")
+async def salesoffice_options_warmup(
+    _key: str = Depends(_optional_api_key),
+):
+    """Start options analysis warmup in background without blocking the request path."""
+    return JSONResponse(content=_kickoff_analysis_warmup())
 
 
 @analytics_router.get("/sources/audit")
@@ -557,15 +1237,17 @@ async def salesoffice_status():
     snapshot_count = get_snapshot_count()
     latest = load_latest_snapshot()
 
+    cached_analysis = _get_cached_analysis() or {}
+
     return {
         "status": "ok",
         "snapshots_collected": snapshot_count,
         "total_rooms": len(latest) if not latest.empty else 0,
         "total_hotels": latest["hotel_id"].nunique() if not latest.empty else 0,
-        "last_analysis": (_cm.get_data("analytics") or {}).get("run_ts"),
-        "cache_ready": _cm.has_data("analytics"),
+        "last_analysis": cached_analysis.get("run_ts"),
+        "cache_ready": bool(cached_analysis),
         "analysis_warming": _analysis_warming.is_set(),
-        "scheduler_running": _scheduler_thread is not None and _scheduler_thread.is_alive(),
+        "scheduler_running": _is_scheduler_running(),
         "collection_interval_seconds": COLLECTION_INTERVAL,
     }
 

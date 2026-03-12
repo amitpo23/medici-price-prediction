@@ -11,11 +11,22 @@ from __future__ import annotations
 import json
 import logging
 import threading
+from datetime import datetime
 from pathlib import Path
 from statistics import mean
 
 from fastapi import Header, HTTPException
 
+from config.settings import (
+    CACHE_DIR,
+    IS_PRODUCTION,
+    MEDICI_DB_URL,
+    SALESOFFICE_ALLOW_NON_PROD_SCHEDULER,
+    SALESOFFICE_CACHE_PERSISTENCE_ENABLED,
+    SALESOFFICE_COLLECTION_INTERVAL_SECONDS,
+    SALESOFFICE_ON_DEMAND_WARMUP_ENABLED,
+    SALESOFFICE_SCHEDULER_ENABLED,
+)
 from src.utils.cache_manager import cache as _cm
 
 logger = logging.getLogger(__name__)
@@ -24,9 +35,19 @@ logger = logging.getLogger(__name__)
 _scheduler_thread: threading.Thread | None = None
 _scheduler_stop = threading.Event()
 _analysis_warming = threading.Event()  # set while background analysis is running
+_analysis_rebuild_lock = threading.Lock()
+_analysis_warmup_start_lock = threading.Lock()
+_persist_state_lock = threading.Lock()
+_persist_restore_lock = threading.Lock()
+_persist_restore_attempted = False
 
-COLLECTION_INTERVAL = 3600  # 1 hour
+COLLECTION_INTERVAL = SALESOFFICE_COLLECTION_INTERVAL_SECONDS
 _last_event_refresh_date: list[str] = [""]  # tracks date of last API event refresh
+_PERSISTED_CACHE_FILES = {
+    "analytics": CACHE_DIR / "salesoffice_analytics_cache.json",
+    "salesoffice_options": CACHE_DIR / "salesoffice_options_cache.json",
+    "salesoffice_detail": CACHE_DIR / "salesoffice_detail_cache.json",
+}
 
 
 # ── Auth (reuse from integration) ────────────────────────────────────
@@ -39,11 +60,107 @@ def _optional_api_key(x_api_key: str = Header(default="")) -> str:
     return x_api_key
 
 
+def _salesoffice_scheduler_allowed() -> bool:
+    return (
+        SALESOFFICE_SCHEDULER_ENABLED
+        and bool(MEDICI_DB_URL)
+        and (IS_PRODUCTION or SALESOFFICE_ALLOW_NON_PROD_SCHEDULER)
+    )
+
+
+def _atomic_write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    tmp_path.replace(path)
+
+
+def _persist_cache_region(region_name: str) -> None:
+    if not SALESOFFICE_CACHE_PERSISTENCE_ENABLED:
+        return
+
+    path = _PERSISTED_CACHE_FILES.get(region_name)
+    if path is None:
+        return
+
+    payload = {
+        "saved_at": datetime.utcnow().isoformat(),
+        "region": region_name,
+        "entries": _cm.export_region(region_name),
+    }
+    _atomic_write_json(path, payload)
+
+
+def _persist_salesoffice_state() -> None:
+    if not SALESOFFICE_CACHE_PERSISTENCE_ENABLED:
+        return
+
+    with _persist_state_lock:
+        for region_name in ("analytics", "salesoffice_options", "salesoffice_detail"):
+            try:
+                _persist_cache_region(region_name)
+            except (OSError, TypeError, ValueError) as exc:
+                logger.warning("Persisting %s cache failed: %s", region_name, exc)
+
+
+def _restore_cache_region(region_name: str) -> int:
+    if not SALESOFFICE_CACHE_PERSISTENCE_ENABLED:
+        return 0
+
+    path = _PERSISTED_CACHE_FILES.get(region_name)
+    if path is None or not path.exists():
+        return 0
+
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError) as exc:
+        logger.warning("Restoring %s cache failed: %s", region_name, exc)
+        return 0
+
+    entries = payload.get("entries") if isinstance(payload, dict) else {}
+    if not isinstance(entries, dict):
+        return 0
+    return _cm.import_region(region_name, entries, clear_existing=False)
+
+
+def _restore_salesoffice_persisted_state() -> bool:
+    global _persist_restore_attempted
+
+    if _persist_restore_attempted or not SALESOFFICE_CACHE_PERSISTENCE_ENABLED:
+        return _cm.has_data("analytics")
+
+    with _persist_restore_lock:
+        if _persist_restore_attempted:
+            return _cm.has_data("analytics")
+
+        restored_counts = {
+            region_name: _restore_cache_region(region_name)
+            for region_name in ("analytics", "salesoffice_options", "salesoffice_detail")
+        }
+        _persist_restore_attempted = True
+
+    if any(restored_counts.values()):
+        logger.info(
+            "Restored persisted SalesOffice caches: analytics=%d options=%d detail=%d",
+            restored_counts.get("analytics", 0),
+            restored_counts.get("salesoffice_options", 0),
+            restored_counts.get("salesoffice_detail", 0),
+        )
+    return _cm.has_data("analytics")
+
+
 # ── Background scheduler ─────────────────────────────────────────────
 
 def start_salesoffice_scheduler() -> None:
-    """Start hourly price collection in background thread."""
+    """Start periodic price collection in background thread."""
     global _scheduler_thread
+
+    if not _salesoffice_scheduler_allowed():
+        logger.info(
+            "SalesOffice scheduler disabled for environment (production_only=%s)",
+            not SALESOFFICE_ALLOW_NON_PROD_SCHEDULER,
+        )
+        return
 
     if _scheduler_thread is not None and _scheduler_thread.is_alive():
         logger.info("SalesOffice scheduler already running")
@@ -75,6 +192,11 @@ def stop_salesoffice_scheduler() -> None:
         _scheduler_thread.join(timeout=5)
 
 
+def _is_scheduler_running() -> bool:
+    """Return whether the background scheduler thread is currently alive."""
+    return _scheduler_thread is not None and _scheduler_thread.is_alive()
+
+
 # ── Internal helpers ──────────────────────────────────────────────────
 
 def _run_collection_cycle() -> dict | None:
@@ -95,6 +217,20 @@ def _run_collection_cycle() -> dict | None:
     analysis = run_analysis()
 
     _cm.set_data("analytics", analysis)
+
+    try:
+        from src.api.routers.analytics_router import _prime_salesoffice_route_caches
+
+        cache_stats = _prime_salesoffice_route_caches(analysis)
+        logger.info(
+            "SalesOffice: precomputed route caches — options=%d detail=%d",
+            cache_stats.get("options", 0),
+            cache_stats.get("details", 0),
+        )
+    except (ImportError, KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
+        logger.warning("SalesOffice route precompute failed: %s", exc)
+
+    _persist_salesoffice_state()
 
     logger.info(
         "SalesOffice: analysis complete — %d rooms, %d hotels",
@@ -202,7 +338,124 @@ def _run_collection_cycle() -> dict | None:
 def _get_cached_analysis() -> dict | None:
     """Return cached analysis or None — never blocks."""
     data = _cm.get_data("analytics")
+    if not data:
+        _restore_salesoffice_persisted_state()
+        data = _cm.get_data("analytics")
     return dict(data) if data else None
+
+
+def _rebuild_cached_analysis_from_snapshots() -> dict | None:
+    """Rebuild analysis cache from existing SQLite snapshots without recollecting."""
+    from src.analytics.analyzer import run_analysis
+    from src.analytics.price_store import get_snapshot_count, init_db
+
+    init_db()
+    snapshot_count = get_snapshot_count()
+    if snapshot_count <= 0:
+        return None
+
+    logger.info(
+        "Analytics cache cold — rebuilding from %d existing snapshot(s)",
+        snapshot_count,
+    )
+    analysis = run_analysis()
+    if isinstance(analysis, dict) and not analysis.get("error"):
+        _cm.set_data("analytics", analysis)
+        try:
+            from src.api.routers.analytics_router import _prime_salesoffice_route_caches
+
+            _prime_salesoffice_route_caches(analysis)
+        except (ImportError, KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
+            logger.warning("SalesOffice route precompute from snapshots failed: %s", exc)
+        _persist_salesoffice_state()
+        logger.info("Analytics cache rebuilt from existing snapshots")
+        return analysis
+    return None
+
+
+def _kickoff_analysis_warmup() -> dict[str, object]:
+    """Ensure analytics warmup is running in the background and report state."""
+    data = _cm.get_data("analytics")
+    if not data:
+        _restore_salesoffice_persisted_state()
+        data = _cm.get_data("analytics")
+    if data:
+        return {
+            "cache_ready": True,
+            "analysis_warming": False,
+            "scheduler_running": _scheduler_thread is not None and _scheduler_thread.is_alive(),
+            "started": False,
+            "detail": "Analysis cache is already ready.",
+            "retry_after": 0,
+        }
+
+    if not _salesoffice_scheduler_allowed():
+        return {
+            "cache_ready": False,
+            "analysis_warming": False,
+            "scheduler_running": False,
+            "started": False,
+            "detail": "Analysis cache is cold and SalesOffice scheduler is disabled outside production.",
+            "retry_after": COLLECTION_INTERVAL,
+        }
+
+    if _scheduler_thread is None or not _scheduler_thread.is_alive():
+        logger.info("SalesOffice scheduler not running — restarting on demand")
+        start_salesoffice_scheduler()
+
+    if _analysis_warming.is_set():
+        return {
+            "cache_ready": False,
+            "analysis_warming": True,
+            "scheduler_running": _scheduler_thread is not None and _scheduler_thread.is_alive(),
+            "started": False,
+            "detail": "Analysis is warming up in background. Retry in 30-60 seconds.",
+            "retry_after": 30,
+        }
+
+    if not SALESOFFICE_ON_DEMAND_WARMUP_ENABLED:
+        return {
+            "cache_ready": False,
+            "analysis_warming": False,
+            "scheduler_running": _scheduler_thread is not None and _scheduler_thread.is_alive(),
+            "started": False,
+            "detail": "Analysis cache is cold. On-demand warmup is disabled; wait for the scheduled 3-hour refresh.",
+            "retry_after": COLLECTION_INTERVAL,
+        }
+
+    started = False
+    with _analysis_warmup_start_lock:
+        if not _analysis_warming.is_set():
+            _analysis_warming.set()
+            started = True
+
+            def _background_warm() -> None:
+                try:
+                    rebuilt: dict | None = None
+                    with _analysis_rebuild_lock:
+                        rebuilt = _rebuild_cached_analysis_from_snapshots()
+                    if rebuilt:
+                        return
+                    _run_collection_cycle()
+                except (ConnectionError, KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
+                    logger.error("Background warmup failed: %s", exc, exc_info=True)
+                finally:
+                    _analysis_warming.clear()
+
+            threading.Thread(target=_background_warm, daemon=True, name="analysis-warmup").start()
+
+    return {
+        "cache_ready": False,
+        "analysis_warming": True,
+        "scheduler_running": _scheduler_thread is not None and _scheduler_thread.is_alive(),
+        "started": started,
+        "detail": (
+            "Analysis cache is cold. Warmup started — retry in 60 seconds."
+            if started
+            else "Analysis is warming up in background. Retry in 30-60 seconds."
+        ),
+        "retry_after": 60 if started else 30,
+    }
 
 
 def _get_or_run_analysis() -> dict:
@@ -213,33 +466,15 @@ def _get_or_run_analysis() -> dict:
     If the cache is still empty, return 503 so Azure gateway doesn't
     hit the 230-second timeout.
     """
-    data = _cm.get_data("analytics")
+    data = _get_cached_analysis()
     if data:
         return dict(data)
 
-    # Cache is empty — check if background warmup is already running
-    if _analysis_warming.is_set():
-        raise HTTPException(
-            status_code=503,
-            detail="Analysis is warming up in background. Retry in 30-60 seconds.",
-            headers={"Retry-After": "30"},
-        )
-
-    # Nobody is warming yet — kick off a background thread and return 503
-    def _background_warm():
-        _analysis_warming.set()
-        try:
-            _run_collection_cycle()
-        except (OSError, ConnectionError, ValueError) as exc:
-            logger.error("Background warmup failed: %s", exc, exc_info=True)
-        finally:
-            _analysis_warming.clear()
-
-    threading.Thread(target=_background_warm, daemon=True, name="analysis-warmup").start()
+    warmup = _kickoff_analysis_warmup()
     raise HTTPException(
         status_code=503,
-        detail="Analysis cache is cold. Warmup started — retry in 60 seconds.",
-        headers={"Retry-After": "60"},
+        detail=str(warmup["detail"]),
+        headers={"Retry-After": str(warmup["retry_after"])},
     )
 
 
@@ -294,6 +529,7 @@ def _extract_sources(pred: dict, analysis: dict) -> list[dict]:
         return [
             {
                 "source": s.get("source"),
+                "predicted_price": s.get("predicted_price"),
                 "weight": s.get("weight"),
                 "confidence": s.get("confidence"),
                 "reasoning": s.get("reasoning"),
@@ -305,6 +541,7 @@ def _extract_sources(pred: dict, analysis: dict) -> list[dict]:
     return [
         {
             "source": "forward_curve",
+            "predicted_price": pred.get("predicted_checkin_price"),
             "weight": 1.0,
             "confidence": None,
             "reasoning": (
@@ -402,6 +639,7 @@ def _build_put_path_insights(
     current_price: float,
     predicted_checkin: float,
     probability: dict | None = None,
+    include_decline_events: bool = True,
 ) -> dict:
     """Build put-side path insights: dips, declines, expected drops.
 
@@ -480,7 +718,7 @@ def _build_put_path_insights(
         "put_largest_decline_date": largest_decline_event["to_date"] if largest_decline_event else None,
         "put_downside_from_now_to_t_min": round(max(0.0, float(current_price) - t_min_price), 2),
         "put_rebound_from_t_min_to_checkin": round(max(0.0, float(predicted_checkin) - t_min_price), 2),
-        "put_decline_events": decline_events,
+        "put_decline_events": decline_events if include_decline_events else [],
         "expected_future_drops": expected_future_drops,
         "expected_future_rises": expected_future_rises,
     }

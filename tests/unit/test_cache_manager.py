@@ -75,6 +75,15 @@ class TestCacheRegion:
         assert region.size == 0
         assert region.get("a") is None
 
+    def test_delete_single_key(self):
+        """delete() removes just the requested entry."""
+        region = CacheRegion(name="test", ttl=60)
+        region.set("a", 1)
+        region.set("b", 2)
+        region.delete("a")
+        assert region.get("a") is None
+        assert region.get("b") == 2
+
     def test_has_key(self):
         """has() checks for non-expired existence."""
         region = CacheRegion(name="test", ttl=1)
@@ -187,6 +196,20 @@ class TestCacheRegion:
 
         assert errors == []
 
+    def test_export_import_entries(self):
+        """Regions can export live entries and import them elsewhere."""
+        region = CacheRegion(name="test", ttl=60)
+        region.set("a", {"x": 1})
+        region.set("b", {"x": 2})
+
+        exported = region.export_entries()
+        assert exported == {"a": {"x": 1}, "b": {"x": 2}}
+
+        restored = CacheRegion(name="other", ttl=60)
+        assert restored.import_entries(exported) == 2
+        assert restored.get("a") == {"x": 1}
+        assert restored.get("b") == {"x": 2}
+
 
 # ── CacheManager tests ────────────────────────────────────────────────
 
@@ -264,6 +287,14 @@ class TestCacheManager:
         assert self.cm.get("slow", "k1") is None
         assert self.cm.get("slow", "k2") is None
 
+    def test_delete_region_key(self):
+        """delete() removes a specific key from a region."""
+        self.cm.set("slow", "k1", 1)
+        self.cm.set("slow", "k2", 2)
+        self.cm.delete("slow", "k1")
+        assert self.cm.get("slow", "k1") is None
+        assert self.cm.get("slow", "k2") == 2
+
     def test_clear_all(self):
         """clear_all() empties all regions."""
         self.cm.set("fast", "k", 1)
@@ -285,6 +316,18 @@ class TestCacheManager:
         """regions property returns list of registered names."""
         assert "fast" in self.cm.regions
         assert "slow" in self.cm.regions
+
+    def test_export_import_region(self):
+        """export_region/import_region round-trip region values."""
+        self.cm.set("slow", "a", {"v": 1})
+        self.cm.set("slow", "b", {"v": 2})
+        exported = self.cm.export_region("slow")
+
+        other = CacheManager()
+        other.register("slow", ttl=3600, max_size=0)
+        assert other.import_region("slow", exported) == 2
+        assert other.get("slow", "a") == {"v": 1}
+        assert other.get("slow", "b") == {"v": 2}
 
     def test_ttl_expiry_through_manager(self):
         """TTL expiry works through the CacheManager facade."""
@@ -312,8 +355,18 @@ class TestCacheSingleton:
         """The module-level cache has all configured regions."""
         from src.utils.cache_manager import cache
 
-        expected = ["analytics", "yoy", "options_expiry", "charts",
-                     "accuracy", "provider", "ai", "analyst"]
+        expected = [
+            "analytics",
+            "yoy",
+            "options_expiry",
+            "charts",
+            "accuracy",
+            "provider",
+            "ai",
+            "analyst",
+            "salesoffice_options",
+            "salesoffice_detail",
+        ]
         for name in expected:
             assert name in cache.regions, f"Missing region: {name}"
 
@@ -350,8 +403,8 @@ class TestCacheSingleton:
         assert yoy.ttl == 21600
 
     def test_singleton_status(self):
-        """Singleton status returns all 8 regions."""
+        """Singleton status returns all configured regions."""
         from src.utils.cache_manager import cache
 
         s = cache.status()
-        assert len(s) == 8
+        assert len(s) == 10

@@ -714,6 +714,16 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
             deep_result["hotel_id"] = hotel_id
             deep_result["category"] = _safe_label(CATEGORIES, row["room_category"])
             deep_result["board"] = _safe_label(BOARDS, row["room_board"])
+            deep_result["source_inputs"] = {
+                "demand_indicator": enrichments.demand_indicator,
+                "events_count": len(enrichments.events or []),
+                "event_names": [str(ev.get("name", "")) for ev in (enrichments.events or [])[:5] if ev.get("name")],
+                "weather_days": len(enrichments.weather_signal or {}),
+                "competitor_pressure": round(float(enrichments.competitor_pressure or 0.0), 4),
+                "price_velocity": round(float(enrichments.price_velocity or 0.0), 4),
+                "cancellation_risk": round(float(enrichments.cancellation_risk or 0.0), 4),
+                "provider_pressure": round(float(enrichments.provider_pressure or 0.0), 4),
+            }
 
             predictions[detail_id] = deep_result
 
@@ -983,6 +993,7 @@ def _predict_forward_curve_only(
                 "season_adj_pct": pt.season_adj_pct,
                 "demand_adj_pct": pt.demand_adj_pct,
                 "momentum_adj_pct": pt.momentum_adj_pct,
+                "weather_adj_pct": pt.weather_adj_pct,
             }
             for pt in fwd.points
         ],

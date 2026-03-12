@@ -49,6 +49,34 @@ async def test_options_with_t_days(test_client):
 
 
 @pytest.mark.asyncio
+async def test_options_single_source_mode_responds(test_client):
+    """Single-source mode should respond without crashing when a source is selected."""
+    resp = await test_client.get(
+        "/api/v1/salesoffice/options?profile=lite&source=forward_curve&source_only=true"
+    )
+    assert resp.status_code in (200, 503)
+    assert "Traceback" not in resp.text
+    if resp.status_code == 200:
+        data = resp.json()
+        assert data.get("analysis_mode") == "source_only"
+        assert data.get("selected_source") == "forward_curve"
+
+
+@pytest.mark.asyncio
+async def test_options_basic_source_mode_responds(test_client):
+    """Basic data-source mode should respond without crashing for standalone source analysis."""
+    resp = await test_client.get(
+        "/api/v1/salesoffice/options?profile=lite&source=cancellation_data&source_only=true"
+    )
+    assert resp.status_code in (200, 503)
+    assert "Traceback" not in resp.text
+    if resp.status_code == 200:
+        data = resp.json()
+        assert data.get("analysis_mode") == "source_only"
+        assert data.get("selected_source") == "cancellation_data"
+
+
+@pytest.mark.asyncio
 async def test_options_row_shape(test_client):
     """Each options row must have core fields when data is available."""
     resp = await test_client.get("/api/v1/salesoffice/options?profile=lite")
@@ -65,6 +93,25 @@ async def test_options_row_shape(test_client):
             ]
             for key in required_keys:
                 assert key in row, f"Missing key: {key}"
+
+
+@pytest.mark.asyncio
+async def test_options_lite_payload_is_compact(test_client):
+    """Lite options rows should avoid shipping bulky modal-only payload fields."""
+    resp = await test_client.get("/api/v1/salesoffice/options?profile=lite")
+    assert resp.status_code in (200, 503)
+    assert "Traceback" not in resp.text
+    if resp.status_code == 200:
+        data = resp.json()
+        rows = data.get("rows", [])
+        if rows:
+            row = rows[0]
+            scan_history = row.get("scan_history") or {}
+            assert "scan_price_series" not in scan_history
+            source_predictions = row.get("source_predictions") or {}
+            if source_predictions:
+                sample = next(iter(source_predictions.values()))
+                assert "reasoning" not in sample
 
 
 # ── 3. GET /api/v1/salesoffice/options/detail/{id} ───────────────────
@@ -175,6 +222,26 @@ async def test_options_legend(test_client):
     data = resp.json()
     assert isinstance(data, dict)
     assert "legend_version" in data or "info_icon_rules" in data or "scale" in data
+    assert "Traceback" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_options_view_returns_async_html(test_client):
+    """Options HTML shell should render immediately without waiting for analytics."""
+    resp = await test_client.get("/api/v1/salesoffice/options/view")
+    assert resp.status_code == 200
+    content_type = resp.headers.get("content-type", "")
+    assert "html" in content_type
+    assert "Options Trading Signals" in resp.text
+    assert "/api/v1/salesoffice/options/warmup" in resp.text
+    assert "Prediction engine" in resp.text
+    assert "Source view" in resp.text
+    assert "Selected source $" in resp.text
+    assert "Booking Cancellations" in resp.text
+    assert "Source-only prediction" in resp.text
+    assert "Graph mode" in resp.text
+    assert "Source comparison" in resp.text
+    assert "Scan-only zoom" in resp.text
     assert "Traceback" not in resp.text
 
 

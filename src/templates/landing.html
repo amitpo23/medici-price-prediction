@@ -13,14 +13,16 @@ padding:10px 20px;display:flex;align-items:center;gap:8px;}
 .status-item .val{font-weight:700;color:var(--accent2);}
 .page-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
 padding:16px;display:flex;gap:12px;align-items:center;text-decoration:none;color:var(--text);
-transition:all 0.2s;}
+transition:all 0.2s;cursor:pointer;position:relative;}
 .page-card:hover{border-color:var(--accent);background:var(--surface2);transform:translateY(-2px);}
+.page-card:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
 .card-icon{font-size:1.8em;width:48px;text-align:center;flex-shrink:0;}
 .card-body{flex:1;}
 .card-title{font-weight:600;font-size:1.05em;margin-bottom:4px;}
 .card-desc{color:var(--text-dim);font-size:0.85em;line-height:1.4;}
 .card-arrow{color:var(--text-dim);font-size:1.2em;flex-shrink:0;}
 .page-card:hover .card-arrow{color:var(--accent2);}
+.card-open{display:inline-block;margin-top:8px;color:var(--accent2);font-size:0.82em;font-weight:600;}
 .api-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;
 padding:20px;margin:24px 0;}
 .api-section h3{color:var(--accent2);margin-bottom:12px;}
@@ -52,11 +54,14 @@ border-bottom:1px solid var(--border);}
 <div class="section-title">Core Analytics</div>
 <div class="cards-grid">
 {% for p in core_pages %}
-    <a href="{{ p.url }}" class="page-card">
+    <a href="{{ p.url }}" class="page-card" data-href="{{ p.url }}" role="link"
+       onclick="window.location.href=this.dataset.href; return false;"
+       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href=this.dataset.href;}">
         <div class="card-icon">{{ p.icon }}</div>
         <div class="card-body">
             <div class="card-title">{{ p.title }}</div>
             <div class="card-desc">{{ p.description }}</div>
+            <div class="card-open">Open page →</div>
         </div>
         <div class="card-arrow">&#x2192;</div>
     </a>
@@ -66,11 +71,14 @@ border-bottom:1px solid var(--border);}
 <div class="section-title">Intelligence & Monitoring</div>
 <div class="cards-grid">
 {% for p in intel_pages %}
-    <a href="{{ p.url }}" class="page-card">
+    <a href="{{ p.url }}" class="page-card" data-href="{{ p.url }}" role="link"
+       onclick="window.location.href=this.dataset.href; return false;"
+       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href=this.dataset.href;}">
         <div class="card-icon">{{ p.icon }}</div>
         <div class="card-body">
             <div class="card-title">{{ p.title }}</div>
             <div class="card-desc">{{ p.description }}</div>
+            <div class="card-open">Open page →</div>
         </div>
         <div class="card-arrow">&#x2192;</div>
     </a>
@@ -80,11 +88,14 @@ border-bottom:1px solid var(--border);}
 <div class="section-title">System & Exports</div>
 <div class="cards-grid">
 {% for p in system_pages %}
-    <a href="{{ p.url }}" class="page-card">
+    <a href="{{ p.url }}" class="page-card" data-href="{{ p.url }}" role="link"
+       onclick="window.location.href=this.dataset.href; return false;"
+       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href=this.dataset.href;}">
         <div class="card-icon">{{ p.icon }}</div>
         <div class="card-body">
             <div class="card-title">{{ p.title }}</div>
             <div class="card-desc">{{ p.description }}</div>
+            <div class="card-open">Open page →</div>
         </div>
         <div class="card-arrow">&#x2192;</div>
     </a>

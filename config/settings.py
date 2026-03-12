@@ -31,6 +31,29 @@ MEDICI_DB_URL = os.getenv("MEDICI_DB_URL", "")
 TRADING_CACHE_TTL_MINUTES = int(os.getenv("TRADING_CACHE_TTL_MINUTES", "5"))
 TRADING_ANALYSIS_INTERVAL_MINUTES = int(os.getenv("TRADING_ANALYSIS_INTERVAL_MINUTES", "30"))
 
+# Runtime environment / scheduler controls
+ENVIRONMENT = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "production")).strip().lower()
+IS_PRODUCTION = ENVIRONMENT == "production"
+SALESOFFICE_COLLECTION_INTERVAL_SECONDS = int(
+    os.getenv("SALESOFFICE_COLLECTION_INTERVAL_SECONDS", "10800")
+)
+SALESOFFICE_SCHEDULER_ENABLED = os.getenv("SALESOFFICE_SCHEDULER_ENABLED", "true").lower() in (
+    "true", "1", "yes"
+)
+SALESOFFICE_ALLOW_NON_PROD_SCHEDULER = os.getenv(
+    "SALESOFFICE_ALLOW_NON_PROD_SCHEDULER", "false"
+).lower() in ("true", "1", "yes")
+SALESOFFICE_ON_DEMAND_WARMUP_ENABLED = os.getenv(
+    "SALESOFFICE_ON_DEMAND_WARMUP_ENABLED", "false"
+).lower() in ("true", "1", "yes")
+SALESOFFICE_CACHE_PERSISTENCE_ENABLED = os.getenv(
+    "SALESOFFICE_CACHE_PERSISTENCE_ENABLED", "true"
+).lower() in ("true", "1", "yes")
+SALESOFFICE_PRECOMPUTE_T_DAYS = int(os.getenv("SALESOFFICE_PRECOMPUTE_T_DAYS", "7"))
+SALESOFFICE_PRECOMPUTE_DETAIL_LIMIT = int(
+    os.getenv("SALESOFFICE_PRECOMPUTE_DETAIL_LIMIT", "25")
+)
+
 # API Authentication for trading integration
 PREDICTION_API_KEY = os.getenv("PREDICTION_API_KEY", "")
 
@@ -63,6 +86,8 @@ CACHE_CONFIG: dict[str, dict[str, int]] = {
     "provider":       {"ttl": 21600, "max_size": 0},     # 6 hours
     "ai":             {"ttl": int(os.getenv("AI_CACHE_TTL_SECONDS", "1800")),  "max_size": 500},
     "analyst":        {"ttl": int(os.getenv("ANALYST_CACHE_TTL", "600")),      "max_size": 200},
+    "salesoffice_options": {"ttl": 0, "max_size": 64},
+    "salesoffice_detail":  {"ttl": 0, "max_size": 1000},
 }
 
 # API

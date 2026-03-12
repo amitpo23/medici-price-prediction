@@ -83,6 +83,40 @@ class CacheRegion:
         with self._lock:
             self._data.clear()
 
+    def delete(self, key: str) -> None:
+        """Remove a single entry if it exists."""
+        with self._lock:
+            self._data.pop(key, None)
+
+    def export_entries(self) -> dict[str, Any]:
+        """Return all non-expired values in this region."""
+        exported: dict[str, Any] = {}
+        now = time.time()
+        with self._lock:
+            expired: list[str] = []
+            for key, (ts, value) in self._data.items():
+                if self.ttl > 0 and (now - ts) >= self.ttl:
+                    expired.append(key)
+                    continue
+                exported[key] = value
+            for key in expired:
+                del self._data[key]
+        return exported
+
+    def import_entries(self, entries: dict[str, Any], clear_existing: bool = False) -> int:
+        """Restore entries into this region using the current time as timestamp."""
+        count = 0
+        with self._lock:
+            if clear_existing:
+                self._data.clear()
+            ts = time.time()
+            for key, value in entries.items():
+                self._data[key] = (ts, value)
+                count += 1
+            if self.max_size > 0 and len(self._data) > self.max_size:
+                self._evict_unlocked()
+        return count
+
     # ── Loading flag (for background-load patterns) ───────────────────
 
     @property
@@ -177,6 +211,13 @@ class CacheManager:
             return
         r.set(key, val)
 
+    def delete(self, region_name: str, key: str) -> None:
+        """Delete a key from a named region."""
+        r = self._regions.get(region_name)
+        if r is None:
+            return
+        r.delete(key)
+
     # ── Single-value operations (for yoy, charts, analytics, etc.) ────
 
     def get_data(self, region_name: str) -> Any | None:
@@ -212,6 +253,25 @@ class CacheManager:
         r = self._regions.get(region_name)
         if r:
             r.clear()
+
+    def export_region(self, region_name: str) -> dict[str, Any]:
+        """Export all non-expired values from a region."""
+        r = self._regions.get(region_name)
+        if r is None:
+            return {}
+        return r.export_entries()
+
+    def import_region(
+        self,
+        region_name: str,
+        entries: dict[str, Any],
+        clear_existing: bool = False,
+    ) -> int:
+        """Restore values into a region."""
+        r = self._regions.get(region_name)
+        if r is None:
+            return 0
+        return r.import_entries(entries, clear_existing=clear_existing)
 
     def clear_all(self) -> None:
         """Clear all regions."""
