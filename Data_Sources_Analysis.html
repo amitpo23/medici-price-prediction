@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medici — Data Sources Deep Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-card: #1a1d27;
+            --bg-card-hover: #222636;
+            --bg-header: #141720;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0b0;
+            --text-on-dark: #ffffff;
+            --blue: #4C8BF5;
+            --green: #34A853;
+            --red: #EA4335;
+            --orange: #FBBC04;
+            --purple: #A142F4;
+            --cyan: #24C1E0;
+            --pink: #F538A0;
+            --teal: #12B5A0;
+            --positive: #34A853;
+            --negative: #EA4335;
+            --neutral: #9aa0b0;
+            --gap: 16px;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            direction: ltr;
+        }
+
+        .dashboard-container { max-width: 1500px; margin: 0 auto; padding: var(--gap); }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #1B4F72 0%, #2E86C1 100%);
+            color: var(--text-on-dark);
+            padding: 28px 32px;
+            border-radius: var(--radius);
+            margin-bottom: var(--gap);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .dashboard-header h1 { font-size: 22px; font-weight: 700; }
+        .dashboard-header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group { display: flex; align-items: center; gap: 6px; }
+        .filter-group label { font-size: 12px; color: rgba(255,255,255,0.7); }
+        .filter-group select {
+            padding: 6px 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: var(--text-on-dark);
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .filter-group select option { background: #1a1d27; color: #e8eaed; }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: transform 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-2px); background: var(--bg-card-hover); }
+        .kpi-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+        .kpi-value { font-size: 28px; font-weight: 700; }
+        .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+
+        .chart-full { grid-column: 1 / -1; }
+
+        .chart-container {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .chart-container h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .chart-container canvas { max-height: 320px; }
+
+        .table-section {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            border: 1px solid rgba(255,255,255,0.06);
+            overflow-x: auto;
+            margin-bottom: var(--gap);
+        }
+
+        .table-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table thead th {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .data-table thead th:hover { color: var(--text-primary); }
+        .data-table tbody td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .data-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .status-active { background: rgba(52,168,83,0.15); color: #34A853; }
+        .status-partial { background: rgba(251,188,4,0.15); color: #FBBC04; }
+        .status-planned { background: rgba(234,67,53,0.15); color: #EA4335; }
+        .status-display { background: rgba(76,139,245,0.15); color: #4C8BF5; }
+
+        .quality-bar {
+            display: inline-block;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            width: 80px;
+            position: relative;
+        }
+        .quality-bar-fill {
+            position: absolute;
+            top: 0; left: 0;
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .impact-pill {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .impact-high { background: rgba(234,67,53,0.15); color: #EA4335; }
+        .impact-medium { background: rgba(251,188,4,0.15); color: #FBBC04; }
+        .impact-low { background: rgba(154,160,176,0.15); color: #9aa0b0; }
+        .impact-display { background: rgba(76,139,245,0.15); color: #4C8BF5; }
+
+        .enrichment-detail {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            border: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: var(--gap);
+        }
+        .enrichment-detail h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 16px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .flow-box {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .flow-arrow { color: var(--text-secondary); font-size: 18px; }
+
+        .section-divider {
+            text-align: center;
+            padding: 24px 0 12px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            border-bottom: 2px solid rgba(255,255,255,0.06);
+            margin-bottom: var(--gap);
+        }
+
+        .gap-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.02);
+        }
+        .gap-icon { font-size: 18px; flex-shrink: 0; }
+        .gap-text { font-size: 13px; }
+        .gap-text strong { color: var(--text-primary); }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header { flex-direction: column; align-items: flex-start; }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .chart-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+
+    <header class="dashboard-header">
+        <div>
+            <h1>Medici Price Prediction — Data Sources Analysis</h1>
+            <div class="subtitle">Complete breakdown of 26 data sources across 8 categories</div>
+        </div>
+        <div class="filters">
+            <div class="filter-group">
+                <label>Category</label>
+                <select id="filter-category" onchange="dashboard.applyFilters()">
+                    <option value="all">All Categories</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="filter-status" onchange="dashboard.applyFilters()">
+                    <option value="all">All Statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Partial">Partial</option>
+                    <option value="Planned">Planned</option>
+                    <option value="Display Only">Display Only</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Impact</label>
+                <select id="filter-impact" onchange="dashboard.applyFilters()">
+                    <option value="all">All Impact Levels</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- KPIs -->
+    <section class="kpi-row" id="kpi-section"></section>
+
+    <!-- Charts Row 1: Overview -->
+    <section class="chart-row">
+        <div class="chart-container">
+            <h3>Sources by Status</h3>
+            <canvas id="chart-status"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Sources by Category</h3>
+            <canvas id="chart-category"></canvas>
+        </div>
+    </section>
+
+    <!-- Charts Row 2: Impact & Quality -->
+    <section class="chart-row">
+        <div class="chart-container chart-full">
+            <h3>Enrichment Impact per Source (daily % adjustment range)</h3>
+            <canvas id="chart-impact" style="max-height:400px"></canvas>
+        </div>
+    </section>
+
+    <section class="chart-row">
+        <div class="chart-container">
+            <h3>Data Quality Score by Source</h3>
+            <canvas id="chart-quality"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Code Complexity (Lines of Code)</h3>
+            <canvas id="chart-loc"></canvas>
+        </div>
+    </section>
+
+    <!-- Enrichment Pipeline Flow -->
+    <div class="section-divider">Enrichment Pipeline — How Sources Feed Into Predictions</div>
+
+    <div class="enrichment-detail">
+        <h3>Forward Curve Enrichment Flow</h3>
+        <div class="flow-diagram">
+            <div class="flow-box" style="background:rgba(76,139,245,0.2);color:#4C8BF5">Base Decay Curve</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box" style="background:rgba(234,67,53,0.15);color:#EA4335">+ Events (0.03-0.40)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box" style="background:rgba(251,188,4,0.15);color:#FBBC04">+ Seasonality (×3.0)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box" style="background:rgba(36,193,224,0.15);color:#24C1E0">+ Demand (±0.15%)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box" style="background:rgba(52,168,83,0.15);color:#34A853">+ Weather (±0.15%)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box" style="background:rgba(161,66,244,0.15);color:#A142F4">+ Competitors (±0.20%)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box" style="background:rgba(245,56,160,0.15);color:#F538A0">+ Cancellations (-0.25%)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box" style="background:rgba(255,255,255,0.1);color:#e8eaed;border:2px solid #4C8BF5">Adjusted Daily Change</div>
+        </div>
+        <canvas id="chart-enrichment-waterfall" style="max-height:320px"></canvas>
+    </div>
+
+    <!-- Seasonality Chart -->
+    <section class="chart-row">
+        <div class="chart-container chart-full">
+            <h3>Miami Seasonality Index (Monthly) — Multiplier Effect on Predictions</h3>
+            <canvas id="chart-seasonality" style="max-height:280px"></canvas>
+        </div>
+    </section>
+
+    <!-- Detailed Source Table -->
+    <div class="section-divider">Detailed Source Breakdown</div>
+
+    <section class="table-section">
+        <h3>All Data Sources — Technical Details</h3>
+        <div id="source-table"></div>
+    </section>
+
+    <!-- Gap Analysis per Source -->
+    <div class="section-divider">Gap Analysis — Issues Per Source</div>
+    <section id="gap-section"></section>
+
+    <!-- Options Trading Analysis -->
+    <div class="section-divider">Options Trading Model — Current vs. Required</div>
+
+    <section class="chart-row">
+        <div class="chart-container">
+            <h3>Options Framework: Implemented vs. Missing</h3>
+            <canvas id="chart-options-gap"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Current Signal Generation (Simplified)</h3>
+            <canvas id="chart-signal-logic"></canvas>
+        </div>
+    </section>
+
+    <section class="table-section">
+        <h3>Options Trading Components — Status Matrix</h3>
+        <div id="options-table"></div>
+    </section>
+
+    <footer class="footer">
+        Medici Price Prediction — Data Sources Analysis Dashboard — Generated March 2026
+    </footer>
+</div>
+
+<script>
+const COLORS = ['#4C8BF5','#EA4335','#FBBC04','#34A853','#A142F4','#24C1E0','#F538A0','#12B5A0','#FF6D01','#9AA0B0','#7BAAF7','#F07B72'];
+
+const DATA = [
+    // ── Internal SQL (Azure medici-db) ──
+    { name:"SalesOffice Details", category:"Internal SQL", status:"Active", integration:"Azure SQL (pyodbc)", fields:"room_id, hotel, room_type, checkin_date, current_price, currency, status", enrichment:"Primary price data (base for all predictions)", impactMin:0, impactMax:0, impactNote:"Base signal — not an adjustment", quality:95, loc:180, fetchFreq:"Every 3 hours", errorHandling:"30s timeout, graceful fallback", issues:"Read-only enforced. No retry on timeout.", impact:"High" },
+    { name:"AI Search Hotels", category:"Internal SQL", status:"Active", integration:"Azure SQL", fields:"hotel_id, hotel_name, latitude, longitude, star_rating, prices (8.5M rows)", enrichment:"Competitor pricing context, geo-matching", impactMin:-0.20, impactMax:0.20, impactNote:"±0.20% provider pressure", quality:90, loc:120, fetchFreq:"On-demand", errorHandling:"Timeout 30s", issues:"8.5M rows — needs pagination for large queries", impact:"High" },
+    { name:"Search Results Poll", category:"Internal SQL", status:"Active", integration:"Azure SQL", fields:"search_id, hotel_id, price, provider, timestamp (8.3M rows)", enrichment:"Demand signal from search volume", impactMin:-0.15, impactMax:0.15, impactNote:"Demand HIGH/LOW indicator", quality:88, loc:90, fetchFreq:"On-demand", errorHandling:"Timeout 30s", issues:"Volume-based demand proxy, not true demand", impact:"Medium" },
+    { name:"Price Updates Log", category:"Internal SQL", status:"Active", integration:"Azure SQL", fields:"room_id, old_price, new_price, timestamp (82K events)", enrichment:"Price velocity / momentum calculation", impactMin:-0.30, impactMax:0.30, impactNote:"Momentum z-score >2σ triggers signal", quality:92, loc:150, fetchFreq:"On-demand", errorHandling:"Timeout 30s", issues:"Recent fix: velocity was biasing upward", impact:"High" },
+    { name:"PreBook Data", category:"Internal SQL", status:"Active", integration:"Azure SQL", fields:"booking_id, room_id, booking_date, checkin_date (10.7K rows)", enrichment:"Booking window pattern analysis", impactMin:0, impactMax:0, impactNote:"Feeds historical patterns (30% weight)", quality:85, loc:60, fetchFreq:"On-demand", errorHandling:"Timeout 30s", issues:"Limited to 10.7K — small sample", impact:"Medium" },
+    { name:"Cancellations", category:"Internal SQL", status:"Active", integration:"Azure SQL", fields:"cancel_id, room_id, cancel_date, reason (4.7K rows)", enrichment:"Cancellation risk adjustment", impactMin:-0.25, impactMax:0, impactNote:"-0.25% max downward pressure", quality:80, loc:45, fetchFreq:"On-demand", errorHandling:"Timeout 30s", issues:"4.7K rows — may not be representative", impact:"Medium" },
+    { name:"Geo Hotel Data", category:"Internal SQL", status:"Active", integration:"Azure SQL", fields:"hotel_id, lat, lng, city, country (745K hotels)", enrichment:"Geo-based competitor matching", impactMin:0, impactMax:0, impactNote:"Enables proximity-based analysis", quality:90, loc:40, fetchFreq:"On-demand", errorHandling:"Timeout 30s", issues:"No issues", impact:"Low" },
+    { name:"Historical 2020-23", category:"Internal SQL", status:"Active", integration:"Azure SQL", fields:"4 years of historical room pricing (7M rows)", enrichment:"YoY analysis, seasonal baselines", impactMin:0, impactMax:0, impactNote:"Feeds historical patterns (30% weight)", quality:88, loc:80, fetchFreq:"Static (historical)", errorHandling:"N/A", issues:"Pre-COVID data may skew patterns", impact:"High" },
+
+    // ── Events ──
+    { name:"Miami Events (Hardcoded)", category:"Events", status:"Active", integration:"Hardcoded list (8 events)", fields:"Art Basel, Ultra, F1, Boat Show, Swim Week, Rolling Loud, III Points, WMC", enrichment:"Event impact multiplier on forward curve", impactMin:0.03, impactMax:0.40, impactNote:"+0.03 to +0.40 per event", quality:70, loc:120, fetchFreq:"Static (annual)", errorHandling:"N/A", issues:"Only 8 events. Missing many Miami events. No dynamic discovery.", impact:"High" },
+    { name:"SeatGeek API", category:"Events", status:"Partial", integration:"REST API (API key)", fields:"event_name, venue, date, category, popularity", enrichment:"Dynamic event detection", impactMin:0, impactMax:0.20, impactNote:"Supplements hardcoded events", quality:65, loc:180, fetchFreq:"Daily", errorHandling:"5s timeout, no retry", issues:"Key in config but collector partially implemented", impact:"Medium" },
+    { name:"Ticketmaster API", category:"Events", status:"Planned", integration:"REST API (key configured)", fields:"events, venues, dates", enrichment:"Not connected", impactMin:0, impactMax:0, impactNote:"Not implemented", quality:0, loc:0, fetchFreq:"N/A", errorHandling:"N/A", issues:"API key exists in config, no collector code", impact:"Low" },
+    { name:"PredictHQ", category:"Events", status:"Planned", integration:"REST API (key configured)", fields:"demand intelligence, attendance predictions", enrichment:"Not connected", impactMin:0, impactMax:0, impactNote:"Not implemented", quality:0, loc:0, fetchFreq:"N/A", errorHandling:"N/A", issues:"Would provide demand intelligence — high value if connected", impact:"Low" },
+
+    // ── Weather ──
+    { name:"Open-Meteo Forecast", category:"Weather", status:"Active", integration:"REST API (free, no key)", fields:"temperature, precipitation, wind, cloud cover (7-day forecast)", enrichment:"Weather adjustment on forward curve", impactMin:-0.15, impactMax:0.05, impactNote:"Rain -0.05%, clear +0.02%, hurricane -0.15%", quality:92, loc:200, fetchFreq:"Daily", errorHandling:"5s timeout, cache fallback", issues:"Free API, reliable. Limited to 7-day forecast.", impact:"Medium" },
+    { name:"Open-Meteo Archive", category:"Weather", status:"Active", integration:"REST API (free)", fields:"historical temperature, precipitation", enrichment:"Seasonal weather baselines", impactMin:0, impactMax:0, impactNote:"Feeds seasonality calculation", quality:90, loc:80, fetchFreq:"Monthly", errorHandling:"Same as forecast", issues:"No issues", impact:"Low" },
+    { name:"NHC Hurricane Detection", category:"Weather", status:"Active", integration:"RSS feed parse", fields:"active storms, cone of uncertainty, wind speed", enrichment:"Hurricane warning flag → severe weather adjustment", impactMin:-0.15, impactMax:0, impactNote:"-0.15% on hurricane warning", quality:85, loc:60, fetchFreq:"Every 6 hours", errorHandling:"Parse error → skip", issues:"RSS parsing fragile. No retry.", impact:"Medium" },
+
+    // ── Demand ──
+    { name:"Kiwi.com Flights", category:"Demand Signals", status:"Active", integration:"MCP tool / direct fetch", fields:"flight prices, availability for MIA routes", enrichment:"Demand indicator: HIGH/MEDIUM/LOW", impactMin:-0.15, impactMax:0.15, impactNote:"HIGH demand +0.15%, LOW -0.15%", quality:75, loc:160, fetchFreq:"On-demand", errorHandling:"10s timeout", issues:"Single source for demand. No volume data, only prices.", impact:"High" },
+
+    // ── Economic ──
+    { name:"FRED Economic Data", category:"Economic", status:"Display Only", integration:"REST API (key required)", fields:"CPI, Hotel CPI, Miami Tourism Index", enrichment:"Display only — does NOT feed into predictions", impactMin:0, impactMax:0, impactNote:"No prediction impact (display only)", quality:95, loc:140, fetchFreq:"Monthly", errorHandling:"Cache with 24h TTL", issues:"High-quality data but NOT used in predictions. Missed opportunity.", impact:"Low" },
+
+    // ── Booking Patterns ──
+    { name:"Kaggle Hotel Bookings", category:"Booking Patterns", status:"Active", integration:"kagglehub SDK", fields:"117K booking records: lead_time, adr, stays, cancellation", enrichment:"Booking window and cancellation patterns", impactMin:0, impactMax:0, impactNote:"Feeds ML model (20% weight)", quality:80, loc:250, fetchFreq:"Static dataset", errorHandling:"Download retry 3x", issues:"Generic data, not Miami-specific. May not reflect local patterns.", impact:"Medium" },
+    { name:"Booking Benchmarks", category:"Booking Patterns", status:"Active", integration:"Local JSON file", fields:"avg_daily_rate, occupancy_rate, revpar by month", enrichment:"Reference benchmarks for YoY analysis", impactMin:0, impactMax:0, impactNote:"Display / reference only", quality:70, loc:30, fetchFreq:"Static", errorHandling:"Hardcoded fallback", issues:"JSON excluded from deploy.zip. Hardcoded fallback values used.", impact:"Low" },
+    { name:"Miami Benchmarks", category:"Booking Patterns", status:"Active", integration:"Local JSON file", fields:"hotel-level ADR, occupancy, RevPAR, comp set", enrichment:"Competitive positioning", impactMin:0, impactMax:0, impactNote:"Reference for competitive analysis", quality:72, loc:40, fetchFreq:"Static", errorHandling:"Hardcoded fallback", issues:"MIAMI_SCALE_FACTOR = 2.134x — magic number, not explained.", impact:"Low" },
+
+    // ── Competitor Pricing ──
+    { name:"Xotelo (Competitor)", category:"Competitor Pricing", status:"Partial", integration:"REST API (free tier)", fields:"hotel prices across OTAs", enrichment:"Competitor price delta", impactMin:-0.20, impactMax:0.20, impactNote:"±0.20% competitor pressure", quality:40, loc:120, fetchFreq:"On-demand", errorHandling:"Timeout only", issues:"Free tier severely limited. API keys may be placeholders. Unreliable.", impact:"Medium" },
+    { name:"MakCorps", category:"Competitor Pricing", status:"Partial", integration:"REST API ($350/mo)", fields:"hotel prices from 200+ OTAs", enrichment:"Competitor price delta", impactMin:-0.20, impactMax:0.20, impactNote:"Same ±0.20% competitor pressure", quality:35, loc:80, fetchFreq:"On-demand", errorHandling:"30 calls/free exhausts fast", issues:"Free tier = 30 API calls. Instantly exhausted. Needs paid plan.", impact:"Medium" },
+
+    // ── Planned ──
+    { name:"SerpApi (Google Hotels)", category:"Competitor Pricing", status:"Planned", integration:"REST API (not built)", fields:"Google Hotels pricing", enrichment:"Not connected", impactMin:0, impactMax:0, impactNote:"Not implemented", quality:0, loc:0, fetchFreq:"N/A", errorHandling:"N/A", issues:"Would provide Google Hotels data — high value for competitor analysis", impact:"Low" },
+    { name:"BLS Hotel CPI", category:"Economic", status:"Planned", integration:"REST API (not built)", fields:"Hotel price index", enrichment:"Not connected", impactMin:0, impactMax:0, impactNote:"Not implemented", quality:0, loc:0, fetchFreq:"N/A", errorHandling:"N/A", issues:"Monthly macro indicator. Low frequency, display-only value.", impact:"Low" },
+    { name:"MIA Airport Traffic", category:"Demand Signals", status:"Planned", integration:"PDF scraping (not built)", fields:"Monthly passenger arrivals", enrichment:"Not connected", impactMin:0, impactMax:0, impactNote:"Not implemented", quality:0, loc:0, fetchFreq:"N/A", errorHandling:"N/A", issues:"Strong demand signal if connected. PDF scraping is fragile.", impact:"Low" },
+];
+
+// Options Trading Components
+const OPTIONS_DATA = [
+    { component:"Forward Curve (T-indexed)", status:"Implemented", type:"Price Forecasting", detail:"Bayesian-smoothed decay curve by days-to-checkin. 9 enrichment factors.", realOptions:"Analogous to forward price curve in commodity futures" },
+    { component:"Signal Generation (CALL/PUT)", status:"Simplified", type:"Signal Logic", detail:"P_up >= 70% → CALL, P_down >= 70% → PUT. Simple threshold, not options pricing.", realOptions:"Should use strike price K, payoff max(S_T-K,0)" },
+    { component:"Confidence Levels", status:"Implemented", type:"Risk Assessment", detail:"HIGH/MEDIUM/LOW based on data quality and signal agreement.", realOptions:"Maps loosely to moneyness (ITM/ATM/OTM)" },
+    { component:"Momentum Detection", status:"Implemented", type:"Technical Analysis", detail:"3h/24h/72h velocity, acceleration, 2σ z-score divergence.", realOptions:"Analogous to Delta (price sensitivity)" },
+    { component:"Regime Detection", status:"Implemented", type:"Market Classification", detail:"STALE/VOLATILE/TRENDING classification from z-scores.", realOptions:"Analogous to volatility regime detection" },
+    { component:"Ensemble Weighting", status:"Implemented", type:"Model Combination", detail:"FC 50% + Historical 30% + ML 20%. Linear scaling.", realOptions:"Similar to model blending in quant finance" },
+    { component:"Black-Scholes Pricing", status:"Missing", type:"Options Pricing", detail:"_normal_cdf() defined but NEVER called. Dead code.", realOptions:"Required for option premium calculation" },
+    { component:"Greeks (Δ,Γ,Θ,V,ρ)", status:"Missing", type:"Risk Management", detail:"Zero implementation. No sensitivity analysis.", realOptions:"Essential for hedging and risk management" },
+    { component:"Implied Volatility", status:"Missing", type:"Volatility Analysis", detail:"Only realized vol (std_daily_pct). No implied vol surface.", realOptions:"Required for option pricing and vol trading" },
+    { component:"Strike Prices", status:"Missing", type:"Options Structure", detail:"No concept of K. No payoff function.", realOptions:"Fundamental to options: defines exercise price" },
+    { component:"Volatility Surface", status:"Missing", type:"Volatility Analysis", detail:"Each T has constant vol. No smile, no skew, no term structure.", realOptions:"Maps risk across strikes and expirations" },
+    { component:"Portfolio VaR", status:"Missing", type:"Risk Management", detail:"No correlation matrix, no stress testing.", realOptions:"Essential for portfolio risk management" },
+    { component:"Monte Carlo Simulation", status:"Missing", type:"Pricing Method", detail:"Only deterministic forward walk.", realOptions:"Standard for complex derivative pricing" },
+    { component:"Hedging Strategies", status:"Missing", type:"Risk Management", detail:"No delta hedging, no rehedging logic.", realOptions:"Core to options portfolio management" },
+    { component:"Risk-Neutral Pricing", status:"Missing", type:"Pricing Theory", detail:"Probabilities are empirical frequencies, not risk-neutral measures.", realOptions:"Foundational for derivative pricing" },
+];
+
+const SEASONALITY = [
+    { month:"Jan", index:1.045 }, { month:"Feb", index:1.099 }, { month:"Mar", index:1.085 },
+    { month:"Apr", index:0.975 }, { month:"May", index:0.920 }, { month:"Jun", index:0.885 },
+    { month:"Jul", index:0.910 }, { month:"Aug", index:0.870 }, { month:"Sep", index:0.845 },
+    { month:"Oct", index:0.915 }, { month:"Nov", index:0.990 }, { month:"Dec", index:1.062 }
+];
+
+class Dashboard {
+    constructor(data) {
+        this.rawData = data;
+        this.filteredData = data;
+        this.charts = {};
+        this.init();
+    }
+
+    init() {
+        this.populateFilters();
+        this.renderKPIs();
+        this.renderCharts();
+        this.renderTable();
+        this.renderGaps();
+        this.renderOptionsTable();
+    }
+
+    populateFilters() {
+        const cats = [...new Set(this.rawData.map(d => d.category))].sort();
+        const sel = document.getElementById('filter-category');
+        cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+    }
+
+    applyFilters() {
+        const cat = document.getElementById('filter-category').value;
+        const status = document.getElementById('filter-status').value;
+        const impact = document.getElementById('filter-impact').value;
+
+        this.filteredData = this.rawData.filter(r => {
+            if (cat !== 'all' && r.category !== cat) return false;
+            if (status !== 'all' && r.status !== status) return false;
+            if (impact !== 'all' && r.impact !== impact) return false;
+            return true;
+        });
+
+        this.renderKPIs();
+        this.updateCharts();
+        this.renderTable();
+        this.renderGaps();
+    }
+
+    renderKPIs() {
+        const d = this.filteredData;
+        const active = d.filter(r => r.status === 'Active').length;
+        const partial = d.filter(r => r.status === 'Partial').length;
+        const planned = d.filter(r => r.status === 'Planned').length;
+        const avgQuality = d.filter(r => r.quality > 0).reduce((s,r) => s + r.quality, 0) / (d.filter(r => r.quality > 0).length || 1);
+        const totalLoc = d.reduce((s,r) => s + r.loc, 0);
+        const enrichSources = d.filter(r => r.impactMax > 0 || r.impactMin < 0).length;
+
+        document.getElementById('kpi-section').innerHTML = `
+            <div class="kpi-card"><div class="kpi-label">Total Sources</div><div class="kpi-value">${d.length}</div><div class="kpi-sub">${active} active, ${partial} partial, ${planned} planned</div></div>
+            <div class="kpi-card"><div class="kpi-label">Enrichment Sources</div><div class="kpi-value">${enrichSources}</div><div class="kpi-sub">Sources that adjust predictions</div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Data Quality</div><div class="kpi-value" style="color:${avgQuality>=70?'#34A853':avgQuality>=40?'#FBBC04':'#EA4335'}">${avgQuality.toFixed(0)}%</div><div class="kpi-sub">Across active sources</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total Code</div><div class="kpi-value">${totalLoc.toLocaleString()}</div><div class="kpi-sub">Lines across collectors</div></div>
+            <div class="kpi-card"><div class="kpi-label">Options Components</div><div class="kpi-value" style="color:#EA4335">6/15</div><div class="kpi-sub">40% implemented</div></div>
+            <div class="kpi-card"><div class="kpi-label">Missing Greeks</div><div class="kpi-value" style="color:#EA4335">5/5</div><div class="kpi-sub">Δ Γ Θ V ρ — all missing</div></div>
+        `;
+    }
+
+    renderCharts() {
+        this.renderStatusChart();
+        this.renderCategoryChart();
+        this.renderImpactChart();
+        this.renderQualityChart();
+        this.renderLocChart();
+        this.renderEnrichmentWaterfall();
+        this.renderSeasonalityChart();
+        this.renderOptionsGapChart();
+        this.renderSignalLogicChart();
+    }
+
+    renderStatusChart() {
+        const counts = {};
+        this.filteredData.forEach(r => { counts[r.status] = (counts[r.status]||0)+1; });
+        const labels = Object.keys(counts);
+        const colors = labels.map(l => l==='Active'?'#34A853':l==='Partial'?'#FBBC04':l==='Planned'?'#EA4335':'#4C8BF5');
+        this.charts.status = new Chart(document.getElementById('chart-status'), {
+            type:'doughnut',
+            data:{ labels, datasets:[{ data:Object.values(counts), backgroundColor:colors.map(c=>c+'CC'), borderColor:'#1a1d27', borderWidth:3 }] },
+            options:{ responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{ position:'right', labels:{ color:'#9aa0b0', usePointStyle:true, padding:15 } } } }
+        });
+    }
+
+    renderCategoryChart() {
+        const counts = {};
+        this.filteredData.forEach(r => { counts[r.category] = (counts[r.category]||0)+1; });
+        const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+        this.charts.category = new Chart(document.getElementById('chart-category'), {
+            type:'bar',
+            data:{ labels:sorted.map(s=>s[0]), datasets:[{ data:sorted.map(s=>s[1]), backgroundColor:COLORS.map(c=>c+'AA'), borderRadius:6 }] },
+            options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{ legend:{display:false} }, scales:{ x:{beginAtZero:true, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9aa0b0'}}, y:{grid:{display:false}, ticks:{color:'#9aa0b0', font:{size:11}}} } }
+        });
+    }
+
+    renderImpactChart() {
+        const sources = this.filteredData.filter(r => r.impactMax > 0 || r.impactMin < 0).sort((a,b) => (b.impactMax-b.impactMin)-(a.impactMax-a.impactMin));
+        this.charts.impact = new Chart(document.getElementById('chart-impact'), {
+            type:'bar',
+            data:{
+                labels: sources.map(s=>s.name),
+                datasets: [
+                    { label:'Negative Impact', data:sources.map(s=>s.impactMin*100), backgroundColor:'#EA433599', borderRadius:4 },
+                    { label:'Positive Impact', data:sources.map(s=>s.impactMax*100), backgroundColor:'#34A85399', borderRadius:4 }
+                ]
+            },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{color:'#9aa0b0',usePointStyle:true} }, tooltip:{ callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%/day` } } }, scales:{ x:{grid:{display:false}, ticks:{color:'#9aa0b0',font:{size:10},maxRotation:45}}, y:{grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9aa0b0', callback:v=>v+'%'}} } }
+        });
+    }
+
+    renderQualityChart() {
+        const sources = this.filteredData.filter(r=>r.quality>0).sort((a,b)=>a.quality-b.quality);
+        const colors = sources.map(s=>s.quality>=80?'#34A853AA':s.quality>=50?'#FBBC04AA':'#EA4335AA');
+        this.charts.quality = new Chart(document.getElementById('chart-quality'), {
+            type:'bar',
+            data:{ labels:sources.map(s=>s.name), datasets:[{ data:sources.map(s=>s.quality), backgroundColor:colors, borderRadius:4 }] },
+            options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>`Quality: ${ctx.parsed.x}%`}} }, scales:{ x:{min:0,max:100, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9aa0b0',callback:v=>v+'%'}}, y:{grid:{display:false}, ticks:{color:'#9aa0b0',font:{size:10}}} } }
+        });
+    }
+
+    renderLocChart() {
+        const sources = this.filteredData.filter(r=>r.loc>0).sort((a,b)=>b.loc-a.loc).slice(0,15);
+        this.charts.loc = new Chart(document.getElementById('chart-loc'), {
+            type:'bar',
+            data:{ labels:sources.map(s=>s.name), datasets:[{ data:sources.map(s=>s.loc), backgroundColor:'#A142F4AA', borderRadius:4 }] },
+            options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{ legend:{display:false} }, scales:{ x:{beginAtZero:true, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9aa0b0'}}, y:{grid:{display:false}, ticks:{color:'#9aa0b0',font:{size:10}}} } }
+        });
+    }
+
+    renderEnrichmentWaterfall() {
+        const steps = [
+            { label:'Base Decay', value:0.05, color:'#4C8BF5' },
+            { label:'Events (Art Basel)', value:0.40, color:'#EA4335' },
+            { label:'Seasonality (Feb)', value:0.30, color:'#FBBC04' },
+            { label:'Demand (HIGH)', value:0.15, color:'#24C1E0' },
+            { label:'Weather (clear)', value:0.02, color:'#34A853' },
+            { label:'Competitor (+)', value:0.20, color:'#A142F4' },
+            { label:'Cancellations', value:-0.25, color:'#F538A0' },
+        ];
+        let running = 0;
+        const bases = [], values = [];
+        steps.forEach(s => {
+            bases.push(s.value >= 0 ? running : running + s.value);
+            values.push(Math.abs(s.value));
+            running += s.value;
+        });
+        bases.push(0); values.push(running);
+
+        this.charts.waterfall = new Chart(document.getElementById('chart-enrichment-waterfall'), {
+            type:'bar',
+            data:{
+                labels:[...steps.map(s=>s.label), 'Total'],
+                datasets:[
+                    { label:'base', data:bases, backgroundColor:'transparent', borderWidth:0 },
+                    { label:'value', data:values, backgroundColor:[...steps.map(s=>s.value>=0?s.color+'CC':'#EA433599'), '#4C8BF5CC'], borderRadius:4 }
+                ]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>{ if(ctx.datasetIndex===0) return ''; const i=ctx.dataIndex; if(i<steps.length) return `${steps[i].label}: ${steps[i].value>=0?'+':''}${steps[i].value.toFixed(2)}%`; return `Total: +${running.toFixed(2)}%`; } } } },
+                scales:{
+                    x:{ stacked:true, grid:{display:false}, ticks:{color:'#9aa0b0',font:{size:10}} },
+                    y:{ stacked:true, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9aa0b0', callback:v=>v.toFixed(2)+'%'} }
+                }
+            }
+        });
+    }
+
+    renderSeasonalityChart() {
+        const colors = SEASONALITY.map(s => s.index >= 1.0 ? '#34A853AA' : '#EA4335AA');
+        this.charts.seasonality = new Chart(document.getElementById('chart-seasonality'), {
+            type:'bar',
+            data:{ labels:SEASONALITY.map(s=>s.month), datasets:[{ data:SEASONALITY.map(s=>(s.index-1)*100), backgroundColor:colors, borderRadius:6 }] },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>`Index: ${SEASONALITY[ctx.dataIndex].index.toFixed(3)} (${ctx.parsed.y>=0?'+':''}${ctx.parsed.y.toFixed(1)}%)`}} }, scales:{ x:{grid:{display:false},ticks:{color:'#9aa0b0'}}, y:{grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9aa0b0',callback:v=>(v>=0?'+':'')+v.toFixed(1)+'%'}} } }
+        });
+    }
+
+    renderOptionsGapChart() {
+        const impl = OPTIONS_DATA.filter(o=>o.status==='Implemented').length;
+        const simplified = OPTIONS_DATA.filter(o=>o.status==='Simplified').length;
+        const missing = OPTIONS_DATA.filter(o=>o.status==='Missing').length;
+        this.charts.optionsGap = new Chart(document.getElementById('chart-options-gap'), {
+            type:'doughnut',
+            data:{ labels:['Implemented','Simplified','Missing'], datasets:[{ data:[impl,simplified,missing], backgroundColor:['#34A853CC','#FBBC04CC','#EA4335CC'], borderColor:'#1a1d27', borderWidth:3 }] },
+            options:{ responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{ position:'right', labels:{color:'#9aa0b0',usePointStyle:true,padding:15} } } }
+        });
+    }
+
+    renderSignalLogicChart() {
+        this.charts.signalLogic = new Chart(document.getElementById('chart-signal-logic'), {
+            type:'bar',
+            data:{
+                labels:['P(up) threshold','P(down) threshold','Acceleration check','Confidence scoring','Strike price K','Greeks Δ/Γ/Θ','Implied Vol','VaR'],
+                datasets:[
+                    { label:'Current System', data:[70,70,100,80,0,0,0,0], backgroundColor:'#4C8BF5AA', borderRadius:4 },
+                    { label:'Full Options System', data:[100,100,100,100,100,100,100,100], backgroundColor:'rgba(255,255,255,0.08)', borderRadius:4 }
+                ]
+            },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{labels:{color:'#9aa0b0',usePointStyle:true}} }, scales:{ x:{grid:{display:false},ticks:{color:'#9aa0b0',font:{size:10},maxRotation:45}}, y:{max:100, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9aa0b0',callback:v=>v+'%'}} } }
+        });
+    }
+
+    updateCharts() {
+        Object.values(this.charts).forEach(c => c.destroy());
+        this.charts = {};
+        this.renderCharts();
+    }
+
+    renderTable() {
+        const d = this.filteredData;
+        let html = '<table class="data-table"><thead><tr>';
+        html += '<th>Source</th><th>Category</th><th>Status</th><th>Integration</th><th>Enrichment Impact</th><th>Quality</th><th>Fetch Freq</th><th>LOC</th><th>Key Issue</th>';
+        html += '</tr></thead><tbody>';
+        d.forEach(r => {
+            const statusClass = r.status==='Active'?'status-active':r.status==='Partial'?'status-partial':r.status==='Planned'?'status-planned':'status-display';
+            const impactClass = r.impact==='High'?'impact-high':r.impact==='Medium'?'impact-medium':r.impact==='Low'?'impact-low':'impact-display';
+            const qColor = r.quality>=80?'#34A853':r.quality>=50?'#FBBC04':r.quality>0?'#EA4335':'#555';
+            html += `<tr>
+                <td><strong>${r.name}</strong></td>
+                <td>${r.category}</td>
+                <td><span class="status-badge ${statusClass}">${r.status}</span></td>
+                <td style="font-size:11px;color:#9aa0b0">${r.integration}</td>
+                <td><span class="impact-pill ${impactClass}">${r.impact}</span> <span style="font-size:11px;color:#9aa0b0">${r.impactNote}</span></td>
+                <td><div class="quality-bar"><div class="quality-bar-fill" style="width:${r.quality}%;background:${qColor}"></div></div> <span style="font-size:11px;color:${qColor}">${r.quality}%</span></td>
+                <td style="font-size:11px">${r.fetchFreq}</td>
+                <td>${r.loc || '—'}</td>
+                <td style="font-size:11px;color:#9aa0b0;max-width:200px">${r.issues}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('source-table').innerHTML = html;
+    }
+
+    renderGaps() {
+        const gaps = this.filteredData.filter(r => r.issues && r.issues !== 'No issues');
+        let html = '';
+        gaps.forEach(r => {
+            const icon = r.impact==='High'?'🔴':r.impact==='Medium'?'🟡':'🔵';
+            html += `<div class="gap-card"><div class="gap-icon">${icon}</div><div class="gap-text"><strong>${r.name}:</strong> ${r.issues}</div></div>`;
+        });
+        document.getElementById('gap-section').innerHTML = html;
+    }
+
+    renderOptionsTable() {
+        let html = '<table class="data-table"><thead><tr><th>Component</th><th>Status</th><th>Type</th><th>Current Implementation</th><th>What Real Options Needs</th></tr></thead><tbody>';
+        OPTIONS_DATA.forEach(o => {
+            const statusColor = o.status==='Implemented'?'status-active':o.status==='Simplified'?'status-partial':'status-planned';
+            html += `<tr>
+                <td><strong>${o.component}</strong></td>
+                <td><span class="status-badge ${statusColor}">${o.status}</span></td>
+                <td style="font-size:11px">${o.type}</td>
+                <td style="font-size:11px;color:#9aa0b0">${o.detail}</td>
+                <td style="font-size:11px;color:#9aa0b0">${o.realOptions}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('options-table').innerHTML = html;
+    }
+}
+
+const dashboard = new Dashboard(DATA);
+</script>
+</body>
+</html>
