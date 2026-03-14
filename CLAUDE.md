@@ -135,3 +135,23 @@ All planned sprints are complete. Minor cleanup opportunities:
 4. **Cache changes**: When modifying prediction logic, ensure caches are invalidated
 5. **New endpoints**: Add to the appropriate router in `src/api/routers/`, not to analytics_dashboard.py
 6. **New data sources**: Implement as a collector in `src/collectors/` extending `base.py`
+
+## Claude Skill Memory
+
+Use this as persistent operating memory for Claude-assisted workflows in this repo.
+
+- **Canonical memory file**: `docs/MEMORY_LOG.md`
+- **Purpose**: Preserve cross-session state (decisions, blockers, validated scripts, latest reports, and next actions).
+- **Update triggers**: After any major compare/diagnostics/remediation run, authentication change, or strategy pivot.
+- **Entry minimum**:
+  - Timestamp (UTC)
+  - What changed
+  - Evidence paths under `data/reports/`
+  - Current blocker (if any)
+  - Explicit next step
+- **Rule**: Never overwrite historical snapshots; append new run snapshots and keep prior evidence intact.
+
+Current active context reminder:
+- Innstant ↔ Hotel.Tools alignment flow is operational.
+- Legacy create path has backend 500 history; Noovy GraphQL path depends on valid venue-authorized session.
+- If auth degrades to `No Venue` / 401, pause apply and restore authorized session before remediation.
