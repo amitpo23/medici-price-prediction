@@ -1,0 +1,562 @@
+{
+  "date": "2026-03-14",
+  "type": "Post-Remediation Comparison",
+  "summary": {
+    "total_innstant": 54,
+    "full_match": 27,
+    "partial_gap": 3,
+    "ht_empty": 8,
+    "no_ht_venue": 16
+  },
+  "gaps": [
+    {
+      "hotel": "Atwell Suites Miami Brickell",
+      "hotelId": 853382,
+      "htVenueId": "5099",
+      "status": "HT_EMPTY",
+      "innstant_cats": [
+        "Suite",
+        "Standard"
+      ],
+      "innstant_boards": [
+        "BB"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Suite",
+        "Standard"
+      ],
+      "missing_boards": [
+        "BB"
+      ]
+    },
+    {
+      "hotel": "Cadet Hotel",
+      "hotelId": 173508,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard",
+        "Superior",
+        "Suite"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard",
+        "Superior",
+        "Suite"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Cavalier Hotel",
+      "hotelId": 66737,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard",
+        "Deluxe"
+      ],
+      "innstant_boards": [
+        "RO",
+        "BB"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard",
+        "Deluxe"
+      ],
+      "missing_boards": [
+        "RO",
+        "BB"
+      ]
+    },
+    {
+      "hotel": "Crystal Beach Suites Hotel",
+      "hotelId": 64390,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Suite"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Suite"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Dorchester Hotel",
+      "hotelId": 6654,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Eurostars Langford Hotel",
+      "hotelId": 333502,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Deluxe",
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Deluxe",
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "FAIRWIND HOTEL & SUITES SOUTH BEACH",
+      "hotelId": 117491,
+      "htVenueId": "5089",
+      "status": "GAP",
+      "innstant_cats": [
+        "Superior"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [
+        "Deluxe",
+        "Standard"
+      ],
+      "ht_boards": [
+        "RO"
+      ],
+      "missing_cats": [
+        "Superior"
+      ],
+      "missing_boards": []
+    },
+    {
+      "hotel": "Gale Miami Hotel and Residences",
+      "hotelId": 852725,
+      "htVenueId": "5278",
+      "status": "HT_EMPTY",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Generator Miami",
+      "hotelId": 701659,
+      "htVenueId": "5273",
+      "status": "HT_EMPTY",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Grand Beach Hotel Miami",
+      "hotelId": 68833,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Suite"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Suite"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Hilton Garden Inn Miami South Beach",
+      "hotelId": 301640,
+      "htVenueId": "5279",
+      "status": "HT_EMPTY",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Hotel Belleza",
+      "hotelId": 414146,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [],
+      "innstant_boards": [],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [],
+      "missing_boards": []
+    },
+    {
+      "hotel": "Hotel Chelsea",
+      "hotelId": 32687,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Hotel Croydon",
+      "hotelId": 286236,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Hôtel Gaythering",
+      "hotelId": 277280,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard",
+        "Deluxe"
+      ],
+      "innstant_boards": [
+        "BB"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard",
+        "Deluxe"
+      ],
+      "missing_boards": [
+        "BB"
+      ]
+    },
+    {
+      "hotel": "Iberostar Berkeley Shore Hotel",
+      "hotelId": 383277,
+      "htVenueId": "5091",
+      "status": "HT_EMPTY",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "InterContinental Miami",
+      "hotelId": 6482,
+      "htVenueId": "5276",
+      "status": "HT_EMPTY",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Kimpton Angler's Hotel",
+      "hotelId": 31226,
+      "htVenueId": "5261",
+      "status": "HT_EMPTY",
+      "innstant_cats": [
+        "Suite",
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Suite",
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Marseilles Hotel",
+      "hotelId": 6663,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "MB Hotel Trademark Collection by Wyndham",
+      "hotelId": 70995,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Metropole South Beach",
+      "hotelId": 31433,
+      "htVenueId": "5141",
+      "status": "GAP",
+      "innstant_cats": [
+        "Standard",
+        "Suite"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [
+        "Standard"
+      ],
+      "ht_boards": [
+        "RO"
+      ],
+      "missing_cats": [
+        "Suite"
+      ],
+      "missing_boards": []
+    },
+    {
+      "hotel": "Miami International Airport Hotel",
+      "hotelId": 21842,
+      "htVenueId": "5275",
+      "status": "HT_EMPTY",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "Savoy Hotel",
+      "hotelId": 64309,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Deluxe",
+        "Suite",
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Deluxe",
+        "Suite",
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "SERENA Hotel Aventura Miami",
+      "hotelId": 851939,
+      "htVenueId": "5139",
+      "status": "GAP",
+      "innstant_cats": [
+        "Deluxe",
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [
+        "Standard"
+      ],
+      "ht_boards": [
+        "RO"
+      ],
+      "missing_cats": [
+        "Deluxe"
+      ],
+      "missing_boards": []
+    },
+    {
+      "hotel": "The Catalina Hotel & Beach Club",
+      "hotelId": 87197,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    },
+    {
+      "hotel": "THE LANDON BAY HARBOR",
+      "hotelId": 851633,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Deluxe",
+        "Standard"
+      ],
+      "innstant_boards": [
+        "RO",
+        "BB"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Deluxe",
+        "Standard"
+      ],
+      "missing_boards": [
+        "RO",
+        "BB"
+      ]
+    },
+    {
+      "hotel": "The Villa Casa Casuarina",
+      "hotelId": 193899,
+      "status": "NO_HT_VENUE",
+      "innstant_cats": [
+        "Suite"
+      ],
+      "innstant_boards": [
+        "RO"
+      ],
+      "ht_cats": [],
+      "ht_boards": [],
+      "missing_cats": [
+        "Suite"
+      ],
+      "missing_boards": [
+        "RO"
+      ]
+    }
+  ]
+}
