@@ -1,0 +1,55 @@
+{
+  "reportDate": "2026-03-14",
+  "session": "Playwright automated remediation",
+
+  "priority1_BB_toggles": {
+    "status": "COMPLETED",
+    "action": "Enabled BB meal plan toggle in Hotel.Tools",
+    "venues": [
+      {"id": "5081", "name": "Embassy Suites Miami Airport", "rooms": ["Standard", "Suite"], "BB_before": false, "BB_after": true},
+      {"id": "5108", "name": "Gabriel Miami South Beach", "rooms": ["Deluxe", "Standard", "Suite"], "BB_before": false, "BB_after": true},
+      {"id": "5109", "name": "Riu Plaza Miami Beach", "rooms": ["Deluxe", "Standard"], "BB_before": false, "BB_after": true},
+      {"id": "5130", "name": "Holiday Inn Express Miami", "rooms": ["Standard"], "BB_before": false, "BB_after": true}
+    ],
+    "note": "Save returned HTTP 500 on some venues - verify manually that changes persisted"
+  },
+
+  "priority2_add_categories": {
+    "status": "BLOCKED",
+    "blocker": "Hotel.Tools /products POST returns HTTP 500 (backend error)",
+    "attempted": 6,
+    "succeeded": 0,
+    "failedVenues": [
+      {"id": "5115", "name": "Hilton Cabana Miami Beach", "needed": ["Deluxe"]},
+      {"id": "5116", "name": "Kimpton Hotel Palomar", "needed": ["Deluxe", "Suite"]},
+      {"id": "5139", "name": "SERENA Hotel Aventura", "needed": ["Deluxe"]},
+      {"id": "5141", "name": "Metropole South Beach", "needed": ["Suite"]},
+      {"id": "5106", "name": "Hotel Continental Miami Beach", "needed": ["Deluxe"]}
+    ],
+    "workaround": "Try creating products via Noovy UI manually, or contact Hotel.Tools support to fix backend 500"
+  },
+
+  "priority3_empty_venues": {
+    "status": "BLOCKED",
+    "blocker": "Same Hotel.Tools /products POST 500 error",
+    "venues": [
+      "THesis Hotel Miami (5059)",
+      "Iberostar Waves Miami Beach (5091)",
+      "Atwell Suites Miami Brickell (5099)",
+      "Pullman Miami Airport 2 (5114)",
+      "Wyndham Garden Miami Airport (5143)",
+      "Kimpton Anglers South Beach (5261)",
+      "Generator Miami (5273, 5274)",
+      "Miami Intl Airport Hotel (5275)",
+      "InterContinental Miami (5276)"
+    ],
+    "eachNeeds": "Standard room product at minimum + BB meal plan"
+  },
+
+  "nextSteps": [
+    "1. Verify BB toggles persisted on 4 venues (login to Hotel.Tools > meal-plans)",
+    "2. Contact Hotel.Tools support about backend 500 on product creation",
+    "3. Alternative: create products via Noovy UI with valid venue session",
+    "4. Re-run scan after fix to verify closure"
+  ]
+}
