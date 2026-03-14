@@ -11,7 +11,13 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from contextvars import ContextVar
+
+try:
+    import resource
+except ImportError:  # pragma: no cover - non-Unix fallback
+    resource = None
 
 from pythonjsonlogger.json import JsonFormatter
 
@@ -27,6 +33,28 @@ class CorrelationJsonFormatter(JsonFormatter):
         log_record["correlation_id"] = correlation_id_var.get("")
         log_record["module"] = record.module
         log_record["function"] = record.funcName
+        memory_snapshot = _get_process_memory_snapshot()
+        if memory_snapshot is not None:
+            log_record.update(memory_snapshot)
+
+
+def _get_process_memory_snapshot() -> dict[str, float] | None:
+    """Return normalized process memory usage fields for structured logs."""
+    if resource is None:
+        return None
+
+    try:
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+    except (AttributeError, OSError, ValueError):
+        return None
+
+    rss_raw = float(getattr(usage, "ru_maxrss", 0.0) or 0.0)
+    if rss_raw <= 0:
+        return None
+
+    divisor = 1024.0 * 1024.0 if sys.platform == "darwin" else 1024.0
+    rss_mb = round(rss_raw / divisor, 2)
+    return {"memory_rss_mb": rss_mb}
 
 
 def configure_logging() -> None:

@@ -127,6 +127,15 @@ All planned sprints are complete. Minor cleanup opportunities:
 - Config via environment variables (see `.env.example`)
 - Hebrew + English bilingual support in AI endpoints
 
+## Permissions & Autonomy
+
+Claude should operate autonomously without asking for confirmation on:
+- Git operations: `git add`, `git commit`, `git push`, `git status`, `git diff`, `git log`
+- Running tests: `python -m pytest`
+- File compilation checks: `python3 -m py_compile`
+- Reading/writing/editing project files
+- Bash commands for project tasks
+
 ## When Making Changes
 
 1. **Run existing code checks first**: `python3 -m py_compile <file>` before committing

@@ -40,6 +40,9 @@ class TestConfigureLogging:
         assert record["message"] == "hello from test"
         assert "timestamp" in record
         assert record["level"] == "INFO"
+        assert "memory_rss_mb" in record
+        assert isinstance(record["memory_rss_mb"], (int, float))
+        assert record["memory_rss_mb"] >= 0
 
     def test_log_includes_correlation_id(self, capfd):
         """Correlation ID from contextvar appears in log output."""
@@ -83,6 +86,18 @@ class TestConfigureLogging:
 
         uvicorn_access = logging.getLogger("uvicorn.access")
         assert uvicorn_access.level == logging.WARNING
+
+    def test_memory_snapshot_helper_returns_numeric_value(self):
+        """Memory snapshot helper returns a numeric RSS field when available."""
+        from src.utils.logging_config import _get_process_memory_snapshot
+
+        snapshot = _get_process_memory_snapshot()
+        if snapshot is None:
+            pytest.skip("Process memory snapshot is unavailable on this platform")
+
+        assert "memory_rss_mb" in snapshot
+        assert isinstance(snapshot["memory_rss_mb"], (int, float))
+        assert snapshot["memory_rss_mb"] >= 0
 
 
 # ── correlation_id_var ───────────────────────────────────────────────
