@@ -1,0 +1,59 @@
+{
+  "reportDate": "2026-03-14",
+  "session": "Playwright automated remediation via Noovy UI",
+  "status": "COMPLETED",
+
+  "priority1_BB_toggles": {
+    "status": "COMPLETED",
+    "method": "Hotel.Tools meal-plans page — bootstrapToggle('on') + Save",
+    "venues": [
+      {"id": "5081", "name": "Embassy Suites Miami Airport", "rooms": ["Standard", "Suite"]},
+      {"id": "5108", "name": "Gabriel Miami South Beach", "rooms": ["Deluxe", "Standard", "Suite"]},
+      {"id": "5109", "name": "Riu Plaza Miami Beach", "rooms": ["Deluxe", "Standard"]},
+      {"id": "5130", "name": "Holiday Inn Express Miami", "rooms": ["Standard"]}
+    ],
+    "totalToggles": 8
+  },
+
+  "priority2_categories": {
+    "status": "COMPLETED",
+    "method": "Noovy UI — Products > New Product > Room > Save",
+    "created": [
+      {"venue": "5106 Hotel Continental", "product": "Deluxe", "price": 500},
+      {"venue": "5106 Hotel Continental", "product": "Suite", "price": 600},
+      {"venue": "5106 Hotel Continental", "product": "Superior", "price": 600},
+      {"venue": "5115 Hilton Cabana", "product": "Deluxe", "price": 500},
+      {"venue": "5116 Kimpton Palomar", "product": "Deluxe", "price": 500},
+      {"venue": "5116 Kimpton Palomar", "product": "Suite", "price": 600},
+      {"venue": "5139 SERENA Hotel", "product": "Deluxe", "price": 500},
+      {"venue": "5141 Metropole South Beach", "product": "Suite", "price": 600}
+    ],
+    "totalCreated": 8
+  },
+
+  "priority3_empty_venues": {
+    "status": "COMPLETED",
+    "method": "Noovy UI — Products > New Product > Room > Save",
+    "created": [
+      {"venue": "5059 THesis Hotel Miami", "product": "Standard", "price": 100},
+      {"venue": "5091 Iberostar Waves Miami Beach", "product": "Standard", "price": 100},
+      {"venue": "5099 Atwell Suites - Miami Brickell", "product": "Standard", "price": 100},
+      {"venue": "5143 Wyndham Garden Miami Airport", "product": "Standard", "price": 100},
+      {"venue": "5273 Generator Miami", "product": "Standard", "price": 100},
+      {"venue": "5274 Generator Miami", "product": "Standard", "price": 100},
+      {"venue": "5261 Kimpton Anglers South Beach", "product": "Standard", "price": 100},
+      {"venue": "5275 Miami Intl Airport Hotel", "product": "Standard", "price": 100},
+      {"venue": "5276 InterContinental Miami", "product": "Standard", "price": 100},
+      {"venue": "5278 Gale Miami Hotel Residences", "product": "Standard", "price": 100},
+      {"venue": "5279 Hilton Garden Inn Miami SB", "product": "Standard", "price": 100}
+    ],
+    "totalCreated": 11
+  },
+
+  "totals": {
+    "bbTogglesEnabled": 8,
+    "productsCreated": 19,
+    "venuesRemediated": 15,
+    "allPrioritiesComplete": true
+  }
+}
