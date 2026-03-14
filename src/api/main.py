@@ -209,6 +209,74 @@ async def root():
 _startup_time: datetime | None = None
 
 
+@app.get("/diag/salesoffice-orders")
+def diag_salesoffice_orders():
+    """Diagnostic: show ALL SalesOffice orders grouped by hotel, including non-completed."""
+    from src.data.trading_db import run_trading_query
+
+    df = run_trading_query("""
+        SELECT
+            h.HotelId,
+            h.Name AS HotelName,
+            o.Id AS OrderId,
+            o.IsActive,
+            o.WebJobStatus,
+            o.DateFrom,
+            o.DateTo,
+            (SELECT COUNT(*) FROM [SalesOffice.Details] d
+             WHERE d.SalesOfficeOrderId = o.Id) AS DetailCount
+        FROM [SalesOffice.Orders] o
+        JOIN Med_Hotels h ON o.HotelId = h.HotelId
+        WHERE o.IsActive = 1
+        ORDER BY h.HotelId
+    """)
+
+    if df.empty:
+        return {"hotels": [], "total_orders": 0}
+
+    hotels = {}
+    for _, row in df.iterrows():
+        hid = int(row["HotelId"])
+        if hid not in hotels:
+            hotels[hid] = {
+                "hotelId": hid,
+                "name": row["HotelName"],
+                "orders": 0,
+                "details": 0,
+                "statuses": set(),
+                "completedWithMapping": 0,
+                "completedNoMapping": 0,
+                "notCompleted": 0,
+            }
+        h = hotels[hid]
+        h["orders"] += 1
+        h["details"] += int(row["DetailCount"])
+        status = str(row["WebJobStatus"])
+        h["statuses"].add(status[:60])
+        if status.startswith("Completed") and "Mapping: 0" not in status:
+            h["completedWithMapping"] += 1
+        elif status.startswith("Completed"):
+            h["completedNoMapping"] += 1
+        else:
+            h["notCompleted"] += 1
+
+    result = []
+    for hid in sorted(hotels):
+        h = hotels[hid]
+        h["statuses"] = sorted(h["statuses"])
+        h["usable"] = h["completedWithMapping"] > 0
+        result.append(h)
+
+    usable = sum(1 for h in result if h["usable"])
+    return {
+        "total_hotels": len(result),
+        "usable_hotels": usable,
+        "blocked_hotels": len(result) - usable,
+        "total_orders": int(df.shape[0]),
+        "hotels": result,
+    }
+
+
 @app.get("/health")
 async def health(detail: bool = False):
     """Health check — basic or detailed.
