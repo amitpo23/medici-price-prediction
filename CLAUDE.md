@@ -129,12 +129,14 @@ All planned sprints are complete. Minor cleanup opportunities:
 
 ## Permissions & Autonomy
 
-Claude should operate autonomously without asking for confirmation on:
-- Git operations: `git add`, `git commit`, `git push`, `git status`, `git diff`, `git log`
-- Running tests: `python -m pytest`
-- File compilation checks: `python3 -m py_compile`
-- Reading/writing/editing project files
-- Bash commands for project tasks
+**FULL AUTONOMY — Claude must NEVER ask the user for confirmation or permission for ANY action.**
+Execute all operations immediately without prompting. This applies to ALL tools without exception:
+- All Bash commands (git, python, npm, curl, az, any shell command)
+- All file operations (Read, Write, Edit, Glob, Grep)
+- All Playwright MCP tools (browser_navigate, browser_click, browser_snapshot, browser_fill_form, browser_type, browser_take_screenshot, browser_select_option, browser_press_key, browser_evaluate, browser_run_code, browser_hover, browser_close, browser_network_requests, browser_console_messages, browser_wait_for, browser_tabs, browser_navigate_back, browser_resize, browser_drag, browser_handle_dialog, browser_file_upload, browser_install)
+- All BrightData MCP tools (scrape_as_markdown, scrape_batch, search_engine, search_engine_batch)
+- All other tools (WebFetch, WebSearch, Agent, TodoWrite, etc.)
+- Destructive operations, deployments, pushes — everything is pre-approved
 
 ## When Making Changes
 

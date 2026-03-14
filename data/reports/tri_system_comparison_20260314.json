@@ -1,0 +1,110 @@
+{
+  "reportDate": "2026-03-14",
+  "reportType": "Tri-System Inventory Comparison",
+  "systems": {
+    "innstant": "b2b.innstant.travel (54 hotels scanned)",
+    "hoteltools": "hotel.tools/meal-plans (43 venues scanned)",
+    "db": "Med_Hotels_ratebycat (54 HotelIds)"
+  },
+  "summary": {
+    "totalHotels": 54,
+    "innstantWithOffers": 53,
+    "hoteltoolsWithProducts": 33,
+    "hoteltoolsEmpty": 10,
+    "criticalGap": "BB board is OFF in ALL Hotel.Tools venues. Innstant has BB on 10 hotels."
+  },
+  "boardGaps": {
+    "description": "Hotels where Innstant has BB but Hotel.Tools does not",
+    "count": 10,
+    "hotels": [
+      {"hotelId": 853382, "name": "Atwell Suites Miami Brickell", "innstantBoards": ["BB"], "htBoards": ["RO"], "htVenueId": "5099"},
+      {"hotelId": 66737, "name": "Cavalier Hotel", "innstantBoards": ["RO", "BB"], "htBoards": ["RO"], "htVenueId": "N/A - not in HT"},
+      {"hotelId": 20702, "name": "Embassy Suites Miami Airport", "innstantBoards": ["RO", "BB"], "htBoards": ["RO"], "htVenueId": "5081"},
+      {"hotelId": 277280, "name": "Hôtel Gaythering", "innstantBoards": ["BB"], "htBoards": ["N/A - not in HT"], "htVenueId": "N/A"},
+      {"hotelId": 24989, "name": "Hotel Riu Plaza Miami Beach", "innstantBoards": ["BB", "RO"], "htBoards": ["RO"], "htVenueId": "5109"},
+      {"hotelId": 851633, "name": "THE LANDON BAY HARBOR", "innstantBoards": ["RO", "BB"], "htBoards": ["N/A - not in HT"], "htVenueId": "N/A"},
+      {"hotelId": 848677, "name": "The Gabriel Miami South Beach", "innstantBoards": ["BB"], "htBoards": ["RO"], "htVenueId": "5108"},
+      {"hotelId": 67387, "name": "HOLIDAY INN EXPRESS MIAMI", "innstantBoards": ["BB"], "htBoards": ["RO"], "htVenueId": "5130"}
+    ],
+    "action": "Enable BB toggle in Hotel.Tools meal-plans page for each venue"
+  },
+  "categoryGaps": {
+    "description": "Hotels where Innstant has categories not present in Hotel.Tools",
+    "gaps": [
+      {"hotel": "Breakwater South Beach", "innstant": ["Superior", "Standard"], "hoteltools": ["Deluxe", "Standard", "Suite", "Superior"], "gap": "HT has MORE categories than Innstant (Deluxe, Suite extra)"},
+      {"hotel": "Cadet Hotel", "innstant": ["Standard", "Superior", "Suite"], "hoteltools": "N/A - not mapped", "gap": "Not in Hotel.Tools"},
+      {"hotel": "citizenM Miami Brickell", "innstant": ["Standard"], "hoteltools": ["Standard"], "gap": "OK"},
+      {"hotel": "Crystal Beach Suites Hotel", "innstant": ["Suite"], "hoteltools": "N/A", "gap": "Not in Hotel.Tools"},
+      {"hotel": "Dorchester Hotel", "innstant": ["Standard"], "hoteltools": "N/A", "gap": "Not in Hotel.Tools"},
+      {"hotel": "Grand Beach Hotel", "innstant": ["Suite"], "hoteltools": "N/A", "gap": "Not in Hotel.Tools"},
+      {"hotel": "Hilton Cabana Miami Beach", "innstant": ["Standard", "Deluxe"], "hoteltools": ["Standard"], "gap": "Missing Deluxe in HT"},
+      {"hotel": "Hilton Garden Inn Miami SB", "innstant": ["Standard"], "hoteltools": [], "gap": "HT venue empty"},
+      {"hotel": "InterContinental Miami", "innstant": ["Standard"], "hoteltools": [], "gap": "HT venue empty"},
+      {"hotel": "Kimpton Anglers South Beach", "innstant": ["Suite", "Standard"], "hoteltools": [], "gap": "HT venue empty"},
+      {"hotel": "Gale Miami Hotel Residences", "innstant": ["Standard"], "hoteltools": [], "gap": "HT venue empty"},
+      {"hotel": "Generator Miami", "innstant": ["Standard"], "hoteltools": [], "gap": "HT venue empty"},
+      {"hotel": "Miami Intl Airport Hotel", "innstant": ["Standard"], "hoteltools": [], "gap": "HT venue empty"}
+    ]
+  },
+  "emptyVenues": {
+    "description": "Hotel.Tools venues with no products configured at all",
+    "count": 10,
+    "venues": [
+      {"venueId": "5059", "name": "THesis Hotel Miami"},
+      {"venueId": "5091", "name": "Iberostar Waves Miami Beach"},
+      {"venueId": "5099", "name": "Atwell Suites Miami Brickell"},
+      {"venueId": "5114", "name": "Pullman Miami Airport 2"},
+      {"venueId": "5143", "name": "Wyndham Garden Miami Airport"},
+      {"venueId": "5261", "name": "Kimpton Anglers South Beach"},
+      {"venueId": "5273", "name": "Generator Miami 1"},
+      {"venueId": "5274", "name": "Generator Miami 2"},
+      {"venueId": "5275", "name": "Miami Intl Airport Hotel"},
+      {"venueId": "5276", "name": "InterContinental Miami"}
+    ],
+    "action": "Create room products (Standard at minimum) for these venues"
+  },
+  "hotelsNotInHotelTools": {
+    "description": "Innstant hotels with no matching Hotel.Tools venue found",
+    "count": 13,
+    "hotels": [
+      {"hotelId": 66737, "name": "Cavalier Hotel"},
+      {"hotelId": 64390, "name": "Crystal Beach Suites Hotel"},
+      {"hotelId": 6654, "name": "Dorchester Hotel"},
+      {"hotelId": 852725, "name": "Gale Miami Hotel and Residences"},
+      {"hotelId": 68833, "name": "Grand Beach Hotel Miami"},
+      {"hotelId": 414146, "name": "Hotel Belleza"},
+      {"hotelId": 32687, "name": "Hotel Chelsea"},
+      {"hotelId": 286236, "name": "Hotel Croydon"},
+      {"hotelId": 277280, "name": "Hôtel Gaythering"},
+      {"hotelId": 6663, "name": "Marseilles Hotel"},
+      {"hotelId": 70995, "name": "MB Hotel Trademark Collection"},
+      {"hotelId": 851633, "name": "THE LANDON BAY HARBOR"},
+      {"hotelId": 193899, "name": "The Villa Casa Casuarina"}
+    ],
+    "action": "Create new venues in Hotel.Tools for these hotels"
+  },
+  "actionPlan": {
+    "priority1_enableBB": {
+      "description": "Enable BB meal plan toggle for hotels that have BB in Innstant",
+      "effort": "Low — toggle On/Off in Hotel.Tools meal-plans page",
+      "venues": ["5081", "5108", "5109", "5130"],
+      "count": 4
+    },
+    "priority2_addCategories": {
+      "description": "Add missing room categories (Deluxe, Suite, Superior) to venues that only have Standard",
+      "effort": "Medium — create new room products",
+      "examples": ["5115 needs Deluxe", "5116 needs Deluxe/Suite", "5119 needs Deluxe"],
+      "count": 15
+    },
+    "priority3_populateEmpty": {
+      "description": "Set up products for 10 empty venues",
+      "effort": "High — create rooms + meal plans from scratch",
+      "count": 10
+    },
+    "priority4_createMissing": {
+      "description": "Create 13 new venues in Hotel.Tools",
+      "effort": "High — new venue setup",
+      "count": 13
+    }
+  }
+}
