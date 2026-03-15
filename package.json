@@ -26,6 +26,10 @@
   },
   "homepage": "https://github.com/amitpo23/medici-price-prediction#readme",
   "devDependencies": {
-    "@playwright/test": "^1.58.2"
+    "@playwright/test": "^1.58.2",
+    "agent-browser": "^0.20.6"
+  },
+  "dependencies": {
+    "@chat-adapter/whatsapp": "^4.20.1"
   }
 }
