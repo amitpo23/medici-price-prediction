@@ -209,6 +209,169 @@ async def root():
 _startup_time: datetime | None = None
 
 
+@app.get("/diag/price-drop-signals")
+def diag_price_drop_signals():
+    """Run the SalesOffice Price Drop Intelligence skill queries and return trading signals.
+
+    Based on the salesoffice-price-drop-skill analyzer.
+    Parses [SalesOffice.Log] for DbRoomPrice -> API RoomPrice changes.
+    """
+    from src.data.trading_db import run_trading_query
+
+    summary_query = """
+    WITH base_logs AS (
+        SELECT l.Id, l.DateCreated, l.ActionId, l.SalesOfficeDetailId, l.Message
+        FROM [SalesOffice.Log] l
+        WHERE l.ActionId IN (3, 6)
+          AND l.Message LIKE '%DbRoomPrice:%-> API RoomPrice:%'
+    ),
+    positions AS (
+        SELECT b.*,
+            CHARINDEX('DbRoomPrice:', b.Message) AS p_old,
+            CHARINDEX('-> API RoomPrice:', b.Message) AS p_arrow,
+            CHARINDEX('; DbRoomCode:', b.Message) AS p_code,
+            CHARINDEX(';', b.Message, CHARINDEX('-> API RoomPrice:', b.Message) + LEN('-> API RoomPrice:')) AS p_semi
+        FROM base_logs b
+    ),
+    parsed AS (
+        SELECT p.Id, p.DateCreated, p.SalesOfficeDetailId,
+            TRY_CONVERT(decimal(18,4), REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(SUBSTRING(
+                p.Message, p.p_old + LEN('DbRoomPrice:'),
+                p.p_arrow - (p.p_old + LEN('DbRoomPrice:'))))), '$',''),',','.'), ' ','')) AS OldPrice,
+            TRY_CONVERT(decimal(18,4), REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(SUBSTRING(
+                p.Message, p.p_arrow + LEN('-> API RoomPrice:'),
+                CASE WHEN p.p_code > 0 THEN p.p_code - (p.p_arrow + LEN('-> API RoomPrice:'))
+                     WHEN p.p_semi > 0 THEN p.p_semi - (p.p_arrow + LEN('-> API RoomPrice:'))
+                     ELSE LEN(p.Message) END))), '$',''),',','.'), ' ','')) AS NewPrice
+        FROM positions p WHERE p.p_old > 0 AND p.p_arrow > p.p_old
+    ),
+    events AS (
+        SELECT p.*, d.HotelId, h.Name AS HotelName, d.RoomCategory, d.RoomBoard,
+            CAST(p.OldPrice - p.NewPrice AS decimal(18,4)) AS DropAmount,
+            CASE WHEN p.NewPrice < p.OldPrice THEN 1 ELSE 0 END AS IsPriceDrop
+        FROM parsed p
+        LEFT JOIN [SalesOffice.Details] d ON d.Id = p.SalesOfficeDetailId
+        LEFT JOIN Med_Hotels h ON d.HotelId = h.HotelId
+        WHERE p.OldPrice IS NOT NULL AND p.NewPrice IS NOT NULL
+    )
+    SELECT
+        COUNT(*) AS TotalPriceChanges,
+        SUM(CASE WHEN IsPriceDrop = 1 THEN 1 ELSE 0 END) AS DownwardChanges,
+        CAST(100.0 * SUM(CASE WHEN IsPriceDrop = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) AS decimal(10,2)) AS DownwardRatePct,
+        MIN(CASE WHEN IsPriceDrop = 1 THEN NewPrice END) AS LowestObservedPrice,
+        MAX(CASE WHEN IsPriceDrop = 1 THEN DropAmount END) AS MaxDropAmount,
+        AVG(CASE WHEN IsPriceDrop = 1 THEN DropAmount END) AS AvgDropAmount,
+        COUNT(DISTINCT CASE WHEN IsPriceDrop = 1 THEN HotelId END) AS HotelsWithDrops
+    FROM events
+    """
+
+    by_hotel_query = """
+    WITH base_logs AS (
+        SELECT l.Id, l.DateCreated, l.SalesOfficeDetailId, l.Message
+        FROM [SalesOffice.Log] l
+        WHERE l.ActionId IN (3, 6)
+          AND l.Message LIKE '%DbRoomPrice:%-> API RoomPrice:%'
+    ),
+    positions AS (
+        SELECT b.*,
+            CHARINDEX('DbRoomPrice:', b.Message) AS p_old,
+            CHARINDEX('-> API RoomPrice:', b.Message) AS p_arrow,
+            CHARINDEX('; DbRoomCode:', b.Message) AS p_code,
+            CHARINDEX(';', b.Message, CHARINDEX('-> API RoomPrice:', b.Message) + LEN('-> API RoomPrice:')) AS p_semi
+        FROM base_logs b
+    ),
+    parsed AS (
+        SELECT p.Id, p.DateCreated, p.SalesOfficeDetailId,
+            TRY_CONVERT(decimal(18,4), REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(SUBSTRING(
+                p.Message, p.p_old + LEN('DbRoomPrice:'),
+                p.p_arrow - (p.p_old + LEN('DbRoomPrice:'))))), '$',''),',','.'), ' ','')) AS OldPrice,
+            TRY_CONVERT(decimal(18,4), REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(SUBSTRING(
+                p.Message, p.p_arrow + LEN('-> API RoomPrice:'),
+                CASE WHEN p.p_code > 0 THEN p.p_code - (p.p_arrow + LEN('-> API RoomPrice:'))
+                     WHEN p.p_semi > 0 THEN p.p_semi - (p.p_arrow + LEN('-> API RoomPrice:'))
+                     ELSE LEN(p.Message) END))), '$',''),',','.'), ' ','')) AS NewPrice
+        FROM positions p WHERE p.p_old > 0 AND p.p_arrow > p.p_old
+    ),
+    events AS (
+        SELECT p.*, d.HotelId, h.Name AS HotelName, d.RoomCategory, d.RoomBoard,
+            CAST(p.OldPrice - p.NewPrice AS decimal(18,4)) AS DropAmount,
+            CASE WHEN p.NewPrice < p.OldPrice THEN 1 ELSE 0 END AS IsPriceDrop
+        FROM parsed p
+        LEFT JOIN [SalesOffice.Details] d ON d.Id = p.SalesOfficeDetailId
+        LEFT JOIN Med_Hotels h ON d.HotelId = h.HotelId
+        WHERE p.OldPrice IS NOT NULL AND p.NewPrice IS NOT NULL
+    )
+    SELECT TOP 50
+        HotelId, HotelName, RoomCategory, RoomBoard,
+        COUNT(*) AS DropCount,
+        CAST(AVG(DropAmount) AS decimal(18,2)) AS AvgDropAmount,
+        CAST(MAX(DropAmount) AS decimal(18,2)) AS MaxDropAmount,
+        CAST(MIN(NewPrice) AS decimal(18,2)) AS LowestObservedPrice,
+        MAX(DateCreated) AS LastDropDate
+    FROM events
+    WHERE IsPriceDrop = 1
+    GROUP BY HotelId, HotelName, RoomCategory, RoomBoard
+    ORDER BY DropCount DESC, MaxDropAmount DESC
+    """
+
+    try:
+        summary_df = run_trading_query(summary_query)
+        by_hotel_df = run_trading_query(by_hotel_query)
+    except (OSError, ConnectionError, TimeoutError, ValueError) as e:
+        return {"error": str(e)}
+
+    summary = summary_df.to_dict(orient="records")[0] if not summary_df.empty else {}
+    by_hotel = by_hotel_df.to_dict(orient="records") if not by_hotel_df.empty else []
+
+    # Generate trading signals from price drop data
+    signals = []
+    for row in by_hotel:
+        drop_count = row.get("DropCount", 0)
+        avg_drop = float(row.get("AvgDropAmount", 0) or 0)
+        max_drop = float(row.get("MaxDropAmount", 0) or 0)
+        lowest = float(row.get("LowestObservedPrice", 0) or 0)
+
+        if drop_count >= 5 and avg_drop > 10:
+            signal = "STRONG_PUT"
+            strength = min(10, int(drop_count / 3))
+        elif drop_count >= 3 or avg_drop > 5:
+            signal = "PUT"
+            strength = min(7, int(drop_count / 2))
+        elif drop_count >= 1:
+            signal = "WATCH"
+            strength = min(4, drop_count)
+        else:
+            signal = "NEUTRAL"
+            strength = 0
+
+        signals.append({
+            "hotelId": row.get("HotelId"),
+            "hotelName": row.get("HotelName"),
+            "category": row.get("RoomCategory"),
+            "board": row.get("RoomBoard"),
+            "signal": signal,
+            "strength": strength,
+            "dropCount": drop_count,
+            "avgDropAmount": avg_drop,
+            "maxDropAmount": max_drop,
+            "lowestPrice": lowest,
+            "lastDropDate": str(row.get("LastDropDate", "")),
+        })
+
+    return {
+        "source": "salesoffice-price-drop-skill",
+        "generatedAt": datetime.utcnow().isoformat() + "Z",
+        "summary": summary,
+        "signals": signals,
+        "signalCounts": {
+            "STRONG_PUT": sum(1 for s in signals if s["signal"] == "STRONG_PUT"),
+            "PUT": sum(1 for s in signals if s["signal"] == "PUT"),
+            "WATCH": sum(1 for s in signals if s["signal"] == "WATCH"),
+            "NEUTRAL": sum(1 for s in signals if s["signal"] == "NEUTRAL"),
+        },
+    }
+
+
 @app.get("/diag/salesoffice-orders")
 def diag_salesoffice_orders():
     """Diagnostic: show ALL SalesOffice orders grouped by hotel, including non-completed."""
