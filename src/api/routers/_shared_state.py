@@ -516,6 +516,31 @@ def _derive_option_signal(pred: dict) -> str:
     up = float(probability.get("up", 0) or 0)
     down = float(probability.get("down", 0) or 0)
 
+    # Price-drop skill logic: if expected_min drops >5% below current at any
+    # point before check-in, the contract has PUT characteristics regardless
+    # of where the final predicted price lands.
+    current_price = float(pred.get("current_price", 0) or 0)
+    expected_min = float(pred.get("expected_min_price", 0) or 0)
+    scan_history = pred.get("scan_history") or {}
+    scan_drops = int(scan_history.get("scan_actual_drops", 0) or 0)
+    scan_drop_pct = float(scan_history.get("scan_price_change_pct", 0) or 0)
+    put_decline_count = int(pred.get("put_decline_count", 0) or 0)
+
+    # PUT: expected min is ≥5% below current, OR scan history shows real drops
+    if current_price > 0 and expected_min > 0:
+        min_vs_current_pct = (expected_min - current_price) / current_price * 100
+        if min_vs_current_pct <= -5.0:
+            return "PUT"
+
+    # PUT: scan history shows actual price drops with downward trend
+    if scan_drops >= 2 and scan_drop_pct < -5.0:
+        return "PUT"
+
+    # PUT: forward curve predicts multiple decline events (>5 declines in path)
+    if put_decline_count >= 5 and expected_min < current_price:
+        return "PUT"
+
+    # Original logic for remaining cases
     if change_pct >= 0.5 or up > down + 0.1:
         return "CALL"
     if change_pct <= -0.5 or down > up + 0.1:
