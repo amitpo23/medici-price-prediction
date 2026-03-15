@@ -58,3 +58,4 @@ htmlcov/
 
 # Claude
 .claude/
+mcp-servers/medici-db/node_modules/
