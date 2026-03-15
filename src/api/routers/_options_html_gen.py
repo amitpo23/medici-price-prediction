@@ -185,6 +185,7 @@ def _generate_options_async_html(t_days: int | None = None, signal: str | None =
         <option value="">All</option>
         <option value="CALL">CALL</option>
         <option value="PUT">PUT</option>
+        <option value="NEXT_PUT">NEXT PUT (scan drop)</option>
         <option value="NEUTRAL">NEUTRAL</option>
       </select>
     </label>
@@ -261,12 +262,13 @@ def _generate_options_async_html(t_days: int | None = None, signal: str | None =
             <th>Quality</th>
             <th>Scans</th>
             <th>Scan trend</th>
+            <th>Next Scan</th>
             <th>Sources</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="table-body">
-          <tr><td class="empty" colspan="16">Loading...</td></tr>
+          <tr><td class="empty" colspan="17">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -371,7 +373,86 @@ function formatPercent(value) {{
 
 function signalClass(signal) {{
   const key = String(signal || '').toLowerCase();
-  return key === 'call' ? 'call' : (key === 'put' ? 'put' : 'neutral');
+  if (key === 'call') return 'call';
+  if (key === 'put' || key === 'strong_put' || key === 'next_put') return 'put';
+  return 'neutral';
+}}
+
+function computeNextScanSignal(row) {{
+  /* Next-scan price drop prediction (price-drop skill).
+     Predicts if price will drop ≥5% in the next 3h scan cycle. */
+  const scan = row.scan_history || {{}};
+  const cur = Number(row.current_price || 0);
+  const expMin = Number(row.expected_min_price || 0);
+  const drops = Number(scan.scan_actual_drops || 0);
+  const rises = Number(scan.scan_actual_rises || 0);
+  const scans = Number(scan.scan_snapshots || 0);
+  const trend = String(scan.scan_trend || '');
+  const changePct = Number(scan.scan_price_change_pct || 0);
+  const maxDrop = Number(scan.scan_max_single_drop || 0);
+  const putDeclines = Number(row.put_decline_count || 0);
+
+  let score = 0;
+
+  // Velocity: recent price trend
+  if (scans >= 2 && changePct < 0) {{
+    const avgPerScan = changePct / Math.max(1, scans - 1);
+    if (avgPerScan < -5) score += 35;
+    else if (avgPerScan < -3) score += 25;
+    else if (avgPerScan < -1) score += 10;
+  }}
+
+  // Acceleration: trending down
+  if (trend === 'down') score += 15;
+
+  // Drop frequency
+  const totalMoves = drops + rises;
+  if (totalMoves > 0) {{
+    const freq = drops / totalMoves;
+    if (freq > 0.5) score += 20;
+    else if (freq > 0.3) score += 10;
+  }}
+
+  // Consecutive drops (if trending down with multiple drops)
+  if (trend === 'down' && drops >= 3) score += 20;
+  else if (trend === 'down' && drops >= 2) score += 15;
+  else if (drops >= 1) score += 5;
+
+  // Expected min below current (forward curve sees dip)
+  if (cur > 0 && expMin > 0) {{
+    const minPct = (expMin - cur) / cur * 100;
+    if (minPct <= -5) score += 10;
+  }}
+
+  // Max historical single drop was big
+  if (cur > 0 && maxDrop / cur * 100 > 10) score += 10;
+  else if (cur > 0 && maxDrop / cur * 100 > 5) score += 5;
+
+  // Category volatility
+  const cat = String(row.category || '').toLowerCase();
+  if (cat.includes('suite') || cat.includes('deluxe')) score += 5;
+
+  // Classify
+  let label, cls, detail = '';
+  if (score >= 70) {{
+    label = 'STRONG PUT';
+    cls = 'put';
+    detail = '<br><span class="muted">drop expected</span>';
+  }} else if (score >= 50) {{
+    label = 'PUT';
+    cls = 'put';
+    detail = '<br><span class="muted">likely drop</span>';
+  }} else if (score >= 30) {{
+    label = 'WATCH';
+    cls = 'neutral';
+    detail = '';
+  }} else {{
+    label = '--';
+    cls = '';
+    detail = '';
+  }}
+
+  return {{ label, cls, detail, score }};
 }}
 
 function setStatus(kind, title, text, meta = []) {{
@@ -429,12 +510,19 @@ function applySearch() {{
       row.detail_id,
     ].some((value) => String(value ?? '').toLowerCase().includes(q)));
   }}
+  // Client-side filter: NEXT_PUT — show only rooms with next-scan PUT signal
+  if (state.signal === 'NEXT_PUT') {{
+    state.filteredRows = state.filteredRows.filter((row) => {{
+      const ns = computeNextScanSignal(row);
+      return ns.score >= 50;  // PUT or STRONG_PUT
+    }});
+  }}
   renderRows();
 }}
 
 function renderRows() {{
   if (!state.filteredRows.length) {{
-    el.tableBody.innerHTML = '<tr><td class="empty" colspan="16">No rows match the current view.</td></tr>';
+    el.tableBody.innerHTML = '<tr><td class="empty" colspan="17">No rows match the current view.</td></tr>';
     updateSummary();
     return;
   }}
@@ -450,6 +538,8 @@ function renderRows() {{
     const scanTrend = String(scan.scan_trend || 'no_data');
     const scanDelta = Number(scan.scan_price_change_pct || 0);
     const scanDeltaCls = scanDelta > 0 ? 'pos' : (scanDelta < 0 ? 'neg' : '');
+    // Next-scan drop prediction (price-drop skill)
+    const nextScan = computeNextScanSignal(row);
     const selectedSourcePrice = state.source ? getRowSourcePredictedPrice(row, state.source) : null;
     const selectedSourceHtml = state.source
       ? ((selectedSourcePrice != null ? formatCurrency(selectedSourcePrice) : '<span class="muted">--</span>') + '<br><span class="muted">' + escapeHtml(getSourceDisplayName(state.source)) + '</span>')
@@ -473,6 +563,7 @@ function renderRows() {{
         <td><span class="quality ${{String(quality.label || '').toLowerCase()}}">${{escapeHtml(quality.label || '--')}}</span><br><span class="muted">score ${{quality.score != null ? Number(quality.score).toFixed(2) : '--'}}</span></td>
         <td>${{escapeHtml(scan.scan_snapshots ?? 0)}}</td>
         <td><span class="muted">${{escapeHtml(scanTrend)}}</span><br><span class="num ${{scanDeltaCls}}">${{formatPercent(scanDelta)}}</span></td>
+        <td><span class="pill ${{nextScan.cls}}">${{nextScan.label}}</span>${{nextScan.detail}}</td>
         <td>${{sourceHtml}}</td>
         <td class="row-actions"><button type="button" data-detail-id="${{escapeHtml(row.detail_id)}}">Chart + analysis</button></td>
       </tr>`;
@@ -489,7 +580,7 @@ function buildOptionsUrl() {{
   params.set('include_metadata', 'false');
   params.set('limit', String(state.limit));
   params.set('offset', String(state.offset));
-  if (state.signal) params.set('signal', state.signal);
+  if (state.signal && state.signal !== 'NEXT_PUT') params.set('signal', state.signal);
   if (state.source) params.set('source', state.source);
   if (state.source && state.sourceMode === 'source_only') params.set('source_only', 'true');
   if (Number.isInteger(state.tDays) && state.tDays > 0) params.set('t_days', String(state.tDays));
@@ -1271,7 +1362,7 @@ async function fetchRows() {{
   }} catch (error) {{
     console.error(error);
     setStatus('error', 'Failed to load options data', error.message || 'Unknown error');
-    el.tableBody.innerHTML = '<tr><td class="empty" colspan="16">Failed to load data. Use Refresh to try again.</td></tr>';
+    el.tableBody.innerHTML = '<tr><td class="empty" colspan="17">Failed to load data. Use Refresh to try again.</td></tr>';
   }} finally {{
     state.loading = false;
     updateSummary();
