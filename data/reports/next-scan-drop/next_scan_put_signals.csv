@@ -1,0 +1,707 @@
+detail_id,hotel_id,hotel,category,board,price,signal,strength,probability,velocity_3h,acceleration,drop_freq,consec_drops,expected_drop_pct,days_to_checkin
+39801,24982,Hilton Miami Downtown,Suite,Ro,254.52,STRONG_PUT,10,1.0,-25.923333333333332,-1.0,1.0,3,-25.923333333333332,101
+39116,24982,Hilton Miami Downtown,Suite,Ro,1144.95,STRONG_PUT,10,1.0,-25.923333333333332,-1.0,1.0,3,-25.923333333333332,101
+39351,24982,Hilton Miami Downtown,Suite,Ro,1144.86,STRONG_PUT,10,1.0,-25.923333333333332,-1.0,1.0,3,-25.923333333333332,101
+39622,24982,Hilton Miami Downtown,Suite,Ro,1144.16,STRONG_PUT,10,1.0,-25.923333333333332,-1.0,1.0,3,-25.923333333333332,101
+39825,24982,Hilton Miami Downtown,Suite,Ro,254.53,STRONG_PUT,10,1.0,-19.4325,-1.0,1.0,3,-19.4325,107
+39798,24982,Hilton Miami Downtown,Suite,Ro,1138.1,STRONG_PUT,10,1.0,-19.4325,-1.0,1.0,3,-19.4325,107
+39089,24982,Hilton Miami Downtown,Suite,Ro,1142.71,STRONG_PUT,10,1.0,-19.4325,-1.0,1.0,3,-19.4325,107
+39117,24982,Hilton Miami Downtown,Suite,Ro,1142.71,STRONG_PUT,10,1.0,-19.4325,-1.0,1.0,3,-19.4325,107
+39657,24982,Hilton Miami Downtown,Suite,Ro,1141.93,STRONG_PUT,10,1.0,-19.4325,-1.0,1.0,3,-19.4325,107
+38889,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,368.76,STRONG_PUT,10,1.0,-15.729999999999999,-1.0,1.0,3,-15.729999999999999,53
+39031,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,349.95,STRONG_PUT,10,1.0,-15.729999999999999,-1.0,1.0,3,-15.729999999999999,53
+39376,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,348.12,STRONG_PUT,10,1.0,-15.729999999999999,-1.0,1.0,3,-15.729999999999999,53
+39888,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,194.76,STRONG_PUT,10,1.0,-15.729999999999999,-1.0,1.0,3,-15.729999999999999,53
+39772,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,199.65,STRONG_PUT,10,1.0,-9.486,-1.0,0.6,3,-9.486,60
+39099,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,425.79,STRONG_PUT,10,1.0,-9.486,-1.0,0.6,3,-9.486,60
+39377,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,394.57,STRONG_PUT,10,1.0,-9.486,-1.0,0.6,3,-9.486,60
+39018,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,390.54,STRONG_PUT,10,1.0,-9.486,-1.0,0.6,3,-9.486,60
+39634,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,386.72,STRONG_PUT,10,1.0,-9.486,-1.0,0.6,3,-9.486,60
+38901,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,379.77,STRONG_PUT,10,1.0,-9.486,-1.0,0.6,3,-9.486,60
+42921,24982,Hilton Miami Downtown,Suite,Ro,408.98,STRONG_PUT,10,1.0,-7.805,-1.0,1.0,2,-7.805,36
+39807,66814,Breakwater South Beach,Deluxe,Ro,509.33,STRONG_PUT,10,1.0,-5.5875,-1.0,0.75,3,-5.5875,47
+39875,66814,Breakwater South Beach,Deluxe,Ro,509.33,STRONG_PUT,10,1.0,-5.5875,-1.0,0.75,3,-5.5875,47
+39848,66814,Breakwater South Beach,Deluxe,Ro,593.21,STRONG_PUT,10,1.0,-5.5875,-1.0,0.75,3,-5.5875,47
+39662,66814,Breakwater South Beach,Deluxe,Ro,624.94,STRONG_PUT,10,1.0,-5.5875,-1.0,0.75,3,-5.5875,47
+42134,66814,Breakwater South Beach,Deluxe,Ro,485.27,STRONG_PUT,10,1.0,-5.5875,-1.0,0.75,3,-5.5875,47
+39819,24982,Hilton Miami Downtown,Suite,Ro,254.53,STRONG_PUT,9,0.95,-38.875,-1.0,1.0,2,-38.875,98
+39350,24982,Hilton Miami Downtown,Suite,Ro,1143.75,STRONG_PUT,9,0.95,-38.875,-1.0,1.0,2,-38.875,98
+39771,24982,Hilton Miami Downtown,Suite,Ro,1137.34,STRONG_PUT,9,0.95,-38.875,-1.0,1.0,2,-38.875,98
+39037,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,291.57,STRONG_PUT,9,0.95,-30.31,-1.0,1.0,2,-30.31,96
+39006,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,460.37,STRONG_PUT,9,0.95,-30.31,-1.0,1.0,2,-30.31,96
+38961,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,740.46,STRONG_PUT,9,0.95,-30.31,-1.0,1.0,2,-30.31,96
+39005,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,353.23,STRONG_PUT,9,0.95,-25.76,-1.0,1.0,2,-25.76,90
+38983,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,727.8,STRONG_PUT,9,0.95,-25.76,-1.0,1.0,2,-25.76,90
+38956,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,728.65,STRONG_PUT,9,0.95,-25.76,-1.0,1.0,2,-25.76,90
+39843,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,233.95,STRONG_PUT,9,0.95,-22.78,-1.0,1.0,2,-22.78,68
+39773,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,428.01,STRONG_PUT,9,0.95,-22.78,-1.0,1.0,2,-22.78,68
+38916,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,429.74,STRONG_PUT,9,0.95,-22.78,-1.0,1.0,2,-22.78,68
+39815,24982,Hilton Miami Downtown,Suite,Ro,254.53,STRONG_PUT,9,0.95,-17.2675,-1.0,0.6666666666666666,2,-17.2675,94
+39030,24982,Hilton Miami Downtown,Suite,Ro,822.94,STRONG_PUT,9,0.95,-17.2675,-1.0,0.6666666666666666,2,-17.2675,94
+39077,24982,Hilton Miami Downtown,Suite,Ro,824.05,STRONG_PUT,9,0.95,-17.2675,-1.0,0.6666666666666666,2,-17.2675,94
+39349,24982,Hilton Miami Downtown,Suite,Ro,823.68,STRONG_PUT,9,0.95,-17.2675,-1.0,0.6666666666666666,2,-17.2675,94
+39415,24982,Hilton Miami Downtown,Suite,Ro,823.68,STRONG_PUT,9,0.95,-17.2675,-1.0,0.6666666666666666,2,-17.2675,94
+41909,24982,Hilton Miami Downtown,Suite,Ro,345.63,STRONG_PUT,9,0.95,-17.055,-1.0,1.0,2,-17.055,65
+39210,24982,Hilton Miami Downtown,Suite,Ro,398.94,STRONG_PUT,9,0.95,-17.055,-1.0,1.0,2,-17.055,65
+39045,24982,Hilton Miami Downtown,Suite,Ro,524.52,STRONG_PUT,9,0.95,-17.055,-1.0,1.0,2,-17.055,65
+41889,852120,SLS LUX Brickell,Suite,Ro,685.09,STRONG_PUT,9,0.95,-13.685,-1.0,1.0,2,-13.685,44
+41608,852120,SLS LUX Brickell,Suite,Ro,935.8,STRONG_PUT,9,0.95,-13.685,-1.0,1.0,2,-13.685,44
+41455,852120,SLS LUX Brickell,Suite,Ro,943.31,STRONG_PUT,9,0.95,-13.685,-1.0,1.0,2,-13.685,44
+41910,24982,Hilton Miami Downtown,Standard,Ro,283.95,STRONG_PUT,9,0.95,-12.81,-1.0,1.0,3,-12.81,65
+39770,24982,Hilton Miami Downtown,Standard,Ro,362.43,STRONG_PUT,9,0.95,-12.81,-1.0,1.0,3,-12.81,65
+39211,24982,Hilton Miami Downtown,Standard,Ro,392.55,STRONG_PUT,9,0.95,-12.81,-1.0,1.0,3,-12.81,65
+39044,24982,Hilton Miami Downtown,Standard,Ro,461.15,STRONG_PUT,9,0.95,-12.81,-1.0,1.0,3,-12.81,65
+40724,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,337.96,STRONG_PUT,9,0.95,-10.796666666666667,-1.0,0.6666666666666666,2,-10.796666666666667,93
+39019,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,492.08,STRONG_PUT,9,0.95,-10.796666666666667,-1.0,0.6666666666666666,2,-10.796666666666667,93
+39919,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,493.2,STRONG_PUT,9,0.95,-10.796666666666667,-1.0,0.6666666666666666,2,-10.796666666666667,93
+38959,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,499.86,STRONG_PUT,9,0.95,-10.796666666666667,-1.0,0.6666666666666666,2,-10.796666666666667,93
+40745,66814,Breakwater South Beach,Superior,Ro,180.9,STRONG_PUT,9,0.95,-10.07,-1.0,0.75,3,-10.07,85
+39810,66814,Breakwater South Beach,Superior,Ro,205.5,STRONG_PUT,9,0.95,-10.07,-1.0,0.75,3,-10.07,85
+39529,66814,Breakwater South Beach,Superior,Ro,210.3,STRONG_PUT,9,0.95,-10.07,-1.0,0.75,3,-10.07,85
+39797,66814,Breakwater South Beach,Superior,Ro,211.99,STRONG_PUT,9,0.95,-10.07,-1.0,0.75,3,-10.07,85
+39447,66814,Breakwater South Beach,Superior,Ro,302.93,STRONG_PUT,9,0.95,-10.07,-1.0,0.75,3,-10.07,85
+39614,66814,Breakwater South Beach,Superior,Ro,175.99,STRONG_PUT,9,0.95,-9.9225,-1.0,0.75,3,-9.9225,78
+39390,66814,Breakwater South Beach,Superior,Ro,218.85,STRONG_PUT,9,0.95,-9.9225,-1.0,0.75,3,-9.9225,78
+39584,66814,Breakwater South Beach,Superior,Ro,290.73,STRONG_PUT,9,0.95,-9.9225,-1.0,0.75,3,-9.9225,78
+39204,66814,Breakwater South Beach,Superior,Ro,291.8,STRONG_PUT,9,0.95,-9.9225,-1.0,0.75,3,-9.9225,78
+39545,66814,Breakwater South Beach,Superior,Ro,291.91,STRONG_PUT,9,0.95,-9.9225,-1.0,0.75,3,-9.9225,78
+39094,24982,Hilton Miami Downtown,Suite,Ro,484.62,STRONG_PUT,9,0.95,-7.805,-1.0,1.0,2,-7.805,36
+39344,24982,Hilton Miami Downtown,Suite,Ro,484.58,STRONG_PUT,9,0.95,-7.805,-1.0,1.0,2,-7.805,36
+41482,852120,SLS LUX Brickell,Suite,Ro,604.09,STRONG_PUT,9,0.95,-6.91,-1.0,1.0,2,-6.91,77
+41625,852120,SLS LUX Brickell,Suite,Ro,599.28,STRONG_PUT,9,0.95,-6.91,-1.0,1.0,2,-6.91,77
+41971,852120,SLS LUX Brickell,Suite,Ro,520.58,STRONG_PUT,9,0.95,-6.91,-1.0,1.0,2,-6.91,77
+41982,852120,SLS LUX Brickell,Suite,Ro,520.58,STRONG_PUT,9,0.95,-6.85,-1.0,1.0,2,-6.85,85
+41632,852120,SLS LUX Brickell,Suite,Ro,587.76,STRONG_PUT,9,0.95,-6.85,-1.0,1.0,2,-6.85,85
+41495,852120,SLS LUX Brickell,Suite,Ro,603.23,STRONG_PUT,9,0.95,-6.85,-1.0,1.0,2,-6.85,85
+41532,852120,SLS LUX Brickell,Suite,Ro,602.37,STRONG_PUT,9,0.95,-6.79,-1.0,1.0,2,-6.79,78
+41626,852120,SLS LUX Brickell,Suite,Ro,599.28,STRONG_PUT,9,0.95,-6.79,-1.0,1.0,2,-6.79,78
+41972,852120,SLS LUX Brickell,Suite,Ro,520.58,STRONG_PUT,9,0.95,-6.79,-1.0,1.0,2,-6.79,78
+42082,20702,Embassy Suites by Hilton Miami International Airport,Suite,Bb,443.15,STRONG_PUT,9,0.95,-6.475,-1.0,1.0,1,-6.475,46
+41892,852120,SLS LUX Brickell,Suite,Ro,558.52,STRONG_PUT,9,0.95,-6.1499999999999995,-1.0,0.6666666666666666,2,-6.1499999999999995,81
+41629,852120,SLS LUX Brickell,Suite,Ro,682.25,STRONG_PUT,9,0.95,-6.1499999999999995,-1.0,0.6666666666666666,2,-6.1499999999999995,81
+41487,852120,SLS LUX Brickell,Suite,Ro,684.85,STRONG_PUT,9,0.95,-6.1499999999999995,-1.0,0.6666666666666666,2,-6.1499999999999995,81
+41763,852120,SLS LUX Brickell,Suite,Ro,685.12,STRONG_PUT,9,0.95,-6.1499999999999995,-1.0,0.6666666666666666,2,-6.1499999999999995,81
+39603,66814,Breakwater South Beach,Deluxe,Ro,258.16,STRONG_PUT,9,0.95,-6.13,-1.0,1.0,2,-6.13,41
+39517,66814,Breakwater South Beach,Deluxe,Ro,293.71,STRONG_PUT,9,0.95,-6.13,-1.0,1.0,2,-6.13,41
+39461,66814,Breakwater South Beach,Deluxe,Ro,294.23,STRONG_PUT,9,0.95,-6.13,-1.0,1.0,2,-6.13,41
+41876,66814,Breakwater South Beach,Deluxe,Ro,219.19,STRONG_PUT,9,0.95,-5.01,-1.0,0.6666666666666666,2,-5.01,55
+39524,66814,Breakwater South Beach,Deluxe,Ro,229.02,STRONG_PUT,9,0.95,-5.01,-1.0,0.6666666666666666,2,-5.01,55
+41590,66814,Breakwater South Beach,Deluxe,Ro,256.72,STRONG_PUT,9,0.95,-5.01,-1.0,0.6666666666666666,2,-5.01,55
+39407,66814,Breakwater South Beach,Deluxe,Ro,257.97,STRONG_PUT,9,0.95,-5.01,-1.0,0.6666666666666666,2,-5.01,55
+40749,66814,Breakwater South Beach,Standard,Bb,462.9,STRONG_PUT,9,0.9,-95.51,-1.0,1.0,1,-95.51,94
+42978,852120,SLS LUX Brickell,Standard,Ro,2141.5,STRONG_PUT,9,0.9,-83.95,-1.0,1.0,1,-83.95,87
+42238,66814,Breakwater South Beach,Standard,Bb,551.88,STRONG_PUT,9,0.9,-47.325,-1.0,1.0,2,-47.325,93
+40748,66814,Breakwater South Beach,Standard,Bb,597.15,STRONG_PUT,9,0.9,-47.325,-1.0,1.0,2,-47.325,93
+40439,66814,Breakwater South Beach,Standard,Bb,10318.56,STRONG_PUT,9,0.9,-47.325,-1.0,1.0,2,-47.325,93
+39889,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,202.69,STRONG_PUT,9,0.9,-14.655,-1.0,1.0,2,-14.655,53
+39873,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,285.6,STRONG_PUT,9,0.9,-14.655,-1.0,1.0,2,-14.655,53
+38998,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,286.73,STRONG_PUT,9,0.9,-14.655,-1.0,1.0,2,-14.655,53
+39883,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,187.94,STRONG_PUT,9,0.9,-12.44,-1.0,1.0,2,-12.44,34
+39187,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,243.33,STRONG_PUT,9,0.9,-12.44,-1.0,1.0,2,-12.44,34
+38993,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,250.18,STRONG_PUT,9,0.9,-12.44,-1.0,1.0,2,-12.44,34
+42025,6805,Pullman Miami Airport,Standard,Ro,206.61,STRONG_PUT,9,0.9,-11.855,-1.0,1.0,2,-11.855,35
+41770,6805,Pullman Miami Airport,Standard,Ro,260.21,STRONG_PUT,9,0.9,-11.855,-1.0,1.0,2,-11.855,35
+41226,6805,Pullman Miami Airport,Standard,Ro,270.83,STRONG_PUT,9,0.9,-11.855,-1.0,1.0,2,-11.855,35
+41769,6805,Pullman Miami Airport,Standard,Ro,209.05,STRONG_PUT,9,0.9,-9.52,-1.0,1.0,2,-9.52,34
+41576,6805,Pullman Miami Airport,Standard,Ro,258.15,STRONG_PUT,9,0.9,-9.52,-1.0,1.0,2,-9.52,34
+41225,6805,Pullman Miami Airport,Standard,Ro,258.22,STRONG_PUT,9,0.9,-9.52,-1.0,1.0,2,-9.52,34
+41722,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,600.08,STRONG_PUT,9,0.9,-9.47,-1.0,0.6666666666666666,2,-9.47,104
+42160,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,600.07,STRONG_PUT,9,0.9,-9.47,-1.0,0.6666666666666666,2,-9.47,104
+41915,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,621.23,STRONG_PUT,9,0.9,-9.47,-1.0,0.6666666666666666,2,-9.47,104
+41597,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,838.17,STRONG_PUT,9,0.9,-9.47,-1.0,0.6666666666666666,2,-9.47,104
+41807,66814,Breakwater South Beach,Superior,Ro,168.97,STRONG_PUT,9,0.9,-7.33,-1.0,1.0,2,-7.33,80
+41980,852120,SLS LUX Brickell,Suite,Ro,520.58,STRONG_PUT,9,0.9,-4.71,-1.0,1.0,3,-4.71,84
+41766,852120,SLS LUX Brickell,Suite,Ro,595.47,STRONG_PUT,9,0.9,-4.71,-1.0,1.0,3,-4.71,84
+41631,852120,SLS LUX Brickell,Suite,Ro,602.74,STRONG_PUT,9,0.9,-4.71,-1.0,1.0,3,-4.71,84
+41493,852120,SLS LUX Brickell,Suite,Ro,606.23,STRONG_PUT,9,0.9,-4.71,-1.0,1.0,3,-4.71,84
+42125,66814,Breakwater South Beach,Deluxe,Ro,395.03,STRONG_PUT,9,0.9,-4.0525,-1.0,1.0,3,-4.0525,39
+39887,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,415.17,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+39113,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,571.64,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+39023,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,567.03,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+39050,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,566.06,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+39601,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,566.42,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+38878,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,562.52,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+39779,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,562.47,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+38994,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,560.57,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+39060,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,560.6,STRONG_PUT,9,0.9,-3.27375,-1.0,0.75,6,-3.27375,47
+39345,24982,Hilton Miami Downtown,Suite,Ro,365.17,STRONG_PUT,9,0.9,-3.122,-1.0,0.6,3,-3.122,37
+39835,24982,Hilton Miami Downtown,Suite,Ro,374.64,STRONG_PUT,9,0.9,-3.122,-1.0,0.6,3,-3.122,37
+43087,24982,Hilton Miami Downtown,Suite,Ro,408.98,STRONG_PUT,9,0.9,-3.122,-1.0,0.6,3,-3.122,37
+42239,24982,Hilton Miami Downtown,Suite,Ro,482.07,STRONG_PUT,9,0.9,-3.122,-1.0,0.6,3,-3.122,37
+39476,24982,Hilton Miami Downtown,Suite,Ro,483.17,STRONG_PUT,9,0.9,-3.122,-1.0,0.6,3,-3.122,37
+39095,24982,Hilton Miami Downtown,Suite,Ro,484.62,STRONG_PUT,9,0.9,-3.122,-1.0,0.6,3,-3.122,37
+38999,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,328.0,STRONG_PUT,8,0.85,-55.7,-1.0,1.0,1,-55.7,91
+38957,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,740.46,STRONG_PUT,8,0.85,-55.7,-1.0,1.0,1,-55.7,91
+39007,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,334.21,STRONG_PUT,8,0.85,-54.55,-1.0,1.0,1,-54.55,99
+38964,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,735.31,STRONG_PUT,8,0.85,-54.55,-1.0,1.0,1,-54.55,99
+39009,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,337.9,STRONG_PUT,8,0.85,-53.47,-1.0,1.0,1,-53.47,102
+38967,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,726.19,STRONG_PUT,8,0.85,-53.47,-1.0,1.0,1,-53.47,102
+39010,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,358.94,STRONG_PUT,8,0.85,-50.69,-1.0,1.0,1,-50.69,103
+38968,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,727.88,STRONG_PUT,8,0.85,-50.69,-1.0,1.0,1,-50.69,103
+39008,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,369.29,STRONG_PUT,8,0.85,-49.76,-1.0,1.0,1,-49.76,100
+38965,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,735.04,STRONG_PUT,8,0.85,-49.76,-1.0,1.0,1,-49.76,100
+39015,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,329.6,STRONG_PUT,8,0.85,-39.5,-1.0,1.0,1,-39.5,97
+38962,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,544.83,STRONG_PUT,8,0.85,-39.5,-1.0,1.0,1,-39.5,97
+38984,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,290.42,STRONG_PUT,8,0.85,-33.44,-1.0,1.0,1,-33.44,95
+38978,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,436.34,STRONG_PUT,8,0.85,-33.44,-1.0,1.0,1,-33.44,95
+39841,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,170.56,STRONG_PUT,8,0.85,-33.1,-1.0,1.0,1,-33.1,31
+39777,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,254.94,STRONG_PUT,8,0.85,-33.1,-1.0,1.0,1,-33.1,31
+39600,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,268.48,STRONG_PUT,8,0.85,-28.11,-1.0,1.0,1,-28.11,33
+38858,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,373.46,STRONG_PUT,8,0.85,-28.11,-1.0,1.0,1,-28.11,33
+39587,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,293.87,STRONG_PUT,8,0.85,-27.76,-1.0,1.0,1,-27.76,32
+38856,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,406.79,STRONG_PUT,8,0.85,-27.76,-1.0,1.0,1,-27.76,32
+41764,852120,SLS LUX Brickell,Suite,Ro,558.52,STRONG_PUT,8,0.85,-25.93,-1.0,1.0,1,-25.93,82
+41489,852120,SLS LUX Brickell,Suite,Ro,754.0,STRONG_PUT,8,0.85,-25.93,-1.0,1.0,1,-25.93,82
+39602,66814,Breakwater South Beach,Deluxe,Ro,421.82,STRONG_PUT,8,0.85,-18.86,-1.0,1.0,1,-18.86,40
+39568,66814,Breakwater South Beach,Deluxe,Ro,519.88,STRONG_PUT,8,0.85,-18.86,-1.0,1.0,1,-18.86,40
+43144,22034,Hilton Bentley Miami South Beach,Suite,Ro,847.15,STRONG_PUT,8,0.85,-17.35,-1.0,1.0,1,-17.35,69
+42434,22034,Hilton Bentley Miami South Beach,Suite,Ro,1024.99,STRONG_PUT,8,0.85,-17.35,-1.0,1.0,1,-17.35,69
+42257,6805,Pullman Miami Airport,Suite,Bb,298.18,STRONG_PUT,8,0.85,-15.94,-1.0,1.0,1,-15.94,34
+41222,6805,Pullman Miami Airport,Suite,Bb,354.71,STRONG_PUT,8,0.85,-15.94,-1.0,1.0,1,-15.94,34
+39425,66814,Breakwater South Beach,Deluxe,Ro,220.23,STRONG_PUT,8,0.85,-13.16,-1.0,1.0,1,-13.16,57
+39260,66814,Breakwater South Beach,Deluxe,Ro,253.6,STRONG_PUT,8,0.85,-13.16,-1.0,1.0,1,-13.16,57
+41806,66814,Breakwater South Beach,Deluxe,Ro,215.91,STRONG_PUT,8,0.85,-12.87,-1.0,1.0,1,-12.87,80
+39429,66814,Breakwater South Beach,Deluxe,Ro,247.8,STRONG_PUT,8,0.85,-12.87,-1.0,1.0,1,-12.87,80
+42132,66814,Breakwater South Beach,Deluxe,Ro,485.38,STRONG_PUT,8,0.85,-10.5,-1.0,1.0,1,-10.5,45
+39462,66814,Breakwater South Beach,Deluxe,Ro,542.31,STRONG_PUT,8,0.85,-10.5,-1.0,1.0,1,-10.5,45
+43109,6805,Pullman Miami Airport,Suite,Bb,256.89,STRONG_PUT,8,0.85,-10.13,-1.0,1.0,1,-10.13,41
+41247,6805,Pullman Miami Airport,Suite,Bb,285.86,STRONG_PUT,8,0.85,-10.13,-1.0,1.0,1,-10.13,41
+42110,6805,Pullman Miami Airport,Deluxe,Bb,201.85,STRONG_PUT,8,0.85,-9.66,-1.0,1.0,1,-9.66,73
+39890,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,189.36,STRONG_PUT,8,0.85,-9.5575,-1.0,0.5,2,-9.5575,54
+39780,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,327.99,STRONG_PUT,8,0.85,-9.5575,-1.0,0.5,2,-9.5575,54
+39855,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,322.29,STRONG_PUT,8,0.85,-9.5575,-1.0,0.5,2,-9.5575,54
+39048,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,314.28,STRONG_PUT,8,0.85,-9.5575,-1.0,0.5,2,-9.5575,54
+38890,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,306.55,STRONG_PUT,8,0.85,-9.5575,-1.0,0.5,2,-9.5575,54
+40721,66814,Breakwater South Beach,Superior,Ro,180.25,STRONG_PUT,8,0.85,-7.33,-1.0,1.0,2,-7.33,80
+39428,66814,Breakwater South Beach,Superior,Ro,197.99,STRONG_PUT,8,0.85,-7.33,-1.0,1.0,2,-7.33,80
+40656,20702,Embassy Suites by Hilton Miami International Airport,Suite,Bb,509.07,STRONG_PUT,8,0.85,-6.475,-1.0,1.0,1,-6.475,46
+41521,20702,Embassy Suites by Hilton Miami International Airport,Suite,Bb,443.15,STRONG_PUT,8,0.85,-6.475,-1.0,1.0,1,-6.475,46
+39675,66814,Breakwater South Beach,Deluxe,Ro,421.59,STRONG_PUT,8,0.85,-4.0525,-1.0,1.0,3,-4.0525,39
+39554,66814,Breakwater South Beach,Deluxe,Ro,463.61,STRONG_PUT,8,0.85,-4.0525,-1.0,1.0,3,-4.0525,39
+39637,66814,Breakwater South Beach,Deluxe,Ro,463.61,STRONG_PUT,8,0.85,-4.0525,-1.0,1.0,3,-4.0525,39
+39459,66814,Breakwater South Beach,Deluxe,Ro,471.44,STRONG_PUT,8,0.85,-4.0525,-1.0,1.0,3,-4.0525,39
+40444,66814,Breakwater South Beach,Standard,Bb,10318.56,STRONG_PUT,8,0.8,-95.51,-1.0,1.0,1,-95.51,94
+40747,66814,Breakwater South Beach,Standard,Bb,570.68,STRONG_PUT,8,0.8,-94.47,-1.0,1.0,1,-94.47,91
+40432,66814,Breakwater South Beach,Standard,Bb,10318.56,STRONG_PUT,8,0.8,-94.47,-1.0,1.0,1,-94.47,91
+40746,66814,Breakwater South Beach,Standard,Bb,585.94,STRONG_PUT,8,0.8,-94.32,-1.0,1.0,1,-94.32,89
+40423,66814,Breakwater South Beach,Standard,Bb,10318.56,STRONG_PUT,8,0.8,-94.32,-1.0,1.0,1,-94.32,89
+41187,852120,SLS LUX Brickell,Standard,Ro,13343.18,STRONG_PUT,8,0.8,-83.95,-1.0,1.0,1,-83.95,87
+39168,66814,Breakwater South Beach,Standard,Ro,134.56,STRONG_PUT,8,0.8,-53.2,-1.0,1.0,1,-53.2,72
+38771,66814,Breakwater South Beach,Standard,Ro,287.54,STRONG_PUT,8,0.8,-53.2,-1.0,1.0,1,-53.2,72
+39282,66814,Breakwater South Beach,Standard,Ro,182.96,STRONG_PUT,8,0.8,-37.88,-1.0,1.0,1,-37.88,73
+38750,66814,Breakwater South Beach,Standard,Ro,294.54,STRONG_PUT,8,0.8,-37.88,-1.0,1.0,1,-37.88,73
+39803,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,318.72,STRONG_PUT,8,0.8,-35.54,-1.0,1.0,1,-35.54,60
+39892,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,205.44,STRONG_PUT,8,0.8,-35.54,-1.0,1.0,1,-35.54,60
+39893,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,181.84,STRONG_PUT,8,0.8,-26.64,-1.0,1.0,1,-26.64,61
+39690,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,247.89,STRONG_PUT,8,0.8,-26.64,-1.0,1.0,1,-26.64,61
+39802,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,301.35,STRONG_PUT,8,0.8,-23.09,-1.0,1.0,1,-23.09,39
+39097,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,391.84,STRONG_PUT,8,0.8,-23.09,-1.0,1.0,1,-23.09,39
+43106,6805,Pullman Miami Airport,Standard,Bb,232.81,STRONG_PUT,8,0.8,-22.54,-1.0,1.0,1,-22.54,34
+41224,6805,Pullman Miami Airport,Standard,Bb,300.55,STRONG_PUT,8,0.8,-22.54,-1.0,1.0,1,-22.54,34
+39891,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,191.76,STRONG_PUT,8,0.8,-22.29,-1.0,1.0,1,-22.29,54
+39013,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,246.75,STRONG_PUT,8,0.8,-22.29,-1.0,1.0,1,-22.29,54
+39412,66814,Breakwater South Beach,Superior,Ro,172.52,STRONG_PUT,8,0.8,-21.02,-1.0,1.0,1,-21.02,73
+39337,66814,Breakwater South Beach,Superior,Ro,218.44,STRONG_PUT,8,0.8,-21.02,-1.0,1.0,1,-21.02,73
+39907,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,415.18,STRONG_PUT,8,0.8,-19.95,-1.0,1.0,1,-19.95,47
+39098,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,518.65,STRONG_PUT,8,0.8,-19.95,-1.0,1.0,1,-19.95,47
+43127,383277,Iberostar Berkeley Shore Hotel,Standard,Ro,499.52,STRONG_PUT,8,0.8,-19.74,-1.0,1.0,1,-19.74,102
+42401,383277,Iberostar Berkeley Shore Hotel,Standard,Ro,622.38,STRONG_PUT,8,0.8,-19.74,-1.0,1.0,1,-19.74,102
+39487,66814,Breakwater South Beach,Standard,Ro,193.32,STRONG_PUT,8,0.8,-19.59,-1.0,1.0,1,-19.59,52
+39250,66814,Breakwater South Beach,Standard,Ro,240.43,STRONG_PUT,8,0.8,-19.59,-1.0,1.0,1,-19.59,52
+42055,6805,Pullman Miami Airport,Standard,Bb,223.51,STRONG_PUT,8,0.8,-18.97,-1.0,1.0,1,-18.97,71
+41366,6805,Pullman Miami Airport,Standard,Bb,275.85,STRONG_PUT,8,0.8,-18.97,-1.0,1.0,1,-18.97,71
+39473,66814,Breakwater South Beach,Standard,Ro,199.41,STRONG_PUT,8,0.8,-17.06,-1.0,1.0,1,-17.06,71
+39336,66814,Breakwater South Beach,Standard,Ro,240.43,STRONG_PUT,8,0.8,-17.06,-1.0,1.0,1,-17.06,71
+38694,854881,citizenM Miami Brickell hotel,Standard,Ro,244.33,STRONG_PUT,8,0.8,-15.78,-1.0,1.0,1,-15.78,54
+38613,854881,citizenM Miami Brickell hotel,Standard,Ro,290.12,STRONG_PUT,8,0.8,-15.78,-1.0,1.0,1,-15.78,54
+39552,66814,Breakwater South Beach,Superior,Ro,326.9,STRONG_PUT,8,0.8,-12.35,-1.0,1.0,1,-12.35,33
+39397,66814,Breakwater South Beach,Superior,Ro,372.98,STRONG_PUT,8,0.8,-12.35,-1.0,1.0,1,-12.35,33
+41681,6805,Pullman Miami Airport,Standard,Bb,610.24,STRONG_PUT,8,0.8,-11.86,-1.0,1.0,1,-11.86,93
+42115,6805,Pullman Miami Airport,Standard,Bb,537.89,STRONG_PUT,8,0.8,-11.86,-1.0,1.0,1,-11.86,93
+42029,6805,Pullman Miami Airport,Standard,Bb,369.32,STRONG_PUT,8,0.8,-11.84,-1.0,1.0,1,-11.84,39
+41242,6805,Pullman Miami Airport,Standard,Bb,418.93,STRONG_PUT,8,0.8,-11.84,-1.0,1.0,1,-11.84,39
+39410,66814,Breakwater South Beach,Standard,Ro,321.32,STRONG_PUT,8,0.8,-11.32,-1.0,1.0,1,-11.32,68
+39332,66814,Breakwater South Beach,Standard,Ro,362.34,STRONG_PUT,8,0.8,-11.32,-1.0,1.0,1,-11.32,68
+39261,66814,Breakwater South Beach,Standard,Ro,134.57,STRONG_PUT,8,0.8,-9.71,-1.0,1.0,1,-9.71,58
+40943,6805,Pullman Miami Airport,Deluxe,Bb,223.43,STRONG_PUT,8,0.8,-9.66,-1.0,1.0,1,-9.66,73
+39068,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,136.53,STRONG_PUT,8,0.8,-9.26,-1.0,1.0,1,-9.26,59
+39386,66814,Breakwater South Beach,Deluxe,Ro,242.76,STRONG_PUT,8,0.8,-8.77,-1.0,1.0,1,-8.77,66
+42150,66814,Breakwater South Beach,Deluxe,Ro,221.47,STRONG_PUT,8,0.8,-8.77,-1.0,1.0,1,-8.77,66
+39334,66814,Breakwater South Beach,Deluxe,Ro,412.49,STRONG_PUT,8,0.8,-7.32,-1.0,1.0,1,-7.32,68
+39409,66814,Breakwater South Beach,Deluxe,Ro,382.29,STRONG_PUT,8,0.8,-7.32,-1.0,1.0,1,-7.32,68
+41997,6805,Pullman Miami Airport,Deluxe,Bb,251.97,STRONG_PUT,8,0.8,-7.25,-1.0,1.0,1,-7.25,30
+40772,6805,Pullman Miami Airport,Deluxe,Bb,271.67,STRONG_PUT,8,0.8,-7.25,-1.0,1.0,1,-7.25,30
+39405,66814,Breakwater South Beach,Deluxe,Ro,255.8,STRONG_PUT,8,0.8,-7.23,-1.0,1.0,1,-7.23,54
+39252,66814,Breakwater South Beach,Deluxe,Ro,275.75,STRONG_PUT,8,0.8,-7.23,-1.0,1.0,1,-7.23,54
+39304,66814,Breakwater South Beach,Deluxe,Ro,233.59,STRONG_PUT,8,0.8,-5.19,-1.0,1.0,1,-5.19,71
+39472,66814,Breakwater South Beach,Deluxe,Ro,221.46,STRONG_PUT,8,0.8,-5.19,-1.0,1.0,1,-5.19,71
+43086,66814,Breakwater South Beach,Superior,Ro,173.86,STRONG_PUT,8,0.8,-4.83,-1.0,1.0,3,-4.83,77
+40735,66814,Breakwater South Beach,Superior,Ro,175.99,STRONG_PUT,8,0.8,-4.83,-1.0,1.0,3,-4.83,77
+39613,66814,Breakwater South Beach,Superior,Ro,185.95,STRONG_PUT,8,0.8,-4.83,-1.0,1.0,3,-4.83,77
+39496,66814,Breakwater South Beach,Superior,Ro,203.32,STRONG_PUT,8,0.8,-4.83,-1.0,1.0,3,-4.83,77
+39804,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,203.98,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39084,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,377.87,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+38927,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,381.94,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39105,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,385.74,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39624,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,387.7,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39647,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,387.7,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39589,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,390.65,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39378,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,390.84,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39516,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,390.84,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39667,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,404.84,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+39691,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,406.08,STRONG_PUT,8,0.8,-4.659000000000001,-1.0,0.5,4,-4.659000000000001,74
+41765,852120,SLS LUX Brickell,Suite,Ro,520.58,STRONG_PUT,8,0.8,-4.645,-1.0,1.0,2,-4.645,83
+41630,852120,SLS LUX Brickell,Suite,Ro,569.32,STRONG_PUT,8,0.8,-4.645,-1.0,1.0,2,-4.645,83
+41491,852120,SLS LUX Brickell,Suite,Ro,573.88,STRONG_PUT,8,0.8,-4.645,-1.0,1.0,2,-4.645,83
+39605,66814,Breakwater South Beach,Standard,Ro,199.41,STRONG_PUT,8,0.8,-3.8625,-1.0,1.0,2,-3.8625,70
+39370,66814,Breakwater South Beach,Standard,Ro,232.45,STRONG_PUT,8,0.8,-3.8625,-1.0,1.0,2,-3.8625,70
+39492,66814,Breakwater South Beach,Standard,Ro,232.45,STRONG_PUT,8,0.8,-3.8625,-1.0,1.0,2,-3.8625,70
+39560,66814,Breakwater South Beach,Standard,Ro,232.45,STRONG_PUT,8,0.8,-3.8625,-1.0,1.0,2,-3.8625,70
+39281,66814,Breakwater South Beach,Standard,Ro,235.86,STRONG_PUT,8,0.8,-3.8625,-1.0,1.0,2,-3.8625,70
+39347,24982,Hilton Miami Downtown,Standard,Ro,260.26,STRONG_PUT,8,0.8,-3.7266666666666666,-1.0,0.6666666666666666,2,-3.7266666666666666,53
+41906,24982,Hilton Miami Downtown,Standard,Ro,277.83,STRONG_PUT,8,0.8,-3.7266666666666666,-1.0,0.6666666666666666,2,-3.7266666666666666,53
+39836,24982,Hilton Miami Downtown,Standard,Ro,295.16,STRONG_PUT,8,0.8,-3.7266666666666666,-1.0,0.6666666666666666,2,-3.7266666666666666,53
+39209,24982,Hilton Miami Downtown,Standard,Ro,312.79,STRONG_PUT,8,0.8,-3.7266666666666666,-1.0,0.6666666666666666,2,-3.7266666666666666,53
+39477,66814,Breakwater South Beach,Superior,Ro,179.86,STRONG_PUT,8,0.8,-3.436666666666667,-1.0,0.6666666666666666,2,-3.436666666666667,37
+39357,66814,Breakwater South Beach,Superior,Ro,190.29,STRONG_PUT,8,0.8,-3.436666666666667,-1.0,0.6666666666666666,2,-3.436666666666667,37
+39223,66814,Breakwater South Beach,Superior,Ro,200.54,STRONG_PUT,8,0.8,-3.436666666666667,-1.0,0.6666666666666666,2,-3.436666666666667,37
+39399,66814,Breakwater South Beach,Superior,Ro,304.28,STRONG_PUT,8,0.8,-3.436666666666667,-1.0,0.6666666666666666,2,-3.436666666666667,37
+42252,852120,SLS LUX Brickell,Suite,Ro,563.48,STRONG_PUT,8,0.8,-3.435,-1.0,1.0,2,-3.435,37
+41928,852120,SLS LUX Brickell,Suite,Ro,566.42,STRONG_PUT,8,0.8,-3.435,-1.0,1.0,2,-3.435,37
+41452,852120,SLS LUX Brickell,Suite,Ro,605.04,STRONG_PUT,8,0.8,-3.435,-1.0,1.0,2,-3.435,37
+39000,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,603.18,STRONG_PUT,8,0.8,-3.3833333333333333,-1.0,1.0,2,-3.3833333333333333,95
+39020,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,603.18,STRONG_PUT,8,0.8,-3.3833333333333333,-1.0,1.0,2,-3.3833333333333333,95
+39189,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,603.18,STRONG_PUT,8,0.8,-3.3833333333333333,-1.0,1.0,2,-3.3833333333333333,95
+42157,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,480.73,STRONG_PUT,8,0.8,-3.3833333333333333,-1.0,1.0,2,-3.3833333333333333,95
+39686,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,483.22,STRONG_PUT,8,0.8,-3.3833333333333333,-1.0,1.0,2,-3.3833333333333333,95
+40054,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,483.22,STRONG_PUT,8,0.8,-3.3833333333333333,-1.0,1.0,2,-3.3833333333333333,95
+42015,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,483.22,STRONG_PUT,8,0.8,-3.3833333333333333,-1.0,1.0,2,-3.3833333333333333,95
+42158,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,576.21,STRONG_PUT,8,0.8,-3.31,-1.0,0.6666666666666666,2,-3.31,100
+41913,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,596.84,STRONG_PUT,8,0.8,-3.31,-1.0,0.6666666666666666,2,-3.31,100
+39016,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,STRONG_PUT,8,0.8,-3.31,-1.0,0.6666666666666666,2,-3.31,100
+40752,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,817.53,STRONG_PUT,8,0.8,-3.31,-1.0,0.6666666666666666,2,-3.31,100
+41984,852120,SLS LUX Brickell,Suite,Ro,510.19,STRONG_PUT,7,0.75,-20.005,-1.0,0.5,1,-20.005,86
+41633,852120,SLS LUX Brickell,Suite,Ro,850.52,STRONG_PUT,7,0.75,-20.005,-1.0,0.5,1,-20.005,86
+41828,852120,SLS LUX Brickell,Suite,Ro,853.8,STRONG_PUT,7,0.75,-20.005,-1.0,0.5,1,-20.005,86
+39882,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,182.39,STRONG_PUT,7,0.75,-18.51,-1.0,0.5,1,-18.51,34
+38859,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,289.6,STRONG_PUT,7,0.75,-18.51,-1.0,0.5,1,-18.51,34
+39036,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,297.27,STRONG_PUT,7,0.75,-18.51,-1.0,0.5,1,-18.51,34
+39787,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,175.17,STRONG_PUT,7,0.75,-14.783333333333333,-1.0,0.3333333333333333,1,-14.783333333333333,61
+38902,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,314.79,STRONG_PUT,7,0.75,-14.783333333333333,-1.0,0.3333333333333333,1,-14.783333333333333,61
+39666,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,315.2,STRONG_PUT,7,0.75,-14.783333333333333,-1.0,0.3333333333333333,1,-14.783333333333333,61
+39698,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,315.7,STRONG_PUT,7,0.75,-14.783333333333333,-1.0,0.3333333333333333,1,-14.783333333333333,61
+43091,20702,Embassy Suites by Hilton Miami International Airport,Suite,Bb,188.08,STRONG_PUT,7,0.75,-12.345,-1.0,0.5,1,-12.345,69
+41809,20702,Embassy Suites by Hilton Miami International Airport,Suite,Bb,249.75,STRONG_PUT,7,0.75,-12.345,-1.0,0.5,1,-12.345,69
+42083,20702,Embassy Suites by Hilton Miami International Airport,Suite,Bb,250.81,STRONG_PUT,7,0.75,-12.345,-1.0,0.5,1,-12.345,69
+39147,66814,Breakwater South Beach,Standard,Ro,149.05,STRONG_PUT,7,0.75,-9.71,-1.0,1.0,1,-9.71,58
+42184,852120,SLS LUX Brickell,Suite,Ro,520.59,STRONG_PUT,7,0.75,-9.42,-1.0,0.3333333333333333,1,-9.42,79
+41483,852120,SLS LUX Brickell,Suite,Ro,725.7,STRONG_PUT,7,0.75,-9.42,-1.0,0.3333333333333333,1,-9.42,79
+41627,852120,SLS LUX Brickell,Suite,Ro,728.36,STRONG_PUT,7,0.75,-9.42,-1.0,0.3333333333333333,1,-9.42,79
+42018,852120,SLS LUX Brickell,Suite,Ro,732.7,STRONG_PUT,7,0.75,-9.42,-1.0,0.3333333333333333,1,-9.42,79
+38900,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,150.47,STRONG_PUT,7,0.75,-9.26,-1.0,1.0,1,-9.26,59
+41696,117491,FAIRWIND HOTEL & SUITES SOUTH BEACH,Deluxe,Ro,352.17,STRONG_PUT,7,0.75,-8.22,-1.0,0.5,1,-8.22,98
+39956,117491,FAIRWIND HOTEL & SUITES SOUTH BEACH,Deluxe,Ro,421.46,STRONG_PUT,7,0.75,-8.22,-1.0,0.5,1,-8.22,98
+40075,117491,FAIRWIND HOTEL & SUITES SOUTH BEACH,Deluxe,Ro,425.51,STRONG_PUT,7,0.75,-8.22,-1.0,0.5,1,-8.22,98
+40737,66814,Breakwater South Beach,Standard,Bb,663.2,STRONG_PUT,7,0.75,-7.77,-1.0,1.0,1,-7.77,103
+40478,66814,Breakwater South Beach,Standard,Bb,719.09,STRONG_PUT,7,0.75,-7.77,-1.0,1.0,1,-7.77,103
+40043,66814,Breakwater South Beach,Deluxe,Ro,231.41,STRONG_PUT,7,0.75,-6.99,-1.0,0.5,1,-6.99,85
+39414,66814,Breakwater South Beach,Deluxe,Ro,269.01,STRONG_PUT,7,0.75,-6.99,-1.0,0.5,1,-6.99,85
+39809,66814,Breakwater South Beach,Deluxe,Ro,277.27,STRONG_PUT,7,0.75,-6.99,-1.0,0.5,1,-6.99,85
+41480,852120,SLS LUX Brickell,Suite,Ro,708.76,STRONG_PUT,7,0.75,-6.973333333333334,-1.0,0.5,1,-6.973333333333334,75
+42974,852120,SLS LUX Brickell,Suite,Ro,560.47,STRONG_PUT,7,0.75,-6.973333333333334,-1.0,0.5,1,-6.973333333333334,75
+41821,852120,SLS LUX Brickell,Suite,Ro,559.91,STRONG_PUT,7,0.75,-6.973333333333334,-1.0,0.5,1,-6.973333333333334,75
+41969,852120,SLS LUX Brickell,Suite,Ro,560.46,STRONG_PUT,7,0.75,-6.973333333333334,-1.0,0.5,1,-6.973333333333334,75
+41651,66814,Breakwater South Beach,Standard,Bb,720.92,STRONG_PUT,7,0.75,-6.89,-1.0,1.0,1,-6.89,87
+40736,66814,Breakwater South Beach,Standard,Bb,774.3,STRONG_PUT,7,0.75,-6.89,-1.0,1.0,1,-6.89,87
+39365,66814,Breakwater South Beach,Superior,Ro,172.82,STRONG_PUT,7,0.75,-6.38,-1.0,1.0,1,-6.38,64
+39270,66814,Breakwater South Beach,Superior,Ro,184.59,STRONG_PUT,7,0.75,-6.38,-1.0,1.0,1,-6.38,64
+41700,852120,SLS LUX Brickell,Standard,Ro,320.74,STRONG_PUT,7,0.75,-6.18,-1.0,1.0,1,-6.18,38
+41074,852120,SLS LUX Brickell,Standard,Ro,341.88,STRONG_PUT,7,0.75,-6.18,-1.0,1.0,1,-6.18,38
+41880,24982,Hilton Miami Downtown,Suite,Ro,353.94,STRONG_PUT,7,0.75,-5.83,-1.0,0.5,1,-5.83,53
+39288,24982,Hilton Miami Downtown,Suite,Ro,400.64,STRONG_PUT,7,0.75,-5.83,-1.0,0.5,1,-5.83,53
+39689,24982,Hilton Miami Downtown,Suite,Ro,411.88,STRONG_PUT,7,0.75,-5.83,-1.0,0.5,1,-5.83,53
+39625,66814,Breakwater South Beach,Superior,Ro,250.68,STRONG_PUT,7,0.75,-4.73,-1.0,1.0,2,-4.73,31
+39437,66814,Breakwater South Beach,Superior,Ro,260.86,STRONG_PUT,7,0.75,-4.73,-1.0,1.0,2,-4.73,31
+39215,66814,Breakwater South Beach,Superior,Ro,276.88,STRONG_PUT,7,0.75,-4.73,-1.0,1.0,2,-4.73,31
+43081,66814,Breakwater South Beach,Superior,Ro,173.86,STRONG_PUT,7,0.75,-4.315,-1.0,1.0,2,-4.315,57
+39469,66814,Breakwater South Beach,Superior,Ro,175.75,STRONG_PUT,7,0.75,-4.315,-1.0,1.0,2,-4.315,57
+39259,66814,Breakwater South Beach,Superior,Ro,190.29,STRONG_PUT,7,0.75,-4.315,-1.0,1.0,2,-4.315,57
+40045,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,443.16,STRONG_PUT,7,0.75,-2.18,-1.0,0.6,3,-2.18,46
+39212,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,493.52,STRONG_PUT,7,0.75,-2.18,-1.0,0.6,3,-2.18,46
+39104,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,497.35,STRONG_PUT,7,0.75,-2.18,-1.0,0.6,3,-2.18,46
+39854,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,796.5,STRONG_PUT,7,0.75,-2.18,-1.0,0.6,3,-2.18,46
+39899,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,795.35,STRONG_PUT,7,0.75,-2.18,-1.0,0.6,3,-2.18,46
+39922,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,799.32,STRONG_PUT,7,0.75,-2.18,-1.0,0.6,3,-2.18,46
+42154,24982,Hilton Miami Downtown,Suite,Ro,361.29,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+39917,24982,Hilton Miami Downtown,Suite,Ro,391.52,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+39394,24982,Hilton Miami Downtown,Suite,Ro,393.85,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+39058,24982,Hilton Miami Downtown,Suite,Ro,396.79,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+41908,24982,Hilton Miami Downtown,Suite,Ro,485.37,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+39103,24982,Hilton Miami Downtown,Suite,Ro,510.36,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+39313,24982,Hilton Miami Downtown,Suite,Ro,510.32,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+39536,24982,Hilton Miami Downtown,Suite,Ro,518.82,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+39072,24982,Hilton Miami Downtown,Suite,Ro,539.17,STRONG_PUT,7,0.75,-1.11875,-1.0,0.625,5,-1.11875,64
+38718,66814,Breakwater South Beach,Standard,Ro,371.35,STRONG_PUT,7,0.7,-20.52,-1.0,0.5,1,-20.52,83
+38754,66814,Breakwater South Beach,Standard,Ro,384.08,STRONG_PUT,7,0.7,-20.52,-1.0,0.5,1,-20.52,83
+39285,66814,Breakwater South Beach,Standard,Ro,218.95,STRONG_PUT,7,0.7,-20.52,-1.0,0.5,1,-20.52,83
+38915,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,337.88,STRONG_PUT,7,0.7,-14.355,-1.0,0.5,1,-14.355,68
+39699,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,338.15,STRONG_PUT,7,0.7,-14.355,-1.0,0.5,1,-14.355,68
+39846,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,240.86,STRONG_PUT,7,0.7,-14.355,-1.0,0.5,1,-14.355,68
+39162,66814,Breakwater South Beach,Standard,Ro,219.04,STRONG_PUT,7,0.7,-9.663333333333332,-1.0,0.3333333333333333,1,-9.663333333333332,67
+39277,66814,Breakwater South Beach,Standard,Ro,272.42,STRONG_PUT,7,0.7,-9.663333333333332,-1.0,0.3333333333333333,1,-9.663333333333332,67
+38713,66814,Breakwater South Beach,Standard,Ro,383.65,STRONG_PUT,7,0.7,-9.663333333333332,-1.0,0.3333333333333333,1,-9.663333333333332,67
+38740,66814,Breakwater South Beach,Standard,Ro,384.32,STRONG_PUT,7,0.7,-9.663333333333332,-1.0,0.3333333333333333,1,-9.663333333333332,67
+38963,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,STRONG_PUT,7,0.7,-8.156666666666666,-1.0,0.5,1,-8.156666666666666,97
+41523,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,693.27,STRONG_PUT,7,0.7,-8.156666666666666,-1.0,0.5,1,-8.156666666666666,97
+42088,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,483.22,STRONG_PUT,7,0.7,-8.156666666666666,-1.0,0.5,1,-8.156666666666666,97
+42242,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,483.22,STRONG_PUT,7,0.7,-8.156666666666666,-1.0,0.5,1,-8.156666666666666,97
+39880,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,304.47,STRONG_PUT,7,0.7,-7.83,-1.0,0.5,1,-7.83,32
+39500,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,360.99,STRONG_PUT,7,0.7,-7.83,-1.0,0.5,1,-7.83,32
+39845,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,493.38,STRONG_PUT,7,0.7,-7.83,-1.0,0.5,1,-7.83,32
+39539,66814,Breakwater South Beach,Standard,Ro,328.75,STRONG_PUT,7,0.7,-6.94,-1.0,0.5,1,-6.94,32
+39217,66814,Breakwater South Beach,Standard,Ro,381.72,STRONG_PUT,7,0.7,-6.94,-1.0,0.5,1,-6.94,32
+39440,66814,Breakwater South Beach,Standard,Ro,391.04,STRONG_PUT,7,0.7,-6.94,-1.0,0.5,1,-6.94,32
+41844,6805,Pullman Miami Airport,Standard,Bb,221.87,STRONG_PUT,7,0.7,-6.413333333333333,-1.0,0.5,1,-6.413333333333333,64
+42105,6805,Pullman Miami Airport,Standard,Bb,222.77,STRONG_PUT,7,0.7,-6.413333333333333,-1.0,0.5,1,-6.413333333333333,64
+42261,6805,Pullman Miami Airport,Standard,Bb,222.77,STRONG_PUT,7,0.7,-6.413333333333333,-1.0,0.5,1,-6.413333333333333,64
+41337,6805,Pullman Miami Airport,Standard,Bb,275.85,STRONG_PUT,7,0.7,-6.413333333333333,-1.0,0.5,1,-6.413333333333333,64
+39484,66814,Breakwater South Beach,Deluxe,Ro,238.2,STRONG_PUT,7,0.7,-4.98,-1.0,1.0,1,-4.98,48
+39558,66814,Breakwater South Beach,Superior,Ro,250.55,STRONG_PUT,7,0.7,-4.755,-1.0,1.0,1,-4.755,67
+41926,852120,SLS LUX Brickell,Suite,Ro,566.57,STRONG_PUT,7,0.7,-3.09,-1.0,1.0,1,-3.09,35
+42936,852120,SLS LUX Brickell,Suite,Ro,566.58,STRONG_PUT,7,0.7,-3.09,-1.0,1.0,1,-3.09,35
+41527,852120,SLS LUX Brickell,Suite,Ro,603.88,STRONG_PUT,7,0.7,-3.09,-1.0,1.0,1,-3.09,35
+42236,66814,Breakwater South Beach,Standard,Ro,206.22,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39871,66814,Breakwater South Beach,Standard,Ro,215.4,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39694,66814,Breakwater South Beach,Standard,Ro,226.21,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39655,66814,Breakwater South Beach,Standard,Ro,226.66,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39831,66814,Breakwater South Beach,Standard,Ro,226.64,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39508,66814,Breakwater South Beach,Standard,Ro,228.22,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39546,66814,Breakwater South Beach,Standard,Ro,228.22,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39585,66814,Breakwater South Beach,Standard,Ro,228.22,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39615,66814,Breakwater South Beach,Standard,Ro,228.22,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+38726,66814,Breakwater South Beach,Standard,Ro,287.65,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+38753,66814,Breakwater South Beach,Standard,Ro,294.54,STRONG_PUT,7,0.7,-2.831,-1.0,0.7142857142857143,5,-2.831,79
+39669,66814,Breakwater South Beach,Standard,Ro,206.24,STRONG_PUT,7,0.7,-2.61,-1.0,1.0,3,-2.61,76
+39654,66814,Breakwater South Beach,Standard,Ro,229.9,STRONG_PUT,7,0.7,-2.61,-1.0,1.0,3,-2.61,76
+39507,66814,Breakwater South Beach,Standard,Ro,230.27,STRONG_PUT,7,0.7,-2.61,-1.0,1.0,3,-2.61,76
+39576,66814,Breakwater South Beach,Standard,Ro,230.26,STRONG_PUT,7,0.7,-2.61,-1.0,1.0,3,-2.61,76
+39630,66814,Breakwater South Beach,Standard,Ro,230.26,STRONG_PUT,7,0.7,-2.61,-1.0,1.0,3,-2.61,76
+42123,66814,Breakwater South Beach,Standard,Ro,237.28,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+41587,66814,Breakwater South Beach,Standard,Ro,245.83,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39457,66814,Breakwater South Beach,Standard,Ro,281.44,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39553,66814,Breakwater South Beach,Standard,Ro,281.44,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39636,66814,Breakwater South Beach,Standard,Ro,281.44,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39674,66814,Breakwater South Beach,Standard,Ro,281.44,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39861,66814,Breakwater South Beach,Standard,Ro,282.59,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39224,66814,Breakwater South Beach,Standard,Ro,289.42,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39502,66814,Breakwater South Beach,Standard,Ro,289.42,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39580,66814,Breakwater South Beach,Standard,Ro,289.42,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39782,66814,Breakwater South Beach,Standard,Ro,289.42,STRONG_PUT,7,0.7,-1.802,-1.0,0.6666666666666666,6,-1.802,38
+39856,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,555.21,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+41656,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,555.22,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+43095,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,555.21,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+41810,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,572.46,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+39014,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+41551,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,786.55,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+39896,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,552.33,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+39908,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,552.33,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+41048,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,552.33,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+42156,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,552.33,STRONG_PUT,7,0.7,-1.4677777777777778,-1.0,0.5714285714285714,4,-1.4677777777777778,90
+41718,66814,Breakwater South Beach,Superior,Ro,327.04,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38709,66814,Breakwater South Beach,Superior,Ro,420.14,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38702,66814,Breakwater South Beach,Superior,Ro,421.31,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38738,66814,Breakwater South Beach,Superior,Ro,421.78,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38751,66814,Breakwater South Beach,Superior,Ro,421.78,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38714,66814,Breakwater South Beach,Superior,Ro,422.05,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38725,66814,Breakwater South Beach,Superior,Ro,422.05,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38732,66814,Breakwater South Beach,Superior,Ro,422.05,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38761,66814,Breakwater South Beach,Superior,Ro,422.43,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39033,66814,Breakwater South Beach,Superior,Ro,422.69,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39052,66814,Breakwater South Beach,Superior,Ro,422.69,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39071,66814,Breakwater South Beach,Superior,Ro,422.93,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39108,66814,Breakwater South Beach,Superior,Ro,422.93,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38683,66814,Breakwater South Beach,Superior,Ro,423.23,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38693,66814,Breakwater South Beach,Superior,Ro,423.23,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38995,66814,Breakwater South Beach,Superior,Ro,423.37,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39022,66814,Breakwater South Beach,Superior,Ro,423.37,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+38975,66814,Breakwater South Beach,Superior,Ro,424.8,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39482,66814,Breakwater South Beach,Superior,Ro,527.09,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39760,66814,Breakwater South Beach,Superior,Ro,529.16,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39627,66814,Breakwater South Beach,Superior,Ro,529.45,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39650,66814,Breakwater South Beach,Superior,Ro,529.45,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39541,66814,Breakwater South Beach,Superior,Ro,530.64,STRONG_PUT,7,0.7,-1.0331818181818182,-1.0,0.5714285714285714,8,-1.0331818181818182,46
+39242,66814,Breakwater South Beach,Deluxe,Ro,250.68,PUT,5,0.65,-4.98,-1.0,1.0,1,-4.98,48
+39276,66814,Breakwater South Beach,Superior,Ro,276.88,PUT,5,0.65,-4.755,-1.0,1.0,1,-4.755,67
+39368,66814,Breakwater South Beach,Superior,Ro,276.88,PUT,5,0.65,-4.755,-1.0,1.0,1,-4.755,67
+39403,66814,Breakwater South Beach,Deluxe,Ro,249.6,PUT,5,0.65,-4.34,-1.0,1.0,1,-4.34,53
+39251,66814,Breakwater South Beach,Deluxe,Ro,260.93,PUT,5,0.65,-4.34,-1.0,1.0,1,-4.34,53
+42049,6805,Pullman Miami Airport,Suite,Ro,297.03,PUT,5,0.65,-4.16,-1.0,1.0,1,-4.16,64
+41336,6805,Pullman Miami Airport,Suite,Ro,309.93,PUT,5,0.65,-4.16,-1.0,1.0,1,-4.16,64
+42085,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,555.22,PUT,5,0.65,-3.975,-1.0,1.0,1,-3.975,91
+39315,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,603.18,PUT,5,0.65,-3.975,-1.0,1.0,1,-3.975,91
+39417,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,603.18,PUT,5,0.65,-3.975,-1.0,1.0,1,-3.975,91
+43153,22034,Hilton Bentley Miami South Beach,Deluxe,Ro,509.89,PUT,5,0.65,-3.86,-1.0,1.0,1,-3.86,82
+42443,22034,Hilton Bentley Miami South Beach,Deluxe,Ro,530.37,PUT,5,0.65,-3.86,-1.0,1.0,1,-3.86,82
+39079,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,126.77,PUT,5,0.65,-3.79,-1.0,1.0,1,-3.79,71
+38922,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,131.77,PUT,5,0.65,-3.79,-1.0,1.0,1,-3.79,71
+43129,22034,Hilton Bentley Miami South Beach,Suite,Ro,736.93,PUT,5,0.65,-3.41,-1.0,1.0,1,-3.41,30
+42406,22034,Hilton Bentley Miami South Beach,Suite,Ro,762.97,PUT,5,0.65,-3.41,-1.0,1.0,1,-3.41,30
+41886,852120,SLS LUX Brickell,Suite,Ro,539.0,PUT,5,0.65,-3.393333333333333,-1.0,0.3333333333333333,1,-3.393333333333333,34
+42017,852120,SLS LUX Brickell,Suite,Ro,539.95,PUT,5,0.65,-3.393333333333333,-1.0,0.3333333333333333,1,-3.393333333333333,34
+42251,852120,SLS LUX Brickell,Suite,Ro,541.36,PUT,5,0.65,-3.393333333333333,-1.0,0.3333333333333333,1,-3.393333333333333,34
+41451,852120,SLS LUX Brickell,Suite,Ro,602.73,PUT,5,0.65,-3.393333333333333,-1.0,0.3333333333333333,1,-3.393333333333333,34
+38734,854881,citizenM Miami Brickell hotel,Standard,Ro,502.82,PUT,5,0.65,-3.34,-1.0,1.0,1,-3.34,102
+38656,854881,citizenM Miami Brickell hotel,Standard,Ro,538.81,PUT,5,0.65,-3.34,-1.0,1.0,1,-3.34,102
+38679,854881,citizenM Miami Brickell hotel,Standard,Ro,538.81,PUT,5,0.65,-3.34,-1.0,1.0,1,-3.34,102
+39567,66814,Breakwater South Beach,Deluxe,Ro,230.02,PUT,5,0.65,-3.055,-1.0,0.5,1,-3.055,37
+39358,66814,Breakwater South Beach,Deluxe,Ro,244.99,PUT,5,0.65,-3.055,-1.0,0.5,1,-3.055,37
+39478,66814,Breakwater South Beach,Deluxe,Ro,274.02,PUT,5,0.65,-3.055,-1.0,0.5,1,-3.055,37
+43083,66814,Breakwater South Beach,Superior,Ro,173.86,PUT,5,0.65,-2.295,-1.0,0.6666666666666666,2,-2.295,66
+41047,66814,Breakwater South Beach,Superior,Ro,175.75,PUT,5,0.65,-2.295,-1.0,0.6666666666666666,2,-2.295,66
+39302,66814,Breakwater South Beach,Superior,Ro,191.44,PUT,5,0.65,-2.295,-1.0,0.6666666666666666,2,-2.295,66
+39385,66814,Breakwater South Beach,Superior,Ro,191.44,PUT,5,0.65,-2.295,-1.0,0.6666666666666666,2,-2.295,66
+40332,66814,Breakwater South Beach,Superior,Ro,206.51,PUT,5,0.65,-2.295,-1.0,0.6666666666666666,2,-2.295,66
+42186,852120,SLS LUX Brickell,Suite,Ro,540.21,PUT,5,0.65,-2.06,-1.0,0.6666666666666666,2,-2.06,80
+41485,852120,SLS LUX Brickell,Suite,Ro,588.72,PUT,5,0.65,-2.06,-1.0,0.6666666666666666,2,-2.06,80
+41762,852120,SLS LUX Brickell,Suite,Ro,588.7,PUT,5,0.65,-2.06,-1.0,0.6666666666666666,2,-2.06,80
+41975,852120,SLS LUX Brickell,Suite,Ro,588.71,PUT,5,0.65,-2.06,-1.0,0.6666666666666666,2,-2.06,80
+41628,852120,SLS LUX Brickell,Suite,Ro,599.28,PUT,5,0.65,-2.06,-1.0,0.6666666666666666,2,-2.06,80
+39522,66814,Breakwater South Beach,Deluxe,Ro,220.23,PUT,5,0.65,-1.9066666666666665,-1.0,1.0,2,-1.9066666666666665,52
+39362,66814,Breakwater South Beach,Deluxe,Ro,232.45,PUT,5,0.65,-1.9066666666666665,-1.0,1.0,2,-1.9066666666666665,52
+39464,66814,Breakwater South Beach,Deluxe,Ro,232.45,PUT,5,0.65,-1.9066666666666665,-1.0,1.0,2,-1.9066666666666665,52
+39249,66814,Breakwater South Beach,Deluxe,Ro,233.59,PUT,5,0.65,-1.9066666666666665,-1.0,1.0,2,-1.9066666666666665,52
+43085,66814,Breakwater South Beach,Superior,Ro,173.86,PUT,5,0.65,-1.74,-1.0,0.6666666666666666,2,-1.74,71
+39493,66814,Breakwater South Beach,Superior,Ro,175.99,PUT,5,0.65,-1.74,-1.0,0.6666666666666666,2,-1.74,71
+39303,66814,Breakwater South Beach,Superior,Ro,183.44,PUT,5,0.65,-1.74,-1.0,0.6666666666666666,2,-1.74,71
+39427,66814,Breakwater South Beach,Superior,Ro,303.27,PUT,5,0.65,-1.74,-1.0,0.6666666666666666,2,-1.74,71
+42133,66814,Breakwater South Beach,Deluxe,Ro,478.75,PUT,5,0.65,-1.284,-1.0,1.0,2,-1.284,46
+39806,66814,Breakwater South Beach,Deluxe,Ro,509.33,PUT,5,0.65,-1.284,-1.0,1.0,2,-1.284,46
+39847,66814,Breakwater South Beach,Deluxe,Ro,509.33,PUT,5,0.65,-1.284,-1.0,1.0,2,-1.284,46
+39237,66814,Breakwater South Beach,Deluxe,Ro,511.61,PUT,5,0.65,-1.284,-1.0,1.0,2,-1.284,46
+39503,66814,Breakwater South Beach,Deluxe,Ro,511.62,PUT,5,0.65,-1.284,-1.0,1.0,2,-1.284,46
+39609,66814,Breakwater South Beach,Deluxe,Ro,511.62,PUT,5,0.65,-1.284,-1.0,1.0,2,-1.284,46
+40046,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,636.43,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+41440,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,636.43,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+41596,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,636.43,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+39038,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+39069,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+39092,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+39551,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+39774,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+39829,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+39876,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,639.73,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+41691,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,658.38,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+42159,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,552.33,PUT,5,0.65,-1.241818181818182,-1.0,0.6666666666666666,2,-1.241818181818182,102
+42234,66814,Breakwater South Beach,Standard,Ro,193.33,PUT,5,0.6,-4.68,-1.0,1.0,1,-4.68,59
+39363,66814,Breakwater South Beach,Standard,Ro,202.82,PUT,5,0.6,-4.68,-1.0,1.0,1,-4.68,59
+41847,6805,Pullman Miami Airport,Standard,Bb,361.27,PUT,5,0.6,-4.47,-1.0,0.5,1,-4.47,68
+42107,6805,Pullman Miami Airport,Standard,Bb,363.6,PUT,5,0.6,-4.47,-1.0,0.5,1,-4.47,68
+39160,66814,Breakwater South Beach,Standard,Ro,149.05,PUT,5,0.6,-4.3,-1.0,1.0,1,-4.3,66
+39275,66814,Breakwater South Beach,Standard,Ro,142.64,PUT,5,0.6,-4.3,-1.0,1.0,1,-4.3,66
+40808,6805,Pullman Miami Airport,Superior,Bb,402.1,PUT,5,0.6,-4.1033333333333335,-1.0,0.3333333333333333,1,-4.1033333333333335,39
+41834,6805,Pullman Miami Airport,Superior,Bb,425.16,PUT,5,0.6,-4.1033333333333335,-1.0,0.3333333333333333,1,-4.1033333333333335,39
+42996,6805,Pullman Miami Airport,Superior,Bb,352.6,PUT,5,0.6,-4.1033333333333335,-1.0,0.3333333333333333,1,-4.1033333333333335,39
+42028,6805,Pullman Miami Airport,Superior,Bb,319.08,PUT,5,0.6,-4.1033333333333335,-1.0,0.3333333333333333,1,-4.1033333333333335,39
+39042,24982,Hilton Miami Downtown,Standard,Ro,251.07,PUT,5,0.6,-3.53,-1.0,1.0,1,-3.53,60
+38816,24982,Hilton Miami Downtown,Standard,Ro,260.26,PUT,5,0.6,-3.53,-1.0,1.0,1,-3.53,60
+43105,6805,Pullman Miami Airport,Standard,Bb,437.64,PUT,5,0.6,-3.03,-1.0,1.0,1,-3.03,33
+41220,6805,Pullman Miami Airport,Standard,Bb,451.32,PUT,5,0.6,-3.03,-1.0,1.0,1,-3.03,33
+39406,66814,Breakwater South Beach,Superior,Ro,175.78,PUT,5,0.6,-2.876666666666667,-1.0,0.6666666666666666,2,-2.876666666666667,55
+41591,66814,Breakwater South Beach,Superior,Ro,180.25,PUT,5,0.6,-2.876666666666667,-1.0,0.6666666666666666,2,-2.876666666666667,55
+39254,66814,Breakwater South Beach,Superior,Ro,190.29,PUT,5,0.6,-2.876666666666667,-1.0,0.6666666666666666,2,-2.876666666666667,55
+41875,66814,Breakwater South Beach,Superior,Ro,173.86,PUT,5,0.6,-2.876666666666667,-1.0,0.6666666666666666,2,-2.876666666666667,55
+39235,66814,Breakwater South Beach,Superior,Ro,295.08,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+39444,66814,Breakwater South Beach,Superior,Ro,295.08,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+39660,66814,Breakwater South Beach,Superior,Ro,295.15,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+39481,66814,Breakwater South Beach,Superior,Ro,295.46,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+39759,66814,Breakwater South Beach,Superior,Ro,296.33,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38991,66814,Breakwater South Beach,Superior,Ro,422.19,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+39011,66814,Breakwater South Beach,Superior,Ro,422.19,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38692,66814,Breakwater South Beach,Superior,Ro,422.05,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+39061,66814,Breakwater South Beach,Superior,Ro,421.75,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+39100,66814,Breakwater South Beach,Superior,Ro,421.75,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38776,66814,Breakwater South Beach,Superior,Ro,421.25,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38742,66814,Breakwater South Beach,Superior,Ro,420.6,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38747,66814,Breakwater South Beach,Superior,Ro,420.6,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38765,66814,Breakwater South Beach,Superior,Ro,420.06,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38772,66814,Breakwater South Beach,Superior,Ro,420.06,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38712,66814,Breakwater South Beach,Superior,Ro,419.69,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+38699,66814,Breakwater South Beach,Superior,Ro,418.96,PUT,5,0.6,-1.861875,-1.0,0.45454545454545453,5,-1.861875,44
+39881,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,278.49,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39004,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,381.56,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39059,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,381.55,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+38857,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,382.7,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39096,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,383.85,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39186,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,383.85,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39314,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,383.85,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39416,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,383.85,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39565,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,383.85,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39588,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,383.85,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39786,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,384.98,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39826,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,384.98,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39842,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,384.98,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39865,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,390.69,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39623,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,394.12,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39658,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,394.12,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+39697,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,394.12,PUT,5,0.6,-1.701875,-1.0,0.5,3,-1.701875,33
+41933,852120,SLS LUX Brickell,Suite,Ro,685.1,PUT,5,0.6,-1.6466666666666667,-1.0,0.6666666666666666,2,-1.6466666666666667,43
+42940,852120,SLS LUX Brickell,Suite,Ro,685.82,PUT,5,0.6,-1.6466666666666667,-1.0,0.6666666666666666,2,-1.6466666666666667,43
+41563,852120,SLS LUX Brickell,Suite,Ro,700.83,PUT,5,0.6,-1.6466666666666667,-1.0,0.6666666666666666,2,-1.6466666666666667,43
+41454,852120,SLS LUX Brickell,Suite,Ro,721.43,PUT,5,0.6,-1.6466666666666667,-1.0,0.6666666666666666,2,-1.6466666666666667,43
+42128,66814,Breakwater South Beach,Standard,Ro,351.24,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39649,66814,Breakwater South Beach,Standard,Ro,386.52,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+40052,66814,Breakwater South Beach,Standard,Ro,400.93,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39229,66814,Breakwater South Beach,Standard,Ro,405.64,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39569,66814,Breakwater South Beach,Standard,Ro,405.64,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39877,66814,Breakwater South Beach,Standard,Ro,554.12,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39591,66814,Breakwater South Beach,Standard,Ro,554.92,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39421,66814,Breakwater South Beach,Standard,Ro,554.93,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39902,66814,Breakwater South Beach,Standard,Ro,555.27,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39325,66814,Breakwater South Beach,Standard,Ro,555.54,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+40744,66814,Breakwater South Beach,Standard,Ro,555.95,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+41515,66814,Breakwater South Beach,Standard,Ro,556.32,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39958,66814,Breakwater South Beach,Standard,Ro,559.1,PUT,5,0.6,-1.1175,-1.0,0.4166666666666667,5,-1.1175,40
+39411,66814,Breakwater South Beach,Deluxe,Ro,259.24,PUT,5,0.6,-0.895,-1.0,0.6666666666666666,2,-0.895,70
+39471,66814,Breakwater South Beach,Deluxe,Ro,259.08,PUT,5,0.6,-0.895,-1.0,0.6666666666666666,2,-0.895,70
+39527,66814,Breakwater South Beach,Deluxe,Ro,259.08,PUT,5,0.6,-0.895,-1.0,0.6666666666666666,2,-0.895,70
+39280,66814,Breakwater South Beach,Deluxe,Ro,229.02,PUT,5,0.6,-0.895,-1.0,0.6666666666666666,2,-0.895,70
+39574,66814,Breakwater South Beach,Deluxe,Ro,220.83,PUT,5,0.6,-0.895,-1.0,0.6666666666666666,2,-0.895,70
+39454,66814,Breakwater South Beach,Superior,Ro,195.67,PUT,5,0.6,-0.8160000000000001,-1.0,0.6,3,-0.8160000000000001,30
+42009,66814,Breakwater South Beach,Superior,Ro,197.83,PUT,5,0.6,-0.8160000000000001,-1.0,0.6,3,-0.8160000000000001,30
+39214,66814,Breakwater South Beach,Superior,Ro,206.24,PUT,5,0.6,-0.8160000000000001,-1.0,0.6,3,-0.8160000000000001,30
+41801,66814,Breakwater South Beach,Superior,Ro,206.41,PUT,5,0.6,-0.8160000000000001,-1.0,0.6,3,-0.8160000000000001,30
+41644,66814,Breakwater South Beach,Superior,Ro,208.62,PUT,5,0.6,-0.8160000000000001,-1.0,0.6,3,-0.8160000000000001,30
+39354,66814,Breakwater South Beach,Superior,Ro,340.92,PUT,5,0.6,-0.8160000000000001,-1.0,0.6,3,-0.8160000000000001,30
+39126,66814,Breakwater South Beach,Standard,Ro,272.1,PUT,5,0.6,-0.6242857142857143,-1.0,0.7142857142857143,5,-0.6242857142857143,39
+42126,66814,Breakwater South Beach,Standard,Ro,318.49,PUT,5,0.6,-0.6242857142857143,-1.0,0.7142857142857143,5,-0.6242857142857143,39
+38748,66814,Breakwater South Beach,Standard,Ro,332.24,PUT,5,0.6,-0.6242857142857143,-1.0,0.7142857142857143,5,-0.6242857142857143,39
+38706,66814,Breakwater South Beach,Standard,Ro,333.05,PUT,5,0.6,-0.6242857142857143,-1.0,0.7142857142857143,5,-0.6242857142857143,39
+38735,66814,Breakwater South Beach,Standard,Ro,333.63,PUT,5,0.6,-0.6242857142857143,-1.0,0.7142857142857143,5,-0.6242857142857143,39
+39458,66814,Breakwater South Beach,Standard,Ro,337.17,PUT,5,0.6,-0.6242857142857143,-1.0,0.7142857142857143,5,-0.6242857142857143,39
+39323,66814,Breakwater South Beach,Standard,Ro,370.32,PUT,5,0.6,-0.6242857142857143,-1.0,0.7142857142857143,5,-0.6242857142857143,39
+39228,66814,Breakwater South Beach,Standard,Ro,380.57,PUT,5,0.6,-0.6242857142857143,-1.0,0.7142857142857143,5,-0.6242857142857143,39
+43082,66814,Breakwater South Beach,Superior,Ro,173.86,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+39651,66814,Breakwater South Beach,Superior,Ro,175.99,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+39526,66814,Breakwater South Beach,Superior,Ro,178.4,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+39272,66814,Breakwater South Beach,Superior,Ro,178.9,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+39366,66814,Breakwater South Beach,Superior,Ro,178.9,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+39470,66814,Breakwater South Beach,Superior,Ro,178.9,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+42148,66814,Breakwater South Beach,Superior,Ro,183.53,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+39572,66814,Breakwater South Beach,Superior,Ro,184.59,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+39426,66814,Breakwater South Beach,Superior,Ro,303.27,PUT,5,0.6,-0.3525,-1.0,0.5714285714285714,4,-0.3525,65
+41595,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,419.46,PUT,5,0.6,-0.07428571428571429,-1.0,0.75,3,-0.07428571428571429,99
+40738,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,552.33,PUT,5,0.6,-0.07428571428571429,-1.0,0.75,3,-0.07428571428571429,99
+41050,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,552.33,PUT,5,0.6,-0.07428571428571429,-1.0,0.75,3,-0.07428571428571429,99
+42090,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,552.33,PUT,5,0.6,-0.07428571428571429,-1.0,0.75,3,-0.07428571428571429,99
+39781,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,555.21,PUT,5,0.6,-0.07428571428571429,-1.0,0.75,3,-0.07428571428571429,99
+39844,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,555.21,PUT,5,0.6,-0.07428571428571429,-1.0,0.75,3,-0.07428571428571429,99
+39866,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,555.21,PUT,5,0.6,-0.07428571428571429,-1.0,0.75,3,-0.07428571428571429,99
+41912,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,572.46,PUT,5,0.6,-0.07428571428571429,-1.0,0.75,3,-0.07428571428571429,99
+41353,6805,Pullman Miami Airport,Standard,Bb,399.31,PUT,4,0.55,-4.47,-1.0,0.5,1,-4.47,68
+41903,6805,Pullman Miami Airport,Deluxe,Bb,251.45,PUT,4,0.55,-2.39,-1.0,1.0,1,-2.39,84
+42136,66814,Breakwater South Beach,Superior,Ro,172.52,PUT,4,0.55,-1.7260000000000002,-1.0,0.5,2,-1.7260000000000002,49
+43077,66814,Breakwater South Beach,Superior,Ro,173.86,PUT,4,0.55,-1.7260000000000002,-1.0,0.5,2,-1.7260000000000002,49
+41871,66814,Breakwater South Beach,Superior,Ro,174.61,PUT,4,0.55,-1.7260000000000002,-1.0,0.5,2,-1.7260000000000002,49
+39243,66814,Breakwater South Beach,Superior,Ro,190.29,PUT,4,0.55,-1.7260000000000002,-1.0,0.5,2,-1.7260000000000002,49
+39485,66814,Breakwater South Beach,Superior,Ro,190.29,PUT,4,0.55,-1.7260000000000002,-1.0,0.5,2,-1.7260000000000002,49
+39519,66814,Breakwater South Beach,Superior,Ro,207.04,PUT,4,0.55,-1.7260000000000002,-1.0,0.5,2,-1.7260000000000002,49
+41818,852120,SLS LUX Brickell,Suite,Ro,558.74,PUT,4,0.55,-1.6025,-1.0,0.5,2,-1.6025,36
+41927,852120,SLS LUX Brickell,Suite,Ro,560.85,PUT,4,0.55,-1.6025,-1.0,0.5,2,-1.6025,36
+42937,852120,SLS LUX Brickell,Suite,Ro,562.14,PUT,4,0.55,-1.6025,-1.0,0.5,2,-1.6025,36
+41607,852120,SLS LUX Brickell,Suite,Ro,595.82,PUT,4,0.55,-1.6025,-1.0,0.5,2,-1.6025,36
+41528,852120,SLS LUX Brickell,Suite,Ro,600.61,PUT,4,0.55,-1.6025,-1.0,0.5,2,-1.6025,36
+43107,6805,Pullman Miami Airport,Standard,Bb,222.49,PUT,4,0.55,-1.0866666666666667,-1.0,0.6666666666666666,2,-1.0866666666666667,41
+42099,6805,Pullman Miami Airport,Standard,Bb,229.7,PUT,4,0.55,-1.0866666666666667,-1.0,0.6666666666666666,2,-1.0866666666666667,41
+41248,6805,Pullman Miami Airport,Standard,Bb,229.99,PUT,4,0.55,-1.0866666666666667,-1.0,0.6666666666666666,2,-1.0866666666666667,41
+41835,6805,Pullman Miami Airport,Standard,Bb,231.07,PUT,4,0.55,-1.0866666666666667,-1.0,0.6666666666666666,2,-1.0866666666666667,41
+42129,66814,Breakwater South Beach,Superior,Ro,197.57,PUT,4,0.55,-1.02,-1.0,1.0,2,-1.02,42
+39422,66814,Breakwater South Beach,Superior,Ro,199.6,PUT,4,0.55,-1.02,-1.0,1.0,2,-1.02,42
+39231,66814,Breakwater South Beach,Superior,Ro,201.68,PUT,4,0.55,-1.02,-1.0,1.0,2,-1.02,42
+39467,66814,Breakwater South Beach,Superior,Ro,170.5,PUT,4,0.55,-0.8575,-1.0,0.75,3,-0.8575,56
+43080,66814,Breakwater South Beach,Superior,Ro,173.86,PUT,4,0.55,-0.8575,-1.0,0.75,3,-0.8575,56
+42143,66814,Breakwater South Beach,Superior,Ro,175.75,PUT,4,0.55,-0.8575,-1.0,0.75,3,-0.8575,56
+41878,66814,Breakwater South Beach,Superior,Ro,177.13,PUT,4,0.55,-0.8575,-1.0,0.75,3,-0.8575,56
+39256,66814,Breakwater South Beach,Superior,Ro,180.03,PUT,4,0.55,-0.8575,-1.0,0.75,3,-0.8575,56
+39913,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,274.71,PUT,4,0.55,-0.38666666666666666,-1.0,0.6666666666666666,2,-0.38666666666666666,94
+39188,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,277.93,PUT,4,0.55,-0.38666666666666666,-1.0,0.6666666666666666,2,-0.38666666666666666,94
+39537,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,278.56,PUT,4,0.55,-0.38666666666666666,-1.0,0.6666666666666666,2,-0.38666666666666666,94
+39453,20702,Embassy Suites by Hilton Miami International Airport,Standard,Ro,338.15,PUT,4,0.55,-0.38666666666666666,-1.0,0.6666666666666666,2,-0.38666666666666666,94
+41538,6805,Pullman Miami Airport,Suite,Bb,611.95,PUT,4,0.55,-0.1125,-1.0,0.75,3,-0.1125,81
+42218,6805,Pullman Miami Airport,Suite,Bb,614.07,PUT,4,0.55,-0.1125,-1.0,0.75,3,-0.1125,81
+41859,6805,Pullman Miami Airport,Suite,Bb,614.26,PUT,4,0.55,-0.1125,-1.0,0.75,3,-0.1125,81
+41401,6805,Pullman Miami Airport,Suite,Bb,616.86,PUT,4,0.55,-0.1125,-1.0,0.75,3,-0.1125,81
+41705,6805,Pullman Miami Airport,Suite,Bb,619.15,PUT,4,0.55,-0.1125,-1.0,0.75,3,-0.1125,81
+42108,6805,Pullman Miami Airport,Deluxe,Bb,234.29,PUT,4,0.5,-2.99,-1.0,1.0,1,-2.99,71
+40936,6805,Pullman Miami Airport,Deluxe,Bb,241.52,PUT,4,0.5,-2.99,-1.0,1.0,1,-2.99,71
+39610,66814,Breakwater South Beach,Superior,Ro,174.58,PUT,4,0.5,-2.7533333333333334,-1.0,1.0,1,-2.7533333333333334,58
+39296,66814,Breakwater South Beach,Superior,Ro,190.29,PUT,4,0.5,-2.7533333333333334,-1.0,1.0,1,-2.7533333333333334,58
+39489,66814,Breakwater South Beach,Superior,Ro,190.29,PUT,4,0.5,-2.7533333333333334,-1.0,1.0,1,-2.7533333333333334,58
+39544,66814,Breakwater South Beach,Superior,Ro,190.29,PUT,4,0.5,-2.7533333333333334,-1.0,1.0,1,-2.7533333333333334,58
+40979,6805,Pullman Miami Airport,Deluxe,Bb,264.06,PUT,4,0.5,-2.39,-1.0,1.0,1,-2.39,84
+41639,6805,Pullman Miami Airport,Deluxe,Bb,264.06,PUT,4,0.5,-2.39,-1.0,1.0,1,-2.39,84
+38881,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,131.88,PUT,4,0.5,-2.31,-1.0,1.0,1,-2.31,49
+39450,20702,Embassy Suites by Hilton Miami International Airport,Suite,Ro,128.84,PUT,4,0.5,-2.31,-1.0,1.0,1,-2.31,49
+42204,6805,Pullman Miami Airport,Suite,Ro,439.78,PUT,4,0.5,-1.49,-1.0,1.0,1,-1.49,52
+41292,6805,Pullman Miami Airport,Suite,Ro,446.42,PUT,4,0.5,-1.49,-1.0,1.0,1,-1.49,52
+42002,6805,Pullman Miami Airport,Suite,Ro,439.79,PUT,4,0.5,-1.49,-1.0,1.0,1,-1.49,59
+41318,6805,Pullman Miami Airport,Suite,Ro,446.42,PUT,4,0.5,-1.49,-1.0,1.0,1,-1.49,59
+41895,6805,Pullman Miami Airport,Suite,Ro,334.38,PUT,4,0.5,-1.42,-1.0,1.0,1,-1.42,37
+41236,6805,Pullman Miami Airport,Suite,Ro,339.18,PUT,4,0.5,-1.42,-1.0,1.0,1,-1.42,37
+42142,66814,Breakwater South Beach,Superior,Ro,208.87,PUT,4,0.5,-1.1583333333333334,-1.0,1.0,1,-1.1583333333333334,54
+39253,66814,Breakwater South Beach,Superior,Ro,224.48,PUT,4,0.5,-1.1583333333333334,-1.0,1.0,1,-1.1583333333333334,54
+39465,66814,Breakwater South Beach,Superior,Ro,224.48,PUT,4,0.5,-1.1583333333333334,-1.0,1.0,1,-1.1583333333333334,54
+39523,66814,Breakwater South Beach,Superior,Ro,224.48,PUT,4,0.5,-1.1583333333333334,-1.0,1.0,1,-1.1583333333333334,54
+39629,66814,Breakwater South Beach,Superior,Ro,224.48,PUT,4,0.5,-1.1583333333333334,-1.0,1.0,1,-1.1583333333333334,54
+39679,66814,Breakwater South Beach,Superior,Ro,224.48,PUT,4,0.5,-1.1583333333333334,-1.0,1.0,1,-1.1583333333333334,54
+39784,66814,Breakwater South Beach,Superior,Ro,224.48,PUT,4,0.5,-1.1583333333333334,-1.0,1.0,1,-1.1583333333333334,54
+41760,852120,SLS LUX Brickell,Suite,Ro,553.53,PUT,4,0.5,-1.0833333333333333,-1.0,1.0,1,-1.0833333333333333,74
+41968,852120,SLS LUX Brickell,Suite,Ro,553.53,PUT,4,0.5,-1.0833333333333333,-1.0,1.0,1,-1.0833333333333333,74
+42973,852120,SLS LUX Brickell,Suite,Ro,553.54,PUT,4,0.5,-1.0833333333333333,-1.0,1.0,1,-1.0833333333333333,74
+41479,852120,SLS LUX Brickell,Suite,Ro,572.11,PUT,4,0.5,-1.0833333333333333,-1.0,1.0,1,-1.0833333333333333,74
+39830,64390,Crystal Beach Suites Hotel,Suite,Ro,255.84,PUT,4,0.5,-1.01,-1.0,1.0,1,-1.01,67
+39721,64390,Crystal Beach Suites Hotel,Suite,Ro,258.45,PUT,4,0.5,-1.01,-1.0,1.0,1,-1.01,67
+42138,66814,Breakwater South Beach,Deluxe,Ro,219.83,PUT,4,0.5,-0.61,-1.0,0.4,2,-0.61,51
+39245,66814,Breakwater South Beach,Deluxe,Ro,226.74,PUT,4,0.5,-0.61,-1.0,0.4,2,-0.61,51
+39424,66814,Breakwater South Beach,Deluxe,Ro,245.15,PUT,4,0.5,-0.61,-1.0,0.4,2,-0.61,51
+41518,66814,Breakwater South Beach,Deluxe,Ro,245.38,PUT,4,0.5,-0.61,-1.0,0.4,2,-0.61,51
+41873,66814,Breakwater South Beach,Deluxe,Ro,252.44,PUT,4,0.5,-0.61,-1.0,0.4,2,-0.61,51
+39384,66814,Breakwater South Beach,Deluxe,Ro,258.22,PUT,4,0.5,-0.61,-1.0,0.4,2,-0.61,51
+41648,66814,Breakwater South Beach,Superior,Ro,177.18,PUT,4,0.5,-0.5771428571428572,-1.0,0.5,3,-0.5771428571428572,51
+41874,66814,Breakwater South Beach,Superior,Ro,177.94,PUT,4,0.5,-0.5771428571428572,-1.0,0.5,3,-0.5771428571428572,51
+39504,66814,Breakwater South Beach,Superior,Ro,180.03,PUT,4,0.5,-0.5771428571428572,-1.0,0.5,3,-0.5771428571428572,51
+39593,66814,Breakwater South Beach,Superior,Ro,180.03,PUT,4,0.5,-0.5771428571428572,-1.0,0.5,3,-0.5771428571428572,51
+40720,66814,Breakwater South Beach,Superior,Ro,180.61,PUT,4,0.5,-0.5771428571428572,-1.0,0.5,3,-0.5771428571428572,51
+39247,66814,Breakwater South Beach,Superior,Ro,181.18,PUT,4,0.5,-0.5771428571428572,-1.0,0.5,3,-0.5771428571428572,51
+42140,66814,Breakwater South Beach,Superior,Ro,173.86,PUT,4,0.5,-0.5771428571428572,-1.0,0.5,3,-0.5771428571428572,51
+39653,66814,Breakwater South Beach,Superior,Ro,173.85,PUT,4,0.5,-0.49000000000000005,-1.0,0.6,3,-0.49000000000000005,70
+43084,66814,Breakwater South Beach,Superior,Ro,173.86,PUT,4,0.5,-0.49000000000000005,-1.0,0.6,3,-0.49000000000000005,70
+39369,66814,Breakwater South Beach,Superior,Ro,176.61,PUT,4,0.5,-0.49000000000000005,-1.0,0.6,3,-0.49000000000000005,70
+39491,66814,Breakwater South Beach,Superior,Ro,176.61,PUT,4,0.5,-0.49000000000000005,-1.0,0.6,3,-0.49000000000000005,70
+39559,66814,Breakwater South Beach,Superior,Ro,176.61,PUT,4,0.5,-0.49000000000000005,-1.0,0.6,3,-0.49000000000000005,70
+39612,66814,Breakwater South Beach,Superior,Ro,176.61,PUT,4,0.5,-0.49000000000000005,-1.0,0.6,3,-0.49000000000000005,70
+39279,66814,Breakwater South Beach,Superior,Ro,180.03,PUT,4,0.5,-0.49000000000000005,-1.0,0.6,3,-0.49000000000000005,70
+39583,66814,Breakwater South Beach,Superior,Ro,180.03,PUT,4,0.5,-0.49000000000000005,-1.0,0.6,3,-0.49000000000000005,70
+41748,852120,SLS LUX Brickell,Suite,Ro,719.8,PUT,4,0.5,-0.49,-1.0,1.0,2,-0.49,57
+41950,852120,SLS LUX Brickell,Suite,Ro,719.8,PUT,4,0.5,-0.49,-1.0,1.0,2,-0.49,57
+42954,852120,SLS LUX Brickell,Suite,Ro,719.81,PUT,4,0.5,-0.49,-1.0,1.0,2,-0.49,57
+41616,852120,SLS LUX Brickell,Suite,Ro,728.36,PUT,4,0.5,-0.49,-1.0,1.0,2,-0.49,57
+41462,852120,SLS LUX Brickell,Suite,Ro,734.2,PUT,4,0.5,-0.49,-1.0,1.0,2,-0.49,57
+41579,6805,Pullman Miami Airport,Suite,Bb,579.68,PUT,4,0.5,-0.21333333333333335,-1.0,0.6666666666666666,2,-0.21333333333333335,78
+42216,6805,Pullman Miami Airport,Suite,Bb,580.6,PUT,4,0.5,-0.21333333333333335,-1.0,0.6666666666666666,2,-0.21333333333333335,78
+41704,6805,Pullman Miami Airport,Suite,Bb,584.3,PUT,4,0.5,-0.21333333333333335,-1.0,0.6666666666666666,2,-0.21333333333333335,78
+41508,6805,Pullman Miami Airport,Suite,Bb,584.34,PUT,4,0.5,-0.21333333333333335,-1.0,0.6666666666666666,2,-0.21333333333333335,78
+42220,6805,Pullman Miami Airport,Suite,Bb,637.11,PUT,4,0.5,-0.1175,-1.0,0.6666666666666666,2,-0.1175,92
+41640,6805,Pullman Miami Airport,Suite,Bb,639.61,PUT,4,0.5,-0.1175,-1.0,0.6666666666666666,2,-0.1175,92
+41004,6805,Pullman Miami Airport,Suite,Bb,640.1,PUT,4,0.5,-0.1175,-1.0,0.6666666666666666,2,-0.1175,92
+41542,6805,Pullman Miami Airport,Suite,Bb,640.1,PUT,4,0.5,-0.1175,-1.0,0.6666666666666666,2,-0.1175,92
+41794,6805,Pullman Miami Airport,Suite,Bb,644.7,PUT,4,0.5,-0.1175,-1.0,0.6666666666666666,2,-0.1175,92
+42270,6805,Pullman Miami Airport,Suite,Bb,910.16,PUT,4,0.5,-0.05333333333333334,-1.0,0.6666666666666666,2,-0.05333333333333334,95
+41019,6805,Pullman Miami Airport,Suite,Bb,911.59,PUT,4,0.5,-0.05333333333333334,-1.0,0.6666666666666666,2,-0.05333333333333334,95
+42117,6805,Pullman Miami Airport,Suite,Bb,911.87,PUT,4,0.5,-0.05333333333333334,-1.0,0.6666666666666666,2,-0.05333333333333334,95
+41863,6805,Pullman Miami Airport,Suite,Bb,918.85,PUT,4,0.5,-0.05333333333333334,-1.0,0.6666666666666666,2,-0.05333333333333334,95
+39548,66814,Breakwater South Beach,Superior,Ro,418.36,PUT,4,0.5,-0.036,-1.0,0.6,3,-0.036,88
+39681,66814,Breakwater South Beach,Superior,Ro,419.8,PUT,4,0.5,-0.036,-1.0,0.6,3,-0.036,88
+39206,66814,Breakwater South Beach,Superior,Ro,420.56,PUT,4,0.5,-0.036,-1.0,0.6,3,-0.036,88
+39607,66814,Breakwater South Beach,Superior,Ro,420.72,PUT,4,0.5,-0.036,-1.0,0.6,3,-0.036,88
+39474,66814,Breakwater South Beach,Superior,Ro,421.91,PUT,4,0.5,-0.036,-1.0,0.6,3,-0.036,88
+39577,66814,Breakwater South Beach,Superior,Ro,421.91,PUT,4,0.5,-0.036,-1.0,0.6,3,-0.036,88
