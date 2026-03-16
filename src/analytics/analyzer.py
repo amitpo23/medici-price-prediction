@@ -213,7 +213,7 @@ def _load_historical_patterns(hotel_ids: list[int] | None = None) -> dict:
         return {}
 
 
-def run_analysis() -> dict:
+def run_analysis(enrichment_profile: str = "all") -> dict:
     """Run full analysis on all collected price data.
 
     Uses algo-trading style forward curve prediction:
@@ -242,20 +242,27 @@ def run_analysis() -> dict:
         logger.warning("Failed to build decay curve, using defaults: %s", e)
         _decay_curve = DecayCurve()
 
-    # Load flight demand signal (external enrichment)
-    flight_demand = _load_flight_demand()
-    _flight_demand_cache.update(flight_demand)
+    profile = (enrichment_profile or "all").strip().lower()
+    if profile not in {"all", "internal_only", "external_only"}:
+        profile = "all"
 
-    # Load events/conferences data
-    events_data = _load_events_data()
-    _events_cache.update(events_data)
+    # Load external enrichments unless internal-only profile is requested
+    if profile == "internal_only":
+        flight_demand = {"indicator": "NO_DATA"}
+        events_data = {"total_events": 0, "upcoming_events": 0, "next_events": []}
+        knowledge_data = {"market": {"status": "disabled_internal_only"}, "our_hotels": []}
+        benchmarks_data = {"status": "disabled_internal_only"}
+    else:
+        flight_demand = _load_flight_demand()
+        _flight_demand_cache.update(flight_demand)
 
-    # Load hotel knowledge base (competitive landscape)
-    knowledge_data = _load_hotel_knowledge()
-    _knowledge_cache.update(knowledge_data)
+        events_data = _load_events_data()
+        _events_cache.update(events_data)
 
-    # Load booking behavior benchmarks (seasonality, lead time model)
-    benchmarks_data = _load_booking_benchmarks()
+        knowledge_data = _load_hotel_knowledge()
+        _knowledge_cache.update(knowledge_data)
+
+        benchmarks_data = _load_booking_benchmarks()
 
     # Load deep historical patterns for ensemble prediction
     hotel_ids = latest["hotel_id"].unique().tolist()
@@ -264,6 +271,7 @@ def run_analysis() -> dict:
     curve_summary = _decay_curve.to_summary()
     results = {
         "run_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
+        "analysis_profile": profile,
         "total_snapshots": n_snapshots,
         "total_rooms": len(latest),
         "total_hotels": latest["hotel_id"].nunique(),
@@ -306,7 +314,13 @@ def run_analysis() -> dict:
         logger.warning("Failed to load scan history from medici-db: %s", e)
         scan_history_df = pd.DataFrame()
 
-    predictions = _predict_prices(all_snapshots, latest, now, scan_history_df)
+    predictions = _predict_prices(
+        all_snapshots,
+        latest,
+        now,
+        scan_history_df,
+        enrichment_profile=profile,
+    )
     results["predictions"] = predictions
 
     # Log predictions to accuracy tracker (closed-loop feedback)
@@ -418,7 +432,8 @@ def _analyze_rooms(all_snapshots: pd.DataFrame, latest: pd.DataFrame, now: datet
 
 def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
                        *,
-                       _shared: dict | None = None) -> Enrichments:
+                       _shared: dict | None = None,
+                       enrichment_profile: str = "all") -> Enrichments:
     """Build enrichments object from all external signals.
 
     Args:
@@ -434,10 +449,14 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
     weather_signal = _shared.get("weather_signal", {})
     latest_snap = _shared.get("latest_snapshot")
 
+    profile = (enrichment_profile or "all").strip().lower()
+    external_enabled = profile in {"all", "external_only"}
+    internal_enabled = profile in {"all", "internal_only"}
+
     # Market benchmark pressure (hotel vs same-star avg in same city)
     # Replaces old Xotelo cross-OTA comparison with AI_Search_HotelData
     competitor_pressure = 0.0
-    if hotel_id:
+    if hotel_id and internal_enabled:
         try:
             market_benchmark = _shared.get("market_benchmark", {})
             bench = market_benchmark.get(hotel_id, {})
@@ -448,7 +467,7 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
 
     # Price velocity — how frequently prices change for this hotel
     price_velocity = 0.0
-    if hotel_id:
+    if hotel_id and internal_enabled:
         try:
             vel_data = _shared.get("velocity_data", {})
             vel = vel_data.get(hotel_id, {})
@@ -460,7 +479,7 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
 
     # Cancellation risk — cancel rate for this hotel
     cancellation_risk = 0.0
-    if hotel_id:
+    if hotel_id and internal_enabled:
         try:
             cancel_rates = _shared.get("cancel_rates", {})
             cancellation_risk = float(cancel_rates.get(hotel_id, 0.0))
@@ -469,7 +488,7 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
 
     # Provider pressure — search results price trend vs current bookings
     provider_pressure = 0.0
-    if hotel_id:
+    if hotel_id and internal_enabled:
         try:
             prov_data = _shared.get("provider_pressure", {})
             provider_pressure = float(prov_data.get(hotel_id, 0.0))
@@ -477,10 +496,10 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
             logger.warning("Failed to compute provider pressure for hotel %s: %s", hotel_id, e)
 
     return Enrichments(
-        demand_indicator=_flight_demand_cache.get("indicator", "NO_DATA"),
-        events=events_list,
-        seasonality_index=seasonality,
-        weather_signal=weather_signal,
+        demand_indicator=_flight_demand_cache.get("indicator", "NO_DATA") if external_enabled else "NO_DATA",
+        events=events_list if external_enabled else [],
+        seasonality_index=seasonality if external_enabled else {},
+        weather_signal=weather_signal if external_enabled else {},
         competitor_pressure=competitor_pressure,
         price_velocity=price_velocity,
         cancellation_risk=cancellation_risk,
@@ -488,11 +507,14 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
     )
 
 
-def _compute_shared_enrichment_data() -> dict:
+def _compute_shared_enrichment_data(enrichment_profile: str = "all") -> dict:
     """Compute expensive enrichment data once (events, seasonality, weather, snapshot).
 
     Called once before a batch prediction loop instead of per-room.
     """
+    profile = (enrichment_profile or "all").strip().lower()
+    external_enabled = profile in {"all", "external_only"}
+
     # Map hotel_impact levels to multipliers
     impact_mults = {
         "extreme": 0.40, "very_high": 0.25, "high": 0.15,
@@ -501,32 +523,35 @@ def _compute_shared_enrichment_data() -> dict:
 
     # Collect upcoming events from cached events data
     events_list = []
-    try:
-        for ev in _events_cache.get("next_events", []):
-            impact_level = ev.get("hotel_impact", "low")
-            events_list.append({
-                "start_date": ev.get("start_date", ""),
-                "end_date": ev.get("end_date", ""),
-                "multiplier": impact_mults.get(impact_level, 0),
-                "name": ev.get("name", ""),
-            })
-    except (KeyError, ValueError, TypeError) as e:
-        logger.warning("Failed to process events data for enrichment: %s", e)
+    if external_enabled:
+        try:
+            for ev in _events_cache.get("next_events", []):
+                impact_level = ev.get("hotel_impact", "low")
+                events_list.append({
+                    "start_date": ev.get("start_date", ""),
+                    "end_date": ev.get("end_date", ""),
+                    "multiplier": impact_mults.get(impact_level, 0),
+                    "name": ev.get("name", ""),
+                })
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to process events data for enrichment: %s", e)
 
     # Seasonality index (from JSON file, read once)
     seasonality = {}
-    try:
-        from src.analytics.booking_benchmarks import get_seasonality_all
-        seasonality = get_seasonality_all()
-    except (ImportError, FileNotFoundError, OSError, ValueError, KeyError) as e:
-        logger.warning("Failed to load seasonality index: %s", e)
+    if external_enabled:
+        try:
+            from src.analytics.booking_benchmarks import get_seasonality_all
+            seasonality = get_seasonality_all()
+        except (ImportError, FileNotFoundError, OSError, ValueError, KeyError) as e:
+            logger.warning("Failed to load seasonality index: %s", e)
 
     # Weather signal (Open-Meteo + NHC, single HTTP call)
     weather_signal: dict[str, float] = {}
-    try:
-        weather_signal = get_weather_forecast(days=14)
-    except (ConnectionError, OSError, ValueError, KeyError, TypeError) as e:
-        logger.warning("Failed to load weather forecast: %s", e)
+    if external_enabled:
+        try:
+            weather_signal = get_weather_forecast(days=14)
+        except (ConnectionError, OSError, ValueError, KeyError, TypeError) as e:
+            logger.warning("Failed to load weather forecast: %s", e)
 
     # Latest price snapshot (for competitor pressure computation)
     latest_snapshot = None
@@ -545,7 +570,9 @@ def _compute_shared_enrichment_data() -> dict:
 
 def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
                      now: datetime,
-                     scan_history_df: pd.DataFrame | None = None) -> dict:
+                     scan_history_df: pd.DataFrame | None = None,
+                     *,
+                     enrichment_profile: str = "all") -> dict:
     """Predict daily prices until check-in using deep ensemble prediction.
 
     Combines 3 signals via weighted ensemble:
@@ -573,87 +600,101 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
 
     # Pre-compute shared enrichment data ONCE (weather API, seasonality JSON, etc.)
     # instead of making HTTP calls per-room (was 1143 HTTP calls → now 1)
-    shared_data = _compute_shared_enrichment_data()
+    profile = (enrichment_profile or "all").strip().lower()
+    internal_enabled = profile in {"all", "internal_only"}
+    shared_data = _compute_shared_enrichment_data(enrichment_profile=profile)
 
     # Load market benchmark: avg price of same-star hotels in same city
     # (replaces Xotelo cross-OTA comparison with AI_Search_HotelData)
     unique_hotel_ids = latest["hotel_id"].unique()
-    try:
-        market_benchmark = load_market_benchmark(
-            [int(h) for h in unique_hotel_ids], days_back=60,
-        )
-        shared_data["market_benchmark"] = market_benchmark
-        logger.info("Market benchmark loaded for %d/%d hotels",
-                    len(market_benchmark), len(unique_hotel_ids))
-    except (OSError, ConnectionError, ValueError, KeyError, TypeError) as e:
-        logger.warning("Failed to load market benchmark: %s", e)
+    if internal_enabled:
+        try:
+            market_benchmark = load_market_benchmark(
+                [int(h) for h in unique_hotel_ids], days_back=60,
+            )
+            shared_data["market_benchmark"] = market_benchmark
+            logger.info("Market benchmark loaded for %d/%d hotels",
+                        len(market_benchmark), len(unique_hotel_ids))
+        except (OSError, ConnectionError, ValueError, KeyError, TypeError) as e:
+            logger.warning("Failed to load market benchmark: %s", e)
+            shared_data["market_benchmark"] = {}
+    else:
         shared_data["market_benchmark"] = {}
 
     # Load price update velocity per hotel (room_price_update_log)
-    try:
-        vel_df = load_price_update_velocity(
-            [int(h) for h in unique_hotel_ids],
-        )
-        velocity_data: dict[int, dict] = {}
-        if vel_df is not None and not vel_df.empty:
-            for _, vr in vel_df.iterrows():
-                velocity_data[int(vr["HotelId"])] = {
-                    "total_updates": float(vr.get("total_updates", 0)),
-                    "unique_rooms": float(vr.get("unique_rooms", 0)),
-                    "avg_price": float(vr.get("avg_price", 0)),
-                    "price_stdev": float(vr.get("price_stdev", 0)),
-                }
-        shared_data["velocity_data"] = velocity_data
-        logger.info("Price velocity loaded for %d hotels", len(velocity_data))
-    except (OSError, ConnectionError, ValueError, KeyError, TypeError) as e:
-        logger.warning("Failed to load price velocity: %s", e)
+    if internal_enabled:
+        try:
+            vel_df = load_price_update_velocity(
+                [int(h) for h in unique_hotel_ids],
+            )
+            velocity_data: dict[int, dict] = {}
+            if vel_df is not None and not vel_df.empty:
+                for _, vr in vel_df.iterrows():
+                    velocity_data[int(vr["HotelId"])] = {
+                        "total_updates": float(vr.get("total_updates", 0)),
+                        "unique_rooms": float(vr.get("unique_rooms", 0)),
+                        "avg_price": float(vr.get("avg_price", 0)),
+                        "price_stdev": float(vr.get("price_stdev", 0)),
+                    }
+            shared_data["velocity_data"] = velocity_data
+            logger.info("Price velocity loaded for %d hotels", len(velocity_data))
+        except (OSError, ConnectionError, ValueError, KeyError, TypeError) as e:
+            logger.warning("Failed to load price velocity: %s", e)
+            shared_data["velocity_data"] = {}
+    else:
         shared_data["velocity_data"] = {}
 
     # Load cancellation rates per hotel (MED_CancelBook / MED_Book)
-    try:
-        cancel_df = load_cancellations(days_back=365)
-        bookings_df = load_all_bookings(days_back=365)
-        cancel_rates: dict[int, float] = {}
-        if (cancel_df is not None and not cancel_df.empty
-                and bookings_df is not None and not bookings_df.empty):
-            cancel_counts = cancel_df.groupby("HotelId").size()
-            booking_counts = bookings_df.groupby("HotelId").size()
-            for hid in unique_hotel_ids:
-                hid_int = int(hid)
-                n_cancel = float(cancel_counts.get(hid_int, 0))
-                n_book = float(booking_counts.get(hid_int, 0))
-                if n_book > 0:
-                    cancel_rates[hid_int] = min(1.0, n_cancel / n_book)
-        shared_data["cancel_rates"] = cancel_rates
-        logger.info("Cancel rates computed for %d hotels", len(cancel_rates))
-    except (OSError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
-        logger.warning("Failed to load cancellation data: %s", e)
+    if internal_enabled:
+        try:
+            cancel_df = load_cancellations(days_back=365)
+            bookings_df = load_all_bookings(days_back=365)
+            cancel_rates: dict[int, float] = {}
+            if (cancel_df is not None and not cancel_df.empty
+                    and bookings_df is not None and not bookings_df.empty):
+                cancel_counts = cancel_df.groupby("HotelId").size()
+                booking_counts = bookings_df.groupby("HotelId").size()
+                for hid in unique_hotel_ids:
+                    hid_int = int(hid)
+                    n_cancel = float(cancel_counts.get(hid_int, 0))
+                    n_book = float(booking_counts.get(hid_int, 0))
+                    if n_book > 0:
+                        cancel_rates[hid_int] = min(1.0, n_cancel / n_book)
+            shared_data["cancel_rates"] = cancel_rates
+            logger.info("Cancel rates computed for %d hotels", len(cancel_rates))
+        except (OSError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
+            logger.warning("Failed to load cancellation data: %s", e)
+            shared_data["cancel_rates"] = {}
+    else:
         shared_data["cancel_rates"] = {}
 
     # Load search results provider pressure per hotel
-    try:
-        search_df = load_search_results_summary(
-            [int(h) for h in unique_hotel_ids],
-        )
-        provider_pressure: dict[int, float] = {}
-        if search_df is not None and not search_df.empty:
-            for _, sr in search_df.iterrows():
-                hid = int(sr["HotelId"])
-                avg_gross = float(sr.get("avg_gross_price", 0) or 0)
-                avg_net = float(sr.get("avg_net_price", 0) or 0)
-                # Pressure = margin squeeze direction (-1 to +1)
-                # Negative margin → providers undercutting → downward pressure
-                if avg_gross > 0 and avg_net > 0:
-                    margin_pct = (avg_gross - avg_net) / avg_gross
-                    # Normalize around typical 15% margin
-                    # Below 10% → negative pressure, above 20% → positive
-                    provider_pressure[hid] = max(-1.0, min(1.0,
-                        (margin_pct - 0.15) / 0.10))
-        shared_data["provider_pressure"] = provider_pressure
-        logger.info("Provider pressure computed for %d hotels",
-                    len(provider_pressure))
-    except (OSError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
-        logger.warning("Failed to load search results: %s", e)
+    if internal_enabled:
+        try:
+            search_df = load_search_results_summary(
+                [int(h) for h in unique_hotel_ids],
+            )
+            provider_pressure: dict[int, float] = {}
+            if search_df is not None and not search_df.empty:
+                for _, sr in search_df.iterrows():
+                    hid = int(sr["HotelId"])
+                    avg_gross = float(sr.get("avg_gross_price", 0) or 0)
+                    avg_net = float(sr.get("avg_net_price", 0) or 0)
+                    # Pressure = margin squeeze direction (-1 to +1)
+                    # Negative margin → providers undercutting → downward pressure
+                    if avg_gross > 0 and avg_net > 0:
+                        margin_pct = (avg_gross - avg_net) / avg_gross
+                        # Normalize around typical 15% margin
+                        # Below 10% → negative pressure, above 20% → positive
+                        provider_pressure[hid] = max(-1.0, min(1.0,
+                            (margin_pct - 0.15) / 0.10))
+            shared_data["provider_pressure"] = provider_pressure
+            logger.info("Provider pressure computed for %d hotels",
+                        len(provider_pressure))
+        except (OSError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
+            logger.warning("Failed to load search results: %s", e)
+            shared_data["provider_pressure"] = {}
+    else:
         shared_data["provider_pressure"] = {}
 
     # Pre-compute enrichments per hotel_id (competitor + velocity + cancel + provider varies)
@@ -661,6 +702,7 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
     for hid in unique_hotel_ids:
         enrichments_by_hotel[int(hid)] = _build_enrichments(
             None, now, hotel_id=int(hid), _shared=shared_data,
+            enrichment_profile=profile,
         )
 
     logger.info("Pre-computed enrichments for %d hotels (1 weather API call instead of %d)",

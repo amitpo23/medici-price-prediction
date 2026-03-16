@@ -1,0 +1,224 @@
+{
+  "generated_at_utc": "2026-03-16 08:56:14 UTC",
+  "free_sources_catalog": [
+    {
+      "id": "salesoffice",
+      "name": "SalesOffice DB",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Hourly"
+    },
+    {
+      "id": "ai_search_hotel_data",
+      "name": "AI Search Hotel Data",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Real-time (every search)"
+    },
+    {
+      "id": "search_results_poll_log",
+      "name": "Search Results Session Poll Log",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Real-time (every search)"
+    },
+    {
+      "id": "med_search_hotels",
+      "name": "MED Search Hotels (Historical)",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Static (historical archive)"
+    },
+    {
+      "id": "room_price_update_log",
+      "name": "Room Price Update Log",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Real-time (every price update)"
+    },
+    {
+      "id": "med_prebook",
+      "name": "MED PreBook Data",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Real-time"
+    },
+    {
+      "id": "destinations_geo",
+      "name": "Destinations & Hotel Geo Data",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Periodic"
+    },
+    {
+      "id": "salesoffice_log",
+      "name": "SalesOffice Action Log",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Real-time"
+    },
+    {
+      "id": "cancellation_data",
+      "name": "Booking Cancellations",
+      "status": "active",
+      "cost": "Free (internal)",
+      "update_freq": "Real-time"
+    },
+    {
+      "id": "kiwi_flights",
+      "name": "Kiwi.com Flights",
+      "status": "active",
+      "cost": "Free",
+      "update_freq": "On demand"
+    },
+    {
+      "id": "open_meteo",
+      "name": "Open-Meteo Weather",
+      "status": "active",
+      "cost": "Free",
+      "update_freq": "Daily"
+    },
+    {
+      "id": "predicthq",
+      "name": "PredictHQ Events",
+      "status": "planned",
+      "cost": "Freemium (14-day trial)",
+      "update_freq": "Daily"
+    },
+    {
+      "id": "seatgeek",
+      "name": "SeatGeek Events",
+      "status": "active",
+      "cost": "Free (500 events)",
+      "update_freq": "Daily"
+    },
+    {
+      "id": "xotelo",
+      "name": "Xotelo Hotel Prices",
+      "status": "replaced",
+      "cost": "Free",
+      "update_freq": "N/A"
+    },
+    {
+      "id": "fred",
+      "name": "FRED Economic Data",
+      "status": "active",
+      "cost": "Free",
+      "update_freq": "Monthly"
+    },
+    {
+      "id": "gmcvb",
+      "name": "GMCVB Miami Tourism",
+      "status": "planned",
+      "cost": "Free",
+      "update_freq": "Weekly"
+    },
+    {
+      "id": "mia_airport",
+      "name": "MIA Airport Traffic",
+      "status": "planned",
+      "cost": "Free",
+      "update_freq": "Monthly"
+    },
+    {
+      "id": "bls",
+      "name": "BLS Hotel CPI",
+      "status": "planned",
+      "cost": "Free",
+      "update_freq": "Monthly"
+    },
+    {
+      "id": "serpapi_hotels",
+      "name": "Google Hotels (SerpApi)",
+      "status": "planned",
+      "cost": "Freemium (100/mo)",
+      "update_freq": "Daily"
+    },
+    {
+      "id": "miami_events_hardcoded",
+      "name": "Miami Major Events Calendar",
+      "status": "active",
+      "cost": "Free",
+      "update_freq": "Annual"
+    },
+    {
+      "id": "tbo_hotels",
+      "name": "TBO Hotels Dataset (Kaggle)",
+      "status": "active",
+      "cost": "Free",
+      "update_freq": "Static (refreshable)"
+    },
+    {
+      "id": "hotel_booking_dataset",
+      "name": "Hotel Booking Demand (GitHub)",
+      "status": "active",
+      "cost": "Free",
+      "update_freq": "Static (research dataset)"
+    }
+  ],
+  "free_sources_connection_status": {
+    "open_meteo_weather": {
+      "connected": true,
+      "adjusted_days": 1
+    },
+    "miami_events_apis": {
+      "connected": true,
+      "result": {
+        "ticketmaster": 0,
+        "seatgeek": 0,
+        "total": 0
+      }
+    },
+    "kiwi_flights_store": {
+      "connected": true,
+      "indicator": "NO_DATA",
+      "total_flights": 0
+    },
+    "booking_benchmarks_dataset": {
+      "connected": true,
+      "status": "ok",
+      "total_bookings": 117429
+    },
+    "tbo_market_knowledge": {
+      "connected": true,
+      "total_hotels": 1816
+    },
+    "fred_economic": {
+      "connected": false,
+      "series_count": 0
+    }
+  },
+  "collection": {
+    "snapshot_rows_collected": 4518
+  },
+  "split_analysis": {
+    "internal_only": {
+      "run_ts": "2026-03-16 08:51:04",
+      "analysis_profile": "internal_only",
+      "signals": {
+        "total": 4518,
+        "put": 1518,
+        "call": 3000,
+        "neutral": 0,
+        "unknown": 0,
+        "put_rate_pct": 33.6
+      }
+    },
+    "external_only": {
+      "run_ts": "2026-03-16 08:53:35",
+      "analysis_profile": "external_only",
+      "signals": {
+        "total": 4518,
+        "put": 158,
+        "call": 4360,
+        "neutral": 0,
+        "unknown": 0,
+        "put_rate_pct": 3.5
+      }
+    },
+    "delta": {
+      "put_count_diff_external_minus_internal": -1360,
+      "put_rate_diff_external_minus_internal": -30.1
+    }
+  }
+}

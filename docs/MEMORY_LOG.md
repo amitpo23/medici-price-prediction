@@ -206,3 +206,22 @@ If you want, this file can be appended automatically after every major run (comp
 - Evidence: data/reports/hoteltools_creation_diagnostics_1773386713487.json; data/reports/noovy_products_venue_2766_1773496659121.json
 - Blocker: Noovy auth context degraded to No Venue; GraphQL returns 401
 - Next step: Restore venue-authorized session, rerun dry-run on 27 venues, then controlled apply and verification
+
+## Run Snapshot — 2026-03-16T08:35:00Z
+- What changed:
+  - Added split-analysis profiles in analyzer: `all`, `internal_only`, `external_only`.
+  - Added free-source connection + split PUT execution script.
+  - Added rolling PUT table (CSV + Markdown) with explicit source provenance.
+  - Added 6-hour scheduler script for continuous split execution.
+- Evidence:
+  - `DataAnalysisExpert/split_put_free_sources_20260316_103036.json`
+  - `DataAnalysisExpert/put_split_table.csv`
+  - `DataAnalysisExpert/put_split_table.md`
+  - `docs/PUT_SPLIT_6H_RUNBOOK_2026-03-16.md`
+- Current status:
+  - Split calculations operational and isolated (no internal/external mixing).
+  - Latest split result shows large strategy gap (internal PUT higher than external PUT).
+- Blocker:
+  - Partial external coverage in current run (e.g., flights NO_DATA, FRED unavailable) lowers external confidence.
+- Next step:
+  - Keep scheduler running every 6h, monitor table trend, and improve external source availability to raise external signal quality.

@@ -1,0 +1,8 @@
+# PUT Split Table (Internal vs External)
+
+| generated_at_utc | internal_put | internal_put_rate_pct | external_put | external_put_rate_pct | put_count_diff_external_minus_internal | internal_sources | external_sources_connected |
+|---|---:|---:|---:|---:|---:|---|---|
+| 2026-03-16 08:56:14 UTC | 1518 | 33.6 | 158 | 3.5 | -1360 | SalesOffice.Details , SalesOffice.Orders , AI_Search_HotelData , SearchResultsSessionPollLog , RoomPriceUpdateLog , MED_Book / MED_CancelBook | Open-Meteo Weather , SeatGeek/Ticketmaster Events APIs , Kiwi Flights Store , Booking Benchmarks Dataset , TBO Market Knowledge |
+| 2026-03-16 08:56:37 UTC | 1519 | 33.62 | 158 | 3.5 | -1361 | SalesOffice.Details , SalesOffice.Orders , AI_Search_HotelData , SearchResultsSessionPollLog , RoomPriceUpdateLog , MED_Book / MED_CancelBook | Open-Meteo Weather , SeatGeek/Ticketmaster Events APIs , Kiwi Flights Store , Booking Benchmarks Dataset , TBO Market Knowledge |
+| 2026-03-16 09:01:10 UTC | 1519 | 33.63 | 158 | 3.5 | -1361 | SalesOffice.Details, SalesOffice.Orders, AI_Search_HotelData, SearchResultsSessionPollLog, RoomPriceUpdateLog, MED_Book / MED_CancelBook | Open-Meteo Weather, SeatGeek/Ticketmaster Events APIs, Kiwi Flights Store, Booking Benchmarks Dataset, TBO Market Knowledge |
+| 2026-03-16 09:05:41 UTC | 1517 | 33.58 | 158 | 3.5 | -1359 | SalesOffice.Details, SalesOffice.Orders, AI_Search_HotelData, SearchResultsSessionPollLog, RoomPriceUpdateLog, MED_Book / MED_CancelBook | Open-Meteo Weather, SeatGeek/Ticketmaster Events APIs, Kiwi Flights Store, Booking Benchmarks Dataset, TBO Market Knowledge |

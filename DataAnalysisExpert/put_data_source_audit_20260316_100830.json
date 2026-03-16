@@ -1,0 +1,244 @@
+{
+  "generated_at_utc": "2026-03-16 08:08:30 UTC",
+  "run_ts": "2026-03-16 08:05:43",
+  "data_access": {
+    "medici_db_url_set": true,
+    "database_mode": "read_only_expected"
+  },
+  "put_summary": {
+    "total_predictions": 4511,
+    "put_count": 544,
+    "call_count": 3967,
+    "neutral_count": 0,
+    "unknown_count": 0,
+    "put_rate_pct": 12.06
+  },
+  "prediction_source_stats": {
+    "prediction_method_counts": {
+      "deep_ensemble": 4511
+    },
+    "model_type_counts": {
+      "deep_ensemble": 4511
+    },
+    "source_inputs_presence": {
+      "demand_indicator": 4511,
+      "events_count": 4511,
+      "event_names": 4511,
+      "weather_days": 4511,
+      "competitor_pressure": 4511,
+      "price_velocity": 4511,
+      "cancellation_risk": 4511,
+      "provider_pressure": 4511
+    },
+    "signal_source_counts": {
+      "forward_curve": 4511,
+      "historical_pattern": 4511
+    }
+  },
+  "relevant_sources": [
+    {
+      "id": "salesoffice",
+      "name": "SalesOffice DB",
+      "status": "active",
+      "category": "Internal Pricing",
+      "update_freq": "Hourly",
+      "metrics": "Room prices, booking status, price history (39,490 details + 1,566 orders)",
+      "freshness": [
+        {
+          "name": "SalesOffice.Details",
+          "status": "green",
+          "last_updated": "2026-03-16 08:05 UTC",
+          "age_display": "0m ago"
+        },
+        {
+          "name": "SalesOffice.Orders",
+          "status": "red",
+          "last_updated": "2026-03-12 13:25 UTC",
+          "age_display": "4d ago"
+        }
+      ]
+    },
+    {
+      "id": "ai_search_hotel_data",
+      "name": "AI Search Hotel Data",
+      "status": "active",
+      "category": "Market Pricing Intelligence",
+      "update_freq": "Real-time (every search)",
+      "metrics": "8.5M price records, 6,013 hotels, 323 cities, room types, boards, stars (Aug 2024+)",
+      "freshness": [
+        {
+          "name": "AI_Search_HotelData",
+          "status": "red",
+          "last_updated": "2026-03-15 00:02 UTC",
+          "age_display": "1d ago"
+        }
+      ]
+    },
+    {
+      "id": "search_results_poll_log",
+      "name": "Search Results Session Poll Log",
+      "status": "active",
+      "category": "Provider Pricing & Margins",
+      "update_freq": "Real-time (every search)",
+      "metrics": "8.3M results with gross/net prices, 129 providers, room categories, cancellation policies",
+      "freshness": [
+        {
+          "name": "SearchResultsSessionPollLog",
+          "status": "green",
+          "last_updated": "2026-03-16 06:49 UTC",
+          "age_display": "1h ago"
+        }
+      ]
+    },
+    {
+      "id": "room_price_update_log",
+      "name": "Room Price Update Log",
+      "status": "active",
+      "category": "Price Change Tracking",
+      "update_freq": "Real-time (every price update)",
+      "metrics": "82K price change events across 1,124 rooms — velocity and momentum signal",
+      "freshness": [
+        {
+          "name": "RoomPriceUpdateLog",
+          "status": "green",
+          "last_updated": "2026-03-16 06:50 UTC",
+          "age_display": "1h ago"
+        }
+      ]
+    },
+    {
+      "id": "med_prebook",
+      "name": "MED PreBook Data",
+      "status": "active",
+      "category": "Pre-Booking Intelligence",
+      "update_freq": "Real-time",
+      "metrics": "10.7K pre-bookings with provider, pricing, cancellation policy",
+      "freshness": [
+        {
+          "name": "MED_PreBook",
+          "status": "yellow",
+          "last_updated": "2026-03-12 10:39 UTC",
+          "age_display": "4d ago"
+        }
+      ]
+    },
+    {
+      "id": "salesoffice_log",
+      "name": "SalesOffice Action Log",
+      "status": "active",
+      "category": "Operational Intelligence",
+      "update_freq": "Real-time",
+      "metrics": "1.2M action log entries — scan success/fail rates, timing patterns",
+      "freshness": [
+        {
+          "name": "SalesOffice.Log",
+          "status": "green",
+          "last_updated": "2026-03-16 08:05 UTC",
+          "age_display": "0m ago"
+        }
+      ]
+    },
+    {
+      "id": "kiwi_flights",
+      "name": "Kiwi.com Flights",
+      "status": "active",
+      "category": "Travel Demand",
+      "update_freq": "On demand",
+      "metrics": "Flight prices/availability to Miami from 5 US cities",
+      "freshness": [
+        {
+          "name": "Flights DB",
+          "status": "unknown",
+          "last_updated": null,
+          "age_display": "N/A"
+        }
+      ]
+    },
+    {
+      "id": "open_meteo",
+      "name": "Open-Meteo Weather",
+      "status": "active",
+      "category": "Weather",
+      "update_freq": "Daily",
+      "metrics": "Temperature, precipitation, UV index, weather codes",
+      "freshness": [
+        {
+          "name": "Weather Cache",
+          "status": "unknown",
+          "last_updated": null,
+          "age_display": "N/A"
+        }
+      ]
+    },
+    {
+      "id": "seatgeek",
+      "name": "SeatGeek Events",
+      "status": "active",
+      "category": "Events & Conferences",
+      "update_freq": "Daily",
+      "metrics": "Event dates, venues, ticket prices, popularity scores",
+      "freshness": [
+        {
+          "name": "Events DB",
+          "status": "unknown",
+          "last_updated": null,
+          "age_display": "N/A"
+        }
+      ]
+    },
+    {
+      "id": "tbo_hotels",
+      "name": "TBO Hotels Dataset (Kaggle)",
+      "status": "active",
+      "category": "Market Intelligence",
+      "update_freq": "Static (refreshable)",
+      "metrics": "1,816 Miami hotels: facilities, ratings, coordinates, competitive landscape",
+      "freshness": []
+    },
+    {
+      "id": "hotel_booking_dataset",
+      "name": "Hotel Booking Demand (GitHub)",
+      "status": "active",
+      "category": "Booking Behavior",
+      "update_freq": "Static (research dataset)",
+      "metrics": "117K bookings: seasonality index, lead time/cancel model, ADR benchmarks",
+      "freshness": []
+    },
+    {
+      "id": "trivago_statista",
+      "name": "Trivago ADR (via Statista)",
+      "status": "active",
+      "category": "Market Benchmarks",
+      "update_freq": "Manual",
+      "metrics": "Monthly Miami ADR benchmark points (if local benchmark file exists)",
+      "freshness": []
+    }
+  ],
+  "freshness_summary": {
+    "total": 14,
+    "green": 5,
+    "yellow": 2,
+    "red": 2,
+    "unknown": 5,
+    "overall_status": "red"
+  },
+  "freshness_checked_at": "2026-03-16 08:05 UTC",
+  "analysis_top_level_sections": [
+    "benchmarks",
+    "booking_window",
+    "events",
+    "flight_demand",
+    "historical_patterns_summary",
+    "hotels",
+    "knowledge",
+    "model_info",
+    "predictions",
+    "price_changes",
+    "rooms",
+    "run_ts",
+    "statistics",
+    "total_hotels",
+    "total_rooms",
+    "total_snapshots"
+  ]
+}
