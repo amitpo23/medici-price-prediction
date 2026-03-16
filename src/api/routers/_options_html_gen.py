@@ -176,8 +176,25 @@ def _generate_options_async_html(t_days: int | None = None, signal: str | None =
 
   <div class="controls">
     <label>
-      Search current page
+      Search
       <input id="search-input" type="text" placeholder="Hotel, category, board...">
+    </label>
+    <label>
+      Hotel
+      <select id="hotel-filter">
+        <option value="">All hotels</option>
+      </select>
+    </label>
+    <label>
+      Board
+      <select id="board-filter">
+        <option value="">All boards</option>
+        <option value="Ro">RO (Room Only)</option>
+        <option value="Bb">BB (Bed &amp; Breakfast)</option>
+        <option value="Hb">HB (Half Board)</option>
+        <option value="Fb">FB (Full Board)</option>
+        <option value="Ai">AI (All Inclusive)</option>
+      </select>
     </label>
     <label>
       Signal
@@ -187,6 +204,17 @@ def _generate_options_async_html(t_days: int | None = None, signal: str | None =
         <option value="PUT">PUT</option>
         <option value="NEXT_PUT">NEXT PUT (scan drop)</option>
         <option value="NEUTRAL">NEUTRAL</option>
+      </select>
+    </label>
+    <label>
+      Check-in range
+      <select id="checkin-filter">
+        <option value="">All dates</option>
+        <option value="7">Next 7 days</option>
+        <option value="14">Next 14 days</option>
+        <option value="30">Next 30 days</option>
+        <option value="60">Next 60 days</option>
+        <option value="90">Next 90 days</option>
       </select>
     </label>
     <label>
@@ -232,9 +260,30 @@ def _generate_options_async_html(t_days: int | None = None, signal: str | None =
         <option value="50">50</option>
         <option value="100" selected>100</option>
         <option value="200">200</option>
+        <option value="500">500</option>
+      </select>
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input id="auto-refresh-toggle" type="checkbox"> Auto-refresh
+      <select id="auto-refresh-interval" style="width:70px">
+        <option value="60">1m</option>
+        <option value="300" selected>5m</option>
+        <option value="600">10m</option>
       </select>
     </label>
     <div class="controls-note">Selecting a prediction engine now switches to Source-only prediction by default, so changing the source updates the forecast immediately. Use Filter rows by source only when you want to keep the ensemble forecast and just narrow the list.</div>
+  </div>
+
+  <div id="put-summary-panel" style="display:none;margin:12px 0;padding:16px;background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;color:#e0e7ff">
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+      <div style="text-align:center"><div style="font-size:28px;font-weight:700" id="put-total-count">0</div><div style="font-size:11px;opacity:0.7">PUT Signals</div></div>
+      <div style="text-align:center"><div style="font-size:28px;font-weight:700" id="put-rate-pct">0%</div><div style="font-size:11px;opacity:0.7">PUT Rate</div></div>
+      <div style="text-align:center"><div style="font-size:28px;font-weight:700" id="put-avg-drop">0%</div><div style="font-size:11px;opacity:0.7">Avg Expected Drop</div></div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;opacity:0.7;margin-bottom:4px">Top PUT Hotels</div>
+        <div id="put-top-hotels" style="font-size:13px"></div>
+      </div>
+    </div>
   </div>
 
   <div class="status-panel loading" id="status-panel">
@@ -311,6 +360,10 @@ const state = {{
   filteredRows: [],
   pollTimer: null,
   detailView: null,
+  hotelFilter: '',
+  boardFilter: '',
+  checkinDays: '',
+  autoRefreshTimer: null,
 }};
 
 const el = {{
@@ -340,6 +393,16 @@ const el = {{
   detailTitle: document.getElementById('detail-title'),
   detailBody: document.getElementById('detail-body'),
   detailClose: document.getElementById('detail-close'),
+  hotelFilter: document.getElementById('hotel-filter'),
+  boardFilter: document.getElementById('board-filter'),
+  checkinFilter: document.getElementById('checkin-filter'),
+  autoRefreshToggle: document.getElementById('auto-refresh-toggle'),
+  autoRefreshInterval: document.getElementById('auto-refresh-interval'),
+  putSummaryPanel: document.getElementById('put-summary-panel'),
+  putTotalCount: document.getElementById('put-total-count'),
+  putRatePct: document.getElementById('put-rate-pct'),
+  putAvgDrop: document.getElementById('put-avg-drop'),
+  putTopHotels: document.getElementById('put-top-hotels'),
 }};
 
 el.signalFilter.value = state.signal || '';
@@ -498,26 +561,87 @@ function updateSourcePriceHeader() {{
 }}
 
 function applySearch() {{
+  let filtered = [...state.rows];
+
+  // Text search
   const q = state.search.trim().toLowerCase();
-  if (!q) {{
-    state.filteredRows = [...state.rows];
-  }} else {{
-    state.filteredRows = state.rows.filter((row) => [
-      row.hotel_name,
-      row.category,
-      row.board,
-      row.option_signal,
-      row.detail_id,
+  if (q) {{
+    filtered = filtered.filter((row) => [
+      row.hotel_name, row.category, row.board, row.option_signal, row.detail_id,
     ].some((value) => String(value ?? '').toLowerCase().includes(q)));
   }}
+
+  // Hotel filter
+  if (state.hotelFilter) {{
+    filtered = filtered.filter((row) => String(row.hotel_name || '') === state.hotelFilter);
+  }}
+
+  // Board filter
+  if (state.boardFilter) {{
+    filtered = filtered.filter((row) => String(row.board || '').toLowerCase() === state.boardFilter.toLowerCase());
+  }}
+
+  // Check-in date range filter
+  if (state.checkinDays) {{
+    const maxDays = Number(state.checkinDays);
+    if (maxDays > 0) {{
+      filtered = filtered.filter((row) => (row.days_to_checkin || 999) <= maxDays);
+    }}
+  }}
+
   // Client-side filter: NEXT_PUT — show only rooms with next-scan PUT signal
   if (state.signal === 'NEXT_PUT') {{
-    state.filteredRows = state.filteredRows.filter((row) => {{
+    filtered = filtered.filter((row) => {{
       const ns = computeNextScanSignal(row);
-      return ns.score >= 50;  // PUT or STRONG_PUT
+      return ns.score >= 50;
     }});
   }}
+
+  state.filteredRows = filtered;
   renderRows();
+  populateHotelDropdown();
+  updatePutSummary();
+}}
+
+function populateHotelDropdown() {{
+  const hotels = [...new Set(state.rows.map((r) => r.hotel_name).filter(Boolean))].sort();
+  const current = el.hotelFilter.value;
+  const options = ['<option value="">All hotels (' + hotels.length + ')</option>'];
+  hotels.forEach((name) => {{
+    const count = state.rows.filter((r) => r.hotel_name === name).length;
+    const sel = name === current ? ' selected' : '';
+    options.push('<option value="' + escapeHtml(name) + '"' + sel + '>' + escapeHtml(name) + ' (' + count + ')</option>');
+  }});
+  el.hotelFilter.innerHTML = options.join('');
+}}
+
+function updatePutSummary() {{
+  const allRows = state.rows;
+  const putRows = allRows.filter((r) => r.option_signal === 'PUT');
+  const total = allRows.length;
+  const putCount = putRows.length;
+  const putRate = total > 0 ? (putCount / total * 100).toFixed(1) : '0';
+
+  if (putCount === 0) {{
+    el.putSummaryPanel.style.display = 'none';
+    return;
+  }}
+  el.putSummaryPanel.style.display = 'block';
+  el.putTotalCount.textContent = String(putCount);
+  el.putRatePct.textContent = putRate + '%';
+
+  // Average expected drop for PUT rows
+  const drops = putRows.map((r) => r.expected_min_delta_from_now || 0).filter((d) => d < 0);
+  const avgDrop = drops.length > 0 ? (drops.reduce((a, b) => a + b, 0) / drops.length).toFixed(1) : '0';
+  el.putAvgDrop.textContent = '$' + avgDrop;
+
+  // Top PUT hotels
+  const hotelPuts = {{}};
+  putRows.forEach((r) => {{ hotelPuts[r.hotel_name] = (hotelPuts[r.hotel_name] || 0) + 1; }});
+  const topHotels = Object.entries(hotelPuts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  el.putTopHotels.innerHTML = topHotels.map(([name, count]) =>
+    '<span style="display:inline-block;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;margin:2px">' + escapeHtml(name) + ' <b>' + count + '</b></span>'
+  ).join(' ');
 }}
 
 function renderRows() {{
@@ -1472,6 +1596,42 @@ el.nextBtn.addEventListener('click', () => {{
   if (state.offset + state.limit < state.totalRows) {{
     state.offset += state.limit;
     void fetchRows();
+  }}
+}});
+
+// Hotel filter — client-side, populated dynamically after data loads
+el.hotelFilter.addEventListener('change', (event) => {{
+  state.hotelFilter = event.target.value || '';
+  applySearch();
+}});
+
+// Board filter — client-side
+el.boardFilter.addEventListener('change', (event) => {{
+  state.boardFilter = event.target.value || '';
+  applySearch();
+}});
+
+// Check-in date range filter — client-side
+el.checkinFilter.addEventListener('change', (event) => {{
+  state.checkinDays = event.target.value || '';
+  applySearch();
+}});
+
+// Auto-refresh toggle
+el.autoRefreshToggle.addEventListener('change', (event) => {{
+  if (event.target.checked) {{
+    const seconds = Number(el.autoRefreshInterval.value) || 300;
+    state.autoRefreshTimer = window.setInterval(() => void fetchRows(), seconds * 1000);
+  }} else {{
+    if (state.autoRefreshTimer) window.clearInterval(state.autoRefreshTimer);
+    state.autoRefreshTimer = null;
+  }}
+}});
+el.autoRefreshInterval.addEventListener('change', () => {{
+  if (el.autoRefreshToggle.checked) {{
+    if (state.autoRefreshTimer) window.clearInterval(state.autoRefreshTimer);
+    const seconds = Number(el.autoRefreshInterval.value) || 300;
+    state.autoRefreshTimer = window.setInterval(() => void fetchRows(), seconds * 1000);
   }}
 }});
 
