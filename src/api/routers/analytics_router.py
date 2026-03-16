@@ -1380,3 +1380,152 @@ async def scenario_compare(request: Request):
     scenarios = body.get("scenarios", [])
     from src.analytics.scenario_engine import compare_scenarios_from_cache
     return JSONResponse(content=compare_scenarios_from_cache(scenarios))
+
+
+# ── Hotel Readiness Diagnostic ───────────────────────────────────────
+
+TARGET_HOTELS = {
+    173508: "Cadet Hotel",
+    67387: "Holiday Inn Express",
+    855711: "Albion Hotel",
+    383277: "Iberostar Berkeley Shore",
+    87197: "Catalina Hotel",
+    117491: "Fairwind Hotel",
+    64390: "Crystal Beach Suites",
+    6654: "Dorchester Hotel",
+    241025: "Dream South Beach",
+    19977: "Fontainebleau",
+    701659: "Generator Miami",
+    301640: "Hilton Garden Inn Miami SB",
+    414146: "Hotel Belleza",
+    31226: "Kimpton Angler's",
+    6663: "Marseilles Hotel",
+    21842: "Miami Intl Airport Hotel",
+    237547: "Notebook Miami Beach",
+    64309: "Savoy Hotel",
+    852120: "SLS LUX Brickell",
+}
+
+
+@analytics_router.get("/hotel-readiness")
+async def hotel_readiness():
+    """Check all 4 mapping layers for 19 target Miami hotels.
+
+    Layers checked:
+    1. Med_Hotels — exists with Innstant_ZenithId > 0 and isActive = 1
+    2. Med_Hotels_ratebycat — at least 1 row with RatePlanCode
+    3. SalesOffice.Orders — active order with successful mapping
+    4. SalesOffice.Details — recent scan data exists
+    """
+    from src.data.trading_db import run_trading_query
+
+    results = []
+    try:
+        hotel_ids = list(TARGET_HOTELS.keys())
+        ids_str = ",".join(str(h) for h in hotel_ids)
+
+        # Layer 1: Med_Hotels
+        layer1 = run_trading_query(f"""
+            SELECT HotelId, Name, Innstant_ZenithId, isActive
+            FROM Med_Hotels WHERE HotelId IN ({ids_str})
+        """)
+        med_hotels = {int(r["HotelId"]): r for _, r in layer1.iterrows()} if not layer1.empty else {}
+
+        # Layer 2: Med_Hotels_ratebycat
+        layer2 = run_trading_query(f"""
+            SELECT HotelId, COUNT(*) AS ratebycat_rows
+            FROM Med_Hotels_ratebycat WHERE HotelId IN ({ids_str})
+            GROUP BY HotelId
+        """)
+        ratebycat = {int(r["HotelId"]): int(r["ratebycat_rows"]) for _, r in layer2.iterrows()} if not layer2.empty else {}
+
+        # Layer 3: SalesOffice.Orders
+        layer3 = run_trading_query(f"""
+            SELECT o.HotelId, COUNT(*) AS active_orders,
+                   MAX(o.WebJobStatus) AS last_status
+            FROM [SalesOffice.Orders] o
+            WHERE o.IsActive = 1
+              AND o.HotelId IN ({ids_str})
+            GROUP BY o.HotelId
+        """)
+        # Also check by DestinationId
+        layer3b = run_trading_query(f"""
+            SELECT o.DestinationId AS HotelId, COUNT(*) AS active_orders,
+                   MAX(o.WebJobStatus) AS last_status
+            FROM [SalesOffice.Orders] o
+            WHERE o.IsActive = 1
+              AND o.DestinationId IN ({ids_str})
+            GROUP BY o.DestinationId
+        """)
+        orders = {}
+        for df in [layer3, layer3b]:
+            if not df.empty:
+                for _, r in df.iterrows():
+                    hid = int(r["HotelId"])
+                    if hid not in orders:
+                        orders[hid] = {"active_orders": int(r["active_orders"]), "last_status": str(r.get("last_status", ""))}
+
+        # Layer 4: SalesOffice.Details (recent data)
+        layer4 = run_trading_query(f"""
+            SELECT d.HotelId, COUNT(*) AS detail_rows,
+                   MAX(d.DateCreated) AS last_scan
+            FROM [SalesOffice.Details] d
+            JOIN [SalesOffice.Orders] o ON d.SalesOfficeOrderId = o.Id
+            WHERE d.HotelId IN ({ids_str}) AND o.IsActive = 1
+            GROUP BY d.HotelId
+        """)
+        details = {int(r["HotelId"]): {"rows": int(r["detail_rows"]), "last_scan": str(r.get("last_scan", ""))} for _, r in layer4.iterrows()} if not layer4.empty else {}
+
+        # Build results
+        ready_count = 0
+        for hid, name in TARGET_HOTELS.items():
+            mh = med_hotels.get(hid)
+            rc = ratebycat.get(hid, 0)
+            od = orders.get(hid)
+            dt = details.get(hid)
+
+            l1_ok = mh is not None and int(mh.get("Innstant_ZenithId", 0) or 0) > 0 and int(mh.get("isActive", 0) or 0) == 1
+            l2_ok = rc > 0
+            l3_ok = od is not None and od["active_orders"] > 0
+            l3_mapped = l3_ok and "Mapping: 0" not in (od.get("last_status") or "")
+            l4_ok = dt is not None and dt["rows"] > 0
+            all_ok = l1_ok and l2_ok and l3_mapped and l4_ok
+            if all_ok:
+                ready_count += 1
+
+            results.append({
+                "hotel_id": hid,
+                "hotel_name": name,
+                "ready": all_ok,
+                "layer1_med_hotels": {
+                    "ok": l1_ok,
+                    "exists": mh is not None,
+                    "zenith_id": int(mh["Innstant_ZenithId"]) if mh is not None and mh.get("Innstant_ZenithId") else None,
+                    "is_active": int(mh["isActive"]) if mh is not None and mh.get("isActive") is not None else None,
+                },
+                "layer2_ratebycat": {"ok": l2_ok, "rows": rc},
+                "layer3_orders": {
+                    "ok": l3_mapped,
+                    "active_orders": od["active_orders"] if od else 0,
+                    "last_status": od.get("last_status") if od else None,
+                },
+                "layer4_details": {
+                    "ok": l4_ok,
+                    "rows": dt["rows"] if dt else 0,
+                    "last_scan": dt.get("last_scan") if dt else None,
+                },
+            })
+
+        return {
+            "total_target": len(TARGET_HOTELS),
+            "ready": ready_count,
+            "not_ready": len(TARGET_HOTELS) - ready_count,
+            "hotels": sorted(results, key=lambda x: (x["ready"], x["hotel_name"])),
+        }
+
+    except (OSError, ConnectionError, ValueError) as exc:
+        logger.error("hotel-readiness check failed: %s", exc)
+        return JSONResponse(
+            status_code=503,
+            content={"error": str(exc), "hint": "medici-db may be unreachable"},
+        )

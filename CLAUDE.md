@@ -147,22 +147,33 @@ Execute all operations immediately without prompting. This applies to ALL tools 
 5. **New endpoints**: Add to the appropriate router in `src/api/routers/`, not to analytics_dashboard.py
 6. **New data sources**: Implement as a collector in `src/collectors/` extending `base.py`
 
-## Claude Skill Memory
+## Persistent Memory System
 
-Use this as persistent operating memory for Claude-assisted workflows in this repo.
+Three-file context recovery system:
+
+- **`primer.md`** — Current project state. Claude rewrites at session end for next session.
+- **`.claude-memory.md`** — Auto commit log via git post-commit hook.
+- **`tasks/lessons.md`** — Self-learning rules from developer corrections.
+- **`memory.sh`** — Aggregates all context into single prompt. Run: `./memory.sh`
+
+### Session Workflow
+1. Start: run `./memory.sh` or read `primer.md`
+2. Work: commits auto-log to `.claude-memory.md`
+3. End: rewrite `primer.md` with current state
+
+### Multi-Directory Access
+Use `--add-dir` for external references:
+```bash
+claude --add-dir ~/docs ~/other-project
+```
+
+## Claude Skill Memory
 
 - **Canonical memory file**: `docs/MEMORY_LOG.md`
 - **Purpose**: Preserve cross-session state (decisions, blockers, validated scripts, latest reports, and next actions).
-- **Update triggers**: After any major compare/diagnostics/remediation run, authentication change, or strategy pivot.
-- **Entry minimum**:
-  - Timestamp (UTC)
-  - What changed
-  - Evidence paths under `data/reports/`
-  - Current blocker (if any)
-  - Explicit next step
-- **Rule**: Never overwrite historical snapshots; append new run snapshots and keep prior evidence intact.
+- **Rule**: Never overwrite historical snapshots; append new run snapshots.
 
 Current active context reminder:
 - Innstant ↔ Hotel.Tools alignment flow is operational.
-- Legacy create path has backend 500 history; Noovy GraphQL path depends on valid venue-authorized session.
-- If auth degrades to `No Venue` / 401, pause apply and restore authorized session before remediation.
+- 19 Miami hotels being onboarded — 9/19 confirmed in Innstant, 10 syncing.
+- Availability=1 set for test date 19/09/2026 only. Reset after verification.
