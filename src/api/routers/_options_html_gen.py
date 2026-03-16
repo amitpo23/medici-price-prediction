@@ -1321,13 +1321,18 @@ function stopPolling() {{
 }}
 
 async function fetchRows() {{
-  if (state.loading) return;
+  if (state.loading && state._fetchController) {{
+    state._fetchController.abort();
+  }}
   state.loading = true;
   updateSummary();
   setStatus('loading', 'Loading options rows', 'Reading cached options data from the API...');
 
   try {{
-    const response = await fetch(buildOptionsUrl(), {{ cache: 'no-store' }});
+    state._fetchController = new AbortController();
+    const fetchTimeout = setTimeout(() => state._fetchController.abort(), 30000);
+    const response = await fetch(buildOptionsUrl(), {{ cache: 'no-store', signal: state._fetchController.signal }});
+    clearTimeout(fetchTimeout);
     if (response.status === 503) {{
       await startWarmup();
       const retryAfter = response.headers.get('Retry-After') || '30';
@@ -1360,11 +1365,16 @@ async function fetchRows() {{
     ]);
     applySearch();
   }} catch (error) {{
-    console.error(error);
-    setStatus('error', 'Failed to load options data', error.message || 'Unknown error');
-    el.tableBody.innerHTML = '<tr><td class="empty" colspan="17">Failed to load data. Use Refresh to try again.</td></tr>';
+    if (error.name === 'AbortError') {{
+      setStatus('warning', 'Request timed out', 'The API took too long to respond. The server may still be warming up.', ['Click Refresh data to retry']);
+    }} else {{
+      console.error(error);
+      setStatus('error', 'Failed to load options data', error.message || 'Unknown error');
+    }}
+    el.tableBody.innerHTML = '<tr><td class="empty" colspan="17">Request timed out or failed. Click <b>Refresh data</b> to retry.</td></tr>';
   }} finally {{
     state.loading = false;
+    state._fetchController = null;
     updateSummary();
   }}
 }}
