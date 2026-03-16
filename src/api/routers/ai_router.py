@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
@@ -20,8 +21,8 @@ ai_router = APIRouter()
 @limiter.limit(RATE_LIMIT_AI)
 async def salesoffice_ai_insights(
     request: Request,
-    t_days: int | None = None,
-    hotel_name: str | None = None,
+    t_days: Optional[int] = None,
+    hotel_name: Optional[str] = None,
 ):
     """AI-powered market intelligence — aggregate + per-room analysis."""
     try:
@@ -147,7 +148,7 @@ async def salesoffice_ai_insights(
 async def salesoffice_ai_ask(
     request: Request,
     q: str,
-    detail_id: int | None = None,
+    detail_id: Optional[int] = None,
     deep: bool = False,
 ):
     """Ask Claude a question about the portfolio data."""
@@ -220,7 +221,7 @@ async def salesoffice_ai_explain(request: Request, detail_id: int):
 @limiter.limit(RATE_LIMIT_AI)
 async def salesoffice_ai_metadata(
     request: Request,
-    detail_id: int | None = None,
+    detail_id: Optional[int] = None,
     page: dict = Depends(pagination_params),
 ):
     """AI-generated smart tags and metadata for room options."""
