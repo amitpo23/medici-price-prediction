@@ -1439,17 +1439,8 @@ async def hotel_readiness():
         """)
         ratebycat = {int(r["HotelId"]): int(r["ratebycat_rows"]) for _, r in layer2.iterrows()} if not layer2.empty else {}
 
-        # Layer 3: SalesOffice.Orders
+        # Layer 3: SalesOffice.Orders (uses DestinationId, not HotelId)
         layer3 = run_trading_query(f"""
-            SELECT o.HotelId, COUNT(*) AS active_orders,
-                   MAX(o.WebJobStatus) AS last_status
-            FROM [SalesOffice.Orders] o
-            WHERE o.IsActive = 1
-              AND o.HotelId IN ({ids_str})
-            GROUP BY o.HotelId
-        """)
-        # Also check by DestinationId
-        layer3b = run_trading_query(f"""
             SELECT o.DestinationId AS HotelId, COUNT(*) AS active_orders,
                    MAX(o.WebJobStatus) AS last_status
             FROM [SalesOffice.Orders] o
@@ -1457,6 +1448,7 @@ async def hotel_readiness():
               AND o.DestinationId IN ({ids_str})
             GROUP BY o.DestinationId
         """)
+        layer3b = layer3  # single query covers both
         orders = {}
         for df in [layer3, layer3b]:
             if not df.empty:
