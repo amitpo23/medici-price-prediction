@@ -1404,6 +1404,10 @@ TARGET_HOTELS = {
     237547: "Notebook Miami Beach",
     64309: "Savoy Hotel",
     852120: "SLS LUX Brickell",
+    6805: "Pullman Miami Airport",
+    66814: "Breakwater South Beach",
+    333502: "Eurostars Langford Hotel",
+    20702: "Embassy Suites Miami Intl Airport",
 }
 
 
