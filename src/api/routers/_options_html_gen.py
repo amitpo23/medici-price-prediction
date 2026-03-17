@@ -1051,6 +1051,122 @@ function drawScanZoomChart(canvas, scanSeries, options = {{}}) {{
   }});
 }}
 
+function drawForecastChart(canvas, scanSeries, fcSeries, options = {{}}) {{
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.clientWidth || 680;
+  const height = 280;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const style = options.style || 'candlestick';
+  const showHistory = options.showHistory !== false;
+  const horizon = parseInt(options.horizon || '14', 10);
+
+  const scans = Array.isArray(scanSeries) ? scanSeries : [];
+  const fc = Array.isArray(fcSeries) ? fcSeries.slice(0, horizon) : [];
+
+  if (!scans.length && !fc.length) {{
+    ctx.fillStyle = '#64748b'; ctx.font = '13px sans-serif';
+    ctx.fillText('No forecast data — need at least 3 scans', 20, 40);
+    return;
+  }}
+
+  const allPrices = [];
+  if (showHistory) scans.forEach((s) => allPrices.push(Number(s.price || 0)));
+  fc.forEach((f) => {{ allPrices.push(Number(f.p || 0)); if (f.lo) allPrices.push(Number(f.lo)); if (f.hi) allPrices.push(Number(f.hi)); }});
+  const valid = allPrices.filter((v) => Number.isFinite(v) && v > 0);
+  if (!valid.length) {{ ctx.fillStyle='#64748b'; ctx.font='13px sans-serif'; ctx.fillText('Insufficient price data',20,40); return; }}
+
+  const minP = Math.min.apply(null, valid);
+  const maxP = Math.max.apply(null, valid);
+  const left = 52; const right = width - 16; const top = 20; const bottom = height - 36;
+  const chartW = right - left; const chartH = bottom - top;
+  const yPad = Math.max((maxP - minP) * 0.1, 5);
+  const lo = minP - yPad; const hi = maxP + yPad; const rng = Math.max(hi - lo, 1);
+
+  const histLen = showHistory ? scans.length : 0;
+  const totalBars = histLen + fc.length;
+  if (!totalBars) return;
+  const barW = Math.max(chartW / totalBars, 4);
+  function xPos(i) {{ return left + (i + 0.5) * (chartW / totalBars); }}
+  function yPos(p) {{ return bottom - ((p - lo) / rng) * chartH; }}
+
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  for (let g = 0; g <= 4; g++) {{ const gy = top + (g / 4) * chartH; ctx.beginPath(); ctx.moveTo(left, gy); ctx.lineTo(right, gy); ctx.stroke(); }}
+  ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif';
+  for (let g = 0; g <= 4; g++) {{ const pv = hi - (g / 4) * rng; ctx.fillText('$' + pv.toFixed(0), 2, top + (g / 4) * chartH + 4); }}
+
+  if (histLen > 1 && style === 'candlestick') {{
+    for (let i = 0; i < histLen; i++) {{
+      const cur = Number(scans[i].price || 0);
+      const prev = i > 0 ? Number(scans[i - 1].price || cur) : cur;
+      const open = prev; const close = cur;
+      const high = Math.max(open, close); const low = Math.min(open, close);
+      const color = close >= open ? '#22c55e' : '#ef4444';
+      const cx = xPos(i); const bw = Math.max(barW * 0.6, 3);
+      ctx.strokeStyle = color; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx, yPos(high)); ctx.lineTo(cx, yPos(low)); ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.fillRect(cx - bw / 2, yPos(high), bw, Math.max(yPos(low) - yPos(high), 1));
+    }}
+  }} else if (histLen && style === 'line') {{
+    ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2; ctx.beginPath();
+    scans.forEach((s, i) => {{ const px = xPos(i); const py = yPos(Number(s.price || 0)); if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }});
+    ctx.stroke();
+  }}
+
+  if (histLen > 0 && fc.length > 0) {{
+    const divX = xPos(histLen - 0.5);
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(divX, top); ctx.lineTo(divX, bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'; ctx.fillText('forecast →', divX + 4, top + 12);
+  }}
+
+  if (fc.length) {{
+    ctx.fillStyle = 'rgba(139,92,246,0.12)';
+    ctx.beginPath();
+    fc.forEach((f, i) => {{ const px = xPos(histLen + i); const py = yPos(Number(f.hi || f.p || 0)); if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }});
+    for (let i = fc.length - 1; i >= 0; i--) {{ ctx.lineTo(xPos(histLen + i), yPos(Number(fc[i].lo || fc[i].p || 0))); }}
+    ctx.closePath(); ctx.fill();
+
+    if (style === 'candlestick') {{
+      for (let i = 0; i < fc.length; i++) {{
+        const f = fc[i];
+        const open = i > 0 ? Number(fc[i - 1].p || 0) : (scans.length ? Number(scans[scans.length - 1].price || 0) : Number(f.p || 0));
+        const close = Number(f.p || 0);
+        const high = Math.max(Number(f.hi || close), open, close);
+        const low = Math.min(Number(f.lo || close), open, close);
+        const color = close >= open ? '#7c3aed' : '#a855f7';
+        const cx = xPos(histLen + i); const bw = Math.max(barW * 0.6, 3);
+        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cx, yPos(high)); ctx.lineTo(cx, yPos(low)); ctx.stroke();
+        ctx.fillStyle = color; ctx.globalAlpha = 0.7;
+        ctx.fillRect(cx - bw / 2, yPos(Math.max(open, close)), bw, Math.max(yPos(Math.min(open, close)) - yPos(Math.max(open, close)), 1));
+        ctx.globalAlpha = 1.0;
+      }}
+    }} else {{
+      ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 2; ctx.setLineDash([6, 3]); ctx.beginPath();
+      fc.forEach((f, i) => {{ const px = xPos(histLen + i); const py = yPos(Number(f.p || 0)); if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }});
+      ctx.stroke(); ctx.setLineDash([]);
+    }}
+  }}
+
+  ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  const labelStep = Math.max(Math.floor(totalBars / 8), 1);
+  for (let i = 0; i < totalBars; i += labelStep) {{
+    let label = '';
+    if (i < histLen) {{ label = scans[i].d || scans[i].date || ''; }}
+    else if (i - histLen < fc.length) {{ label = fc[i - histLen].d || ''; }}
+    if (label) ctx.fillText(label.slice(5, 10), xPos(i), bottom + 12);
+  }}
+  ctx.textAlign = 'start';
+}}
+
 function drawDetailChart(canvas, detail, scanSeries, options = {{}}) {{
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -1270,6 +1386,34 @@ function renderDetailModal(detailId) {{
           ${{buildScanLegend(detailState.scanMetric)}}
         </div>
       </div>
+      <div class="detail-chart-wrap">
+        <div class="detail-chart-title">Price forecast &amp; candlestick</div>
+        <div class="chart-toolbar">
+          <label>
+            Forecast horizon
+            <select id="detail-forecast-horizon">
+              <option value="7">7 days</option>
+              <option value="14" selected>14 days</option>
+              <option value="30">30 days</option>
+            </select>
+          </label>
+          <label>
+            Chart style
+            <select id="detail-forecast-style">
+              <option value="candlestick" selected>Candlestick</option>
+              <option value="line">Line + band</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="detail-forecast-show-history" checked> Historical</label>
+        </div>
+        <canvas id="detail-forecast-canvas"></canvas>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-swatch" style="background:#22c55e"></span>Price up (candle)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#ef4444"></span>Price down (candle)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#8b5cf6;opacity:0.4"></span>Forecast band</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#8b5cf6"></span>Forecast line</span>
+        </div>
+      </div>
       <div class="detail-grid">
         <div class="detail-card"><div class="k">Current</div><div class="v">${{formatCurrency(detail.cp)}}</div></div>
         <div class="detail-card"><div class="k">Predicted</div><div class="v">${{formatCurrency(detail.pp)}}</div></div>
@@ -1322,6 +1466,7 @@ function renderDetailModal(detailId) {{
   requestAnimationFrame(() => drawDetailChart(document.getElementById(chartId), detail, scanSeries, detailState));
   requestAnimationFrame(() => drawComparisonChart(document.getElementById(compareChartId), detailState));
   requestAnimationFrame(() => drawScanZoomChart(document.getElementById(scanZoomChartId), scanSeries, {{ window: detailState.scanWindow || 'all', metric: detailState.scanMetric || 'price' }}));
+  requestAnimationFrame(() => drawForecastChart(document.getElementById('detail-forecast-canvas'), scanSeries, detail.fc, {{ style: detailState.forecastStyle || 'candlestick', horizon: detailState.forecastHorizon || '14', showHistory: detailState.forecastShowHistory !== false }}));
 
   const sourceModeEl = document.getElementById('detail-source-mode');
   const windowEl = document.getElementById('detail-window-filter');
@@ -1395,6 +1540,19 @@ function renderDetailModal(detailId) {{
       drawScanZoomChart(document.getElementById(scanZoomChartId), scanSeries, {{ window: state.detailView.scanWindow || 'all', metric: state.detailView.scanMetric }});
     }});
   }}
+  const fcHorizonEl = document.getElementById('detail-forecast-horizon');
+  const fcStyleEl = document.getElementById('detail-forecast-style');
+  const fcHistEl = document.getElementById('detail-forecast-show-history');
+  function redrawForecast() {{
+    drawForecastChart(document.getElementById('detail-forecast-canvas'), scanSeries, detail.fc, {{
+      style: state.detailView.forecastStyle || 'candlestick',
+      horizon: state.detailView.forecastHorizon || '14',
+      showHistory: state.detailView.forecastShowHistory !== false
+    }});
+  }}
+  if (fcHorizonEl) {{ fcHorizonEl.addEventListener('change', (e) => {{ state.detailView.forecastHorizon = e.target.value; redrawForecast(); }}); }}
+  if (fcStyleEl) {{ fcStyleEl.addEventListener('change', (e) => {{ state.detailView.forecastStyle = e.target.value; redrawForecast(); }}); }}
+  if (fcHistEl) {{ fcHistEl.addEventListener('change', (e) => {{ state.detailView.forecastShowHistory = !!e.target.checked; redrawForecast(); }}); }}
 }}
 
 async function startWarmup() {{
