@@ -1,0 +1,10 @@
+[
+  {
+    "timestamp": "2026-03-20T10:25:56.666798",
+    "action": "set_override",
+    "detail_id": 45161,
+    "original_price": 551.39,
+    "override_price": 580.0,
+    "created_by": "PricePredictor"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "timestamp": "2026-03-20T11:27:50.116744",
+    "action": "insert_opp",
+    "success": true,
+    "opp_id": 3866,
+    "hotel_id": 32687,
+    "dates": "2026-05-20 to 2026-05-21",
+    "rooms_created": 2,
+    "buy_price": 164.83,
+    "push_price": 189.0,
+    "created_by": "PricePredictor"
+  }
+]

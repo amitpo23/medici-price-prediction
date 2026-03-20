@@ -1,0 +1,12 @@
+[
+  {
+    "timestamp": "2026-03-20T10:26:07.900997",
+    "action": "push_success",
+    "detail_id": 45161,
+    "override_price": 580.0,
+    "venue": "5093",
+    "rpc": "12062",
+    "itc": "DLX",
+    "date": "2026-06-28"
+  }
+]

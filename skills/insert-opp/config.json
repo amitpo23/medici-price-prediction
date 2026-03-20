@@ -1,0 +1,13 @@
+{
+    "allowed_systems": ["PricePredictor"],
+    "min_price": 1.0,
+    "max_price": 10000.0,
+    "min_margin_pct": 3,
+    "max_rooms": 30,
+    "max_date_span_days": 90,
+    "max_opps_per_run": 50,
+    "max_opps_per_hotel_per_day": 10,
+    "future_dates_only": true,
+    "duplicate_check": true,
+    "allowed_tables_write": ["BackOfficeOPT", "MED_Opportunities"]
+}

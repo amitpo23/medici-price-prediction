@@ -1,0 +1,13 @@
+{
+    "allowed_systems": ["PricePredictor"],
+    "min_price": 1.0,
+    "max_price": 10000.0,
+    "max_deviation_pct": 50,
+    "max_overrides_per_run": 5000,
+    "max_overrides_per_hotel": 500,
+    "push_delay_ms": 200,
+    "push_timeout_sec": 10,
+    "max_consecutive_errors": 5,
+    "zenith_url": "https://hotel.tools/service/Medici%20new",
+    "allowed_tables_write": ["SalesOffice.PriceOverride"]
+}

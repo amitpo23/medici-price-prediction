@@ -382,3 +382,10 @@ async def dashboard_override_queue():
     """Override Queue management — pending, in-progress, completed overrides."""
     from src.analytics.override_queue_page import generate_override_queue_html
     return HTMLResponse(content=generate_override_queue_html())
+
+
+@dashboard_router.get("/dashboard/opportunity-queue", response_class=HTMLResponse)
+async def dashboard_opportunity_queue():
+    """Opportunity Queue — CALL signal buy opportunities."""
+    from src.analytics.opportunity_queue_page import generate_opportunity_queue_html
+    return HTMLResponse(content=generate_opportunity_queue_html())

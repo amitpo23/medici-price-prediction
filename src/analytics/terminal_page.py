@@ -530,7 +530,12 @@ function renderSignalPanel(fcRaw, pathData, detailData){
         '<button class="btn-ovr" onclick="queueOverride('+d.detail_id+','+cp+')" id="panel-ovr-btn">&#11015; Override -$<span id="panel-ovr-disc">'+(parseFloat(el('ovr-discount').value)||1).toFixed(2)+'</span></button>'+
         '<span style="color:var(--muted);font-size:11px">&rarr; '+fmt$(cp-(parseFloat(el('ovr-discount').value)||1))+'</span>'+
         '</div></div>'
-      : '');
+      : (sig==='CALL'||sig==='STRONG_CALL')
+        ? '<div class="ovr-panel"><div class="ovr-inline">'+
+          '<button class="btn-ovr" style="background:var(--call)" onclick="queueOpportunity('+d.detail_id+','+cp+')">&#11014; Buy Opp</button>'+
+          '<span style="color:var(--muted);font-size:11px">buy '+fmt$(cp)+' &rarr; push '+fmt$(cp+50)+' (+$50)</span>'+
+          '</div></div>'
+        : '');
 }
 
 /* ── Sources Panel ──────────────────────────────────────────────── */
@@ -668,18 +673,16 @@ async function queueOverride(detailId,currentPrice){
 }
 
 async function queueOpportunity(detailId,currentPrice){
-  const margin=15;
-  const pushPrice=Math.round(currentPrice*1.15*100)/100;
   const cell=document.getElementById('ovr-'+detailId);
   if(cell)cell.innerHTML='<span style="color:var(--call);font-size:10px">sending...</span>';
   try{
     const r=await fetch(API+'/opportunity/request',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({detail_id:detailId,margin_pct:margin,max_rooms:1})
+      body:JSON.stringify({detail_id:detailId,max_rooms:1})
     });
     const data=await r.json();
     if(r.ok){
-      showToast('Opp #'+data.request_id+': buy '+fmt$(data.buy_price)+' \u2192 push '+fmt$(data.push_price)+' ('+data.margin_pct+'%)',true);
+      showToast('Opp #'+data.request_id+': buy '+fmt$(data.buy_price)+' \u2192 push '+fmt$(data.push_price)+' profit +'+fmt$(data.profit_usd),true);
       if(cell)cell.innerHTML='<span class="btn-ovr-sm queued" style="background:var(--done);font-size:10px">\u2705 #'+data.request_id+'</span>';
     }else{
       showToast(data.detail||'Opportunity failed',false);

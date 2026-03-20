@@ -1,0 +1,8 @@
+[
+  {
+    "timestamp": "2026-03-20T11:27:56.264767",
+    "action": "cancel_opp",
+    "opp_id": 3866,
+    "rows_cancelled": 2
+  }
+]
