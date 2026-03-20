@@ -1232,15 +1232,18 @@ def salesoffice_charts_contract_data(
 async def salesoffice_status():
     """Quick status — snapshot count, last run, rooms, hotels."""
     from src.analytics.price_store import get_snapshot_count, load_latest_snapshot, init_db
+    from src.analytics.collector import get_collection_runtime_status
 
     init_db()
     snapshot_count = get_snapshot_count()
     latest = load_latest_snapshot()
 
     cached_analysis = _get_cached_analysis() or {}
+    collection_runtime = get_collection_runtime_status()
 
     return {
         "status": "ok",
+        "data_source": "cache",
         "snapshots_collected": snapshot_count,
         "total_rooms": len(latest) if not latest.empty else 0,
         "total_hotels": latest["hotel_id"].nunique() if not latest.empty else 0,
@@ -1249,6 +1252,8 @@ async def salesoffice_status():
         "analysis_warming": _analysis_warming.is_set(),
         "scheduler_running": _is_scheduler_running(),
         "collection_interval_seconds": COLLECTION_INTERVAL,
+        "last_successful_db_query_ts": collection_runtime.get("last_successful_db_query_ts"),
+        "collection_runtime": collection_runtime,
     }
 
 
@@ -1525,3 +1530,245 @@ async def hotel_readiness():
             status_code=503,
             content={"error": str(exc), "hint": "medici-db may be unreachable"},
         )
+
+
+# ── Path Forecast Endpoints ─────────────────────────────────────────────
+
+@analytics_router.get("/path-forecast")
+@limiter.limit(RATE_LIMIT_DATA)
+async def path_forecast_all(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    hotel_id: int | None = Query(None, description="Filter by hotel ID"),
+    min_profit: float = Query(0.0, description="Min trade profit % to include"),
+):
+    """Full path forecast for all active options.
+
+    Returns the complete predicted price path from now to check-in,
+    with turning points, segments, min/max prices, and optimal
+    buy/sell opportunities.
+
+    Unlike /options which gives a single CALL/PUT signal, this shows
+    the FULL LIFECYCLE of each option — ups, downs, best entry/exit.
+    """
+    from src.analytics.path_forecast import analyze_portfolio_paths
+
+    analysis = _get_cached_analysis()
+    if not analysis:
+        analysis = await _get_or_run_analysis()
+    if not analysis or not analysis.get("predictions"):
+        return {"paths": [], "total": 0, "message": "No analysis data available"}
+
+    all_paths = analyze_portfolio_paths(analysis, source="ensemble")
+
+    # Filter by hotel
+    if hotel_id is not None:
+        all_paths = [p for p in all_paths if p.get("hotel_id") == hotel_id]
+
+    # Filter by minimum profit opportunity
+    if min_profit > 0:
+        all_paths = [p for p in all_paths if p.get("max_trade_profit_pct", 0) >= min_profit]
+
+    total = len(all_paths)
+    page = all_paths[offset: offset + limit]
+
+    return {
+        "paths": page,
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "source": "ensemble",
+    }
+
+
+@analytics_router.get("/path-forecast/{detail_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def path_forecast_detail(
+    request: Request,
+    detail_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Full path forecast for a single option/room.
+
+    Shows the complete price lifecycle with all turning points,
+    segments, and trading opportunities.
+    """
+    from src.analytics.path_forecast import analyze_path
+
+    analysis = _get_cached_analysis()
+    if not analysis:
+        analysis = await _get_or_run_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(404, "No analysis data available")
+
+    pred = analysis["predictions"].get(str(detail_id)) or analysis["predictions"].get(detail_id)
+    if not pred:
+        raise HTTPException(404, f"Detail {detail_id} not found")
+
+    fc_points = pred.get("forward_curve") or []
+    current_price = float(pred.get("current_price", 0) or 0)
+
+    if not fc_points or current_price <= 0:
+        raise HTTPException(404, f"No forward curve data for detail {detail_id}")
+
+    path = analyze_path(
+        forward_curve_points=fc_points,
+        detail_id=detail_id,
+        hotel_id=int(pred.get("hotel_id", 0)),
+        hotel_name=str(pred.get("hotel_name", "")),
+        category=str(pred.get("category", "")),
+        board=str(pred.get("board", "")),
+        checkin_date=str(pred.get("date_from", "")),
+        current_price=current_price,
+        current_t=int(pred.get("days_to_checkin", 0)),
+        source="ensemble",
+        enrichments_applied=True,
+        data_quality=str(pred.get("confidence_quality", "medium")),
+    )
+
+    return path.to_dict()
+
+
+# ── Raw Source Analysis Endpoints ────────────────────────────────────────
+
+@analytics_router.get("/sources/compare")
+@limiter.limit(RATE_LIMIT_DATA)
+async def sources_compare_all(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    hotel_id: int | None = Query(None, description="Filter by hotel ID"),
+    disagreements_only: bool = Query(False, description="Only show where sources disagree"),
+):
+    """Compare all data sources independently — no ensemble, no enrichments.
+
+    For each active option, shows what each source says on its own:
+    statistical profile, independent prediction, and consensus analysis.
+
+    Use this to see where sources agree vs. disagree, and how the
+    ensemble compares to the raw consensus.
+    """
+    from src.analytics.raw_source_analyzer import compare_all_sources
+    from src.analytics.options_engine import compute_next_day_signals
+
+    analysis = _get_cached_analysis()
+    if not analysis:
+        analysis = await _get_or_run_analysis()
+    if not analysis or not analysis.get("predictions"):
+        return {"comparisons": [], "total": 0, "message": "No analysis data available"}
+
+    signals = compute_next_day_signals(analysis)
+    all_comps = compare_all_sources(analysis, signals)
+
+    # Filter by hotel
+    if hotel_id is not None:
+        all_comps = [c for c in all_comps if c.get("hotel_id") == hotel_id]
+
+    # Filter disagreements only
+    if disagreements_only:
+        all_comps = [c for c in all_comps if c.get("disagreement_flag")]
+
+    total = len(all_comps)
+    page = all_comps[offset: offset + limit]
+
+    return {
+        "comparisons": page,
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "disagreements_in_total": sum(1 for c in all_comps if c.get("disagreement_flag")),
+    }
+
+
+@analytics_router.get("/sources/compare/{detail_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def sources_compare_detail(
+    request: Request,
+    detail_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Compare all sources for a single option — raw data, no blending.
+
+    Shows per-source statistics, independent predictions, and
+    consensus analysis for one specific room/option.
+    """
+    from src.analytics.raw_source_analyzer import compare_sources
+    from src.analytics.options_engine import compute_next_day_signals
+
+    analysis = _get_cached_analysis()
+    if not analysis:
+        analysis = await _get_or_run_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(404, "No analysis data available")
+
+    pred = analysis["predictions"].get(str(detail_id)) or analysis["predictions"].get(detail_id)
+    if not pred:
+        raise HTTPException(404, f"Detail {detail_id} not found")
+
+    # Find ensemble signal for this detail
+    signals = compute_next_day_signals(analysis)
+    ensemble_signal = next((s for s in signals if str(s.get("detail_id")) == str(detail_id)), None)
+
+    comparison = compare_sources(pred, ensemble_signal)
+    return comparison.to_dict()
+
+
+@analytics_router.get("/sources/raw/{source_name}/{detail_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def source_raw_detail(
+    request: Request,
+    source_name: str,
+    detail_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Raw statistical analysis from a single source for one option.
+
+    Returns the pure statistical view and prediction from one source
+    with ZERO enrichments and ZERO blending — just the data.
+
+    Valid sources: forward_curve, historical_pattern, ml_forecast,
+    salesoffice, ai_search_hotel_data, search_results_poll_log
+    """
+    from src.analytics.raw_source_analyzer import (
+        analyze_source_statistics,
+        build_source_prediction,
+        PREDICTIVE_SOURCES,
+        ENRICHMENT_ONLY_SOURCES,
+    )
+
+    valid_sources = PREDICTIVE_SOURCES | ENRICHMENT_ONLY_SOURCES
+    if source_name not in valid_sources:
+        raise HTTPException(400, f"Unknown source: {source_name}. Valid: {sorted(valid_sources)}")
+
+    analysis = _get_cached_analysis()
+    if not analysis:
+        analysis = await _get_or_run_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(404, "No analysis data available")
+
+    pred = analysis["predictions"].get(str(detail_id)) or analysis["predictions"].get(detail_id)
+    if not pred:
+        raise HTTPException(404, f"Detail {detail_id} not found")
+
+    stats = analyze_source_statistics(pred, source_name)
+    prediction = build_source_prediction(pred, source_name, stats)
+
+    return {
+        "detail_id": detail_id,
+        "source": source_name,
+        "current_price": float(pred.get("current_price", 0) or 0),
+        "days_to_checkin": int(pred.get("days_to_checkin", 0) or 0),
+        "statistics": stats.to_dict(),
+        "prediction": {
+            "predicted_price": prediction.predicted_price,
+            "predicted_change_pct": prediction.predicted_change_pct,
+            "direction": prediction.direction,
+            "confidence": prediction.confidence,
+            "basis": prediction.basis,
+            "n_supporting_cases": prediction.n_supporting_cases,
+            "n_total_cases": prediction.n_total_cases,
+        },
+    }

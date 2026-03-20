@@ -21,12 +21,12 @@ import zipfile
 ROOT = pathlib.Path(__file__).resolve().parent
 
 # Only top-level directories to exclude
-TOP_LEVEL_EXCLUDE = {".git", ".venv", "data", "docs"}
+TOP_LEVEL_EXCLUDE = {".git", ".venv", "venv", "data", "docs", "node_modules", ".knowledge", "tests", ".dev-logs", "mcp-servers", ".playwright-mcp", ".pytest_cache", "DataAnalysisExpert", "notebooks"}
 # Directories excluded anywhere in the tree
 DEEP_EXCLUDE_NAMES = {"__pycache__"}
 DEEP_EXCLUDE_SUFFIXES = {".egg-info"}
 EXCLUDE_FILES = {".env", "deploy.zip", "build_deploy.py"}
-EXCLUDE_EXT = {".pyc", ".pyo"}
+EXCLUDE_EXT = {".pyc", ".pyo", ".jpeg", ".jpg", ".png"}
 
 AZURE_APP = "medici-prediction-api"
 AZURE_RG = "medici-prediction-rg"
