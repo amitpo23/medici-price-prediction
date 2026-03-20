@@ -137,12 +137,12 @@ a{color:#42a5f5;text-decoration:none}
   <!-- Charts full-width -->
   <div class="chart-box" style="min-height:360px">
     <div class="chart-title">Price Path</div>
-    <div id="price-loading" class="loading"><div class="spin"></div></div>
+    <div id="price-loading" class="empty">Select a hotel and option to view price path</div>
     <canvas id="price-chart" style="display:none"></canvas>
   </div>
   <div class="chart-box" style="min-height:200px">
     <div class="chart-title">Enrichment Decomposition</div>
-    <div id="enrich-loading" class="loading"><div class="spin"></div></div>
+    <div id="enrich-loading" class="empty">Select an option to view enrichments</div>
     <canvas id="enrich-chart" style="display:none"></canvas>
   </div>
 
@@ -225,17 +225,25 @@ async function api(path){
 
 /* ── Init ───────────────────────────────────────────────────────── */
 async function init(){
+  el('price-loading').innerHTML='Loading options...';
   const data=await api('/options?limit=500&profile=lite');
-  if(!data||!data.rows){return}
+  if(!data||!data.rows){
+    el('price-loading').innerHTML='Cache warming up... retrying in 10s. <a href="#" onclick="init();return false">Retry now</a>';
+    setTimeout(init,10000);
+    return;
+  }
   S.options=data.rows;
   S.hotels.clear();
   data.rows.forEach(r=>{
     if(!S.hotels.has(r.hotel_id))S.hotels.set(r.hotel_id,r.hotel_name);
   });
   const sel=el('sel-hotel');
+  sel.innerHTML='<option value="">Select Hotel...</option>';
   [...S.hotels.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id,name])=>{
     const o=document.createElement('option');o.value=id;o.textContent=name;sel.appendChild(o);
   });
+  el('price-loading').innerHTML='Select a hotel and option to view price path';
+  el('ts-updated').textContent='Ready — '+S.options.length+' options loaded';
 }
 
 /* ── Hotel selected ─────────────────────────────────────────────── */
@@ -281,8 +289,10 @@ function highlightRow(){
 function clearTerminal(){
   if(S.priceChart){S.priceChart.destroy();S.priceChart=null}
   if(S.enrichChart){S.enrichChart.destroy();S.enrichChart=null}
-  el('price-chart').style.display='none';el('price-loading').style.display='block';
-  el('enrich-chart').style.display='none';el('enrich-loading').style.display='block';
+  el('price-chart').style.display='none';
+  el('price-loading').style.display='block';el('price-loading').className='empty';el('price-loading').innerHTML='Select an option to view price path';
+  el('enrich-chart').style.display='none';
+  el('enrich-loading').style.display='block';el('enrich-loading').className='empty';el('enrich-loading').innerHTML='Select an option to view enrichments';
   el('signal-body').innerHTML='<div class="empty">Select an option</div>';
   el('sources-body').innerHTML='<div class="empty">Select an option</div>';
   el('accuracy-body').innerHTML='<div class="empty">Select an option</div>';
@@ -293,6 +303,8 @@ function clearTerminal(){
 async function loadTerminal(detailId){
   clearTerminal();
   el('ts-updated').textContent='Loading...';
+  el('price-loading').className='loading';el('price-loading').innerHTML='<div class="spin"></div>';el('price-loading').style.display='block';el('price-chart').style.display='none';
+  el('enrich-loading').className='loading';el('enrich-loading').innerHTML='<div class="spin"></div>';el('enrich-loading').style.display='block';el('enrich-chart').style.display='none';
 
   const [fcRaw, pathData, sourceData, detailData, histData]=await Promise.all([
     api(`/forward-curve/${detailId}?raw=true`),
