@@ -1968,7 +1968,6 @@ async def sources_compare_detail(
     consensus analysis for one specific room/option.
     """
     from src.analytics.raw_source_analyzer import compare_sources
-    from src.analytics.options_engine import compute_next_day_signals
 
     analysis = _get_cached_analysis()
     if not analysis:
@@ -1980,12 +1979,11 @@ async def sources_compare_detail(
     if not pred:
         raise HTTPException(404, f"Detail {detail_id} not found")
 
-    # Find ensemble signal for this detail
-    try:
-        signals = compute_next_day_signals(analysis)
-        ensemble_signal = next((s for s in signals if str(s.get("detail_id")) == str(detail_id)), None)
-    except Exception:
-        ensemble_signal = None
+    # Build ensemble signal from prediction data directly (avoid slow compute_next_day_signals)
+    ensemble_signal = {
+        "recommendation": _derive_option_signal(pred),
+        "predicted_price": pred.get("predicted_checkin_price", pred.get("predicted_price", 0)),
+    }
 
     try:
         comparison = compare_sources(pred, ensemble_signal)
