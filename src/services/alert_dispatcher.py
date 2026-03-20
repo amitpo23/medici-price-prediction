@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 ALERT_DB_PATH = DATA_DIR / "alerts.db"
 COOLDOWN_HOURS = int(os.environ.get("ALERT_COOLDOWN_HOURS", "4"))
+ESCALATION_THRESHOLD = int(os.environ.get("ALERT_ESCALATION_THRESHOLD", "3"))
+ESCALATION_WINDOW_HOURS = int(os.environ.get("ALERT_ESCALATION_WINDOW_HOURS", "6"))
 
 
 # ---------------------------------------------------------------------------
@@ -153,6 +155,44 @@ def _is_in_cooldown(rule_id: str) -> bool:
         return False
 
 
+def _check_escalation(rule_id: str) -> str | None:
+    """Check if a rule has fired repeatedly and needs escalation.
+
+    If the same rule_id has fired >= ESCALATION_THRESHOLD times within
+    ESCALATION_WINDOW_HOURS, escalate severity.
+
+    Returns escalated severity string or None.
+    """
+    try:
+        conn = sqlite3.connect(str(ALERT_DB_PATH))
+        cutoff = (datetime.utcnow() - timedelta(hours=ESCALATION_WINDOW_HOURS)).isoformat()
+        row = conn.execute(
+            "SELECT COUNT(*), MAX(severity) FROM alert_log WHERE rule_id = ? AND timestamp > ? AND status = 'sent'",
+            (rule_id, cutoff),
+        ).fetchone()
+        conn.close()
+
+        count = row[0] or 0
+        if count >= ESCALATION_THRESHOLD:
+            # Escalate: warning → high, high → critical, critical → emergency
+            escalation_map = {
+                "info": "warning",
+                "warning": "high",
+                "high": "critical",
+                "critical": "emergency",
+            }
+            current_max = (row[1] or "info").lower()
+            escalated = escalation_map.get(current_max, "emergency")
+            logger.warning(
+                "Alert escalation: rule=%s fired %d times in %dh, escalating to %s",
+                rule_id, count, ESCALATION_WINDOW_HOURS, escalated,
+            )
+            return escalated
+    except sqlite3.Error:
+        pass
+    return None
+
+
 def _log_alert(rule_id: str, channel: str, payload: dict, status: str = "sent") -> None:
     """Log an alert dispatch to the database."""
     try:
@@ -275,12 +315,19 @@ class AlertDispatcher:
             logger.debug("Alert %s suppressed (cooldown)", rule_id)
             return {"dispatched": False, "reason": "cooldown"}
 
+        # Check for escalation — if same rule fired repeatedly, bump severity
+        escalated_severity = _check_escalation(rule_id)
+        if escalated_severity:
+            severity = escalated_severity
+            message = f"[ESCALATED] {message}"
+
         payload = {
             "rule_id": rule_id,
             "severity": severity,
             "message": message,
             "rooms": rooms or [],
             "timestamp": datetime.utcnow().isoformat(),
+            "escalated": escalated_severity is not None,
         }
 
         results = {}

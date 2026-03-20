@@ -2345,3 +2345,54 @@ async def opportunity_history(
     """Opportunity execution history."""
     from src.analytics.opportunity_queue import get_history
     return get_history(days=days, hotel_id=hotel_id)
+
+
+# ── Monitor Bridge Endpoints ─────────────────────────────────────────
+
+
+@analytics_router.get("/monitor/status")
+@limiter.limit(RATE_LIMIT_DATA)
+async def monitor_booking_engine_status(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Booking engine health status from monitor bridge."""
+    from src.analytics.monitor_bridge import get_booking_engine_status
+    return get_booking_engine_status()
+
+
+@analytics_router.get("/monitor/trend")
+@limiter.limit(RATE_LIMIT_DATA)
+async def monitor_trend(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    hours: int = Query(24, ge=1, le=168),
+):
+    """Booking engine health trend over time."""
+    from src.analytics.monitor_bridge import get_monitor_trend
+    return get_monitor_trend(hours=hours)
+
+
+@analytics_router.get("/monitor/degraded-hotels")
+@limiter.limit(RATE_LIMIT_DATA)
+async def monitor_degraded_hotels(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Hotels with ORDER≠DETAIL gaps above degradation threshold."""
+    from src.analytics.monitor_bridge import MonitorBridge
+    bridge = MonitorBridge()
+    return {"degraded_hotels": bridge.get_degraded_hotels()}
+
+
+@analytics_router.post("/monitor/ingest")
+@limiter.limit(RATE_LIMIT_DATA)
+async def monitor_ingest_report(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    report_path: str = Query(..., description="Path to monitor JSON report"),
+):
+    """Ingest a monitor report into the prediction system."""
+    from src.analytics.monitor_bridge import MonitorBridge
+    bridge = MonitorBridge()
+    return bridge.ingest_report(report_path)

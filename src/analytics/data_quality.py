@@ -156,6 +156,9 @@ class DataQualityScorer:
         avg_freshness = sum(s["freshness_score"] for s in scored) / len(scored) if scored else 0
         anomaly_count = sum(1 for s in scored if s["anomaly_flag"])
 
+        # Dispatch alerts for degraded sources
+        self._dispatch_quality_alerts(scored)
+
         return {
             "checked_at": datetime.utcnow().isoformat(),
             "total_sources": len(scored),
@@ -202,6 +205,51 @@ class DataQualityScorer:
             return round(good / len(rows), 3)
         except sqlite3.Error:
             return 1.0
+
+    def _dispatch_quality_alerts(self, scored: list[dict]) -> None:
+        """Dispatch alerts for sources with freshness below threshold.
+
+        Connects data quality scoring to the alert dispatcher so degraded
+        sources trigger notifications via configured channels (Log/Webhook/Telegram).
+        """
+        degraded = [s for s in scored if s.get("freshness_score", 1.0) < 0.3]
+        anomalies = [s for s in scored if s.get("anomaly_flag")]
+
+        if not degraded and not anomalies:
+            return
+
+        try:
+            from src.services.alert_dispatcher import AlertDispatcher
+            dispatcher = AlertDispatcher()
+
+            # Alert for critically degraded sources (freshness < 0.3)
+            if degraded:
+                source_names = [s.get("name", s.get("source_id", "?")) for s in degraded]
+                dispatcher.dispatch(
+                    rule_id="data_quality_degraded",
+                    severity="warning",
+                    message=(
+                        f"{len(degraded)} data source(s) critically degraded "
+                        f"(freshness < 0.3): {', '.join(source_names[:5])}"
+                    ),
+                    rooms=[],
+                )
+
+            # Separate alert for anomalies (sudden freshness drop on normally reliable source)
+            if anomalies:
+                source_names = [s.get("name", s.get("source_id", "?")) for s in anomalies]
+                dispatcher.dispatch(
+                    rule_id="data_quality_anomaly",
+                    severity="high",
+                    message=(
+                        f"{len(anomalies)} data source anomaly detected "
+                        f"(reliable source suddenly stale): {', '.join(source_names[:5])}"
+                    ),
+                    rooms=[],
+                )
+
+        except (ImportError, Exception) as e:
+            logger.warning("Failed to dispatch quality alerts: %s", e)
 
     def get_weight_adjustments(self) -> dict[str, float]:
         """Get current weight overrides for degraded sources.

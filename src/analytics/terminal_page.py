@@ -36,13 +36,12 @@ a{color:#42a5f5;text-decoration:none}
 .hdr label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
 .hdr .ts{margin-left:auto;font-size:11px;color:var(--muted);font-family:monospace}
 
-/* Layout */
-.main{display:grid;grid-template-columns:1fr 360px;gap:12px}
-.left{display:flex;flex-direction:column;gap:12px}
-.right{display:flex;flex-direction:column;gap:10px}
+/* Layout — stacked vertically so charts are full-width */
+.main{display:flex;flex-direction:column;gap:12px}
+.panels-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
 
 /* Chart containers */
-.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative;overflow:visible}
 .chart-box canvas{width:100%!important}
 .chart-title{font-size:12px;font-weight:600;margin-bottom:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 
@@ -117,8 +116,7 @@ a{color:#42a5f5;text-decoration:none}
 .empty{text-align:center;padding:30px;color:var(--muted);font-style:italic}
 
 @media(max-width:900px){
-  .main{grid-template-columns:1fr}
-  .right{order:-1}
+  .panels-row{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -134,38 +132,31 @@ a{color:#42a5f5;text-decoration:none}
   <a href="/api/v1/salesoffice/home" style="font-size:12px">&larr; Home</a>
 </div>
 
-<!-- Main grid -->
+<!-- Main layout — charts full-width, panels row below -->
 <div class="main">
-  <!-- LEFT: Charts -->
-  <div class="left">
-    <div class="chart-box" style="min-height:340px">
-      <div class="chart-title">Price Path</div>
-      <div id="price-loading" class="loading"><div class="spin"></div></div>
-      <canvas id="price-chart" style="display:none"></canvas>
-    </div>
-    <div class="chart-box" style="min-height:180px">
-      <div class="chart-title">Enrichment Decomposition</div>
-      <div id="enrich-loading" class="loading"><div class="spin"></div></div>
-      <canvas id="enrich-chart" style="display:none"></canvas>
-    </div>
+  <!-- Charts full-width -->
+  <div class="chart-box" style="min-height:360px">
+    <div class="chart-title">Price Path</div>
+    <div id="price-loading" class="loading"><div class="spin"></div></div>
+    <canvas id="price-chart" style="display:none"></canvas>
+  </div>
+  <div class="chart-box" style="min-height:200px">
+    <div class="chart-title">Enrichment Decomposition</div>
+    <div id="enrich-loading" class="loading"><div class="spin"></div></div>
+    <canvas id="enrich-chart" style="display:none"></canvas>
   </div>
 
-  <!-- RIGHT: Side panels -->
-  <div class="right">
-    <!-- Signal Summary -->
+  <!-- Panels side by side -->
+  <div class="panels-row">
     <div class="panel" id="panel-signal">
       <div class="panel-title">Signal Summary</div>
       <div id="signal-body" class="empty">Select an option</div>
     </div>
-
-    <!-- Source Consensus -->
     <div class="panel" id="panel-sources">
       <div class="panel-title">Source Consensus</div>
       <div class="warn-banner" id="disagree-warn">SOURCES DISAGREE — verify before trading</div>
       <div id="sources-body" class="empty">Select an option</div>
     </div>
-
-    <!-- Accuracy -->
     <div class="panel" id="panel-accuracy">
       <div class="panel-title">Accuracy &amp; Context</div>
       <div id="accuracy-body" class="empty">Select an option</div>

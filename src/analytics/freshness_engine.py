@@ -67,6 +67,11 @@ def build_freshness_data() -> dict:
     sources.append(_check_external("Xotelo Rates", "xotelo", "daily", now))
     sources.append(_check_external("FRED Indicators", "fred", "weekly", now))
 
+    # Add booking engine status from monitor bridge (if available)
+    booking_status = _check_booking_engine(now)
+    if booking_status:
+        sources.append(booking_status)
+
     # Filter out None entries
     sources = [s for s in sources if s is not None]
 
@@ -193,6 +198,45 @@ def _check_external(name: str, source_type: str, freq: str, now: datetime) -> di
             "age_display": "N/A",
             "status": "unknown", "frequency": freq,
         }
+
+
+def _check_booking_engine(now: datetime) -> dict | None:
+    """Check booking engine health from monitor bridge data.
+
+    Returns a freshness entry for the booking engine WebJob,
+    or None if no monitor data is available.
+    """
+    try:
+        from src.analytics.monitor_bridge import MonitorBridge
+        bridge = MonitorBridge()
+        status = bridge.get_booking_engine_status()
+
+        if status.get("status") == "no_data":
+            return None
+
+        # Map monitor status to freshness status
+        monitor_status = status.get("status", "unknown")
+        status_map = {"green": "green", "yellow": "yellow", "red": "red"}
+        freshness_status = status_map.get(monitor_status, "unknown")
+
+        return {
+            "name": "Booking Engine (WebJob)",
+            "description": "SalesOffice WebJob scan process health",
+            "last_updated": status.get("last_check", "Unknown"),
+            "age_hours": None,
+            "age_display": "via monitor",
+            "status": freshness_status,
+            "frequency": "realtime",
+            "monitor_details": {
+                "webjob_stale": status.get("webjob_stale", False),
+                "zenith_ok": status.get("zenith_ok", True),
+                "mapping_gaps": status.get("mapping_gaps", 0),
+                "critical_alerts": status.get("critical", 0),
+            },
+        }
+    except (ImportError, Exception) as e:
+        logger.debug("Booking engine check unavailable: %s", e)
+        return None
 
 
 def _compute_status(age_hours: float, freq: str) -> str:
