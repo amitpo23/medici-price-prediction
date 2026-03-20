@@ -2159,7 +2159,11 @@ async def opportunity_request_single(
     if buy_price <= 0:
         raise HTTPException(400, f"Detail {detail_id} has no valid current price")
 
-    predicted_price = float(pred.get("predicted_price", 0) or 0)
+    predicted_price = float(
+        pred.get("predicted_checkin_price", 0)
+        or pred.get("predicted_price", 0)
+        or 0
+    )
     if predicted_price <= 0:
         raise HTTPException(400, f"Detail {detail_id} has no predicted price")
 
