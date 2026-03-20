@@ -1489,6 +1489,176 @@ async def scenario_compare(request: Request):
     return JSONResponse(content=compare_scenarios_from_cache(scenarios))
 
 
+# ── Portfolio Greeks endpoints ────────────────────────────────────────
+
+
+@analytics_router.get("/greeks")
+def portfolio_greeks_summary(request: Request, _key=Depends(_optional_api_key)):
+    """Portfolio-level Greeks summary: Theta, Delta, Vega, VaR, CVaR."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.portfolio_greeks import compute_portfolio_greeks
+    result = compute_portfolio_greeks(analysis)
+    return JSONResponse(content=result.to_dict())
+
+
+@analytics_router.get("/greeks/{hotel_id}")
+def hotel_greeks(hotel_id: int, request: Request, _key=Depends(_optional_api_key)):
+    """Per-hotel Greeks breakdown with per-room detail."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.portfolio_greeks import compute_hotel_greeks
+    result = compute_hotel_greeks(analysis, hotel_id)
+    return JSONResponse(content=result)
+
+
+@analytics_router.get("/greeks/var")
+def portfolio_var(request: Request, _key=Depends(_optional_api_key)):
+    """Dedicated VaR/CVaR endpoint with per-hotel breakdown."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.portfolio_greeks import compute_portfolio_greeks
+    pg = compute_portfolio_greeks(analysis)
+    return JSONResponse(content={
+        "timestamp": pg.timestamp,
+        "portfolio_var_95": pg.portfolio_var_95,
+        "portfolio_cvar_95": pg.portfolio_cvar_95,
+        "total_exposure": pg.total_exposure,
+        "n_contracts": pg.n_contracts,
+        "max_hotel_exposure_pct": pg.max_hotel_exposure_pct,
+        "max_hotel_name": pg.max_hotel_name,
+        "hotel_var": [
+            {"hotel_id": h["hotel_id"], "hotel_name": h["hotel_name"],
+             "var_95": h["var_95"], "exposure": h["exposure"],
+             "exposure_pct": h["exposure_pct"]}
+            for h in pg.hotel_greeks
+        ],
+    })
+
+
+# ── Group Actions (Bulk CALL/PUT) ────────────────────────────────────
+
+
+@analytics_router.post("/group/preview")
+def group_action_preview(
+    request: Request,
+    signal: str | None = Query(None, description="CALL, PUT, or None for all"),
+    hotel_id: int | None = Query(None),
+    hotel_ids: str | None = Query(None, description="Comma-separated hotel IDs"),
+    category: str | None = Query(None, description="standard, deluxe, suite"),
+    board: str | None = Query(None, description="ro, bb"),
+    confidence: str | None = Query(None, description="High, Med, Low"),
+    min_T: int | None = Query(None, description="Min days to check-in"),
+    max_T: int | None = Query(None, description="Max days to check-in"),
+    min_price: float | None = Query(None),
+    max_price: float | None = Query(None),
+    _key=Depends(_optional_api_key),
+):
+    """Preview a group action — dry run showing what would be affected."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.options_engine import compute_next_day_signals
+    from src.analytics.group_actions import GroupFilter, preview_group_action
+
+    parsed_hotel_ids = [int(x.strip()) for x in hotel_ids.split(",")] if hotel_ids else None
+    gf = GroupFilter(
+        signal=signal, hotel_id=hotel_id, hotel_ids=parsed_hotel_ids,
+        category=category, board=board, confidence=confidence,
+        min_T=min_T, max_T=max_T, min_price=min_price, max_price=max_price,
+    )
+    signals = compute_next_day_signals(analysis)
+    result = preview_group_action(signals, analysis, gf)
+    return JSONResponse(content=result)
+
+
+@analytics_router.post("/group/override")
+def group_override(
+    request: Request,
+    signal: str | None = Query(None),
+    hotel_id: int | None = Query(None),
+    hotel_ids: str | None = Query(None, description="Comma-separated hotel IDs"),
+    category: str | None = Query(None),
+    board: str | None = Query(None),
+    confidence: str | None = Query(None),
+    min_T: int | None = Query(None),
+    max_T: int | None = Query(None),
+    min_price: float | None = Query(None),
+    max_price: float | None = Query(None),
+    discount_usd: float = Query(1.0, description="Override discount in USD"),
+    _key=Depends(_optional_api_key),
+):
+    """Execute bulk PUT overrides for rooms matching the filter."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.options_engine import compute_next_day_signals
+    from src.analytics.group_actions import GroupFilter, execute_group_override
+
+    parsed_hotel_ids = [int(x.strip()) for x in hotel_ids.split(",")] if hotel_ids else None
+    gf = GroupFilter(
+        signal=signal, hotel_id=hotel_id, hotel_ids=parsed_hotel_ids,
+        category=category, board=board, confidence=confidence,
+        min_T=min_T, max_T=max_T, min_price=min_price, max_price=max_price,
+    )
+    signals = compute_next_day_signals(analysis)
+    result = execute_group_override(signals, analysis, gf, discount_usd=discount_usd)
+
+    logger.info(
+        "group_override: batch=%s queued=%d skipped=%d",
+        result.batch_id, result.total_queued, result.total_skipped,
+    )
+    return JSONResponse(content=result.to_dict())
+
+
+@analytics_router.post("/group/opportunity")
+def group_opportunity(
+    request: Request,
+    signal: str | None = Query(None),
+    hotel_id: int | None = Query(None),
+    hotel_ids: str | None = Query(None, description="Comma-separated hotel IDs"),
+    category: str | None = Query(None),
+    board: str | None = Query(None),
+    confidence: str | None = Query(None),
+    min_T: int | None = Query(None),
+    max_T: int | None = Query(None),
+    min_price: float | None = Query(None),
+    max_price: float | None = Query(None),
+    max_rooms: int = Query(1, description="Max rooms to buy per opportunity"),
+    _key=Depends(_optional_api_key),
+):
+    """Execute bulk CALL opportunities for rooms matching the filter."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.options_engine import compute_next_day_signals
+    from src.analytics.group_actions import GroupFilter, execute_group_opportunity
+
+    parsed_hotel_ids = [int(x.strip()) for x in hotel_ids.split(",")] if hotel_ids else None
+    gf = GroupFilter(
+        signal=signal, hotel_id=hotel_id, hotel_ids=parsed_hotel_ids,
+        category=category, board=board, confidence=confidence,
+        min_T=min_T, max_T=max_T, min_price=min_price, max_price=max_price,
+    )
+    signals = compute_next_day_signals(analysis)
+    result = execute_group_opportunity(signals, analysis, gf, max_rooms=max_rooms)
+
+    logger.info(
+        "group_opportunity: batch=%s queued=%d skipped=%d",
+        result.batch_id, result.total_queued, result.total_skipped,
+    )
+    return JSONResponse(content=result.to_dict())
+
+
 # ── Hotel Readiness Diagnostic ───────────────────────────────────────
 
 TARGET_HOTELS = {
