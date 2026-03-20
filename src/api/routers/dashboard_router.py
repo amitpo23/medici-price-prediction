@@ -375,3 +375,10 @@ async def dashboard_terminal():
     """Unified Trading Terminal — dark-themed single-screen decision view."""
     from src.analytics.terminal_page import generate_terminal_html
     return HTMLResponse(content=generate_terminal_html())
+
+
+@dashboard_router.get("/dashboard/override-queue", response_class=HTMLResponse)
+async def dashboard_override_queue():
+    """Override Queue management — pending, in-progress, completed overrides."""
+    from src.analytics.override_queue_page import generate_override_queue_html
+    return HTMLResponse(content=generate_override_queue_html())

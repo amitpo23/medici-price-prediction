@@ -77,6 +77,27 @@ a{color:#42a5f5;text-decoration:none}
 .acc-row{display:flex;justify-content:space-between;padding:2px 0;font-size:12px}
 .acc-row .lbl{color:var(--muted)}.acc-row .val{font-family:monospace}
 
+/* Override controls */
+.ovr-bar{background:var(--surface);border:1px solid var(--override);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ovr-bar .ovr-title{font-size:12px;font-weight:600;color:var(--override)}
+.ovr-bar input[type=number]{background:var(--bg);color:var(--text);border:1px solid var(--override);border-radius:4px;padding:4px 8px;font-size:13px;width:80px;font-family:monospace}
+.ovr-bar select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:12px}
+.ovr-bar .ovr-info{font-size:11px;color:var(--muted)}
+.btn-ovr{background:var(--override);color:#000;border:none;border-radius:4px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-ovr:hover{filter:brightness(1.15)}
+.btn-ovr:disabled{opacity:.4;cursor:default}
+.btn-ovr-sm{background:var(--override);color:#000;border:none;border-radius:3px;padding:2px 8px;font-size:10px;font-weight:600;cursor:pointer}
+.btn-ovr-sm:hover{filter:brightness(1.15)}
+.btn-ovr-sm:disabled{opacity:.4;cursor:default}
+.btn-ovr-sm.queued{background:var(--pending);cursor:default}
+.ovr-inline{display:inline-flex;align-items:center;gap:4px}
+.ovr-inline input{background:var(--bg);color:var(--text);border:1px solid var(--override);border-radius:3px;padding:2px 4px;font-size:11px;width:55px;font-family:monospace}
+.toast{position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:500;z-index:9999;animation:fadeIn .3s}
+.toast.ok{background:rgba(76,175,80,.9);color:#fff}.toast.err{background:rgba(244,67,54,.9);color:#fff}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.ovr-panel{border-top:1px solid var(--border);margin-top:8px;padding-top:8px}
+.queue-status{font-size:11px;color:var(--muted);display:flex;gap:12px;align-items:center}
+
 /* Options table */
 .opts-section{margin-top:16px}
 .opts-controls{display:flex;gap:8px;margin-bottom:8px;align-items:center}
@@ -154,6 +175,16 @@ a{color:#42a5f5;text-decoration:none}
 
 <!-- Options table -->
 <div class="opts-section">
+  <!-- Bulk Override Bar -->
+  <div class="ovr-bar" id="ovr-bar" style="display:none">
+    <span class="ovr-title">&#11015; Bulk Override PUTs</span>
+    <label style="font-size:12px;color:var(--muted)">Discount: <input type="number" id="ovr-discount" value="1.00" min="0.01" max="10" step="0.50"></label>
+    <button class="btn-ovr" id="btn-bulk-ovr" disabled>&#9654; Queue All PUTs</button>
+    <span class="ovr-info" id="ovr-put-count">PUT signals: --</span>
+    <span class="queue-status" id="queue-status"></span>
+    <a href="/api/v1/salesoffice/dashboard/override-queue" style="font-size:11px;margin-left:auto">View Queue &rarr;</a>
+  </div>
+
   <div class="opts-controls">
     <span style="font-size:12px;color:var(--muted);font-weight:600">OPTIONS</span>
     <select id="opts-sort">
@@ -167,9 +198,9 @@ a{color:#42a5f5;text-decoration:none}
     <table class="opts-table">
       <thead><tr>
         <th>ID</th><th>Category</th><th>Board</th><th>Check-in</th><th>T</th>
-        <th>Price</th><th>Signal</th><th>Min&rarr;Max</th><th>Trade%</th><th>Consensus</th><th></th>
+        <th>Price</th><th>Signal</th><th>Min&rarr;Max</th><th>Trade%</th><th>Consensus</th><th></th><th>Override</th>
       </tr></thead>
-      <tbody id="opts-body"><tr><td colspan="11" class="empty">Select a hotel</td></tr></tbody>
+      <tbody id="opts-body"><tr><td colspan="12" class="empty">Select a hotel</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -224,7 +255,7 @@ function onHotelChange(){
   optSel.innerHTML='<option value="">Select Option...</option>';
   optSel.disabled=!S.hotelId;
   clearTerminal();
-  if(!S.hotelId){el('opts-body').innerHTML='<tr><td colspan="11" class="empty">Select a hotel</td></tr>';return}
+  if(!S.hotelId){el('opts-body').innerHTML='<tr><td colspan="12" class="empty">Select a hotel</td></tr>';return}
   const filtered=S.options.filter(r=>String(r.hotel_id)===String(S.hotelId));
   filtered.forEach(r=>{
     const o=document.createElement('option');
@@ -493,7 +524,13 @@ function renderSignalPanel(fcRaw, pathData, detailData){
     '<div class="sig-row"><span class="lbl">Reversals</span><span class="val">'+(reversals>0?reversals:0)+'</span></div>'+
     '<div class="sig-row"><span class="lbl">Best Trade</span><span class="val '+(bestTrade>0?'up':'')+'">'+fmtPct(bestTrade)+'</span></div>'+
     '<div class="sig-row"><span class="lbl">Regime</span><span class="val">'+(reg.regime||reg.label||'--')+'</span></div>'+
-    '<div class="sig-row"><span class="lbl">Momentum</span><span class="val">'+(mom.signal||'--')+'</span></div>';
+    '<div class="sig-row"><span class="lbl">Momentum</span><span class="val">'+(mom.signal||'--')+'</span></div>'+
+    ((sig==='PUT'||sig==='STRONG_PUT')
+      ? '<div class="ovr-panel"><div class="ovr-inline">'+
+        '<button class="btn-ovr" onclick="queueOverride('+d.detail_id+','+cp+')" id="panel-ovr-btn">&#11015; Override -$<span id="panel-ovr-disc">'+(parseFloat(el('ovr-discount').value)||1).toFixed(2)+'</span></button>'+
+        '<span style="color:var(--muted);font-size:11px">&rarr; '+fmt$(cp-(parseFloat(el('ovr-discount').value)||1))+'</span>'+
+        '</div></div>'
+      : '');
 }
 
 /* ── Sources Panel ──────────────────────────────────────────────── */
@@ -555,15 +592,27 @@ function renderTable(rows){
   else if(sortKey==='disagree')sorted.sort((a,b)=>(b.source_disagreement?1:0)-(a.source_disagreement?1:0));
   else if(sortKey==='price')sorted.sort((a,b)=>(b.current_price||0)-(a.current_price||0));
 
-  if(!sorted.length){el('opts-body').innerHTML='<tr><td colspan="11" class="empty">No options</td></tr>';return}
+  if(!sorted.length){el('opts-body').innerHTML='<tr><td colspan="12" class="empty">No options</td></tr>';return}
+
+  // Count PUTs for bulk bar
+  const puts=sorted.filter(r=>r.option_signal==='PUT'||r.option_signal==='STRONG_PUT');
+  const disc=parseFloat(el('ovr-discount').value)||1;
+  el('ovr-put-count').textContent='PUT signals: '+puts.length+' | Est. savings: $'+(puts.length*disc).toFixed(2);
+  el('btn-bulk-ovr').disabled=puts.length===0;
+  el('ovr-bar').style.display='flex';
 
   el('opts-body').innerHTML=sorted.map(r=>{
     const sig=r.option_signal||'--';
+    const isPut=sig==='PUT'||sig==='STRONG_PUT';
     const pMin=r.path_min_price!=null?fmt$(r.path_min_price):'--';
     const pMax=r.path_max_price!=null?fmt$(r.path_max_price):'--';
     const trade=r.path_best_trade_pct||0;
     const cons=r.source_consensus||'--';
     const dis=r.source_disagreement;
+    const ovrId='ovr-'+r.detail_id;
+    const ovrCell=isPut
+      ? '<td id="'+ovrId+'"><button class="btn-ovr-sm" onclick="event.stopPropagation();queueOverride('+r.detail_id+','+r.current_price+')">&#11015; Override</button></td>'
+      : '<td><span style="color:var(--muted);font-size:10px" title="Only PUT/STRONG_PUT">--</span></td>';
     return '<tr data-id="'+r.detail_id+'" onclick="selectFromTable('+r.detail_id+')"'+
       (String(r.detail_id)===String(S.detailId)?' class="active"':'')+'>'+
       '<td>'+r.detail_id+'</td>'+
@@ -577,8 +626,81 @@ function renderTable(rows){
       '<td style="color:'+(trade>5?'var(--call)':'var(--muted)')+'">'+fmtPct(trade)+'</td>'+
       '<td><span class="sig '+sigCls(cons)+'" style="font-size:10px;padding:1px 6px">'+cons+'</span></td>'+
       '<td>'+(dis?'<span style="color:var(--put);font-weight:700" title="Sources disagree">!!!</span>':'')+'</td>'+
+      ovrCell+
     '</tr>';
   }).join('');
+
+  loadQueueStatus();
+}
+
+/* ── Override Functions ─────────────────────────────────────────── */
+function showToast(msg,ok){
+  const t=document.createElement('div');t.className='toast '+(ok?'ok':'err');t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),5000);
+}
+
+async function queueOverride(detailId,currentPrice){
+  const disc=parseFloat(el('ovr-discount').value)||1;
+  const target=currentPrice-disc;
+  if(disc<=0||disc>10){showToast('Discount must be $0.01-$10.00',false);return}
+  if(target<50){showToast('Target price $'+target.toFixed(2)+' is below $50 minimum',false);return}
+  const cell=document.getElementById('ovr-'+detailId);
+  if(cell)cell.innerHTML='<span style="color:var(--pending);font-size:10px">sending...</span>';
+  try{
+    const r=await fetch(API+'/override/request',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({detail_id:detailId,discount_usd:disc})
+    });
+    const data=await r.json();
+    if(r.ok){
+      showToast('Queued #'+data.request_id+': '+fmt$(currentPrice)+' \u2192 '+fmt$(data.target_price),true);
+      if(cell)cell.innerHTML='<span class="btn-ovr-sm queued" style="font-size:10px">\u{1F551} #'+data.request_id+'</span>';
+    }else{
+      showToast(data.detail||'Override failed',false);
+      if(cell)cell.innerHTML='<button class="btn-ovr-sm" onclick="event.stopPropagation();queueOverride('+detailId+','+currentPrice+')">&#11015; Retry</button>';
+    }
+  }catch(e){
+    showToast('Network error',false);
+    if(cell)cell.innerHTML='<button class="btn-ovr-sm" onclick="event.stopPropagation();queueOverride('+detailId+','+currentPrice+')">&#11015; Retry</button>';
+  }
+}
+
+async function bulkOverride(){
+  const disc=parseFloat(el('ovr-discount').value)||1;
+  if(disc<=0||disc>10){showToast('Discount must be $0.01-$10.00',false);return}
+  const puts=S.options.filter(r=>String(r.hotel_id)===String(S.hotelId)&&(r.option_signal==='PUT'||r.option_signal==='STRONG_PUT'));
+  if(!puts.length){showToast('No PUT signals to override',false);return}
+  if(!confirm('Queue '+puts.length+' overrides at -$'+disc.toFixed(2)+'?\nTotal impact: -$'+(puts.length*disc).toFixed(2)))return;
+  el('btn-bulk-ovr').disabled=true;el('btn-bulk-ovr').textContent='Sending...';
+  try{
+    const r=await fetch(API+'/override/bulk',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({discount_usd:disc,hotel_id:parseInt(S.hotelId)})
+    });
+    const data=await r.json();
+    if(r.ok){
+      showToast('Queued batch '+data.batch_id+': '+data.count+' overrides at -$'+disc.toFixed(2),true);
+      // Refresh table to show queued status
+      const filtered=S.options.filter(r=>String(r.hotel_id)===String(S.hotelId));
+      renderTable(filtered);
+    }else{
+      showToast(data.detail||'Bulk override failed',false);
+    }
+  }catch(e){showToast('Network error',false)}
+  el('btn-bulk-ovr').disabled=false;el('btn-bulk-ovr').textContent='\u25B6 Queue All PUTs';
+}
+
+async function loadQueueStatus(){
+  try{
+    const r=await fetch(API+'/override/queue?limit=1');
+    if(!r.ok)return;
+    const data=await r.json();
+    const s=data.stats||{};
+    el('queue-status').innerHTML=
+      '<span style="color:var(--pending)">'+(s.pending||0)+' pending</span> | '+
+      '<span style="color:var(--done)">'+(s.done||0)+' done</span> | '+
+      '<span style="color:var(--failed)">'+(s.failed||0)+' failed</span>';
+  }catch(e){}
 }
 
 /* ── Auto-refresh ───────────────────────────────────────────────── */
@@ -595,6 +717,13 @@ el('sel-hotel').addEventListener('change',onHotelChange);
 el('sel-option').addEventListener('change',onOptionChange);
 el('chk-refresh').addEventListener('change',toggleRefresh);
 el('opts-sort').addEventListener('change',()=>{
+  if(S.hotelId){
+    const filtered=S.options.filter(r=>String(r.hotel_id)===String(S.hotelId));
+    renderTable(filtered);
+  }
+});
+el('btn-bulk-ovr').addEventListener('click',bulkOverride);
+el('ovr-discount').addEventListener('change',()=>{
   if(S.hotelId){
     const filtered=S.options.filter(r=>String(r.hotel_id)===String(S.hotelId));
     renderTable(filtered);
