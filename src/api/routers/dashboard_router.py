@@ -356,14 +356,14 @@ async def salesoffice_options_view(
     return HTMLResponse(content=_generate_options_async_html(t_days=t_days, signal=signal))
 
 
-@dashboard_router.get("/path-forecast", response_class=HTMLResponse)
+@dashboard_router.get("/dashboard/path-forecast", response_class=HTMLResponse)
 async def salesoffice_path_forecast_view():
     """Path Forecast dashboard — full price lifecycle with turning points and trades."""
     from src.analytics.path_forecast_page import generate_path_forecast_html
     return HTMLResponse(content=generate_path_forecast_html())
 
 
-@dashboard_router.get("/sources", response_class=HTMLResponse)
+@dashboard_router.get("/dashboard/sources", response_class=HTMLResponse)
 async def salesoffice_sources_view():
     """Source Comparison dashboard — per-source analysis without ensemble blending."""
     from src.analytics.sources_page import generate_sources_html
