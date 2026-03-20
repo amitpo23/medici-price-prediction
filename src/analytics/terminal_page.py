@@ -609,10 +609,12 @@ function renderTable(rows){
     const trade=r.path_best_trade_pct||0;
     const cons=r.source_consensus||'--';
     const dis=r.source_disagreement;
+    const isCall=sig==='CALL'||sig==='STRONG_CALL';
     const ovrId='ovr-'+r.detail_id;
-    const ovrCell=isPut
-      ? '<td id="'+ovrId+'"><button class="btn-ovr-sm" onclick="event.stopPropagation();queueOverride('+r.detail_id+','+r.current_price+')">&#11015; Override</button></td>'
-      : '<td><span style="color:var(--muted);font-size:10px" title="Only PUT/STRONG_PUT">--</span></td>';
+    let ovrCell;
+    if(isPut)ovrCell='<td id="'+ovrId+'"><button class="btn-ovr-sm" onclick="event.stopPropagation();queueOverride('+r.detail_id+','+r.current_price+')">&#11015; Override</button></td>';
+    else if(isCall)ovrCell='<td id="'+ovrId+'"><button class="btn-ovr-sm" style="background:var(--call)" onclick="event.stopPropagation();queueOpportunity('+r.detail_id+','+r.current_price+')">&#11014; Buy</button></td>';
+    else ovrCell='<td><span style="color:var(--muted);font-size:10px">--</span></td>';
     return '<tr data-id="'+r.detail_id+'" onclick="selectFromTable('+r.detail_id+')"'+
       (String(r.detail_id)===String(S.detailId)?' class="active"':'')+'>'+
       '<td>'+r.detail_id+'</td>'+
@@ -662,6 +664,30 @@ async function queueOverride(detailId,currentPrice){
   }catch(e){
     showToast('Network error',false);
     if(cell)cell.innerHTML='<button class="btn-ovr-sm" onclick="event.stopPropagation();queueOverride('+detailId+','+currentPrice+')">&#11015; Retry</button>';
+  }
+}
+
+async function queueOpportunity(detailId,currentPrice){
+  const margin=15;
+  const pushPrice=Math.round(currentPrice*1.15*100)/100;
+  const cell=document.getElementById('ovr-'+detailId);
+  if(cell)cell.innerHTML='<span style="color:var(--call);font-size:10px">sending...</span>';
+  try{
+    const r=await fetch(API+'/opportunity/request',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({detail_id:detailId,margin_pct:margin,max_rooms:1})
+    });
+    const data=await r.json();
+    if(r.ok){
+      showToast('Opp #'+data.request_id+': buy '+fmt$(data.buy_price)+' \u2192 push '+fmt$(data.push_price)+' ('+data.margin_pct+'%)',true);
+      if(cell)cell.innerHTML='<span class="btn-ovr-sm queued" style="background:var(--done);font-size:10px">\u2705 #'+data.request_id+'</span>';
+    }else{
+      showToast(data.detail||'Opportunity failed',false);
+      if(cell)cell.innerHTML='<button class="btn-ovr-sm" style="background:var(--call)" onclick="event.stopPropagation();queueOpportunity('+detailId+','+currentPrice+')">&#11014; Retry</button>';
+    }
+  }catch(e){
+    showToast('Network error',false);
+    if(cell)cell.innerHTML='<button class="btn-ovr-sm" style="background:var(--call)" onclick="event.stopPropagation();queueOpportunity('+detailId+','+currentPrice+')">&#11014; Retry</button>';
   }
 }
 

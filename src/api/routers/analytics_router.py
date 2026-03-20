@@ -1874,3 +1874,464 @@ async def source_raw_detail(
             "n_total_cases": prediction.n_total_cases,
         },
     }
+
+
+# ── Price Override Queue Endpoints ───────────────────────────────────────
+
+@analytics_router.post("/override/request")
+@limiter.limit(RATE_LIMIT_DATA)
+async def override_request_single(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Queue a single price override — undercut competitors by $X.
+
+    Body JSON:
+        detail_id: int — room detail ID
+        discount_usd: float — dollars to subtract (default 1.0)
+
+    The system computes target_price = current_price - discount_usd,
+    validates guardrails, and saves to the local queue.
+    The external price-override skill picks it up and executes.
+    """
+    from src.analytics.override_queue import (
+        enqueue_override,
+        OverrideValidationError,
+    )
+
+    body = await request.json()
+    detail_id = int(body.get("detail_id", 0))
+    discount_usd = float(body.get("discount_usd", 1.0))
+
+    if not detail_id:
+        raise HTTPException(400, "detail_id is required")
+
+    # Get current prediction data for context
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(503, "No analysis data available — run warmup first")
+
+    pred = analysis["predictions"].get(str(detail_id)) or analysis["predictions"].get(detail_id)
+    if not pred:
+        raise HTTPException(404, f"Detail {detail_id} not found in predictions")
+
+    current_price = float(pred.get("current_price", 0) or 0)
+    if current_price <= 0:
+        raise HTTPException(400, f"Detail {detail_id} has no valid current price")
+
+    try:
+        req = enqueue_override(
+            detail_id=detail_id,
+            hotel_id=int(pred.get("hotel_id", 0)),
+            current_price=current_price,
+            discount_usd=discount_usd,
+            signal=str(body.get("signal", "PUT")),
+            confidence=str(body.get("confidence", "")),
+            hotel_name=str(pred.get("hotel_name", "")),
+            category=str(pred.get("category", "")),
+            board=str(pred.get("board", "")),
+            checkin_date=str(pred.get("date_from", "")),
+            path_min_price=body.get("path_min_price"),
+            trigger_type="manual",
+        )
+    except OverrideValidationError as exc:
+        raise HTTPException(400, str(exc))
+
+    return {
+        "request_id": req.id,
+        "detail_id": req.detail_id,
+        "current_price": req.current_price,
+        "discount_usd": req.discount_usd,
+        "target_price": req.target_price,
+        "status": req.status,
+    }
+
+
+@analytics_router.post("/override/bulk")
+@limiter.limit("10/minute")
+async def override_bulk_puts(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Queue overrides for ALL active PUT signals in one batch.
+
+    Body JSON:
+        discount_usd: float — dollars to subtract (default 1.0)
+        hotel_id: int|null — optional hotel filter
+        signal_filter: str — "PUT" or "STRONG_PUT" (default: both)
+
+    Creates a batch of override requests. The external skill
+    picks them all up and executes sequentially.
+    """
+    from src.analytics.override_queue import (
+        enqueue_bulk_puts,
+        OverrideValidationError,
+    )
+    from src.analytics.options_engine import compute_next_day_signals
+
+    body = await request.json()
+    discount_usd = float(body.get("discount_usd", 1.0))
+    hotel_id_filter = body.get("hotel_id")
+    if hotel_id_filter is not None:
+        hotel_id_filter = int(hotel_id_filter)
+
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(503, "No analysis data available — run warmup first")
+
+    signals = compute_next_day_signals(analysis)
+
+    try:
+        batch_id, requests = enqueue_bulk_puts(
+            analysis=analysis,
+            signals=signals,
+            discount_usd=discount_usd,
+            hotel_id_filter=hotel_id_filter,
+        )
+    except OverrideValidationError as exc:
+        raise HTTPException(400, str(exc))
+
+    return {
+        "batch_id": batch_id,
+        "count": len(requests),
+        "discount_usd": discount_usd,
+        "requests": [
+            {
+                "request_id": r.id,
+                "detail_id": r.detail_id,
+                "hotel_name": r.hotel_name,
+                "current_price": r.current_price,
+                "target_price": r.target_price,
+            }
+            for r in requests
+        ],
+    }
+
+
+@analytics_router.get("/override/queue")
+@limiter.limit(RATE_LIMIT_DATA)
+async def override_queue_list(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    status: str | None = Query(None, description="Filter: pending, picked, done, failed"),
+    batch_id: str | None = Query(None),
+    hotel_id: int | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """View the override queue — pending, in-progress, completed, failed."""
+    from src.analytics.override_queue import get_queue, get_queue_stats
+
+    requests, total = get_queue(
+        status=status, batch_id=batch_id, hotel_id=hotel_id,
+        limit=limit, offset=offset,
+    )
+    stats = get_queue_stats()
+
+    return {
+        "requests": [r.to_dict() for r in requests],
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "stats": stats,
+    }
+
+
+@analytics_router.get("/override/queue/{request_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def override_queue_detail(
+    request: Request,
+    request_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Get status of a single override request."""
+    from src.analytics.override_queue import get_request
+
+    req = get_request(request_id)
+    if not req:
+        raise HTTPException(404, f"Override request {request_id} not found")
+
+    return req.to_dict()
+
+
+@analytics_router.get("/override/pending")
+@limiter.limit(RATE_LIMIT_DATA)
+async def override_pending(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    limit: int = Query(50, ge=1, le=200),
+):
+    """Get all pending override requests — consumed by the external skill.
+
+    The price-override skill polls this endpoint (or reads SQLite directly)
+    to pick up work.
+    """
+    from src.analytics.override_queue import get_pending_requests
+
+    pending = get_pending_requests(limit=limit)
+    return {
+        "pending": [r.to_dict() for r in pending],
+        "count": len(pending),
+    }
+
+
+@analytics_router.post("/override/{request_id}/complete")
+@limiter.limit(RATE_LIMIT_DATA)
+async def override_complete(
+    request: Request,
+    request_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Report execution result — called by the external skill after push.
+
+    Body JSON:
+        status: "done" or "failed"
+        error_message: string (optional, for failures)
+    """
+    from src.analytics.override_queue import mark_completed, mark_picked
+
+    body = await request.json()
+    status = body.get("status", "done")
+    error_message = body.get("error_message", "")
+
+    if status not in ("done", "failed"):
+        raise HTTPException(400, "status must be 'done' or 'failed'")
+
+    success = mark_completed(request_id, success=(status == "done"), error_message=error_message)
+    if not success:
+        raise HTTPException(404, f"Override request {request_id} not found or already completed")
+
+    return {"request_id": request_id, "status": status}
+
+
+@analytics_router.get("/override/history")
+@limiter.limit(RATE_LIMIT_DATA)
+async def override_history(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    days: int = Query(30, ge=1, le=365),
+    hotel_id: int | None = Query(None),
+):
+    """Override execution history — for post-trade analysis.
+
+    Shows: total overrides, success rate, avg discount, breakdown by hotel.
+    """
+    from src.analytics.override_queue import get_history
+
+    return get_history(days=days, hotel_id=hotel_id)
+
+
+# ── Insert Opportunity Endpoints ─────────────────────────────────────
+
+@analytics_router.post("/opportunity/request")
+@limiter.limit(RATE_LIMIT_DATA)
+async def opportunity_request_single(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Queue a single insert-opportunity — buy at current price, sell at margin.
+
+    Body JSON:
+        detail_id: int
+        margin_pct: float (default 15 — push = buy * 1.15)
+        max_rooms: int (default 1)
+        buy_price: float (optional — defaults to current_price)
+        push_price: float (optional — computed from margin if omitted)
+    """
+    from src.analytics.opportunity_queue import (
+        enqueue_opportunity,
+        OpportunityValidationError,
+    )
+
+    body = await request.json()
+    detail_id = int(body.get("detail_id", 0))
+    if not detail_id:
+        raise HTTPException(400, "detail_id is required")
+
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(503, "No analysis data available — run warmup first")
+
+    pred = analysis["predictions"].get(str(detail_id)) or analysis["predictions"].get(detail_id)
+    if not pred:
+        raise HTTPException(404, f"Detail {detail_id} not found in predictions")
+
+    current_price = float(pred.get("current_price", 0) or 0)
+    if current_price <= 0:
+        raise HTTPException(400, f"Detail {detail_id} has no valid current price")
+
+    try:
+        req = enqueue_opportunity(
+            detail_id=detail_id,
+            hotel_id=int(pred.get("hotel_id", 0)),
+            current_price=current_price,
+            buy_price=body.get("buy_price"),
+            push_price=body.get("push_price"),
+            margin_pct=body.get("margin_pct"),
+            max_rooms=int(body.get("max_rooms", 1)),
+            signal=str(body.get("signal", "CALL")),
+            confidence=str(body.get("confidence", "")),
+            hotel_name=str(pred.get("hotel_name", "")),
+            category=str(pred.get("category", "")),
+            board=str(pred.get("board", "")),
+            checkin_date=str(pred.get("date_from", "")),
+            trigger_type="manual",
+        )
+    except OpportunityValidationError as exc:
+        raise HTTPException(400, str(exc))
+
+    return {
+        "request_id": req.id,
+        "detail_id": req.detail_id,
+        "buy_price": req.buy_price,
+        "push_price": req.push_price,
+        "margin_pct": req.margin_pct,
+        "max_rooms": req.max_rooms,
+        "status": req.status,
+    }
+
+
+@analytics_router.post("/opportunity/bulk")
+@limiter.limit("10/minute")
+async def opportunity_bulk_calls(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Queue opportunities for ALL active CALL signals in one batch.
+
+    Body JSON:
+        margin_pct: float (default 15)
+        max_rooms: int (default 1)
+        hotel_id: int|null (optional filter)
+    """
+    from src.analytics.opportunity_queue import (
+        enqueue_bulk_calls,
+        OpportunityValidationError,
+    )
+    from src.analytics.options_engine import compute_next_day_signals
+
+    body = await request.json()
+    margin_pct = float(body.get("margin_pct", 15))
+    max_rooms = int(body.get("max_rooms", 1))
+    hotel_id_filter = body.get("hotel_id")
+    if hotel_id_filter is not None:
+        hotel_id_filter = int(hotel_id_filter)
+
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(503, "No analysis data available — run warmup first")
+
+    signals = compute_next_day_signals(analysis)
+
+    try:
+        batch_id, requests = enqueue_bulk_calls(
+            analysis=analysis,
+            signals=signals,
+            margin_pct=margin_pct,
+            max_rooms=max_rooms,
+            hotel_id_filter=hotel_id_filter,
+        )
+    except OpportunityValidationError as exc:
+        raise HTTPException(400, str(exc))
+
+    return {
+        "batch_id": batch_id,
+        "count": len(requests),
+        "margin_pct": margin_pct,
+        "requests": [
+            {"request_id": r.id, "detail_id": r.detail_id, "hotel_name": r.hotel_name,
+             "buy_price": r.buy_price, "push_price": r.push_price}
+            for r in requests
+        ],
+    }
+
+
+@analytics_router.get("/opportunity/queue")
+@limiter.limit(RATE_LIMIT_DATA)
+async def opportunity_queue_list(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    status: str | None = Query(None),
+    hotel_id: int | None = Query(None),
+    batch_id: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """View the opportunity queue."""
+    from src.analytics.opportunity_queue import get_opp_queue, get_opp_queue_stats
+
+    requests, total = get_opp_queue(
+        status=status, hotel_id=hotel_id, batch_id=batch_id,
+        limit=limit, offset=offset,
+    )
+    stats = get_opp_queue_stats()
+
+    return {
+        "requests": [r.to_dict() for r in requests],
+        "total": total, "offset": offset, "limit": limit, "stats": stats,
+    }
+
+
+@analytics_router.get("/opportunity/queue/{request_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def opportunity_queue_detail(
+    request: Request,
+    request_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Get status of a single opportunity request."""
+    from src.analytics.opportunity_queue import get_opp_request
+
+    req = get_opp_request(request_id)
+    if not req:
+        raise HTTPException(404, f"Opportunity request {request_id} not found")
+    return req.to_dict()
+
+
+@analytics_router.get("/opportunity/pending")
+@limiter.limit(RATE_LIMIT_DATA)
+async def opportunity_pending(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    limit: int = Query(50, ge=1, le=200),
+):
+    """Get pending opportunities — consumed by the external insert-opp skill."""
+    from src.analytics.opportunity_queue import get_pending_opps
+
+    pending = get_pending_opps(limit=limit)
+    return {"pending": [r.to_dict() for r in pending], "count": len(pending)}
+
+
+@analytics_router.post("/opportunity/{request_id}/complete")
+@limiter.limit(RATE_LIMIT_DATA)
+async def opportunity_complete(
+    request: Request,
+    request_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Report execution result — called by external insert-opp skill."""
+    from src.analytics.opportunity_queue import mark_opp_completed
+
+    body = await request.json()
+    status = body.get("status", "done")
+    error_message = body.get("error_message", "")
+    if status not in ("done", "failed"):
+        raise HTTPException(400, "status must be 'done' or 'failed'")
+
+    success = mark_opp_completed(request_id, success=(status == "done"), error_message=error_message)
+    if not success:
+        raise HTTPException(404, f"Opportunity request {request_id} not found or already completed")
+    return {"request_id": request_id, "status": status}
+
+
+@analytics_router.get("/opportunity/history")
+@limiter.limit(RATE_LIMIT_DATA)
+async def opportunity_history(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    days: int = Query(30, ge=1, le=365),
+    hotel_id: int | None = Query(None),
+):
+    """Opportunity execution history."""
+    from src.analytics.opportunity_queue import get_opp_history
+    return get_opp_history(days=days, hotel_id=hotel_id)
