@@ -1067,8 +1067,13 @@ def salesoffice_option_detail(
 
 
 @analytics_router.get("/forward-curve/{detail_id}")
-def salesoffice_forward_curve(detail_id: int):
-    """Full forward curve prediction for a specific room."""
+def salesoffice_forward_curve(detail_id: int, raw: bool = False):
+    """Full forward curve prediction for a specific room.
+
+    When raw=true, returns the pure decay-curve walk with all enrichment
+    adjustments stripped (events, seasonality, demand, weather, competitor,
+    momentum).  The enriched curve is still included for comparison.
+    """
     analysis = _get_or_run_analysis()
     predictions = analysis.get("predictions", {})
 
@@ -1077,7 +1082,10 @@ def salesoffice_forward_curve(detail_id: int):
     if not pred:
         raise HTTPException(status_code=404, detail=f"Room {detail_id} not found in predictions")
 
-    return JSONResponse(content={
+    fc_points = pred.get("forward_curve", [])
+    current_price = float(pred.get("current_price", 0) or 0)
+
+    payload: dict = {
         "detail_id": detail_id,
         "hotel_name": pred.get("hotel_name"),
         "hotel_id": pred.get("hotel_id"),
@@ -1094,13 +1102,44 @@ def salesoffice_forward_curve(detail_id: int):
         "confidence_quality": pred.get("confidence_quality"),
         "momentum": pred.get("momentum"),
         "regime": pred.get("regime"),
-        "forward_curve": pred.get("forward_curve", []),
+        "forward_curve": fc_points,
         # Deep predictor enrichments
         "prediction_method": pred.get("prediction_method"),
         "signals": pred.get("signals"),
         "yoy_comparison": pred.get("yoy_comparison"),
         "explanation": pred.get("explanation"),
-    })
+        "raw_mode": raw,
+    }
+
+    if raw and fc_points and current_price > 0:
+        from src.analytics.raw_source_analyzer import _strip_enrichments_from_curve
+        raw_prices = _strip_enrichments_from_curve(fc_points, current_price)
+        raw_curve = []
+        for i, pt in enumerate(fc_points):
+            raw_curve.append({
+                "date": pt.get("date"),
+                "t": pt.get("t"),
+                "predicted_price": round(raw_prices[i], 2) if i < len(raw_prices) else pt.get("predicted_price"),
+                "enriched_price": round(float(pt.get("predicted_price", 0)), 2),
+                "enrichment_delta": round(
+                    float(pt.get("predicted_price", 0)) - (raw_prices[i] if i < len(raw_prices) else float(pt.get("predicted_price", 0))),
+                    2,
+                ),
+                "event_adj_pct": pt.get("event_adj_pct", 0),
+                "season_adj_pct": pt.get("season_adj_pct", 0),
+                "demand_adj_pct": pt.get("demand_adj_pct", 0),
+                "momentum_adj_pct": pt.get("momentum_adj_pct", 0),
+                "weather_adj_pct": pt.get("weather_adj_pct", 0),
+                "competitor_adj_pct": pt.get("competitor_adj_pct", 0),
+            })
+        payload["raw_forward_curve"] = raw_curve
+        payload["raw_final_price"] = round(raw_prices[-1], 2) if raw_prices else current_price
+        payload["enrichment_total_impact"] = round(
+            float(fc_points[-1].get("predicted_price", 0)) - (raw_prices[-1] if raw_prices else current_price),
+            2,
+        ) if fc_points else 0.0
+
+    return JSONResponse(content=payload)
 
 
 @analytics_router.get("/options")
