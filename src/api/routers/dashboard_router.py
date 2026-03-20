@@ -368,3 +368,10 @@ async def salesoffice_sources_view():
     """Source Comparison dashboard — per-source analysis without ensemble blending."""
     from src.analytics.sources_page import generate_sources_html
     return HTMLResponse(content=generate_sources_html())
+
+
+@dashboard_router.get("/dashboard/terminal", response_class=HTMLResponse)
+async def dashboard_terminal():
+    """Unified Trading Terminal — dark-themed single-screen decision view."""
+    from src.analytics.terminal_page import generate_terminal_html
+    return HTMLResponse(content=generate_terminal_html())
