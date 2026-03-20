@@ -208,7 +208,12 @@ async def test_status_returns_json(test_client):
     assert resp.status_code == 200
     data = resp.json()
     assert "status" in data
+    assert data["data_source"] == "cache"
     assert "snapshots_collected" in data
+    assert "last_successful_db_query_ts" in data
+    assert "collection_runtime" in data
+    assert "last_state" in data["collection_runtime"]
+    assert "db_configured" in data["collection_runtime"]
     assert "Traceback" not in resp.text
 
 
@@ -256,3 +261,109 @@ async def test_sources_audit(test_client):
     if resp.status_code == 200:
         data = resp.json()
         assert isinstance(data, dict)
+
+
+# ── Path Forecast Endpoints ──────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_path_forecast_list(test_client):
+    """Path forecast returns paginated list or 503 — never 500."""
+    resp = await test_client.get("/api/v1/salesoffice/path-forecast?limit=3")
+    assert resp.status_code in (200, 503)
+    assert "Traceback" not in resp.text
+    if resp.status_code == 200:
+        data = resp.json()
+        assert "paths" in data
+        assert isinstance(data["paths"], list)
+        assert "total" in data
+        if data["paths"]:
+            path = data["paths"][0]
+            for key in ("detail_id", "hotel_id", "current_price",
+                        "predicted_final_price", "segments", "turning_points",
+                        "best_buy_price", "max_trade_profit_pct"):
+                assert key in path, f"Missing key: {key}"
+
+
+@pytest.mark.asyncio
+async def test_path_forecast_detail_invalid_id(test_client):
+    """Path forecast for non-existent detail returns 404 or 503 — never 500."""
+    resp = await test_client.get("/api/v1/salesoffice/path-forecast/999999999")
+    assert resp.status_code in (404, 503)
+    assert "Traceback" not in resp.text
+
+
+# ── Source Comparison Endpoints ──────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_sources_compare_list(test_client):
+    """Source comparison returns paginated list or 503 — never 500."""
+    resp = await test_client.get("/api/v1/salesoffice/sources/compare?limit=3")
+    assert resp.status_code in (200, 503)
+    assert "Traceback" not in resp.text
+    if resp.status_code == 200:
+        data = resp.json()
+        assert "comparisons" in data
+        assert isinstance(data["comparisons"], list)
+        assert "total" in data
+        assert "disagreements_in_total" in data
+        if data["comparisons"]:
+            comp = data["comparisons"][0]
+            for key in ("detail_id", "hotel_id", "current_price",
+                        "consensus_direction", "consensus_strength",
+                        "disagreement_flag", "source_predictions"):
+                assert key in comp, f"Missing key: {key}"
+
+
+@pytest.mark.asyncio
+async def test_sources_compare_detail_invalid_id(test_client):
+    """Source comparison for non-existent detail returns 404 or 503 — never 500."""
+    resp = await test_client.get("/api/v1/salesoffice/sources/compare/999999999")
+    assert resp.status_code in (404, 503)
+    assert "Traceback" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_sources_raw_single_source(test_client):
+    """Raw source stats for a single source returns structured data or 404/503."""
+    resp = await test_client.get(
+        "/api/v1/salesoffice/sources/raw/forward_curve/999999999"
+    )
+    assert resp.status_code in (200, 404, 503)
+    assert "Traceback" not in resp.text
+    if resp.status_code == 200:
+        data = resp.json()
+        assert "statistics" in data
+        assert "prediction" in data
+        assert data["source"] == "forward_curve"
+
+
+@pytest.mark.asyncio
+async def test_sources_raw_invalid_source(test_client):
+    """Raw source with unknown source name returns 400."""
+    resp = await test_client.get(
+        "/api/v1/salesoffice/sources/raw/nonexistent_source/12345"
+    )
+    assert resp.status_code in (400, 503)
+    assert "Traceback" not in resp.text
+
+
+# ── Dashboard HTML Pages ─────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_dashboard_path_forecast_html(test_client):
+    """Path forecast dashboard returns HTML shell."""
+    resp = await test_client.get("/api/v1/salesoffice/dashboard/path-forecast")
+    assert resp.status_code == 200
+    assert "html" in resp.headers.get("content-type", "")
+    assert "Path Forecast" in resp.text
+    assert "Traceback" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_dashboard_sources_html(test_client):
+    """Source comparison dashboard returns HTML shell."""
+    resp = await test_client.get("/api/v1/salesoffice/dashboard/sources")
+    assert resp.status_code == 200
+    assert "html" in resp.headers.get("content-type", "")
+    assert "Source Comparison" in resp.text
+    assert "Traceback" not in resp.text
