@@ -555,7 +555,7 @@ def _build_path_and_source_summary(
             result["path_max_t"] = pf.predicted_max_t
             result["path_num_reversals"] = pf.num_up_segments + pf.num_down_segments - 1 if (pf.num_up_segments + pf.num_down_segments) > 1 else 0
             result["path_best_trade_pct"] = pf.max_trade_profit_pct
-        except (ImportError, ValueError, TypeError, KeyError) as exc:
+        except Exception as exc:
             logger.debug("path summary skipped for %d: %s", detail_id, exc)
 
     # ── Source consensus ─────────────────────────────────────────────
@@ -564,7 +564,7 @@ def _build_path_and_source_summary(
         comp = compare_sources(pred_view)
         result["source_consensus"] = comp.consensus_direction
         result["source_disagreement"] = comp.disagreement_flag
-    except (ImportError, ValueError, TypeError, KeyError) as exc:
+    except Exception as exc:
         logger.debug("source consensus skipped for %d: %s", detail_id, exc)
 
     return result
