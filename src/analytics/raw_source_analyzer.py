@@ -171,7 +171,11 @@ def analyze_source_statistics(
     stats = SourceStatistics(source_name=source_name, source_label=label)
 
     source_inputs = pred.get("source_inputs") or {}
+    if not isinstance(source_inputs, dict):
+        source_inputs = {}
     market = pred.get("market_benchmark") or {}
+    if not isinstance(market, dict):
+        market = {}
 
     # Extract source-specific data
     if source_name == "forward_curve":
@@ -188,7 +192,7 @@ def analyze_source_statistics(
 
     elif source_name == "historical_pattern":
         hist = source_inputs.get("historical") or {}
-        if hist:
+        if isinstance(hist, dict) and hist:
             price = float(hist.get("predicted_price", 0) or 0)
             stats.n_comparable_tracks = int(hist.get("n_tracks", 0) or 0)
             stats.n_observations = int(hist.get("n_observations", 0) or 0)
@@ -199,7 +203,7 @@ def analyze_source_statistics(
 
     elif source_name in ("ai_search_hotel_data", "salesoffice"):
         market_data = market.get(source_name) or market
-        if market_data:
+        if isinstance(market_data, dict) and market_data:
             avg = float(market_data.get("avg_price", 0) or market_data.get("mean_price", 0) or 0)
             med = float(market_data.get("median_price", 0) or 0)
             mn = float(market_data.get("min_price", 0) or 0)
@@ -214,8 +218,8 @@ def analyze_source_statistics(
                 stats.n_observations = n
 
     elif source_name == "search_results_poll_log":
-        provider = source_inputs.get("provider_pressure") or {}
-        if provider:
+        provider = source_inputs.get("provider_pressure")
+        if isinstance(provider, dict) and provider:
             stats.n_observations = int(provider.get("n_providers", 0) or 0)
             avg = float(provider.get("avg_price", 0) or 0)
             if avg > 0:

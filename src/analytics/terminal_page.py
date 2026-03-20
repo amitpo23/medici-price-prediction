@@ -306,12 +306,16 @@ async function loadTerminal(detailId){
   el('price-loading').className='loading';el('price-loading').innerHTML='<div class="spin"></div>';el('price-loading').style.display='block';el('price-chart').style.display='none';
   el('enrich-loading').className='loading';el('enrich-loading').innerHTML='<div class="spin"></div>';el('enrich-loading').style.display='block';el('enrich-chart').style.display='none';
 
+  // Look up option data for contract-data params
+  const opt=S.options.find(r=>String(r.detail_id)===String(detailId))||{};
+  const cdParams=new URLSearchParams({detail_id:detailId,hotel_id:opt.hotel_id||'',checkin_date:(opt.date_from||'').substring(0,10),category:opt.category||'',board:opt.board||''});
+
   const [fcRaw, pathData, sourceData, detailData, histData]=await Promise.all([
     api(`/forward-curve/${detailId}?raw=true`),
     api(`/path-forecast/${detailId}`),
     api(`/sources/compare/${detailId}`),
     api(`/options/detail/${detailId}`),
-    api(`/charts/contract-data?detail_id=${detailId}`),
+    api(`/charts/contract-data?${cdParams}`),
   ]);
 
   el('ts-updated').textContent=new Date().toLocaleTimeString();
