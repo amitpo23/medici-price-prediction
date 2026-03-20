@@ -512,6 +512,64 @@ def _detail_cache_key(analysis: dict, detail_id: int, source: str | None, source
     ])
 
 
+def _build_path_and_source_summary(
+    pred_view: dict,
+    curve_points: list[dict],
+    current_price: float,
+    detail_id: int,
+) -> dict:
+    """Compute path forecast summary + source consensus for one option row.
+
+    Returns dict with: path_min_price, path_min_t, path_max_price, path_max_t,
+    path_num_reversals, path_best_trade_pct, source_consensus, source_disagreement.
+    """
+    result: dict = {
+        "path_min_price": None,
+        "path_min_t": None,
+        "path_max_price": None,
+        "path_max_t": None,
+        "path_num_reversals": 0,
+        "path_best_trade_pct": 0.0,
+        "source_consensus": "NEUTRAL",
+        "source_disagreement": False,
+    }
+
+    # ── Path forecast summary ────────────────────────────────────────
+    if curve_points and current_price > 0:
+        try:
+            from src.analytics.path_forecast import analyze_path
+            pf = analyze_path(
+                forward_curve_points=curve_points,
+                detail_id=detail_id,
+                hotel_id=int(pred_view.get("hotel_id", 0) or 0),
+                hotel_name=str(pred_view.get("hotel_name", "")),
+                category=str(pred_view.get("category", "")),
+                board=str(pred_view.get("board", "")),
+                checkin_date=str(pred_view.get("date_from", "")),
+                current_price=current_price,
+                current_t=int(pred_view.get("days_to_checkin", 0) or 0),
+            )
+            result["path_min_price"] = pf.predicted_min_price
+            result["path_min_t"] = pf.predicted_min_t
+            result["path_max_price"] = pf.predicted_max_price
+            result["path_max_t"] = pf.predicted_max_t
+            result["path_num_reversals"] = pf.num_up_segments + pf.num_down_segments - 1 if (pf.num_up_segments + pf.num_down_segments) > 1 else 0
+            result["path_best_trade_pct"] = pf.max_trade_profit_pct
+        except (ImportError, ValueError, TypeError, KeyError) as exc:
+            logger.debug("path summary skipped for %d: %s", detail_id, exc)
+
+    # ── Source consensus ─────────────────────────────────────────────
+    try:
+        from src.analytics.raw_source_analyzer import compare_sources
+        comp = compare_sources(pred_view)
+        result["source_consensus"] = comp.consensus_direction
+        result["source_disagreement"] = comp.disagreement_flag
+    except (ImportError, ValueError, TypeError, KeyError) as exc:
+        logger.debug("source consensus skipped for %d: %s", detail_id, exc)
+
+    return result
+
+
 def _build_options_rows(
     analysis: dict,
     t_days: int | None,
@@ -623,6 +681,11 @@ def _build_options_rows(
             row["chart"] = _build_row_chart(curve_points)
 
         row.update(put_path_insights)
+
+        # Path forecast summary + source consensus enrichment
+        row.update(_build_path_and_source_summary(
+            pred_view, curve_points, current_price, int(detail_id),
+        ))
 
         scan = pred_view.get("scan_history") or {}
         row["scan_history"] = _build_row_scan_history(scan, include_series=not is_lite_profile)
