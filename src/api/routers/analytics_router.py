@@ -1811,11 +1811,18 @@ async def sources_compare_detail(
         raise HTTPException(404, f"Detail {detail_id} not found")
 
     # Find ensemble signal for this detail
-    signals = compute_next_day_signals(analysis)
-    ensemble_signal = next((s for s in signals if str(s.get("detail_id")) == str(detail_id)), None)
+    try:
+        signals = compute_next_day_signals(analysis)
+        ensemble_signal = next((s for s in signals if str(s.get("detail_id")) == str(detail_id)), None)
+    except Exception:
+        ensemble_signal = None
 
-    comparison = compare_sources(pred, ensemble_signal)
-    return comparison.to_dict()
+    try:
+        comparison = compare_sources(pred, ensemble_signal)
+        return comparison.to_dict()
+    except Exception as exc:
+        logger.error("sources/compare/%s failed: %s", detail_id, exc, exc_info=True)
+        raise HTTPException(500, f"Source comparison failed: {exc}")
 
 
 @analytics_router.get("/sources/raw/{source_name}/{detail_id}")

@@ -351,16 +351,16 @@ function renderPriceChart(fcRaw, pathData, histData){
   // Ensemble forecast
   datasets.push({
     label:'Ensemble Forecast',data:fc.map(p=>p.predicted_price),
-    borderColor:'#42a5f5',backgroundColor:'transparent',
-    borderWidth:2,pointRadius:0,tension:0.3,order:2
+    borderColor:'#64b5f6',backgroundColor:'transparent',
+    borderWidth:2.5,pointRadius:0,tension:0.3,order:2
   });
 
   // Raw decay curve
   if(rawFc.length){
     datasets.push({
       label:'Raw Decay Curve',data:rawFc.map(p=>p.predicted_price),
-      borderColor:'#666',backgroundColor:'transparent',
-      borderWidth:1,borderDash:[6,3],pointRadius:0,tension:0.3,order:3
+      borderColor:'#90a4ae',backgroundColor:'transparent',
+      borderWidth:1.5,borderDash:[6,3],pointRadius:0,tension:0.3,order:3
     });
   }
 
@@ -421,12 +421,12 @@ function renderPriceChart(fcRaw, pathData, histData){
   const spreds=fcRaw?._source_prediction_summary_catalog||{};
   const histPred=spreds.historical_pattern;
   const mlPred=spreds.ml_forecast;
-  if(histPred?.predicted_price)addHLine('Historical Pattern',histPred.predicted_price,'#ffa726');
-  if(mlPred?.predicted_price)addHLine('ML Forecast',mlPred.predicted_price,'#66bb6a');
+  if(histPred?.predicted_price)addHLine('Historical Pattern',histPred.predicted_price,'#ffcc80');
+  if(mlPred?.predicted_price)addHLine('ML Forecast',mlPred.predicted_price,'#a5d6a7');
 
   // Best buy/sell lines
-  if(pathData?.best_buy_price>0)addHLine('Best Buy',pathData.best_buy_price,'rgba(0,200,83,0.5)');
-  if(pathData?.best_sell_price>0)addHLine('Best Sell',pathData.best_sell_price,'rgba(255,23,68,0.5)');
+  if(pathData?.best_buy_price>0)addHLine('Best Buy',pathData.best_buy_price,'rgba(0,230,118,0.6)');
+  if(pathData?.best_sell_price>0)addHLine('Best Sell',pathData.best_sell_price,'rgba(255,82,82,0.6)');
 
   if(S.priceChart)S.priceChart.destroy();
   S.priceChart=new Chart(canvas,{
@@ -446,8 +446,8 @@ function renderPriceChart(fcRaw, pathData, histData){
         }
       },
       scales:{
-        x:{ticks:{color:'#666',font:{size:10},maxTicksLimit:12},grid:{color:'rgba(255,255,255,0.04)'}},
-        y:{ticks:{color:'#888',font:{size:10},callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.06)'},position:'right'}
+        x:{ticks:{color:'#90a4ae',font:{size:10},maxTicksLimit:12},grid:{color:'rgba(255,255,255,0.08)'}},
+        y:{ticks:{color:'#b0bec5',font:{size:10},callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.1)'},position:'right'}
       }
     }
   });
