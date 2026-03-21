@@ -59,3 +59,5 @@ htmlcov/
 # Claude
 .claude/
 mcp-servers/medici-db/node_modules/
+
+# Daily dev logs (tracked intentionally)

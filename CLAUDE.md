@@ -112,11 +112,26 @@ Price Scan (every 3h) → SQLite storage → Build Forward Curve (Bayesian smoot
 - **Sprint 2.4**: Collector registry auto-discovery with `COLLECTOR_{NAME}_ENABLED` env var toggle
 - **Sprint 2.5**: Extracted 30+ magic numbers to `config/constants.py` (ensemble weights, enrichment caps, thresholds)
 
-## Remaining Technical Debt
+## Phase 2: Tech Debt Cleanup (Planned)
 
-All planned sprints are complete. Minor cleanup opportunities:
-- Additional Jinja2 template extraction for remaining HTML generators
-- Further test coverage for collectors and feature engineering
+- **Sprint TD-1**: Jinja2 extraction for remaining HTML generators (`terminal_page.py`, `alerts_page.py`, `_options_html_gen.py`)
+- **Sprint TD-2**: Unit tests for all collectors (`weather`, `market`, `events`, `trading`, `cbs`, `brightdata`, `registry`)
+
+## Phase 3: Trading System Enhancements (Planned)
+
+- **Sprint 5.1**: Portfolio Greeks (Theta/Delta/Vega) + VaR/CVaR — `src/analytics/portfolio_greeks.py`
+- **Sprint 5.2**: Position Tracking & PnL (realized/unrealized) — `src/analytics/position_tracker.py`
+- **Sprint 5.3**: Attribution Analysis (factor decomposition) — `src/analytics/attribution.py`
+- **Sprint 5.4**: Execution Quality & Slippage — `src/analytics/execution_quality.py`
+
+## Phase 4: Advanced Analytics (Planned)
+
+- **Sprint 6.1**: Cross-Hotel Correlation Matrix — `src/analytics/correlation.py`
+- **Sprint 6.2**: Adaptive Signal Weighting (meta-learner) — `src/analytics/meta_learner.py`
+- **Sprint 6.3**: Real-Time Streaming Alerts — `src/analytics/streaming_alerts.py`
+- **Sprint 6.4**: Audit Trail & Compliance — `src/analytics/audit_trail.py`
+
+**Full details:** See `docs/ROADMAP_V2.md` for complete definitions, API endpoints, and preserved CALL/PUT signal specifications.
 
 ## Coding Conventions
 
@@ -177,3 +192,8 @@ Current active context reminder:
 - Innstant ↔ Hotel.Tools alignment flow is operational.
 - 19 Miami hotels being onboarded — 9/19 confirmed in Innstant, 10 syncing.
 - Availability=1 set for test date 19/09/2026 only. Reset after verification.
+
+## Daily Dev Log
+At the end of each work session, run `./dev-log.sh` to log what was done today.
+This creates a `.dev-logs/YYYY-MM-DD.md` file, commits and pushes it.
+A central collector agent aggregates all logs across machines and projects.
