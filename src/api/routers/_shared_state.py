@@ -217,7 +217,16 @@ def _run_collection_cycle() -> dict | None:
     analysis = run_analysis()
 
     _cm.set_data("analytics", analysis)
-    _cm.set_data("signals", None)  # invalidate signals cache — recompute on next request
+
+    # Pre-compute signals in background (avoids 30s+ on first request)
+    try:
+        from src.analytics.options_engine import compute_next_day_signals
+        signals = compute_next_day_signals(analysis)
+        _cm.set_data("signals", signals)
+        logger.info("SalesOffice: precomputed %d signals", len(signals))
+    except (ImportError, KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
+        logger.warning("SalesOffice signal precompute failed: %s", exc)
+        _cm.set_data("signals", None)
 
     try:
         from src.api.routers.analytics_router import _prime_salesoffice_route_caches
