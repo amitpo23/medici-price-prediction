@@ -217,6 +217,7 @@ def _run_collection_cycle() -> dict | None:
     analysis = run_analysis()
 
     _cm.set_data("analytics", analysis)
+    _cm.set_data("signals", None)  # invalidate signals cache — recompute on next request
 
     try:
         from src.api.routers.analytics_router import _prime_salesoffice_route_caches
@@ -342,6 +343,27 @@ def _get_cached_analysis() -> dict | None:
         _restore_salesoffice_persisted_state()
         data = _cm.get_data("analytics")
     return dict(data) if data else None
+
+
+def _get_cached_signals() -> list[dict]:
+    """Return cached next-day signals, computing once per analysis cycle.
+
+    This avoids re-running compute_next_day_signals (30+ seconds on 4000+
+    options) on every request.  Cached in CacheManager under 'signals'.
+    """
+    cached = _cm.get_data("signals")
+    if cached is not None:
+        return cached
+
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        return []
+
+    from src.analytics.options_engine import compute_next_day_signals
+    signals = compute_next_day_signals(analysis)
+    _cm.set_data("signals", signals)
+    logger.info("Cached %d next-day signals", len(signals))
+    return signals
 
 
 def _rebuild_cached_analysis_from_snapshots() -> dict | None:

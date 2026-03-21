@@ -30,6 +30,7 @@ from src.api.routers._shared_state import (
     _build_source_validation,
     _build_sources_audit,
     _build_system_capabilities,
+    _get_cached_signals,
     COLLECTION_INTERVAL,
 )
 from src.utils.cache_manager import cache as _cm
@@ -1685,7 +1686,7 @@ def group_action_preview(
     if analysis is None:
         raise HTTPException(503, "Analysis cache not ready")
 
-    from src.analytics.options_engine import compute_next_day_signals
+
     from src.analytics.group_actions import GroupFilter, preview_group_action
 
     parsed_hotel_ids = [int(x.strip()) for x in hotel_ids.split(",")] if hotel_ids else None
@@ -1694,7 +1695,7 @@ def group_action_preview(
         category=category, board=board, confidence=confidence,
         min_T=min_T, max_T=max_T, min_price=min_price, max_price=max_price,
     )
-    signals = compute_next_day_signals(analysis)
+    signals = _get_cached_signals()
     result = preview_group_action(signals, analysis, gf)
     return JSONResponse(content=result)
 
@@ -1720,7 +1721,7 @@ def group_override(
     if analysis is None:
         raise HTTPException(503, "Analysis cache not ready")
 
-    from src.analytics.options_engine import compute_next_day_signals
+
     from src.analytics.group_actions import GroupFilter, execute_group_override
 
     parsed_hotel_ids = [int(x.strip()) for x in hotel_ids.split(",")] if hotel_ids else None
@@ -1729,7 +1730,7 @@ def group_override(
         category=category, board=board, confidence=confidence,
         min_T=min_T, max_T=max_T, min_price=min_price, max_price=max_price,
     )
-    signals = compute_next_day_signals(analysis)
+    signals = _get_cached_signals()
     result = execute_group_override(signals, analysis, gf, discount_usd=discount_usd)
 
     logger.info(
@@ -1760,7 +1761,7 @@ def group_opportunity(
     if analysis is None:
         raise HTTPException(503, "Analysis cache not ready")
 
-    from src.analytics.options_engine import compute_next_day_signals
+
     from src.analytics.group_actions import GroupFilter, execute_group_opportunity
 
     parsed_hotel_ids = [int(x.strip()) for x in hotel_ids.split(",")] if hotel_ids else None
@@ -1769,7 +1770,7 @@ def group_opportunity(
         category=category, board=board, confidence=confidence,
         min_T=min_T, max_T=max_T, min_price=min_price, max_price=max_price,
     )
-    signals = compute_next_day_signals(analysis)
+    signals = _get_cached_signals()
     result = execute_group_opportunity(signals, analysis, gf, max_rooms=max_rooms)
 
     logger.info(
@@ -2044,7 +2045,7 @@ async def sources_compare_all(
     ensemble compares to the raw consensus.
     """
     from src.analytics.raw_source_analyzer import compare_all_sources
-    from src.analytics.options_engine import compute_next_day_signals
+
 
     analysis = _get_cached_analysis()
     if not analysis:
@@ -2052,7 +2053,7 @@ async def sources_compare_all(
     if not analysis or not analysis.get("predictions"):
         return {"comparisons": [], "total": 0, "message": "No analysis data available"}
 
-    signals = compute_next_day_signals(analysis)
+    signals = _get_cached_signals()
     all_comps = compare_all_sources(analysis, signals)
 
     # Filter by hotel
@@ -2262,7 +2263,7 @@ async def override_bulk_puts(
         enqueue_bulk_puts,
         OverrideValidationError,
     )
-    from src.analytics.options_engine import compute_next_day_signals
+
 
     body = await request.json()
     discount_usd = float(body.get("discount_usd", 1.0))
@@ -2274,7 +2275,7 @@ async def override_bulk_puts(
     if not analysis or not analysis.get("predictions"):
         raise HTTPException(503, "No analysis data available — run warmup first")
 
-    signals = compute_next_day_signals(analysis)
+    signals = _get_cached_signals()
 
     try:
         batch_id, requests = enqueue_bulk_puts(
@@ -2510,7 +2511,7 @@ async def opportunity_bulk_calls(
         enqueue_bulk_calls,
         OpportunityValidationError,
     )
-    from src.analytics.options_engine import compute_next_day_signals
+
 
     body = await request.json()
     max_rooms = int(body.get("max_rooms", 1))
@@ -2522,7 +2523,7 @@ async def opportunity_bulk_calls(
     if not analysis or not analysis.get("predictions"):
         raise HTTPException(503, "No analysis data available — run warmup first")
 
-    signals = compute_next_day_signals(analysis)
+    signals = _get_cached_signals()
 
     try:
         batch_id, requests = enqueue_bulk_calls(
