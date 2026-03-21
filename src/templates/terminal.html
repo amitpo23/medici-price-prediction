@@ -297,25 +297,42 @@ async function loadTerminal(detailId){
   el('price-loading').className='loading';el('price-loading').innerHTML='<div class="spin"></div>';el('price-loading').style.display='block';el('price-chart').style.display='none';
   el('enrich-loading').className='loading';el('enrich-loading').innerHTML='<div class="spin"></div>';el('enrich-loading').style.display='block';el('enrich-chart').style.display='none';
 
-  // Look up option data for contract-data params
-  const opt=S.options.find(r=>String(r.detail_id)===String(detailId))||{};
-  const cdParams=new URLSearchParams({detail_id:detailId,hotel_id:opt.hotel_id||'',checkin_date:(opt.date_from||'').substring(0,10),category:opt.category||'',board:opt.board||''});
-
-  const [fcRaw, pathData, sourceData, detailData, histData]=await Promise.all([
+  // Core data — fast APIs only (no contract-data which can 504)
+  const [fcRaw, pathData, sourceData, detailData]=await Promise.all([
     api(`/forward-curve/${detailId}?raw=true`),
     api(`/path-forecast/${detailId}`),
     api(`/sources/compare/${detailId}`),
     api(`/options/detail/${detailId}`),
-    api(`/charts/contract-data?${cdParams}`),
   ]);
 
   el('ts-updated').textContent=new Date().toLocaleTimeString();
 
-  renderPriceChart(fcRaw, pathData, histData);
+  // Render immediately with available data
+  renderPriceChart(fcRaw, pathData, null);
   renderEnrichChart(fcRaw);
   renderSignalPanel(fcRaw, pathData, detailData);
   renderSourcesPanel(sourceData);
   renderAccuracyPanel(detailData, fcRaw);
+
+  // Load historical scan data in background (optional, may timeout)
+  const opt=S.options.find(r=>String(r.detail_id)===String(detailId))||{};
+  const cdParams=new URLSearchParams({detail_id:detailId,hotel_id:opt.hotel_id||'',checkin_date:(opt.date_from||'').substring(0,10),category:opt.category||'',board:opt.board||''});
+  api(`/charts/contract-data?${cdParams}`).then(histData=>{
+    if(histData&&S.priceChart){
+      // Add historical series to existing chart
+      const series=histData.scan||histData.scan_price_series||histData.prices||[];
+      if(series.length){
+        const labels=S.priceChart.data.labels;
+        const histPoints=new Array(labels.length).fill(null);
+        series.forEach(s=>{const d=shortDate(s.date||s.d);const idx=labels.indexOf(d);if(idx>=0)histPoints[idx]=s.price||s.p;});
+        S.priceChart.data.datasets.push({
+          label:'Actual History',data:histPoints,borderColor:'#e0e0e0',backgroundColor:'transparent',
+          borderWidth:1.5,pointRadius:2,pointBackgroundColor:'#e0e0e0',spanGaps:true,tension:0,order:1
+        });
+        S.priceChart.update();
+      }
+    }
+  });
 }
 
 /* ── Price Chart ────────────────────────────────────────────────── */
