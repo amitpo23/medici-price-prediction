@@ -1696,6 +1696,15 @@ def group_action_preview(
         min_T=min_T, max_T=max_T, min_price=min_price, max_price=max_price,
     )
     signals = _get_cached_signals()
+    if not signals:
+        return JSONResponse(content={
+            "filter": str(gf.describe()),
+            "total_matched": 0,
+            "total_value_usd": 0,
+            "hotel_breakdown": [],
+            "signals_warming": True,
+            "message": "Signals are computing in background. Retry in 30 seconds.",
+        })
     result = preview_group_action(signals, analysis, gf)
     return JSONResponse(content=result)
 

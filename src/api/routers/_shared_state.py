@@ -354,25 +354,40 @@ def _get_cached_analysis() -> dict | None:
     return dict(data) if data else None
 
 
-def _get_cached_signals() -> list[dict]:
-    """Return cached next-day signals, computing once per analysis cycle.
+_signals_computing = threading.Event()
 
-    This avoids re-running compute_next_day_signals (30+ seconds on 4000+
-    options) on every request.  Cached in CacheManager under 'signals'.
+
+def _get_cached_signals() -> list[dict]:
+    """Return cached next-day signals. Never blocks — returns [] if not ready.
+
+    Signals are precomputed during the collection cycle. If the cache
+    is cold (e.g. right after deploy), kicks off background computation
+    and returns empty list immediately.
     """
     cached = _cm.get_data("signals")
     if cached is not None:
         return cached
 
-    analysis = _get_cached_analysis()
-    if not analysis or not analysis.get("predictions"):
-        return []
+    # Kick off background computation (non-blocking)
+    if not _signals_computing.is_set():
+        _signals_computing.set()
 
-    from src.analytics.options_engine import compute_next_day_signals
-    signals = compute_next_day_signals(analysis)
-    _cm.set_data("signals", signals)
-    logger.info("Cached %d next-day signals", len(signals))
-    return signals
+        def _compute():
+            try:
+                analysis = _get_cached_analysis()
+                if analysis and analysis.get("predictions"):
+                    from src.analytics.options_engine import compute_next_day_signals
+                    signals = compute_next_day_signals(analysis)
+                    _cm.set_data("signals", signals)
+                    logger.info("Background: cached %d signals", len(signals))
+            except Exception as exc:
+                logger.warning("Background signal compute failed: %s", exc)
+            finally:
+                _signals_computing.clear()
+
+        threading.Thread(target=_compute, daemon=True, name="signals-warmup").start()
+
+    return []  # caller gets empty → shows "warming up"
 
 
 def _rebuild_cached_analysis_from_snapshots() -> dict | None:
