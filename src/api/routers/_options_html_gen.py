@@ -27,10 +27,32 @@ def _html_escape(s: str) -> str:
 
 def _generate_options_async_html(t_days: int | None = None, signal: str | None = None) -> str:
     """Generate a fast shell that loads options data asynchronously from the JSON API."""
+    from src.utils.template_engine import render_template
+
     initial_t_days = "null" if t_days is None else str(int(t_days))
     initial_signal = json.dumps((signal or "").strip().upper())
 
-    return f"""<!DOCTYPE html>
+    return render_template(
+        "options_board.html",
+        initial_t_days=initial_t_days,
+        initial_signal=initial_signal,
+    )
+
+
+# ── Legacy sync HTML generator (kept for backward compatibility) ──────────
+
+
+def _generate_options_html_legacy(rows: list[dict], analysis: dict, t_days: int | None) -> str:
+    """Generate a self-contained interactive HTML dashboard for options.
+
+    LEGACY: This function is no longer called by any router.
+    The async version (_generate_options_async_html) is used instead.
+    Kept for backward compatibility only.
+    """
+    return _generate_options_async_html(t_days=t_days)
+
+
+_LEGACY_ASYNC_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2613,7 +2635,7 @@ def _generate_options_html(rows: list[dict], analysis: dict, t_days: int | None)
   <th data-col="4" data-type="str">Check-in<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Check-in Date</b><br>Booked arrival date from the order. This is the target date (T=0) for the forward curve walk.<br><span class="src-tag">SalesOffice.Orders</span></span></span> <span class="arrow">&#9650;</span></th>
   <th data-col="5" data-type="num">Days<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Days to Check-in</b><br>Calendar days from today to check-in. This is the T value &mdash; how many steps the forward curve walks.<br>Formula: <b>check_in_date &minus; today</b></span></span> <span class="arrow">&#9650;</span></th>
   <th data-col="6" data-type="str">Signal<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Option Signal (CALL / PUT / NEUTRAL)</b><br>&bull; <b>CALL</b>: price expected to rise (&ge;0.5%) or prob_up &gt; prob_down+0.1<br>&bull; <b>PUT</b>: price expected to drop (&le;&minus;0.5%) or prob_down &gt; prob_up+0.1<br>&bull; <b>L1-L10</b>: confidence level (65% change magnitude + 35% probability &times; quality)<br><span class="src-tag">Forward Curve 50%</span> <span class="src-tag">Historical 30%</span> <span class="src-tag">ML 20%</span></span></span> <span class="arrow">&#9650;</span></th>
-  <th data-col="7" data-type="num">Current $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Current Room Price</b><br>Latest price from the most recent hourly scan of SalesOffice.Details. This is the starting point for the forward curve.<br><span class="src-tag">SalesOffice.Details</span> <span class="src-tag">Hourly scan</span></span></span> <span class="arrow">&#9650;</span></th>
+  <th data-col="7" data-type="num">Current $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Current Room Price</b><br>Latest price from the most recent SalesOffice snapshot collected into the prediction cache (scheduled every ~3 hours by default). This is the starting point for the forward curve.<br><span class="src-tag">SalesOffice.Details</span> <span class="src-tag">~3h collector</span></span></span> <span class="arrow">&#9650;</span></th>
   <th data-col="8" data-type="num">Predicted $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Predicted Check-in Price (Ensemble)</b><br>Weighted ensemble of 2-3 signals:<br>&bull; <b>Forward Curve (50%)</b>: day-by-day walk with decay + events + season + weather adjustments<br>&bull; <b>Historical Pattern (30%)</b>: same-month prior-year average + lead-time adjustment<br>&bull; <b>ML Model (20%)</b>: if trained model exists (currently inactive)<br>Weights are scaled by each signal's confidence then normalized.<br><span class="src-tag">SalesOffice DB</span> <span class="src-tag">Open-Meteo</span> <span class="src-tag">Events</span> <span class="src-tag">Seasonality</span></span></span> <span class="arrow">&#9650;</span></th>
   <th data-col="9" data-type="num">Change %<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Expected Price Change %</b><br>Percentage difference between predicted check-in price and current price.<br>Formula: <b>(predicted &divide; current &minus; 1) &times; 100</b><br>Green = price expected to rise, Red = expected to drop.</span></span> <span class="arrow">&#9650;</span></th>
   <th data-col="10" data-type="num" class="src-col">FC $<span class="info-icon" onclick="toggleTip(this, event)">i<span class="info-tip"><b>Forward Curve Prediction</b><br>Price predicted by the <b>Forward Curve</b> model alone (weight ~50%).<br>Day-by-day random walk with:<br>&bull; Decay rate from {'{'}model_info.total_tracks{'}'} price tracks<br>&bull; Event adjustments (Miami events, holidays)<br>&bull; Season adjustments (monthly ADR patterns)<br>&bull; Demand adjustments (flight demand index)<br>&bull; Momentum adjustments (recent price trend)<br>Hover for full adjustment breakdown.<br><span class="src-tag">SalesOffice DB</span> <span class="src-tag">Events</span> <span class="src-tag">Seasonality</span> <span class="src-tag">Flights</span></span></span> <span class="arrow">&#9650;</span></th>

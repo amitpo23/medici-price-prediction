@@ -52,15 +52,35 @@ class CollectorRegistry:
         return [name for name, c in self._collectors.items() if c.is_available()]
 
     def collect_all(self, **kwargs) -> dict[str, pd.DataFrame]:
-        """Run all available collectors and return results."""
+        """Run all available collectors and return results.
+
+        Uses circuit breaker to skip sources that have failed repeatedly.
+        """
+        # Import circuit breaker (optional — degrades gracefully)
+        try:
+            from src.services.circuit_breaker import circuit_breaker
+        except ImportError:
+            circuit_breaker = None  # type: ignore[assignment]
+
         results = {}
         for name in self.available():
+            # Check circuit breaker before calling
+            if circuit_breaker and not circuit_breaker.allow(name):
+                logger.warning(
+                    "Collector '%s' circuit-broken, skipping (will retry after cooldown)", name
+                )
+                continue
+
             try:
                 results[name] = self._collectors[name].collect_cached(
                     cache_key=f"{name}_latest", **kwargs
                 )
+                if circuit_breaker:
+                    circuit_breaker.record_success(name)
             except (ConnectionError, TimeoutError, OSError, ValueError) as e:
                 logger.warning("Collector '%s' failed: %s", name, e)
+                if circuit_breaker:
+                    circuit_breaker.record_failure(name, str(e)[:200])
         return results
 
     def auto_discover(self, cache=None) -> int:

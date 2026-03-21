@@ -687,7 +687,34 @@ def predict_forward_curve(
     # Determine confidence quality from data density at current T
     density = curve.get_data_density(current_t)
 
-    return ForwardCurve(
+    # ── Monitor bridge: apply confidence modifier + market signal boost ──
+    monitor_modifier = 0.0
+    market_context = {}
+    try:
+        from src.services.monitor_bridge import MonitorBridge
+        bridge = MonitorBridge()
+        monitor_modifier = bridge.get_confidence_modifier(hotel_id=str(hotel_id))
+        signals = bridge.get_market_signals()
+        if signals:
+            demand_sig = signals.get("demand_indicator", {}).get("value", 0)
+            board_sig = signals.get("board_composition", {}).get("value", 0)
+            volatility_sig = signals.get("supply_volatility", {}).get("value", 0)
+            market_context = {
+                "demand_indicator": demand_sig,
+                "board_composition": board_sig,
+                "supply_volatility": volatility_sig,
+                "confidence_modifier": monitor_modifier,
+            }
+    except (ImportError, OSError, Exception):
+        pass  # Monitor bridge is optional — never block predictions
+
+    # Downgrade confidence quality if monitor flags issues
+    if monitor_modifier <= -0.30:
+        density = "low" if density in ("medium", "low") else "medium"
+    elif monitor_modifier <= -0.15 and density == "high":
+        density = "medium"
+
+    fc = ForwardCurve(
         detail_id=detail_id,
         hotel_id=hotel_id,
         category=category,
@@ -698,3 +725,7 @@ def predict_forward_curve(
         curve_type="empirical" if curve.total_tracks > 0 else "default",
         confidence_quality=density,
     )
+    # Attach monitor context as extra attributes for downstream consumers
+    fc.monitor_modifier = monitor_modifier  # type: ignore[attr-defined]
+    fc.market_context = market_context       # type: ignore[attr-defined]
+    return fc

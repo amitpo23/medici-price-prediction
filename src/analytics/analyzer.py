@@ -477,12 +477,25 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
         except (KeyError, ValueError, TypeError, ZeroDivisionError) as e:
             logger.warning("Failed to compute price velocity for hotel %s: %s", hotel_id, e)
 
-    # Cancellation risk — cancel rate for this hotel
+    # Cancellation risk — cancel rate for this hotel, adjusted by velocity
     cancellation_risk = 0.0
     if hotel_id and internal_enabled:
         try:
             cancel_rates = _shared.get("cancel_rates", {})
-            cancellation_risk = float(cancel_rates.get(hotel_id, 0.0))
+            base_rate = float(cancel_rates.get(hotel_id, 0.0))
+
+            # Apply velocity: if cancellations are accelerating, increase risk
+            cancel_velocity = _shared.get("cancel_velocity", {})
+            velocity = float(cancel_velocity.get(hotel_id, 0.0))
+
+            # velocity > 0 means cancellations accelerating → increase risk by up to 50%
+            # velocity < 0 means cancellations decelerating → decrease risk by up to 30%
+            if velocity > 0:
+                velocity_multiplier = 1.0 + min(0.5, velocity * 0.5)
+            else:
+                velocity_multiplier = max(0.7, 1.0 + velocity * 0.3)
+
+            cancellation_risk = min(1.0, base_rate * velocity_multiplier)
         except (KeyError, ValueError, TypeError) as e:
             logger.warning("Failed to compute cancellation risk for hotel %s: %s", hotel_id, e)
 
@@ -662,11 +675,46 @@ def _predict_prices(all_snapshots: pd.DataFrame, latest: pd.DataFrame,
                         cancel_rates[hid_int] = min(1.0, n_cancel / n_book)
             shared_data["cancel_rates"] = cancel_rates
             logger.info("Cancel rates computed for %d hotels", len(cancel_rates))
+
+            # Cancellation velocity: compare recent (7d) vs long-term (365d) rate
+            # If recent rate > 1.5x long-term → velocity positive (cancellations accelerating)
+            # Used to adjust enrichment dynamically instead of static estimates
+            cancel_velocity: dict[int, float] = {}
+            try:
+                cancel_df_7d = load_cancellations(days_back=7)
+                bookings_df_7d = load_all_bookings(days_back=7)
+                if (cancel_df_7d is not None and not cancel_df_7d.empty
+                        and bookings_df_7d is not None and not bookings_df_7d.empty):
+                    cancel_7d = cancel_df_7d.groupby("HotelId").size()
+                    booking_7d = bookings_df_7d.groupby("HotelId").size()
+                    for hid in unique_hotel_ids:
+                        hid_int = int(hid)
+                        recent_cancel = float(cancel_7d.get(hid_int, 0))
+                        recent_book = float(booking_7d.get(hid_int, 0))
+                        long_term_rate = cancel_rates.get(hid_int, 0.0)
+                        if recent_book > 0 and long_term_rate > 0:
+                            recent_rate = min(1.0, recent_cancel / recent_book)
+                            # velocity = ratio of recent to long-term, centered at 0
+                            # positive = accelerating cancellations, negative = decelerating
+                            cancel_velocity[hid_int] = round(
+                                max(-1.0, min(1.0, (recent_rate / long_term_rate) - 1.0)), 4
+                            )
+                        elif recent_book > 0 and recent_cancel > 0:
+                            # New cancellations with no long-term baseline → moderate velocity
+                            cancel_velocity[hid_int] = 0.5
+                shared_data["cancel_velocity"] = cancel_velocity
+                logger.info("Cancel velocity computed for %d hotels", len(cancel_velocity))
+            except (OSError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
+                logger.warning("Failed to compute cancellation velocity: %s", e)
+                shared_data["cancel_velocity"] = {}
+
         except (OSError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
             logger.warning("Failed to load cancellation data: %s", e)
             shared_data["cancel_rates"] = {}
+            shared_data["cancel_velocity"] = {}
     else:
         shared_data["cancel_rates"] = {}
+        shared_data["cancel_velocity"] = {}
 
     # Load search results provider pressure per hotel
     if internal_enabled:

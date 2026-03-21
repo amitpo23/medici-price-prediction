@@ -106,6 +106,42 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
             else:
                 rec, conf = "NONE", "Low"
 
+            # --- Market signal adjustment (from MonitorBridge) ---
+            market_ctx = {}
+            try:
+                from src.services.monitor_bridge import MonitorBridge
+                bridge = MonitorBridge()
+                mkt = bridge.get_market_signals()
+                demand_val = mkt.get("demand_indicator", {}).get("value", 0)
+                vol_val = mkt.get("supply_volatility", {}).get("value", 0)
+                bb_val = mkt.get("board_composition", {}).get("value", 0)
+                monitor_mod = bridge.get_confidence_modifier(
+                    hotel_id=str(pred.get("hotel_id", ""))
+                )
+                market_ctx = {
+                    "demand_indicator": round(demand_val, 3),
+                    "supply_volatility": round(vol_val, 3),
+                    "board_composition": round(bb_val, 3),
+                    "monitor_confidence_modifier": round(monitor_mod, 3),
+                }
+
+                # Adjust confidence level based on market signals (max ±1 tier)
+                if not suppress and conf != "Low":
+                    if demand_val > 0.7 and rec == "CALL" and conf == "Med":
+                        conf = "High"  # Strong live demand supports CALL
+                    elif demand_val < 0.3 and rec == "PUT" and conf == "Med":
+                        conf = "High"  # Weak live demand supports PUT
+                    if vol_val > 0.5 and conf == "High":
+                        conf = "Med"   # High supply volatility → reduce certainty
+
+                # Downgrade if monitor flags system issues
+                if monitor_mod <= -0.30 and conf == "High":
+                    conf = "Med"
+                elif monitor_mod <= -0.40:
+                    conf = "Low"
+            except (ImportError, OSError, Exception):
+                pass  # Monitor bridge is optional
+
             signals.append({
                 "detail_id":        str(detail_id),
                 "hotel_id":         pred.get("hotel_id"),
@@ -126,6 +162,7 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 "quality":          quality,
                 "recommendation":   rec,
                 "confidence":       conf,
+                "market_context":   market_ctx,
             })
         except (KeyError, ValueError, TypeError, AttributeError, ZeroDivisionError) as exc:
             logger.debug("options signal failed for %s: %s", detail_id, exc)

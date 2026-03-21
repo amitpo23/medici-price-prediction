@@ -1542,6 +1542,126 @@ def portfolio_var(request: Request, _key=Depends(_optional_api_key)):
     })
 
 
+# ── Source Attribution ────────────────────────────────────────────────
+
+
+@analytics_router.get("/attribution")
+def source_attribution_report(request: Request, _key=Depends(_optional_api_key)):
+    """Full source attribution — 4 isolated tracks + enrichment breakdown + agreement."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.source_attribution import build_attribution_report
+    report = build_attribution_report(analysis)
+    return JSONResponse(content=report.to_dict())
+
+
+@analytics_router.get("/attribution/sources")
+def source_tracks_only(request: Request, _key=Depends(_optional_api_key)):
+    """Isolated source comparison — FC vs Historical vs ML vs Ensemble."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.source_attribution import (
+        extract_source_predictions, build_source_track,
+    )
+    predictions = analysis.get("predictions", {})
+    total_rooms = len(predictions)
+    tracks = extract_source_predictions(analysis)
+
+    result = {
+        "total_rooms": total_rooms,
+        "sources": {
+            "forward_curve": build_source_track(
+                "forward_curve", "Forward Curve (100%)", 100,
+                tracks["forward_curve"], total_rooms,
+            ).to_dict(),
+            "historical": build_source_track(
+                "historical", "Historical Patterns (100%)", 100,
+                tracks["historical"], total_rooms,
+            ).to_dict(),
+            "ml": build_source_track(
+                "ml", "ML Model (100%)", 100,
+                tracks["ml"], total_rooms,
+            ).to_dict(),
+            "ensemble": build_source_track(
+                "ensemble", "Ensemble (50/30/20)", -1,
+                tracks["ensemble"], total_rooms,
+            ).to_dict(),
+        },
+    }
+    return JSONResponse(content=result)
+
+
+@analytics_router.get("/attribution/enrichments")
+def enrichment_attribution(request: Request, _key=Depends(_optional_api_key)):
+    """Per-enrichment contribution — events, seasonality, demand, weather, etc."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.source_attribution import compute_enrichment_attribution
+    enrichments = compute_enrichment_attribution(analysis)
+    return JSONResponse(content=[e.to_dict() for e in enrichments])
+
+
+@analytics_router.get("/attribution/agreement")
+def source_agreement(request: Request, _key=Depends(_optional_api_key)):
+    """Cross-source agreement — where FC, Historical, ML agree or diverge."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.source_attribution import (
+        extract_source_predictions, compute_agreement,
+    )
+    tracks = extract_source_predictions(analysis)
+    agreement_rate, divergences = compute_agreement(tracks)
+    return JSONResponse(content={
+        "agreement_rate_pct": agreement_rate,
+        "divergence_count": len(divergences),
+        "divergence_rooms": divergences,
+    })
+
+
+@analytics_router.get("/attribution/hotel/{hotel_id}")
+def hotel_source_attribution(
+    hotel_id: int, request: Request, _key=Depends(_optional_api_key),
+):
+    """Per-hotel source attribution — compare all sources for one hotel."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+
+    from src.analytics.source_attribution import extract_source_predictions
+    tracks = extract_source_predictions(analysis)
+
+    result = {}
+    for source_name, preds in tracks.items():
+        hotel_preds = [p for p in preds if int(p.get("hotel_id", 0)) == hotel_id]
+        if not hotel_preds:
+            result[source_name] = {"rooms": 0, "predictions": []}
+            continue
+
+        prices = [p["predicted_price"] for p in hotel_preds]
+        calls = sum(1 for p in hotel_preds if (p.get("signal") or "").upper() in ("CALL", "STRONG_CALL"))
+        puts = sum(1 for p in hotel_preds if (p.get("signal") or "").upper() in ("PUT", "STRONG_PUT"))
+
+        result[source_name] = {
+            "rooms": len(hotel_preds),
+            "avg_predicted_price": round(sum(prices) / len(prices), 2),
+            "avg_change_pct": round(sum(p.get("change_pct", 0) for p in hotel_preds) / len(hotel_preds), 2),
+            "calls": calls,
+            "puts": puts,
+            "neutrals": len(hotel_preds) - calls - puts,
+            "predictions": hotel_preds[:30],
+        }
+
+    return JSONResponse(content={"hotel_id": hotel_id, "sources": result})
+
+
 # ── Group Actions (Bulk CALL/PUT) ────────────────────────────────────
 
 

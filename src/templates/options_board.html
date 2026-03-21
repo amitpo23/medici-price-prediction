@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SalesOffice — Options Board</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #eef2ff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --text-dim: #64748b;
+    --call: #16a34a;
+    --put: #dc2626;
+    --neutral: #64748b;
+    --accent: #4f46e5;
+    --accent-2: #7c3aed;
+    --warn: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .page { max-width: 1500px; margin: 0 auto; padding: 20px; }
+  .hero { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 18px; }
+  .hero h1 { margin: 0 0 6px; font-size: 30px; }
+  .hero p { margin: 0; color: var(--text-dim); max-width: 800px; }
+  .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .hero-actions a, .hero-actions button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 10px 14px; text-decoration: none; cursor: pointer; font-weight: 600; }
+  .hero-actions button.primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); color: #fff; border: 0; }
+  .status-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .status-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 8px 12px; color: var(--text-dim); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 8px 20px rgba(15, 23, 42, .04); }
+  .card .label { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .card .value { margin-top: 6px; font-size: 28px; font-weight: 700; }
+  .controls { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .controls label { font-size: 12px; color: var(--text-dim); display: flex; flex-direction: column; gap: 6px; }
+  .controls input, .controls select { min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: #fff; color: var(--text); }
+  .controls-note { width: 100%; margin-top: 4px; color: var(--text-dim); font-size: 12px; }
+  .controls .checkbox-label { flex-direction: row; align-items: center; gap: 8px; margin-top: 18px; color: var(--text); font-size: 13px; }
+  .controls .checkbox-label input { min-width: auto; width: 16px; height: 16px; padding: 0; }
+  .source-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .source-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 8px; background: var(--surface-2); color: var(--accent); font-size: 11px; font-weight: 700; }
+  .status-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .status-panel.loading { border-color: #c7d2fe; background: #eef2ff; }
+  .status-panel.warning { border-color: #fed7aa; background: #fff7ed; }
+  .status-panel.error { border-color: #fecaca; background: #fef2f2; }
+  .status-title { font-weight: 700; margin-bottom: 6px; }
+  .status-text { color: var(--text-dim); }
+  .status-meta { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; color: var(--text-dim); font-size: 12px; }
+  .table-shell { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .table-scroll { overflow: auto; max-height: 70vh; }
+  table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+  thead th { position: sticky; top: 0; z-index: 1; background: #f8fafc; color: var(--text-dim); text-align: left; font-size: 12px; font-weight: 700; letter-spacing: .03em; padding: 12px; border-bottom: 1px solid var(--border); }
+  tbody td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:hover { background: #f8fafc; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
+  .pill.call { background: rgba(22, 163, 74, .12); color: var(--call); }
+  .pill.put { background: rgba(220, 38, 38, .12); color: var(--put); }
+  .pill.neutral { background: rgba(100, 116, 139, .12); color: var(--neutral); }
+  .quality { font-weight: 700; }
+  .quality.high { color: var(--call); }
+  .quality.medium { color: var(--warn); }
+  .quality.low { color: var(--put); }
+  .muted { color: var(--text-dim); }
+  .num.pos { color: var(--call); font-weight: 700; }
+  .num.neg { color: var(--put); font-weight: 700; }
+  .row-actions button { border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 8px 10px; cursor: pointer; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border-top: 1px solid var(--border); background: #f8fafc; flex-wrap: wrap; }
+  .pager .buttons { display: flex; gap: 8px; }
+  .pager button { border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
+  .pager button:disabled { opacity: .45; cursor: not-allowed; }
+  .empty { padding: 28px; text-align: center; color: var(--text-dim); }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, .55); display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-backdrop.open { display: flex; }
+  .modal { width: min(760px, 100%); background: var(--surface); border-radius: 16px; box-shadow: 0 30px 60px rgba(15,23,42,.25); overflow: hidden; }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+  .modal-head h2 { margin: 0; font-size: 20px; }
+  .modal-head button { border: 0; background: transparent; font-size: 28px; cursor: pointer; color: var(--text-dim); }
+  .modal-body { padding: 18px; }
+  .detail-chart-wrap { margin-bottom: 18px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fbfdff; }
+  .detail-chart-wrap canvas { width: 100%; height: 260px; display: block; }
+  .chart-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .chart-toolbar label { font-size: 12px; color: var(--text-dim); display: flex; flex-direction: column; gap: 6px; }
+  .chart-toolbar select { min-width: 160px; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: #fff; color: var(--text); }
+  .chart-toolbar .toggle-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding-top: 18px; }
+  .chart-toolbar .toggle-row label { flex-direction: row; align-items: center; gap: 6px; color: var(--text); font-size: 13px; }
+  .chart-toolbar .source-toggle-group { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-top: 18px; }
+  .chart-toolbar .source-toggle-group label { flex-direction: row; align-items: center; gap: 6px; color: var(--text); font-size: 13px; }
+  .chart-legend { display: flex; gap: 12px; flex-wrap: wrap; color: var(--text-dim); font-size: 12px; margin-top: 8px; }
+  .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 14px; height: 3px; border-radius: 999px; }
+  .detail-chart-title { font-size: 14px; font-weight: 700; margin: 0 0 10px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .detail-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: #fafafa; }
+  .detail-card .k { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  .detail-card .v { font-size: 20px; font-weight: 700; }
+  .detail-section { margin-top: 14px; }
+  .detail-section h3 { margin: 0 0 8px; font-size: 14px; }
+  .detail-list { margin: 0; padding-left: 18px; color: var(--text-dim); }
+  .detail-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .detail-table th, .detail-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  .detail-table th { color: var(--text-dim); font-weight: 700; background: #f8fafc; }
+  .detail-grid-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+  .empty-mini { color: var(--text-dim); font-size: 12px; }
+  @media (max-width: 900px) {
+    .hero h1 { font-size: 24px; }
+    .controls { align-items: stretch; }
+    .controls label { width: 100%; }
+    .controls input, .controls select { width: 100%; }
+    .detail-grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <div>
+      <h1>Options Trading Signals</h1>
+      <p>Fast shell mode: the page opens immediately, then loads cached analytics asynchronously without changing the underlying prediction model.</p>
+    </div>
+    <div class="hero-actions">
+      <button class="primary" id="refresh-btn" type="button">Refresh data</button>
+      <a href="/api/v1/salesoffice/options?profile=lite">JSON API</a>
+      <a href="/api/v1/salesoffice/options/legend">Legend</a>
+      <a href="/api/v1/salesoffice/home">Home</a>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-chip">Delivery: Async shell</div>
+    <div class="status-chip" id="run-ts-chip">Last run: --</div>
+    <div class="status-chip" id="cache-chip">Cache: checking...</div>
+    <div class="status-chip" id="rows-chip">Rows: --</div>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="label">Total Rows</div><div class="value" id="stat-total">--</div></div>
+    <div class="card"><div class="label">CALL on page</div><div class="value" id="stat-call">--</div></div>
+    <div class="card"><div class="label">PUT on page</div><div class="value" id="stat-put">--</div></div>
+    <div class="card"><div class="label">Neutral on page</div><div class="value" id="stat-neutral">--</div></div>
+  </div>
+
+  <div class="controls">
+    <label>
+      Search
+      <input id="search-input" type="text" placeholder="Hotel, category, board...">
+    </label>
+    <label>
+      Hotel
+      <select id="hotel-filter">
+        <option value="">All hotels</option>
+      </select>
+    </label>
+    <label>
+      Board
+      <select id="board-filter">
+        <option value="">All boards</option>
+        <option value="Ro">RO (Room Only)</option>
+        <option value="Bb">BB (Bed &amp; Breakfast)</option>
+        <option value="Hb">HB (Half Board)</option>
+        <option value="Fb">FB (Full Board)</option>
+        <option value="Ai">AI (All Inclusive)</option>
+      </select>
+    </label>
+    <label>
+      Signal
+      <select id="signal-filter">
+        <option value="">All</option>
+        <option value="CALL">CALL</option>
+        <option value="PUT">PUT</option>
+        <option value="NEXT_PUT">NEXT PUT (scan drop)</option>
+        <option value="NEUTRAL">NEUTRAL</option>
+      </select>
+    </label>
+    <label>
+      Check-in range
+      <select id="checkin-filter">
+        <option value="">All dates</option>
+        <option value="7">Next 7 days</option>
+        <option value="14">Next 14 days</option>
+        <option value="30">Next 30 days</option>
+        <option value="60">Next 60 days</option>
+        <option value="90">Next 90 days</option>
+      </select>
+    </label>
+    <label>
+      Prediction engine
+      <select id="source-filter">
+        <option value="">All sources</option>
+        <option value="salesoffice">SalesOffice DB</option>
+        <option value="forward_curve">Forward curve</option>
+        <option value="med_search_hotels">MED Search Hotels</option>
+        <option value="historical_pattern">Historical pattern</option>
+        <option value="ml_forecast">ML forecast</option>
+        <option value="room_price_update_log">Room Price Update Log</option>
+        <option value="hotel_booking_dataset">Hotel Booking Demand Dataset</option>
+        <option value="cancellation_data">Booking Cancellations</option>
+        <option value="kiwi_flights">Kiwi Flights</option>
+        <option value="open_meteo">Open-Meteo Weather</option>
+        <option value="miami_events_hardcoded">Miami Major Events</option>
+        <option value="seatgeek">SeatGeek Events</option>
+        <option value="ai_search_hotel_data">AI Search Hotel Data</option>
+        <option value="search_results_poll_log">Search Results Poll Log</option>
+        <option value="med_prebook">MED PreBook</option>
+        <option value="tbo_hotels">TBO Hotels Dataset</option>
+        <option value="ota_brightdata_exports">OTA Market Rates</option>
+        <option value="destinations_geo">Destinations &amp; Hotel Geo Data</option>
+        <option value="salesoffice_log">SalesOffice Action Log</option>
+      </select>
+    </label>
+    <label>
+      Source view
+      <select id="source-mode-filter">
+        <option value="all">All predictions</option>
+        <option value="filter">Filter rows by source</option>
+        <option value="source_only">Source-only prediction</option>
+      </select>
+    </label>
+    <label>
+      Horizon days
+      <input id="t-days-input" type="number" min="1" step="1" placeholder="all">
+    </label>
+    <label>
+      Page size
+      <select id="limit-select">
+        <option value="50">50</option>
+        <option value="100" selected>100</option>
+        <option value="200">200</option>
+        <option value="500">500</option>
+      </select>
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input id="auto-refresh-toggle" type="checkbox"> Auto-refresh
+      <select id="auto-refresh-interval" style="width:70px">
+        <option value="60">1m</option>
+        <option value="300" selected>5m</option>
+        <option value="600">10m</option>
+      </select>
+    </label>
+    <div class="controls-note">Selecting a prediction engine now switches to Source-only prediction by default, so changing the source updates the forecast immediately. Use Filter rows by source only when you want to keep the ensemble forecast and just narrow the list.</div>
+  </div>
+
+  <div id="put-summary-panel" style="display:none;margin:12px 0;padding:16px;background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;color:#e0e7ff">
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+      <div style="text-align:center"><div style="font-size:28px;font-weight:700" id="put-total-count">0</div><div style="font-size:11px;opacity:0.7">PUT Signals</div></div>
+      <div style="text-align:center"><div style="font-size:28px;font-weight:700" id="put-rate-pct">0%</div><div style="font-size:11px;opacity:0.7">PUT Rate</div></div>
+      <div style="text-align:center"><div style="font-size:28px;font-weight:700" id="put-avg-drop">0%</div><div style="font-size:11px;opacity:0.7">Avg Expected Drop</div></div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;opacity:0.7;margin-bottom:4px">Top PUT Hotels</div>
+        <div id="put-top-hotels" style="font-size:13px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-panel loading" id="status-panel">
+    <div class="status-title">Preparing options dataset</div>
+    <div class="status-text" id="status-text">Connecting to the cached analytics API...</div>
+    <div class="status-meta" id="status-meta"></div>
+  </div>
+
+  <div class="table-shell">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Hotel</th>
+            <th>Category</th>
+            <th>Board</th>
+            <th>Check-in</th>
+            <th>Signal</th>
+            <th>Current $</th>
+            <th>Predicted $</th>
+            <th id="selected-source-price-head">Selected source $</th>
+            <th>Change %</th>
+            <th>Min / Max</th>
+            <th>Quality</th>
+            <th>Scans</th>
+            <th>Scan trend</th>
+            <th>Next Scan</th>
+            <th>Sources</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td class="empty" colspan="17">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <div id="pager-summary">Page 1</div>
+      <div class="buttons">
+        <button id="prev-btn" type="button">Previous</button>
+        <button id="next-btn" type="button">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="detail-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="detail-title">Room detail</h2>
+      <button type="button" id="detail-close">&times;</button>
+    </div>
+    <div class="modal-body" id="detail-body">
+      Loading detail...
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  offset: 0,
+  limit: 100,
+  totalRows: 0,
+  runTs: null,
+  search: '',
+  signal: {{ initial_signal }},
+  source: '',
+  sourceMode: 'all',
+  sourceOnly: false,
+  tDays: {{ initial_t_days }},
+  loading: false,
+  rows: [],
+  filteredRows: [],
+  pollTimer: null,
+  detailView: null,
+  hotelFilter: '',
+  boardFilter: '',
+  checkinDays: '',
+  autoRefreshTimer: null,
+};
+
+const el = {
+  tableBody: document.getElementById('table-body'),
+  statusPanel: document.getElementById('status-panel'),
+  statusText: document.getElementById('status-text'),
+  statusMeta: document.getElementById('status-meta'),
+  cacheChip: document.getElementById('cache-chip'),
+  rowsChip: document.getElementById('rows-chip'),
+  runTsChip: document.getElementById('run-ts-chip'),
+  total: document.getElementById('stat-total'),
+  call: document.getElementById('stat-call'),
+  put: document.getElementById('stat-put'),
+  neutral: document.getElementById('stat-neutral'),
+  selectedSourcePriceHead: document.getElementById('selected-source-price-head'),
+  searchInput: document.getElementById('search-input'),
+  signalFilter: document.getElementById('signal-filter'),
+  sourceFilter: document.getElementById('source-filter'),
+  sourceModeFilter: document.getElementById('source-mode-filter'),
+  tDaysInput: document.getElementById('t-days-input'),
+  limitSelect: document.getElementById('limit-select'),
+  prevBtn: document.getElementById('prev-btn'),
+  nextBtn: document.getElementById('next-btn'),
+  pagerSummary: document.getElementById('pager-summary'),
+  refreshBtn: document.getElementById('refresh-btn'),
+  detailBackdrop: document.getElementById('detail-backdrop'),
+  detailTitle: document.getElementById('detail-title'),
+  detailBody: document.getElementById('detail-body'),
+  detailClose: document.getElementById('detail-close'),
+  hotelFilter: document.getElementById('hotel-filter'),
+  boardFilter: document.getElementById('board-filter'),
+  checkinFilter: document.getElementById('checkin-filter'),
+  autoRefreshToggle: document.getElementById('auto-refresh-toggle'),
+  autoRefreshInterval: document.getElementById('auto-refresh-interval'),
+  putSummaryPanel: document.getElementById('put-summary-panel'),
+  putTotalCount: document.getElementById('put-total-count'),
+  putRatePct: document.getElementById('put-rate-pct'),
+  putAvgDrop: document.getElementById('put-avg-drop'),
+  putTopHotels: document.getElementById('put-top-hotels'),
+};
+
+el.signalFilter.value = state.signal || '';
+el.sourceFilter.value = state.source || '';
+el.sourceModeFilter.value = state.sourceMode;
+el.limitSelect.value = String(state.limit);
+if (Number.isInteger(state.tDays)) {
+  el.tDaysInput.value = String(state.tDays);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[ch]);
+}
+
+function formatCurrency(value) {
+  const num = Number(value ?? 0);
+  return Number.isFinite(num) ? '$' + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--';
+}
+
+function formatPercent(value) {
+  const num = Number(value ?? 0);
+  if (!Number.isFinite(num)) return '--';
+  return (num > 0 ? '+' : '') + num.toFixed(1) + '%';
+}
+
+function signalClass(signal) {
+  const key = String(signal || '').toLowerCase();
+  if (key === 'call') return 'call';
+  if (key === 'put' || key === 'strong_put' || key === 'next_put') return 'put';
+  return 'neutral';
+}
+
+function computeNextScanSignal(row) {
+  /* Next-scan price drop prediction (price-drop skill).
+     Predicts if price will drop ≥5% in the next 3h scan cycle. */
+  const scan = row.scan_history || {};
+  const cur = Number(row.current_price || 0);
+  const expMin = Number(row.expected_min_price || 0);
+  const drops = Number(scan.scan_actual_drops || 0);
+  const rises = Number(scan.scan_actual_rises || 0);
+  const scans = Number(scan.scan_snapshots || 0);
+  const trend = String(scan.scan_trend || '');
+  const changePct = Number(scan.scan_price_change_pct || 0);
+  const maxDrop = Number(scan.scan_max_single_drop || 0);
+  const putDeclines = Number(row.put_decline_count || 0);
+
+  let score = 0;
+
+  // Velocity: recent price trend
+  if (scans >= 2 && changePct < 0) {
+    const avgPerScan = changePct / Math.max(1, scans - 1);
+    if (avgPerScan < -5) score += 35;
+    else if (avgPerScan < -3) score += 25;
+    else if (avgPerScan < -1) score += 10;
+  }
+
+  // Acceleration: trending down
+  if (trend === 'down') score += 15;
+
+  // Drop frequency
+  const totalMoves = drops + rises;
+  if (totalMoves > 0) {
+    const freq = drops / totalMoves;
+    if (freq > 0.5) score += 20;
+    else if (freq > 0.3) score += 10;
+  }
+
+  // Consecutive drops (if trending down with multiple drops)
+  if (trend === 'down' && drops >= 3) score += 20;
+  else if (trend === 'down' && drops >= 2) score += 15;
+  else if (drops >= 1) score += 5;
+
+  // Expected min below current (forward curve sees dip)
+  if (cur > 0 && expMin > 0) {
+    const minPct = (expMin - cur) / cur * 100;
+    if (minPct <= -5) score += 10;
+  }
+
+  // Max historical single drop was big
+  if (cur > 0 && maxDrop / cur * 100 > 10) score += 10;
+  else if (cur > 0 && maxDrop / cur * 100 > 5) score += 5;
+
+  // Category volatility
+  const cat = String(row.category || '').toLowerCase();
+  if (cat.includes('suite') || cat.includes('deluxe')) score += 5;
+
+  // Classify
+  let label, cls, detail = '';
+  if (score >= 70) {
+    label = 'STRONG PUT';
+    cls = 'put';
+    detail = '<br><span class="muted">drop expected</span>';
+  } else if (score >= 50) {
+    label = 'PUT';
+    cls = 'put';
+    detail = '<br><span class="muted">likely drop</span>';
+  } else if (score >= 30) {
+    label = 'WATCH';
+    cls = 'neutral';
+    detail = '';
+  } else {
+    label = '--';
+    cls = '';
+    detail = '';
+  }
+
+  return { label, cls, detail, score };
+}
+
+function setStatus(kind, title, text, meta = []) {
+  el.statusPanel.className = 'status-panel ' + kind;
+  el.statusPanel.querySelector('.status-title').textContent = title;
+  el.statusText.textContent = text;
+  el.statusMeta.innerHTML = meta.map((item) => '<span>' + escapeHtml(item) + '</span>').join('');
+}
+
+function updateSummary() {
+  const rows = state.filteredRows;
+  const calls = rows.filter((row) => row.option_signal === 'CALL').length;
+  const puts = rows.filter((row) => row.option_signal === 'PUT').length;
+  const neutrals = rows.length - calls - puts;
+  el.total.textContent = String(state.totalRows || 0);
+  el.call.textContent = String(calls);
+  el.put.textContent = String(puts);
+  el.neutral.textContent = String(neutrals);
+  el.rowsChip.textContent = 'Rows: ' + rows.length + ' shown / ' + (state.totalRows || 0) + ' total';
+  el.runTsChip.textContent = 'Last run: ' + (state.runTs || '--');
+  if (state.source && state.sourceMode !== 'all') {
+    if (state.sourceMode === 'source_only') {
+      el.cacheChip.textContent = 'Cache: ready • prediction=' + state.source;
+    } else {
+      el.cacheChip.textContent = 'Cache: ready • filter=' + state.source + ' • prediction=ensemble';
+    }
+  } else {
+    el.cacheChip.textContent = 'Cache: ready';
+  }
+
+  const pageNumber = Math.floor(state.offset / state.limit) + 1;
+  const totalPages = Math.max(1, Math.ceil((state.totalRows || 0) / state.limit));
+  el.pagerSummary.textContent = 'Page ' + pageNumber + ' of ' + totalPages + ' • offset ' + state.offset;
+  el.prevBtn.disabled = state.offset <= 0 || state.loading;
+  el.nextBtn.disabled = state.loading || (state.offset + state.limit >= state.totalRows);
+  updateSourcePriceHeader();
+}
+
+function updateSourcePriceHeader() {
+  if (!el.selectedSourcePriceHead) return;
+  const sourceLabel = state.source ? getSourceDisplayName(state.source) : 'Selected source';
+  el.selectedSourcePriceHead.textContent = sourceLabel + ' $';
+}
+
+function applySearch() {
+  let filtered = [...state.rows];
+
+  // Text search
+  const q = state.search.trim().toLowerCase();
+  if (q) {
+    filtered = filtered.filter((row) => [
+      row.hotel_name, row.category, row.board, row.option_signal, row.detail_id,
+    ].some((value) => String(value ?? '').toLowerCase().includes(q)));
+  }
+
+  // Hotel filter
+  if (state.hotelFilter) {
+    filtered = filtered.filter((row) => String(row.hotel_name || '') === state.hotelFilter);
+  }
+
+  // Board filter
+  if (state.boardFilter) {
+    filtered = filtered.filter((row) => String(row.board || '').toLowerCase() === state.boardFilter.toLowerCase());
+  }
+
+  // Check-in date range filter
+  if (state.checkinDays) {
+    const maxDays = Number(state.checkinDays);
+    if (maxDays > 0) {
+      filtered = filtered.filter((row) => (row.days_to_checkin || 999) <= maxDays);
+    }
+  }
+
+  // Client-side filter: NEXT_PUT — show only rooms with next-scan PUT signal
+  if (state.signal === 'NEXT_PUT') {
+    filtered = filtered.filter((row) => {
+      const ns = computeNextScanSignal(row);
+      return ns.score >= 50;
+    });
+  }
+
+  state.filteredRows = filtered;
+  renderRows();
+  populateHotelDropdown();
+  updatePutSummary();
+}
+
+function populateHotelDropdown() {
+  const hotels = [...new Set(state.rows.map((r) => r.hotel_name).filter(Boolean))].sort();
+  const current = el.hotelFilter.value;
+  const options = ['<option value="">All hotels (' + hotels.length + ')</option>'];
+  hotels.forEach((name) => {
+    const count = state.rows.filter((r) => r.hotel_name === name).length;
+    const sel = name === current ? ' selected' : '';
+    options.push('<option value="' + escapeHtml(name) + '"' + sel + '>' + escapeHtml(name) + ' (' + count + ')</option>');
+  });
+  el.hotelFilter.innerHTML = options.join('');
+}
+
+function updatePutSummary() {
+  const allRows = state.rows;
+  const putRows = allRows.filter((r) => r.option_signal === 'PUT');
+  const total = allRows.length;
+  const putCount = putRows.length;
+  const putRate = total > 0 ? (putCount / total * 100).toFixed(1) : '0';
+
+  if (putCount === 0) {
+    el.putSummaryPanel.style.display = 'none';
+    return;
+  }
+  el.putSummaryPanel.style.display = 'block';
+  el.putTotalCount.textContent = String(putCount);
+  el.putRatePct.textContent = putRate + '%';
+
+  // Average expected drop for PUT rows
+  const drops = putRows.map((r) => r.expected_min_delta_from_now || 0).filter((d) => d < 0);
+  const avgDrop = drops.length > 0 ? (drops.reduce((a, b) => a + b, 0) / drops.length).toFixed(1) : '0';
+  el.putAvgDrop.textContent = '$' + avgDrop;
+
+  // Top PUT hotels
+  const hotelPuts = {};
+  putRows.forEach((r) => { hotelPuts[r.hotel_name] = (hotelPuts[r.hotel_name] || 0) + 1; });
+  const topHotels = Object.entries(hotelPuts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  el.putTopHotels.innerHTML = topHotels.map(([name, count]) =>
+    '<span style="display:inline-block;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;margin:2px">' + escapeHtml(name) + ' <b>' + count + '</b></span>'
+  ).join(' ');
+}
+
+function renderRows() {
+  if (!state.filteredRows.length) {
+    el.tableBody.innerHTML = '<tr><td class="empty" colspan="17">No rows match the current view.</td></tr>';
+    updateSummary();
+    return;
+  }
+
+  el.tableBody.innerHTML = state.filteredRows.map((row) => {
+    const quality = row.quality || {};
+    const optionLevels = row.option_levels || {};
+    const scan = row.scan_history || {};
+    const signal = String(row.option_signal || 'NEUTRAL').toUpperCase();
+    const change = Number(row.expected_change_pct || 0);
+    const changeCls = change > 0 ? 'pos' : (change < 0 ? 'neg' : '');
+    const levelText = optionLevels.label ? ' • ' + optionLevels.label : '';
+    const scanTrend = String(scan.scan_trend || 'no_data');
+    const scanDelta = Number(scan.scan_price_change_pct || 0);
+    const scanDeltaCls = scanDelta > 0 ? 'pos' : (scanDelta < 0 ? 'neg' : '');
+    // Next-scan drop prediction (price-drop skill)
+    const nextScan = computeNextScanSignal(row);
+    const selectedSourcePrice = state.source ? getRowSourcePredictedPrice(row, state.source) : null;
+    const selectedSourceHtml = state.source
+      ? ((selectedSourcePrice != null ? formatCurrency(selectedSourcePrice) : '<span class="muted">--</span>') + '<br><span class="muted">' + escapeHtml(getSourceDisplayName(state.source)) + '</span>')
+      : '<span class="muted">Select source</span>';
+    const sourceHtml = Array.isArray(row.sources) && row.sources.length
+      ? '<div class="source-badges">' + row.sources.map((item) => '<span class="source-badge">' + escapeHtml((item && item.source) || 'unknown') + '</span>').join('') + '</div>'
+      : '<span class="muted">--</span>';
+    return `
+      <tr>
+        <td>${escapeHtml(row.detail_id)}</td>
+        <td><strong>${escapeHtml(row.hotel_name || '')}</strong></td>
+        <td>${escapeHtml(row.category || '')}</td>
+        <td>${escapeHtml(row.board || '')}</td>
+        <td>${escapeHtml(row.date_from || '')}</td>
+        <td><span class="pill ${signalClass(signal)}">${escapeHtml(signal)}${escapeHtml(levelText)}</span></td>
+        <td>${formatCurrency(row.current_price)}</td>
+        <td>${formatCurrency(row.predicted_checkin_price)}</td>
+        <td>${selectedSourceHtml}</td>
+        <td class="num ${changeCls}">${formatPercent(change)}</td>
+        <td>${formatCurrency(row.expected_min_price)} / ${formatCurrency(row.expected_max_price)}</td>
+        <td><span class="quality ${String(quality.label || '').toLowerCase()}">${escapeHtml(quality.label || '--')}</span><br><span class="muted">score ${quality.score != null ? Number(quality.score).toFixed(2) : '--'}</span></td>
+        <td>${escapeHtml(scan.scan_snapshots ?? 0)}</td>
+        <td><span class="muted">${escapeHtml(scanTrend)}</span><br><span class="num ${scanDeltaCls}">${formatPercent(scanDelta)}</span></td>
+        <td><span class="pill ${nextScan.cls}">${nextScan.label}</span>${nextScan.detail}</td>
+        <td>${sourceHtml}</td>
+        <td class="row-actions"><button type="button" data-detail-id="${escapeHtml(row.detail_id)}">Chart + analysis</button></td>
+      </tr>`;
+  }).join('');
+
+  updateSummary();
+}
+
+function buildOptionsUrl() {
+  const params = new URLSearchParams();
+  params.set('profile', 'lite');
+  params.set('include_chart', 'false');
+  params.set('include_system_context', 'false');
+  params.set('include_metadata', 'false');
+  params.set('limit', String(state.limit));
+  params.set('offset', String(state.offset));
+  if (state.signal && state.signal !== 'NEXT_PUT') params.set('signal', state.signal);
+  if (state.source) params.set('source', state.source);
+  if (state.source && state.sourceMode === 'source_only') params.set('source_only', 'true');
+  if (Number.isInteger(state.tDays) && state.tDays > 0) params.set('t_days', String(state.tDays));
+  return '/api/v1/salesoffice/options?' + params.toString();
+}
+
+function buildScanRows(scanSeries) {
+  if (!Array.isArray(scanSeries) || !scanSeries.length) {
+    return '<div class="empty-mini">No scan-by-scan history available yet.</div>';
+  }
+  let previousPrice = null;
+  const rows = scanSeries.map((point, idx) => {
+    const price = Number((point && point.price) || 0);
+    const delta = previousPrice == null ? null : price - previousPrice;
+    const deltaCls = delta == null ? '' : (delta > 0 ? 'pos' : (delta < 0 ? 'neg' : ''));
+    previousPrice = price;
+    return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${escapeHtml((point && point.date) || '--')}</td>
+        <td>${formatCurrency(price)}</td>
+        <td class="num ${deltaCls}">${delta == null ? '--' : formatCurrency(delta)}</td>
+      </tr>`;
+  }).join('');
+  return '<table class="detail-table"><thead><tr><th>#</th><th>Scan date</th><th>Observed price</th><th>Change vs previous</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+function buildSourcesTable(sources) {
+  if (!Array.isArray(sources) || !sources.length) {
+    return '<div class="empty-mini">No per-source analysis metadata is available for this row.</div>';
+  }
+  const rows = sources.map((item) => `
+    <tr>
+      <td>${escapeHtml((item && item.source) || '--')}</td>
+      <td>${item && item.predicted_price != null ? formatCurrency(item.predicted_price) : '--'}</td>
+      <td>${item && item.weight != null ? Number(item.weight).toFixed(2) : '--'}</td>
+      <td>${item && item.confidence != null ? Number(item.confidence).toFixed(2) : '--'}</td>
+      <td>${escapeHtml((item && item.reasoning) || '--')}</td>
+    </tr>`).join('');
+  return '<table class="detail-table"><thead><tr><th>Source</th><th>Predicted $</th><th>Weight</th><th>Confidence</th><th>Reasoning</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+function filterSeriesByWindow(series, windowValue, keepTail = false) {
+  if (!Array.isArray(series)) return [];
+  if (!windowValue || windowValue === 'all') return series;
+  const limit = Number.parseInt(windowValue, 10);
+  if (!Number.isFinite(limit) || limit <= 0) return series;
+  return keepTail ? series.slice(-limit) : series.slice(0, limit);
+}
+
+function getDetailSourceOptions(row, detail) {
+  const sourceSet = new Set();
+  if (Array.isArray(detail.available_sources)) {
+    detail.available_sources.forEach((item) => item && sourceSet.add(String(item).trim().toLowerCase()));
+  }
+  if (detail && detail.source_predictions && typeof detail.source_predictions === 'object') {
+    Object.keys(detail.source_predictions).forEach((item) => item && sourceSet.add(String(item).trim().toLowerCase()));
+  }
+  if (row && row.source_predictions && typeof row.source_predictions === 'object') {
+    Object.keys(row.source_predictions).forEach((item) => item && sourceSet.add(String(item).trim().toLowerCase()));
+  }
+  if (Array.isArray(row.sources)) {
+    row.sources.forEach((item) => {
+      const key = String((item && item.source) || '').trim().toLowerCase();
+      if (key) sourceSet.add(key);
+    });
+  }
+  return ['ensemble', ...Array.from(sourceSet)];
+}
+
+function getSourceDisplayName(source) {
+  if (source === 'ensemble') return 'Ensemble';
+  if (source === 'salesoffice') return 'SalesOffice DB';
+  if (source === 'forward_curve') return 'Forward curve';
+  if (source === 'med_search_hotels') return 'MED Search Hotels';
+  if (source === 'historical_pattern') return 'Historical pattern';
+  if (source === 'ml_forecast') return 'ML forecast';
+  if (source === 'room_price_update_log') return 'Room Price Update Log';
+  if (source === 'hotel_booking_dataset') return 'Hotel Booking Demand Dataset';
+  if (source === 'cancellation_data') return 'Booking Cancellations';
+  if (source === 'kiwi_flights') return 'Kiwi Flights';
+  if (source === 'open_meteo') return 'Open-Meteo Weather';
+  if (source === 'miami_events_hardcoded') return 'Miami Major Events';
+  if (source === 'seatgeek') return 'SeatGeek Events';
+  if (source === 'predicthq') return 'PredictHQ Events';
+  if (source === 'ai_search_hotel_data') return 'AI Search Hotel Data';
+  if (source === 'search_results_poll_log') return 'Search Results Poll Log';
+  if (source === 'med_prebook') return 'MED PreBook';
+  if (source === 'tbo_hotels') return 'TBO Hotels Dataset';
+  if (source === 'ota_brightdata_exports') return 'OTA Market Rates';
+  if (source === 'destinations_geo') return 'Destinations & Hotel Geo Data';
+  if (source === 'salesoffice_log') return 'SalesOffice Action Log';
+  if (source === 'xotelo') return 'Xotelo';
+  if (source === 'serpapi_hotels') return 'Google Hotels';
+  if (source === 'trivago_statista') return 'Trivago ADR';
+  return String(source || '--');
+}
+
+function getSourceColor(source) {
+  return ({
+    ensemble: '#3b82f6',
+    salesoffice: '#1d4ed8',
+    forward_curve: '#2563eb',
+    med_search_hotels: '#6d28d9',
+    historical_pattern: '#8b5cf6',
+    ml_forecast: '#14b8a6',
+    room_price_update_log: '#ea580c',
+    hotel_booking_dataset: '#f59e0b',
+    cancellation_data: '#dc2626',
+    kiwi_flights: '#16a34a',
+    open_meteo: '#0ea5e9',
+    miami_events_hardcoded: '#db2777',
+    seatgeek: '#be185d',
+    predicthq: '#ec4899',
+    ai_search_hotel_data: '#7c3aed',
+    search_results_poll_log: '#0891b2',
+    med_prebook: '#0f766e',
+    tbo_hotels: '#9333ea',
+    ota_brightdata_exports: '#7e22ce',
+    destinations_geo: '#6366f1',
+    salesoffice_log: '#475569',
+    xotelo: '#a855f7',
+    serpapi_hotels: '#c026d3',
+    trivago_statista: '#d946ef',
+    scans: '#f97316',
+    delta: '#dc2626',
+  })[source] || '#64748b';
+}
+
+function getRowSourcePredictedPrice(row, source) {
+  if (row && row.source_predictions && row.source_predictions[source] && row.source_predictions[source].predicted_price != null) {
+    return Number(row.source_predictions[source].predicted_price);
+  }
+  const item = (Array.isArray(row.sources) ? row.sources : []).find((entry) => String((entry && entry.source) || '').trim().toLowerCase() === source);
+  return item && item.predicted_price != null ? Number(item.predicted_price) : null;
+}
+
+function buildCompareSeries(detailState) {
+  const row = detailState.row || {};
+  const detailCache = detailState.detailCache || {};
+  const currentPrice = Number((detailState.detail || {}).cp || row.current_price || 0);
+  const selectedSources = Array.isArray(detailState.compareSources) ? detailState.compareSources : ['ensemble'];
+
+  return selectedSources.map((sourceKey) => {
+    const payload = detailCache[sourceKey];
+    if (payload && Array.isArray(payload.fc) && payload.fc.length) {
+      return {
+        key: sourceKey,
+        label: getSourceDisplayName(sourceKey),
+        color: getSourceColor(sourceKey),
+        points: payload.fc.map((point, idx) => ({
+          x: idx,
+          label: point.d || `P${idx + 1}`,
+          value: Number(point.p || 0),
+        })).filter((point) => Number.isFinite(point.value) && point.value > 0),
+      };
+    }
+
+    const predictedPrice = sourceKey === 'ensemble'
+      ? Number((detailState.detail || {}).pp || row.predicted_checkin_price || 0)
+      : getRowSourcePredictedPrice(row, sourceKey);
+
+    return {
+      key: sourceKey,
+      label: getSourceDisplayName(sourceKey),
+      color: getSourceColor(sourceKey),
+      points: [
+        { x: 0, label: 'Now', value: currentPrice },
+        { x: 1, label: 'Target', value: Number(predictedPrice || currentPrice) },
+      ].filter((point) => Number.isFinite(point.value) && point.value > 0),
+    };
+  }).filter((series) => Array.isArray(series.points) && series.points.length);
+}
+
+function buildScanLegend(scanMetric) {
+  const metricKey = scanMetric === 'delta' ? 'delta' : 'scans';
+  const label = metricKey === 'delta' ? 'Scan delta' : 'Observed scan price';
+  return `<span class="legend-item"><span class="legend-swatch" style="background:${getSourceColor(metricKey)}"></span>${label}</span>`;
+}
+
+function drawComparisonChart(canvas, detailState) {
+  if (!canvas || !detailState) return;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.clientWidth || 680;
+  const height = 240;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const seriesList = buildCompareSeries(detailState);
+  const allPoints = seriesList.flatMap((series) => series.points || []);
+  const validValues = allPoints.map((point) => Number(point.value || 0)).filter((value) => Number.isFinite(value) && value > 0);
+  if (!validValues.length) {
+    ctx.fillStyle = '#64748b';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('No source comparison data available', 20, 40);
+    return;
+  }
+
+  const left = 48;
+  const right = width - 16;
+  const top = 20;
+  const bottom = height - 32;
+  const chartWidth = right - left;
+  const chartHeight = bottom - top;
+  const minValue = Math.min.apply(null, validValues);
+  const maxValue = Math.max.apply(null, validValues);
+  const pad = Math.max((maxValue - minValue) * 0.08, 5);
+  const low = minValue - pad;
+  const high = maxValue + pad;
+  const range = Math.max(high - low, 1);
+  const maxPoints = Math.max(...seriesList.map((series) => series.points.length), 2);
+  const xCount = Math.max(maxPoints - 1, 1);
+
+  function x(idx) { return left + (idx / xCount) * chartWidth; }
+  function y(value) { return bottom - ((value - low) / range) * chartHeight; }
+
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i += 1) {
+    const yy = top + (i / 4) * chartHeight;
+    ctx.beginPath();
+    ctx.moveTo(left, yy);
+    ctx.lineTo(right, yy);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.fillText(high.toFixed(0), 4, top + 4);
+  ctx.fillText(low.toFixed(0), 8, bottom);
+
+  seriesList.forEach((series) => {
+    ctx.strokeStyle = series.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    series.points.forEach((point, idx) => {
+      const px = x(point.x != null ? point.x : idx);
+      const py = y(point.value);
+      if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+
+    series.points.forEach((point, idx) => {
+      const px = x(point.x != null ? point.x : idx);
+      const py = y(point.value);
+      ctx.beginPath();
+      ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = series.color;
+      ctx.fill();
+    });
+  });
+}
+
+function drawScanZoomChart(canvas, scanSeries, options = {}) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.clientWidth || 680;
+  const height = 220;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const filtered = filterSeriesByWindow(Array.isArray(scanSeries) ? scanSeries : [], options.window || 'all', true);
+  if (!filtered.length) {
+    ctx.fillStyle = '#64748b';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('No scan zoom data available', 20, 40);
+    return;
+  }
+
+  const metric = options.metric || 'price';
+  let previousPrice = null;
+  const points = filtered.map((item, idx) => {
+    const price = Number((item && item.price) || 0);
+    const value = metric === 'delta'
+      ? (previousPrice == null ? 0 : price - previousPrice)
+      : price;
+    previousPrice = price;
+    return { x: idx, value, label: (item && item.date) || `S${idx + 1}` };
+  }).filter((point) => Number.isFinite(point.value));
+
+  const values = points.map((point) => point.value);
+  const minValue = Math.min.apply(null, values);
+  const maxValue = Math.max.apply(null, values);
+  const left = 48;
+  const right = width - 16;
+  const top = 20;
+  const bottom = height - 32;
+  const chartWidth = right - left;
+  const chartHeight = bottom - top;
+  const pad = Math.max((maxValue - minValue) * 0.12, metric === 'delta' ? 2 : 5);
+  const low = minValue - pad;
+  const high = maxValue + pad;
+  const range = Math.max(high - low, 1);
+  const xCount = Math.max(points.length - 1, 1);
+  const color = metric === 'delta' ? getSourceColor('delta') : getSourceColor('scans');
+
+  function x(idx) { return left + (idx / xCount) * chartWidth; }
+  function y(value) { return bottom - ((value - low) / range) * chartHeight; }
+
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i += 1) {
+    const yy = top + (i / 4) * chartHeight;
+    ctx.beginPath();
+    ctx.moveTo(left, yy);
+    ctx.lineTo(right, yy);
+    ctx.stroke();
+  }
+  if (metric === 'delta' && low < 0 && high > 0) {
+    const zeroY = y(0);
+    ctx.strokeStyle = 'rgba(100,116,139,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(left, zeroY);
+    ctx.lineTo(right, zeroY);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.fillText(high.toFixed(0), 4, top + 4);
+  ctx.fillText(low.toFixed(0), 8, bottom);
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((point, idx) => {
+    const px = x(idx);
+    const py = y(point.value);
+    if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+
+  points.forEach((point, idx) => {
+    const px = x(idx);
+    const py = y(point.value);
+    ctx.beginPath();
+    ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  });
+}
+
+function drawForecastChart(canvas, scanSeries, fcSeries, options = {}) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.clientWidth || 680;
+  const height = 280;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const style = options.style || 'candlestick';
+  const showHistory = options.showHistory !== false;
+  const horizon = parseInt(options.horizon || '14', 10);
+
+  const scans = Array.isArray(scanSeries) ? scanSeries : [];
+  const fc = Array.isArray(fcSeries) ? fcSeries.slice(0, horizon) : [];
+
+  if (!scans.length && !fc.length) {
+    ctx.fillStyle = '#64748b'; ctx.font = '13px sans-serif';
+    ctx.fillText('No forecast data — need at least 3 scans', 20, 40);
+    return;
+  }
+
+  const allPrices = [];
+  if (showHistory) scans.forEach((s) => allPrices.push(Number(s.price || 0)));
+  fc.forEach((f) => { allPrices.push(Number(f.p || 0)); if (f.lo) allPrices.push(Number(f.lo)); if (f.hi) allPrices.push(Number(f.hi)); });
+  const valid = allPrices.filter((v) => Number.isFinite(v) && v > 0);
+  if (!valid.length) { ctx.fillStyle='#64748b'; ctx.font='13px sans-serif'; ctx.fillText('Insufficient price data',20,40); return; }
+
+  const minP = Math.min.apply(null, valid);
+  const maxP = Math.max.apply(null, valid);
+  const left = 52; const right = width - 16; const top = 20; const bottom = height - 36;
+  const chartW = right - left; const chartH = bottom - top;
+  const yPad = Math.max((maxP - minP) * 0.1, 5);
+  const lo = minP - yPad; const hi = maxP + yPad; const rng = Math.max(hi - lo, 1);
+
+  const histLen = showHistory ? scans.length : 0;
+  const totalBars = histLen + fc.length;
+  if (!totalBars) return;
+  const barW = Math.max(chartW / totalBars, 4);
+  function xPos(i) { return left + (i + 0.5) * (chartW / totalBars); }
+  function yPos(p) { return bottom - ((p - lo) / rng) * chartH; }
+
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  for (let g = 0; g <= 4; g++) { const gy = top + (g / 4) * chartH; ctx.beginPath(); ctx.moveTo(left, gy); ctx.lineTo(right, gy); ctx.stroke(); }
+  ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif';
+  for (let g = 0; g <= 4; g++) { const pv = hi - (g / 4) * rng; ctx.fillText('$' + pv.toFixed(0), 2, top + (g / 4) * chartH + 4); }
+
+  if (histLen > 1 && style === 'candlestick') {
+    for (let i = 0; i < histLen; i++) {
+      const cur = Number(scans[i].price || 0);
+      const prev = i > 0 ? Number(scans[i - 1].price || cur) : cur;
+      const open = prev; const close = cur;
+      const high = Math.max(open, close); const low = Math.min(open, close);
+      const color = close >= open ? '#22c55e' : '#ef4444';
+      const cx = xPos(i); const bw = Math.max(barW * 0.6, 3);
+      ctx.strokeStyle = color; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx, yPos(high)); ctx.lineTo(cx, yPos(low)); ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.fillRect(cx - bw / 2, yPos(high), bw, Math.max(yPos(low) - yPos(high), 1));
+    }
+  } else if (histLen && style === 'line') {
+    ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2; ctx.beginPath();
+    scans.forEach((s, i) => { const px = xPos(i); const py = yPos(Number(s.price || 0)); if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); });
+    ctx.stroke();
+  }
+
+  if (histLen > 0 && fc.length > 0) {
+    const divX = xPos(histLen - 0.5);
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(divX, top); ctx.lineTo(divX, bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'; ctx.fillText('forecast →', divX + 4, top + 12);
+  }
+
+  if (fc.length) {
+    ctx.fillStyle = 'rgba(139,92,246,0.12)';
+    ctx.beginPath();
+    fc.forEach((f, i) => { const px = xPos(histLen + i); const py = yPos(Number(f.hi || f.p || 0)); if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); });
+    for (let i = fc.length - 1; i >= 0; i--) { ctx.lineTo(xPos(histLen + i), yPos(Number(fc[i].lo || fc[i].p || 0))); }
+    ctx.closePath(); ctx.fill();
+
+    if (style === 'candlestick') {
+      for (let i = 0; i < fc.length; i++) {
+        const f = fc[i];
+        const open = i > 0 ? Number(fc[i - 1].p || 0) : (scans.length ? Number(scans[scans.length - 1].price || 0) : Number(f.p || 0));
+        const close = Number(f.p || 0);
+        const high = Math.max(Number(f.hi || close), open, close);
+        const low = Math.min(Number(f.lo || close), open, close);
+        const color = close >= open ? '#7c3aed' : '#a855f7';
+        const cx = xPos(histLen + i); const bw = Math.max(barW * 0.6, 3);
+        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cx, yPos(high)); ctx.lineTo(cx, yPos(low)); ctx.stroke();
+        ctx.fillStyle = color; ctx.globalAlpha = 0.7;
+        ctx.fillRect(cx - bw / 2, yPos(Math.max(open, close)), bw, Math.max(yPos(Math.min(open, close)) - yPos(Math.max(open, close)), 1));
+        ctx.globalAlpha = 1.0;
+      }
+    } else {
+      ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 2; ctx.setLineDash([6, 3]); ctx.beginPath();
+      fc.forEach((f, i) => { const px = xPos(histLen + i); const py = yPos(Number(f.p || 0)); if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); });
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  const labelStep = Math.max(Math.floor(totalBars / 8), 1);
+  for (let i = 0; i < totalBars; i += labelStep) {
+    let label = '';
+    if (i < histLen) { label = scans[i].d || scans[i].date || ''; }
+    else if (i - histLen < fc.length) { label = fc[i - histLen].d || ''; }
+    if (label) ctx.fillText(label.slice(5, 10), xPos(i), bottom + 12);
+  }
+  ctx.textAlign = 'start';
+}
+
+function drawDetailChart(canvas, detail, scanSeries, options = {}) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.clientWidth || 680;
+  const height = 260;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const windowValue = options.window || 'all';
+  const fc = options.showForecast === false ? [] : filterSeriesByWindow(Array.isArray(detail.fc) ? detail.fc : [], windowValue, false);
+  const scans = options.showScans === false ? [] : filterSeriesByWindow(Array.isArray(scanSeries) ? scanSeries : [], windowValue, true);
+  const showBand = options.showBand !== false;
+  const prices = [];
+  fc.forEach((item) => prices.push(Number(item.p || 0), Number(item.lo || item.p || 0), Number(item.hi || item.p || 0)));
+  scans.forEach((item) => prices.push(Number(item.price || 0)));
+  const validPrices = prices.filter((value) => Number.isFinite(value) && value > 0);
+  if (!validPrices.length) {
+    ctx.fillStyle = '#64748b';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('No chart data available', 20, 40);
+    return;
+  }
+
+  const minPrice = Math.min.apply(null, validPrices);
+  const maxPrice = Math.max.apply(null, validPrices);
+  const left = 48;
+  const right = width - 16;
+  const top = 20;
+  const bottom = height - 32;
+  const chartWidth = right - left;
+  const chartHeight = bottom - top;
+  const yPad = Math.max((maxPrice - minPrice) * 0.08, 5);
+  const low = minPrice - yPad;
+  const high = maxPrice + yPad;
+  const range = Math.max(high - low, 1);
+  const xCount = Math.max(scans.length + fc.length - 1, 1);
+
+  function x(idx) { return left + (idx / xCount) * chartWidth; }
+  function y(price) { return bottom - ((price - low) / range) * chartHeight; }
+
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i += 1) {
+    const yy = top + (i / 4) * chartHeight;
+    ctx.beginPath();
+    ctx.moveTo(left, yy);
+    ctx.lineTo(right, yy);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.fillText(high.toFixed(0), 4, top + 4);
+  ctx.fillText(low.toFixed(0), 8, bottom);
+
+  if (scans.length) {
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    scans.forEach((point, idx) => {
+      const px = x(idx);
+      const py = y(Number(point.price || 0));
+      if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    scans.forEach((point, idx) => {
+      const px = x(idx);
+      const py = y(Number(point.price || 0));
+      ctx.beginPath();
+      ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#f97316';
+      ctx.fill();
+    });
+  }
+
+  if (fc.length) {
+    const start = Math.max(scans.length - 1, 0);
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    fc.forEach((point, idx) => {
+      const px = x(start + idx);
+      const py = y(Number(point.p || 0));
+      if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    fc.forEach((point, idx) => {
+      const px = x(start + idx);
+      if (showBand) {
+        const hi = y(Number(point.hi || point.p || 0));
+        const lo = y(Number(point.lo || point.p || 0));
+        ctx.strokeStyle = 'rgba(59,130,246,0.25)';
+        ctx.beginPath();
+        ctx.moveTo(px, hi);
+        ctx.lineTo(px, lo);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(px, y(Number(point.p || 0)), 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#3b82f6';
+      ctx.fill();
+    });
+  }
+}
+
+async function fetchDetailPayload(detailId, selectedMode) {
+  const detailUrl = new URL('/api/v1/salesoffice/options/detail/' + encodeURIComponent(detailId), window.location.origin);
+  if (selectedMode && selectedMode !== 'ensemble') {
+    detailUrl.searchParams.set('source', selectedMode);
+    detailUrl.searchParams.set('source_only', 'true');
+  } else {
+    if (state.source) detailUrl.searchParams.set('source', state.source);
+    if (state.sourceOnly && state.source) detailUrl.searchParams.set('source_only', 'true');
+  }
+  const response = await fetch(detailUrl.toString(), { cache: 'no-store' });
+  if (!response.ok) throw new Error('Detail request failed with ' + response.status);
+  return response.json();
+}
+
+async function ensureDetailComparePayloads(detailId, sources) {
+  if (!state.detailView) return;
+  const requested = Array.isArray(sources) ? sources : [];
+  const missing = requested.filter((item) => item !== 'ensemble' && !state.detailView.detailCache[item]);
+  if (!missing.length) return;
+
+  const results = await Promise.all(missing.map(async (item) => [item, await fetchDetailPayload(detailId, item)]));
+  results.forEach(([item, payload]) => {
+    state.detailView.detailCache[item] = payload;
+  });
+}
+
+function renderDetailModal(detailId) {
+  const detailState = state.detailView;
+  if (!detailState) return;
+  const detail = detailState.detail || {};
+  const row = detailState.row || {};
+  const scanSeries = Array.isArray(detail.scan)
+    ? detail.scan.map((point) => ({ date: (point && point.d) || '--', price: Number((point && point.p) || 0) }))
+    : ((((row.scan_history || {}).scan_price_series) || []).map((point) => ({ date: (point && point.date) || '--', price: Number((point && point.price) || 0) })));
+  const adjustments = detail.adj || {};
+  const chartId = 'detail-chart-canvas';
+  const compareChartId = 'detail-compare-chart-canvas';
+  const scanZoomChartId = 'detail-scan-zoom-chart-canvas';
+  const sourceOptions = getDetailSourceOptions(row, detail);
+  const selectedMode = detailState.selectedMode || 'ensemble';
+  const compareSources = Array.isArray(detailState.compareSources) ? detailState.compareSources : ['ensemble'];
+
+  el.detailBody.innerHTML = `
+      <div class="detail-chart-wrap">
+        <div class="detail-chart-title">Primary option chart</div>
+        <div class="chart-toolbar">
+          <label>
+            Graph mode
+            <select id="detail-source-mode">
+              ${sourceOptions.map((item) => `<option value="${escapeHtml(item)}" ${item === selectedMode ? 'selected' : ''}>${item === 'ensemble' ? 'Ensemble view' : ('Source only: ' + item)}</option>`).join('')}
+            </select>
+          </label>
+          <label>
+            Graph window
+            <select id="detail-window-filter">
+              <option value="all">All points</option>
+              <option value="7" ${detailState.window === '7' ? 'selected' : ''}>7 points</option>
+              <option value="14" ${detailState.window === '14' ? 'selected' : ''}>14 points</option>
+              <option value="30" ${detailState.window === '30' ? 'selected' : ''}>30 points</option>
+            </select>
+          </label>
+          <div class="toggle-row">
+            <label><input id="detail-toggle-scans" type="checkbox" ${detailState.showScans ? 'checked' : ''}>Actual scans</label>
+            <label><input id="detail-toggle-forecast" type="checkbox" ${detailState.showForecast ? 'checked' : ''}>Forecast path</label>
+            <label><input id="detail-toggle-band" type="checkbox" ${detailState.showBand ? 'checked' : ''}>Confidence band</label>
+          </div>
+        </div>
+        <canvas id="${chartId}"></canvas>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-swatch" style="background:#f97316"></span>Actual scans</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#3b82f6"></span>Predicted path</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:rgba(59,130,246,0.25)"></span>Prediction band</span>
+        </div>
+      </div>
+      <div class="detail-chart-wrap">
+        <div class="detail-chart-title">Source comparison</div>
+        <div class="chart-toolbar">
+          <div class="source-toggle-group">
+            ${sourceOptions.map((item) => `<label><input class="detail-compare-source" type="checkbox" value="${escapeHtml(item)}" ${compareSources.includes(item) ? 'checked' : ''}> ${escapeHtml(getSourceDisplayName(item))}</label>`).join('')}
+          </div>
+        </div>
+        <canvas id="${compareChartId}"></canvas>
+        <div class="chart-legend">
+          ${compareSources.map((item) => `<span class="legend-item"><span class="legend-swatch" style="background:${getSourceColor(item)}"></span>${escapeHtml(getSourceDisplayName(item))}</span>`).join('')}
+        </div>
+      </div>
+      <div class="detail-chart-wrap">
+        <div class="detail-chart-title">Scan-only zoom</div>
+        <div class="chart-toolbar">
+          <label>
+            Zoom window
+            <select id="detail-scan-window-filter">
+              <option value="all">All scans</option>
+              <option value="7" ${detailState.scanWindow === '7' ? 'selected' : ''}>Last 7 scans</option>
+              <option value="14" ${detailState.scanWindow === '14' ? 'selected' : ''}>Last 14 scans</option>
+              <option value="30" ${detailState.scanWindow === '30' ? 'selected' : ''}>Last 30 scans</option>
+            </select>
+          </label>
+          <label>
+            Scan metric
+            <select id="detail-scan-metric-filter">
+              <option value="price" ${detailState.scanMetric === 'price' ? 'selected' : ''}>Observed price</option>
+              <option value="delta" ${detailState.scanMetric === 'delta' ? 'selected' : ''}>Change vs previous scan</option>
+            </select>
+          </label>
+        </div>
+        <canvas id="${scanZoomChartId}"></canvas>
+        <div class="chart-legend">
+          ${buildScanLegend(detailState.scanMetric)}
+        </div>
+      </div>
+      <div class="detail-chart-wrap">
+        <div class="detail-chart-title">Price forecast &amp; candlestick</div>
+        <div class="chart-toolbar">
+          <label>
+            Forecast horizon
+            <select id="detail-forecast-horizon">
+              <option value="7">7 days</option>
+              <option value="14" selected>14 days</option>
+              <option value="30">30 days</option>
+            </select>
+          </label>
+          <label>
+            Chart style
+            <select id="detail-forecast-style">
+              <option value="candlestick" selected>Candlestick</option>
+              <option value="line">Line + band</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="detail-forecast-show-history" checked> Historical</label>
+        </div>
+        <canvas id="detail-forecast-canvas"></canvas>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-swatch" style="background:#22c55e"></span>Price up (candle)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#ef4444"></span>Price down (candle)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#8b5cf6;opacity:0.4"></span>Forecast band</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#8b5cf6"></span>Forecast line</span>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card"><div class="k">Current</div><div class="v">${formatCurrency(detail.cp)}</div></div>
+        <div class="detail-card"><div class="k">Predicted</div><div class="v">${formatCurrency(detail.pp)}</div></div>
+        <div class="detail-card"><div class="k">Expected min</div><div class="v">${formatCurrency(detail.mn)}</div></div>
+        <div class="detail-card"><div class="k">Expected max</div><div class="v">${formatCurrency(detail.mx)}</div></div>
+        <div class="detail-card"><div class="k">Signal</div><div class="v">${escapeHtml(detail.sig || '--')}</div></div>
+        <div class="detail-card"><div class="k">Observed scans</div><div class="v">${escapeHtml(detail.scans ?? 0)}</div></div>
+        <div class="detail-card"><div class="k">Analysis mode</div><div class="v">${escapeHtml(detail.analysis_mode || 'ensemble')}</div></div>
+        <div class="detail-card"><div class="k">Selected source</div><div class="v">${escapeHtml(detail.selected_source || 'all')}</div></div>
+      </div>
+      <div class="detail-section">
+        <h3>Adjustments</h3>
+        <ul class="detail-list">
+          <li>Events: ${Number(adjustments.ev || 0).toFixed(2)}%</li>
+          <li>Seasonality: ${Number(adjustments.se || 0).toFixed(2)}%</li>
+          <li>Demand: ${Number(adjustments.dm || 0).toFixed(2)}%</li>
+          <li>Momentum: ${Number(adjustments.mo || 0).toFixed(2)}%</li>
+          <li>Weather: ${Number(adjustments.we || 0).toFixed(2)}%</li>
+        </ul>
+      </div>
+      <div class="detail-section">
+        <h3>Observed path</h3>
+        <ul class="detail-list">
+          <li>Drops: ${escapeHtml(detail.drops ?? 0)}</li>
+          <li>Rises: ${escapeHtml(detail.rises ?? 0)}</li>
+          <li>Quality: ${escapeHtml(detail.q || '--')}</li>
+          <li>Expected change: ${formatPercent(detail.chg || 0)}</li>
+        </ul>
+      </div>
+      <div class="detail-grid-2 detail-section">
+        <div>
+          <h3>Scan-by-scan changes</h3>
+          ${buildScanRows(scanSeries)}
+        </div>
+        <div>
+          <h3>Per-source analysis</h3>
+          ${buildSourcesTable(Object.values(detail.source_predictions || row.source_predictions || {}))}
+          <div class="detail-section">
+            <h3>Derived weights</h3>
+            <ul class="detail-list">
+              <li>Selected source price: ${detail.selected_source_price != null ? formatCurrency(detail.selected_source_price) : '--'} • confidence ${detail.selected_source_confidence != null ? Number(detail.selected_source_confidence).toFixed(2) : '--'}</li>
+              <li>Selected source reasoning: ${escapeHtml(detail.selected_source_reasoning || '--')}</li>
+              <li>Forward curve: weight ${Number(detail.fcW || 0).toFixed(2)} • confidence ${Number(detail.fcC || 0).toFixed(2)}</li>
+              <li>Historical: weight ${Number(detail.hiW || 0).toFixed(2)} • confidence ${Number(detail.hiC || 0).toFixed(2)}</li>
+            </ul>
+          </div>
+        </div>
+      </div>`;
+
+  requestAnimationFrame(() => drawDetailChart(document.getElementById(chartId), detail, scanSeries, detailState));
+  requestAnimationFrame(() => drawComparisonChart(document.getElementById(compareChartId), detailState));
+  requestAnimationFrame(() => drawScanZoomChart(document.getElementById(scanZoomChartId), scanSeries, { window: detailState.scanWindow || 'all', metric: detailState.scanMetric || 'price' }));
+  requestAnimationFrame(() => drawForecastChart(document.getElementById('detail-forecast-canvas'), scanSeries, detail.fc, { style: detailState.forecastStyle || 'candlestick', horizon: detailState.forecastHorizon || '14', showHistory: detailState.forecastShowHistory !== false }));
+
+  const sourceModeEl = document.getElementById('detail-source-mode');
+  const windowEl = document.getElementById('detail-window-filter');
+  const scansEl = document.getElementById('detail-toggle-scans');
+  const forecastEl = document.getElementById('detail-toggle-forecast');
+  const bandEl = document.getElementById('detail-toggle-band');
+  const compareSourceEls = Array.from(document.querySelectorAll('.detail-compare-source'));
+  const scanWindowEl = document.getElementById('detail-scan-window-filter');
+  const scanMetricEl = document.getElementById('detail-scan-metric-filter');
+
+  if (sourceModeEl) {
+    sourceModeEl.addEventListener('change', async (event) => {
+      const mode = event.target.value || 'ensemble';
+      state.detailView.selectedMode = mode;
+      el.detailBody.textContent = 'Loading filtered graph...';
+      try {
+        state.detailView.detail = await fetchDetailPayload(detailId, mode);
+        state.detailView.detailCache[mode] = state.detailView.detail;
+        renderDetailModal(detailId);
+      } catch (error) {
+        el.detailBody.textContent = error.message || 'Failed to load filtered graph.';
+      }
+    });
+  }
+
+  if (windowEl) {
+    windowEl.addEventListener('change', (event) => {
+      state.detailView.window = event.target.value || 'all';
+      drawDetailChart(document.getElementById(chartId), state.detailView.detail, scanSeries, state.detailView);
+    });
+  }
+  if (scansEl) {
+    scansEl.addEventListener('change', (event) => {
+      state.detailView.showScans = !!event.target.checked;
+      drawDetailChart(document.getElementById(chartId), state.detailView.detail, scanSeries, state.detailView);
+    });
+  }
+  if (forecastEl) {
+    forecastEl.addEventListener('change', (event) => {
+      state.detailView.showForecast = !!event.target.checked;
+      drawDetailChart(document.getElementById(chartId), state.detailView.detail, scanSeries, state.detailView);
+    });
+  }
+  if (bandEl) {
+    bandEl.addEventListener('change', (event) => {
+      state.detailView.showBand = !!event.target.checked;
+      drawDetailChart(document.getElementById(chartId), state.detailView.detail, scanSeries, state.detailView);
+    });
+  }
+  compareSourceEls.forEach((checkbox) => {
+    checkbox.addEventListener('change', async () => {
+      const selected = compareSourceEls.filter((item) => item.checked).map((item) => item.value);
+      state.detailView.compareSources = selected.length ? selected : ['ensemble'];
+      try {
+        await ensureDetailComparePayloads(detailId, state.detailView.compareSources);
+      } catch (error) {
+        console.warn('Failed to prefetch comparison payload', error);
+      }
+      renderDetailModal(detailId);
+    });
+  });
+  if (scanWindowEl) {
+    scanWindowEl.addEventListener('change', (event) => {
+      state.detailView.scanWindow = event.target.value || 'all';
+      drawScanZoomChart(document.getElementById(scanZoomChartId), scanSeries, { window: state.detailView.scanWindow, metric: state.detailView.scanMetric || 'price' });
+    });
+  }
+  if (scanMetricEl) {
+    scanMetricEl.addEventListener('change', (event) => {
+      state.detailView.scanMetric = event.target.value || 'price';
+      drawScanZoomChart(document.getElementById(scanZoomChartId), scanSeries, { window: state.detailView.scanWindow || 'all', metric: state.detailView.scanMetric });
+    });
+  }
+  const fcHorizonEl = document.getElementById('detail-forecast-horizon');
+  const fcStyleEl = document.getElementById('detail-forecast-style');
+  const fcHistEl = document.getElementById('detail-forecast-show-history');
+  function redrawForecast() {
+    drawForecastChart(document.getElementById('detail-forecast-canvas'), scanSeries, detail.fc, {
+      style: state.detailView.forecastStyle || 'candlestick',
+      horizon: state.detailView.forecastHorizon || '14',
+      showHistory: state.detailView.forecastShowHistory !== false
+    });
+  }
+  if (fcHorizonEl) { fcHorizonEl.addEventListener('change', (e) => { state.detailView.forecastHorizon = e.target.value; redrawForecast(); }); }
+  if (fcStyleEl) { fcStyleEl.addEventListener('change', (e) => { state.detailView.forecastStyle = e.target.value; redrawForecast(); }); }
+  if (fcHistEl) { fcHistEl.addEventListener('change', (e) => { state.detailView.forecastShowHistory = !!e.target.checked; redrawForecast(); }); }
+}
+
+async function startWarmup() {
+  try {
+    await fetch('/api/v1/salesoffice/options/warmup', { method: 'POST' });
+  } catch (error) {
+    console.warn('Warmup trigger failed', error);
+  }
+}
+
+async function fetchStatus() {
+  const response = await fetch('/api/v1/salesoffice/status', { cache: 'no-store' });
+  if (!response.ok) throw new Error('Status request failed with ' + response.status);
+  return response.json();
+}
+
+function ensurePolling() {
+  if (state.pollTimer) return;
+  state.pollTimer = window.setInterval(async () => {
+    try {
+      const status = await fetchStatus();
+      el.cacheChip.textContent = 'Cache: ' + (status.cache_ready ? 'ready' : (status.analysis_warming ? 'warming' : 'cold'));
+      setStatus(
+        status.cache_ready ? 'loading' : 'warning',
+        status.cache_ready ? 'Cache ready — loading rows' : 'Analysis warmup in progress',
+        status.cache_ready ? 'Cached analysis is ready. Fetching page data now.' : 'The prediction engine is rebuilding in the background.',
+        [
+          'snapshots ' + (status.snapshots_collected ?? '--'),
+          'rooms ' + (status.total_rooms ?? '--'),
+          'scheduler ' + ((status.scheduler_running ? 'running' : 'stopped')),
+        ]
+      );
+      if (status.cache_ready) {
+        stopPolling();
+        void fetchRows();
+      }
+    } catch (error) {
+      console.warn('Polling failed', error);
+    }
+  }, 10000);
+}
+
+function stopPolling() {
+  if (state.pollTimer) {
+    window.clearInterval(state.pollTimer);
+    state.pollTimer = null;
+  }
+}
+
+async function fetchRows() {
+  if (state.loading && state._fetchController) {
+    state._fetchController.abort();
+  }
+  state.loading = true;
+  updateSummary();
+  setStatus('loading', 'Loading options rows', 'Reading cached options data from the API...');
+
+  try {
+    state._fetchController = new AbortController();
+    const fetchTimeout = setTimeout(() => state._fetchController.abort(), 30000);
+    const response = await fetch(buildOptionsUrl(), { cache: 'no-store', signal: state._fetchController.signal });
+    clearTimeout(fetchTimeout);
+    if (response.status === 503) {
+      await startWarmup();
+      const retryAfter = response.headers.get('Retry-After') || '30';
+      el.cacheChip.textContent = 'Cache: warming';
+      setStatus('warning', 'Cache is warming up', 'The options dataset is rebuilding in the background.', ['retry after ~' + retryAfter + 's']);
+      state.rows = [];
+      state.filteredRows = [];
+      renderRows();
+      ensurePolling();
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error('Options request failed with ' + response.status);
+    }
+
+    const payload = await response.json();
+    stopPolling();
+    state.rows = Array.isArray(payload.rows) ? payload.rows : [];
+    state.totalRows = Number(payload.total_rows || 0);
+    state.runTs = payload.run_ts || null;
+    state.sourceOnly = state.sourceMode === 'source_only';
+    el.cacheChip.textContent = 'Cache: ready';
+    setStatus('loading', 'Options data loaded', 'Page data was loaded from the cached JSON endpoint.', [
+      'profile ' + (payload.profile_applied || 'lite'),
+      'mode ' + (state.sourceMode === 'source_only' ? 'source_only' : (state.sourceMode === 'filter' ? 'source_filter' : 'ensemble')),
+      (state.source ? 'source ' + state.source : 'all sources'),
+      'page size ' + state.limit,
+      'offset ' + state.offset,
+    ]);
+    applySearch();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      setStatus('warning', 'Request timed out', 'The API took too long to respond. The server may still be warming up.', ['Click Refresh data to retry']);
+    } else {
+      console.error(error);
+      setStatus('error', 'Failed to load options data', error.message || 'Unknown error');
+    }
+    el.tableBody.innerHTML = '<tr><td class="empty" colspan="17">Request timed out or failed. Click <b>Refresh data</b> to retry.</td></tr>';
+  } finally {
+    state.loading = false;
+    state._fetchController = null;
+    updateSummary();
+  }
+}
+
+async function openDetail(detailId) {
+  el.detailBackdrop.classList.add('open');
+  el.detailTitle.textContent = 'Room ' + detailId + ' detail';
+  el.detailBody.textContent = 'Loading detail...';
+  try {
+    const row = state.rows.find((item) => String(item.detail_id) === String(detailId)) || {};
+    const selectedMode = state.source && state.sourceMode !== 'all' ? state.source : 'ensemble';
+    const detail = await fetchDetailPayload(detailId, selectedMode);
+    state.detailView = {
+      detailId,
+      row,
+      detail,
+      selectedMode,
+      detailCache: { [selectedMode]: detail },
+      window: 'all',
+      showScans: true,
+      showForecast: true,
+      showBand: true,
+      compareSources: ['ensemble', ...(state.source ? [state.source] : [])],
+      scanWindow: 'all',
+      scanMetric: 'price',
+    };
+    await ensureDetailComparePayloads(detailId, state.detailView.compareSources);
+    renderDetailModal(detailId);
+  } catch (error) {
+    el.detailBody.textContent = error.message || 'Failed to load detail.';
+  }
+}
+
+el.tableBody.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-detail-id]');
+  if (!button) return;
+  void openDetail(button.getAttribute('data-detail-id'));
+});
+
+el.detailClose.addEventListener('click', () => el.detailBackdrop.classList.remove('open'));
+el.detailBackdrop.addEventListener('click', (event) => { if (event.target === el.detailBackdrop) el.detailBackdrop.classList.remove('open'); });
+
+el.searchInput.addEventListener('input', (event) => {
+  state.search = event.target.value || '';
+  applySearch();
+});
+
+el.signalFilter.addEventListener('change', (event) => {
+  state.signal = event.target.value || '';
+  state.offset = 0;
+  void fetchRows();
+});
+
+el.sourceFilter.addEventListener('change', (event) => {
+  state.source = event.target.value || '';
+  if (!state.source) {
+    state.sourceMode = 'all';
+  } else {
+    state.sourceMode = 'source_only';
+  }
+  state.sourceOnly = state.sourceMode === 'source_only';
+  el.sourceModeFilter.value = state.sourceMode;
+  state.offset = 0;
+  void fetchRows();
+});
+
+el.sourceModeFilter.addEventListener('change', (event) => {
+  const nextMode = event.target.value || 'all';
+  state.sourceMode = state.source ? nextMode : 'all';
+  state.sourceOnly = state.sourceMode === 'source_only';
+  event.target.value = state.sourceMode;
+  state.offset = 0;
+  void fetchRows();
+});
+
+el.tDaysInput.addEventListener('change', (event) => {
+  const raw = String(event.target.value || '').trim();
+  state.tDays = raw ? Number.parseInt(raw, 10) : null;
+  state.offset = 0;
+  void fetchRows();
+});
+
+el.limitSelect.addEventListener('change', (event) => {
+  state.limit = Number.parseInt(event.target.value, 10) || 100;
+  state.offset = 0;
+  void fetchRows();
+});
+
+el.prevBtn.addEventListener('click', () => {
+  state.offset = Math.max(0, state.offset - state.limit);
+  void fetchRows();
+});
+
+el.nextBtn.addEventListener('click', () => {
+  if (state.offset + state.limit < state.totalRows) {
+    state.offset += state.limit;
+    void fetchRows();
+  }
+});
+
+// Hotel filter — client-side, populated dynamically after data loads
+el.hotelFilter.addEventListener('change', (event) => {
+  state.hotelFilter = event.target.value || '';
+  applySearch();
+});
+
+// Board filter — client-side
+el.boardFilter.addEventListener('change', (event) => {
+  state.boardFilter = event.target.value || '';
+  applySearch();
+});
+
+// Check-in date range filter — client-side
+el.checkinFilter.addEventListener('change', (event) => {
+  state.checkinDays = event.target.value || '';
+  applySearch();
+});
+
+// Auto-refresh toggle
+el.autoRefreshToggle.addEventListener('change', (event) => {
+  if (event.target.checked) {
+    const seconds = Number(el.autoRefreshInterval.value) || 300;
+    state.autoRefreshTimer = window.setInterval(() => void fetchRows(), seconds * 1000);
+  } else {
+    if (state.autoRefreshTimer) window.clearInterval(state.autoRefreshTimer);
+    state.autoRefreshTimer = null;
+  }
+});
+el.autoRefreshInterval.addEventListener('change', () => {
+  if (el.autoRefreshToggle.checked) {
+    if (state.autoRefreshTimer) window.clearInterval(state.autoRefreshTimer);
+    const seconds = Number(el.autoRefreshInterval.value) || 300;
+    state.autoRefreshTimer = window.setInterval(() => void fetchRows(), seconds * 1000);
+  }
+});
+
+el.refreshBtn.addEventListener('click', async () => {
+  await startWarmup();
+  void fetchRows();
+});
+
+window.addEventListener('beforeunload', stopPolling);
+void fetchRows();
+</script>
+</body>
+</html>

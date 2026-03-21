@@ -16,8 +16,8 @@ from src.utils.template_engine import render_template
 # ── Static content data ──────────────────────────────────────────────
 
 _HOW_IT_WORKS = [
-    {"title": "Data Collection (every 3 hours)",
-     "desc": "The system queries the SalesOffice database for all active hotel room prices. Each scan records the <strong>room price, category, board type, and check-in date</strong>. This creates a time-series of price observations for every room."},
+    {"title": "Prediction Collector (every 3 hours)",
+     "desc": "The Medici prediction collector queries the SalesOffice database for completed, mapped hotel room prices every 3 hours by default. Each collection records the <strong>room price, category, board type, and check-in date</strong> into the local prediction cache, creating a time-series for every tracked room."},
     {"title": "Build the Decay Curve (from historical data)",
      "desc": 'Using <strong>all historical scan pairs</strong> (consecutive observations of the same room), the system calculates how prices typically change at each value of T (days to check-in). For example: "At T=30, prices typically drop 0.05% per day. At T=7, prices typically rise 0.3% per day." This is smoothed using <strong>Bayesian shrinkage</strong> to handle sparse data.'},
     {"title": "Walk the Forward Curve (day-by-day prediction)",
@@ -137,7 +137,7 @@ _GLOSSARY = [
     {"term": "Room Category", "definition": "The type of room: Standard, Superior, Deluxe, Suite. Each category has its own price dynamics and offset from the base decay curve."},
     {"term": "Enrichment", "definition": "External data layered onto the base prediction: events (Art Basel, F1), seasonality (monthly pattern), and flight demand (Kiwi.com). Each adds/subtracts a daily % adjustment."},
     {"term": "Gross vs. Net Price", "definition": "Gross = what the customer pays. Net = what you pay the supplier. The difference is your margin. Tracked from 8.3M search results across 129 providers."},
-    {"term": "SalesOffice", "definition": "The scanning system that searches hotel availability across multiple providers every 3 hours. It creates Orders (what to scan) and Details (what it found)."},
+    {"term": "SalesOffice", "definition": "The upstream scanning system that creates Orders and Details. The WebJob refreshes availability there, while the Medici prediction collector ingests completed, mapped results into the prediction cache every 3 hours by default."},
     {"term": "Price Velocity", "definition": "How fast prices are changing per unit time. Computed from the RoomPriceUpdateLog (82K events). High velocity = market is moving fast."},
 ]
 
