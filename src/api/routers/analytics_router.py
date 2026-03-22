@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
+from pydantic import BaseModel, Field
 
 from config.constants import CANCELLATION_IMPACT_MAX, COMPETITOR_IMPACT_MAX, PROVIDER_IMPACT_MAX
 from config.settings import SALESOFFICE_PRECOMPUTE_DETAIL_LIMIT, SALESOFFICE_PRECOMPUTE_T_DAYS
@@ -68,6 +70,40 @@ SUPPORTED_ANALYSIS_SOURCES = DIRECT_SIGNAL_SOURCES | set(SOURCE_ALIAS_TO_METHOD)
 OPTIONS_CACHE_REGION = "salesoffice_options"
 DETAIL_CACHE_REGION = "salesoffice_detail"
 PRECOMPUTE_SOURCE_ONLY_SOURCES = ("forward_curve", "historical_pattern", "ml_forecast")
+
+
+class OverrideRequestBody(BaseModel):
+    detail_id: int = Field(gt=0)
+    discount_usd: float = Field(default=1.0)
+    signal: str = "PUT"
+    confidence: str = ""
+    path_min_price: float | None = None
+
+
+class OverrideBulkRequestBody(BaseModel):
+    discount_usd: float = Field(default=1.0)
+    hotel_id: int | None = None
+
+
+class QueueCompletionBody(BaseModel):
+    status: Literal["done", "failed"] = "done"
+    error_message: str = ""
+
+
+class OpportunityRequestBody(BaseModel):
+    detail_id: int = Field(gt=0)
+    max_rooms: int = Field(default=1)
+    signal: str = "CALL"
+    confidence: str = ""
+
+
+class OpportunityBulkRequestBody(BaseModel):
+    max_rooms: int = Field(default=1)
+    hotel_id: int | None = None
+
+
+class OpportunityCompletionBody(QueueCompletionBody):
+    opp_id: int | None = None
 
 
 def _normalize_source_key(source: str | None) -> str | None:
@@ -2187,6 +2223,7 @@ async def source_raw_detail(
 @limiter.limit(RATE_LIMIT_DATA)
 async def override_request_single(
     request: Request,
+    payload: OverrideRequestBody,
     _api_key: str = Depends(_optional_api_key),
 ):
     """Queue a single price override — undercut competitors by $X.
@@ -2204,12 +2241,8 @@ async def override_request_single(
         OverrideValidationError,
     )
 
-    body = await request.json()
-    detail_id = int(body.get("detail_id", 0))
-    discount_usd = float(body.get("discount_usd", 1.0))
-
-    if not detail_id:
-        raise HTTPException(400, "detail_id is required")
+    detail_id = payload.detail_id
+    discount_usd = payload.discount_usd
 
     # Get current prediction data for context
     analysis = _get_cached_analysis()
@@ -2230,13 +2263,13 @@ async def override_request_single(
             hotel_id=int(pred.get("hotel_id", 0)),
             current_price=current_price,
             discount_usd=discount_usd,
-            signal=str(body.get("signal", "PUT")),
-            confidence=str(body.get("confidence", "")),
+            signal=payload.signal,
+            confidence=payload.confidence,
             hotel_name=str(pred.get("hotel_name", "")),
             category=str(pred.get("category", "")),
             board=str(pred.get("board", "")),
             checkin_date=str(pred.get("date_from", "")),
-            path_min_price=body.get("path_min_price"),
+            path_min_price=payload.path_min_price,
             trigger_type="manual",
         )
     except OverrideValidationError as exc:
@@ -2256,6 +2289,7 @@ async def override_request_single(
 @limiter.limit("10/minute")
 async def override_bulk_puts(
     request: Request,
+    payload: OverrideBulkRequestBody,
     _api_key: str = Depends(_optional_api_key),
 ):
     """Queue overrides for ALL active PUT signals in one batch.
@@ -2272,13 +2306,8 @@ async def override_bulk_puts(
         enqueue_bulk_puts,
         OverrideValidationError,
     )
-
-
-    body = await request.json()
-    discount_usd = float(body.get("discount_usd", 1.0))
-    hotel_id_filter = body.get("hotel_id")
-    if hotel_id_filter is not None:
-        hotel_id_filter = int(hotel_id_filter)
+    discount_usd = payload.discount_usd
+    hotel_id_filter = payload.hotel_id
 
     analysis = _get_cached_analysis()
     if not analysis or not analysis.get("predictions"):
@@ -2385,6 +2414,7 @@ async def override_pending(
 async def override_complete(
     request: Request,
     request_id: int,
+    payload: QueueCompletionBody,
     _api_key: str = Depends(_optional_api_key),
 ):
     """Report execution result — called by the external skill after push.
@@ -2393,20 +2423,17 @@ async def override_complete(
         status: "done" or "failed"
         error_message: string (optional, for failures)
     """
-    from src.analytics.override_queue import mark_completed, mark_picked
+    from src.analytics.override_queue import mark_completed
 
-    body = await request.json()
-    status = body.get("status", "done")
-    error_message = body.get("error_message", "")
-
-    if status not in ("done", "failed"):
-        raise HTTPException(400, "status must be 'done' or 'failed'")
-
-    success = mark_completed(request_id, success=(status == "done"), error_message=error_message)
+    success = mark_completed(
+        request_id,
+        success=(payload.status == "done"),
+        error_message=payload.error_message,
+    )
     if not success:
         raise HTTPException(404, f"Override request {request_id} not found or already completed")
 
-    return {"request_id": request_id, "status": status}
+    return {"request_id": request_id, "status": payload.status}
 
 
 @analytics_router.get("/override/history")
@@ -2432,6 +2459,7 @@ async def override_history(
 @limiter.limit(RATE_LIMIT_DATA)
 async def opportunity_request_single(
     request: Request,
+    payload: OpportunityRequestBody,
     _api_key: str = Depends(_optional_api_key),
 ):
     """Queue a single insert-opportunity — buy at current price, push at buy+$50.
@@ -2447,10 +2475,7 @@ async def opportunity_request_single(
         OpportunityValidationError,
     )
 
-    body = await request.json()
-    detail_id = int(body.get("detail_id", 0))
-    if not detail_id:
-        raise HTTPException(400, "detail_id is required")
+    detail_id = payload.detail_id
 
     analysis = _get_cached_analysis()
     if not analysis or not analysis.get("predictions"):
@@ -2478,9 +2503,9 @@ async def opportunity_request_single(
             hotel_id=int(pred.get("hotel_id", 0)),
             buy_price=buy_price,
             predicted_price=predicted_price,
-            max_rooms=int(body.get("max_rooms", 1)),
-            signal=str(body.get("signal", "CALL")),
-            confidence=str(body.get("confidence", "")),
+            max_rooms=payload.max_rooms,
+            signal=payload.signal,
+            confidence=payload.confidence,
             hotel_name=str(pred.get("hotel_name", "")),
             category=str(pred.get("category", "")),
             board=str(pred.get("board", "")),
@@ -2506,6 +2531,7 @@ async def opportunity_request_single(
 @limiter.limit("10/minute")
 async def opportunity_bulk_calls(
     request: Request,
+    payload: OpportunityBulkRequestBody,
     _api_key: str = Depends(_optional_api_key),
 ):
     """Queue opportunities for ALL active CALL signals with $50+ predicted profit.
@@ -2520,13 +2546,8 @@ async def opportunity_bulk_calls(
         enqueue_bulk_calls,
         OpportunityValidationError,
     )
-
-
-    body = await request.json()
-    max_rooms = int(body.get("max_rooms", 1))
-    hotel_id_filter = body.get("hotel_id")
-    if hotel_id_filter is not None:
-        hotel_id_filter = int(hotel_id_filter)
+    max_rooms = payload.max_rooms
+    hotel_id_filter = payload.hotel_id
 
     analysis = _get_cached_analysis()
     if not analysis or not analysis.get("predictions"):
@@ -2618,25 +2639,21 @@ async def opportunity_pending(
 async def opportunity_complete(
     request: Request,
     request_id: int,
+    payload: OpportunityCompletionBody,
     _api_key: str = Depends(_optional_api_key),
 ):
     """Report execution result — called by external insert-opp skill."""
     from src.analytics.opportunity_queue import mark_completed
 
-    body = await request.json()
-    status = body.get("status", "done")
-    error_message = body.get("error_message", "")
-    opp_id = body.get("opp_id")  # BackOfficeOPT.id from skill
-    if status not in ("done", "failed"):
-        raise HTTPException(400, "status must be 'done' or 'failed'")
-
     success = mark_completed(
-        request_id, success=(status == "done"),
-        opp_id=opp_id, error_message=error_message,
+        request_id,
+        success=(payload.status == "done"),
+        opp_id=payload.opp_id,
+        error_message=payload.error_message,
     )
     if not success:
         raise HTTPException(404, f"Opportunity request {request_id} not found or already completed")
-    return {"request_id": request_id, "status": status}
+    return {"request_id": request_id, "status": payload.status}
 
 
 @analytics_router.get("/opportunity/history")
@@ -2701,3 +2718,181 @@ async def monitor_ingest_report(
     from src.analytics.monitor_bridge import MonitorBridge
     bridge = MonitorBridge()
     return bridge.ingest_report(report_path)
+
+
+# ── Macro Terminal endpoints ──────────────────────────────────────────
+
+
+@analytics_router.get("/macro/summary")
+@limiter.limit(RATE_LIMIT_DATA)
+async def macro_portfolio_summary(request: Request, _key=Depends(_optional_api_key)):
+    """L1 Portfolio View — summary header + hotel heat map."""
+    signals = _get_cached_signals()
+    if not signals:
+        raise HTTPException(503, "Signals not ready — cache warming up")
+
+    from src.analytics.portfolio_aggregator import (
+        build_portfolio_summary,
+        build_hotel_heatmap,
+    )
+
+    greeks = None
+    try:
+        from src.analytics.portfolio_greeks import compute_portfolio_greeks
+        analysis = _get_cached_analysis()
+        if analysis:
+            pg = compute_portfolio_greeks(analysis)
+            greeks = {"total_theta": getattr(pg, "portfolio_theta", None)}
+    except (ImportError, AttributeError, TypeError, ValueError) as exc:
+        logger.debug("Greeks unavailable for macro summary: %s", exc)
+
+    summary = build_portfolio_summary(signals, greeks=greeks)
+    heatmap = build_hotel_heatmap(signals)
+
+    return {
+        "summary": summary.to_dict(),
+        "heatmap": [r.to_dict() for r in heatmap],
+    }
+
+
+@analytics_router.get("/macro/hotel/{hotel_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def macro_hotel_drilldown(hotel_id: int, request: Request, _key=Depends(_optional_api_key)):
+    """L2 Hotel Drill-down — T-distribution, source agreement, drop history, options list."""
+    signals = _get_cached_signals()
+    if not signals:
+        raise HTTPException(503, "Signals not ready — cache warming up")
+
+    analysis = _get_cached_analysis()
+    predictions = analysis.get("predictions", {}) if analysis else {}
+
+    from src.analytics.portfolio_aggregator import build_hotel_drilldown, compute_drop_history
+
+    # Compute drop history from price snapshots
+    drop_history = None
+    try:
+        from src.analytics.price_store import load_snapshots_for_hotel
+        snapshots = load_snapshots_for_hotel(hotel_id)
+        if not snapshots.empty:
+            drop_history = compute_drop_history(snapshots, hotel_id)
+    except (ImportError, OSError, ValueError) as exc:
+        logger.debug("Drop history unavailable for hotel %d: %s", hotel_id, exc)
+
+    drilldown = build_hotel_drilldown(signals, hotel_id, predictions=predictions, drop_history=drop_history)
+    if drilldown is None:
+        raise HTTPException(404, f"Hotel {hotel_id} not found in signals")
+
+    return drilldown.to_dict()
+
+
+@analytics_router.get("/macro/historical-t/{detail_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def macro_historical_t(detail_id: int, request: Request, _key=Depends(_optional_api_key)):
+    """L3 Historical T chart — actual vs predicted price indexed by T."""
+    import pandas as pd
+    from src.analytics.price_store import load_price_history
+
+    history = load_price_history(detail_id)
+    if history.empty:
+        raise HTTPException(404, f"No price history for detail_id={detail_id}")
+
+    # Get check-in date from signals or analysis
+    checkin_date = None
+    signals = _get_cached_signals()
+    if signals:
+        match = next((s for s in signals if str(s.get("detail_id")) == str(detail_id)), None)
+        if match:
+            checkin_date = match.get("checkin_date")
+
+    if not checkin_date:
+        analysis = _get_cached_analysis()
+        if analysis and "predictions" in analysis:
+            pred = analysis["predictions"].get(str(detail_id))
+            if pred:
+                checkin_date = pred.get("date_from")
+
+    if not checkin_date:
+        raise HTTPException(404, f"Cannot determine check-in date for detail_id={detail_id}")
+
+    checkin_dt = pd.to_datetime(checkin_date)
+    actual_points = []
+    for _, row in history.iterrows():
+        scan_dt = pd.to_datetime(row["snapshot_ts"])
+        t = (checkin_dt - scan_dt).days
+        if t < 0:
+            continue
+        actual_points.append({
+            "t": t,
+            "price": round(float(row["room_price"]), 2),
+            "date": scan_dt.strftime("%Y-%m-%d %H:%M"),
+        })
+
+    # Predicted series from forward curve
+    predicted_points = []
+    analysis = _get_cached_analysis()
+    if analysis and "predictions" in analysis:
+        pred = analysis["predictions"].get(str(detail_id))
+        if pred and "forward_curve" in pred:
+            for pt in pred["forward_curve"]:
+                predicted_points.append({
+                    "t": pt.get("t", 0),
+                    "price": round(float(pt.get("predicted_price", 0)), 2),
+                    "date": pt.get("date", ""),
+                })
+
+    return {
+        "detail_id": detail_id,
+        "checkin_date": checkin_date,
+        "actual": sorted(actual_points, key=lambda p: -p["t"]),
+        "predicted": sorted(predicted_points, key=lambda p: -p["t"]),
+    }
+
+
+@analytics_router.get("/macro/sources/{source}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def macro_filtered_by_source(
+    source: str, request: Request, _key=Depends(_optional_api_key),
+):
+    """Portfolio signals filtered by a specific source (forward_curve, historical, ml, ensemble)."""
+    signals = _get_cached_signals()
+    if not signals:
+        raise HTTPException(503, "Signals not ready — cache warming up")
+
+    analysis = _get_cached_analysis()
+    predictions = analysis.get("predictions", {}) if analysis else {}
+
+    from src.analytics.portfolio_aggregator import (
+        filter_signals_by_source,
+        build_portfolio_summary,
+        build_hotel_heatmap,
+    )
+
+    filtered = filter_signals_by_source(signals, predictions, source)
+    summary = build_portfolio_summary(filtered)
+    heatmap = build_hotel_heatmap(filtered)
+
+    return {
+        "source": source,
+        "summary": summary.to_dict(),
+        "heatmap": [r.to_dict() for r in heatmap],
+    }
+
+
+@analytics_router.get("/macro/drop-history/{hotel_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def macro_drop_history(
+    hotel_id: int,
+    days: int = Query(7, ge=1, le=30),
+    request: Request = None,
+    _key=Depends(_optional_api_key),
+):
+    """Price drop history for a hotel from price snapshots."""
+    from src.analytics.portfolio_aggregator import compute_drop_history
+    from src.analytics.price_store import load_snapshots_for_hotel
+
+    snapshots = load_snapshots_for_hotel(hotel_id)
+    if snapshots.empty:
+        raise HTTPException(404, f"No price snapshots for hotel {hotel_id}")
+
+    result = compute_drop_history(snapshots, hotel_id, days=days)
+    return result.to_dict()
