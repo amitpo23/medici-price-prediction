@@ -111,6 +111,8 @@ Price Scan (every 3h) → SQLite storage → Build Forward Curve (Bayesian smoot
 - **Sprint 4.4**: Scenario analysis engine — `scenario_engine.py` with 5 presets, what-if overrides (events/demand/weather/competitors/seasonal), 3 API endpoints
 - **Sprint 2.4**: Collector registry auto-discovery with `COLLECTOR_{NAME}_ENABLED` env var toggle
 - **Sprint 2.5**: Extracted 30+ magic numbers to `config/constants.py` (ensemble weights, enrichment caps, thresholds)
+- **Sprint 5.1**: Macro Terminal — portfolio-level 3-drill-down dashboard (`/dashboard/macro`), heat map, 5 API endpoints, Historical T chart, 42 tests
+- **Sprint 5.2**: Command Center — unified 3-column trading dashboard (`/dashboard/command-center`), override execute endpoint with Zenith push (dry-run safe)
 
 ## Phase 2: Tech Debt Cleanup (Planned)
 
@@ -177,10 +179,19 @@ Three-file context recovery system:
 3. End: rewrite `primer.md` with current state
 
 ### Multi-Directory Access
-Use `--add-dir` for external references:
+Use `--add-dir` for external references. Recommended launch command:
 ```bash
-claude --add-dir ~/docs ~/other-project
+claude --add-dir ~/Desktop/coding/medici-hotels ~/Desktop/coding/medici-server ~/Desktop/coding/medici-monitor- ~/Desktop/coding/medici_web ~/Desktop/coding/delivery-
 ```
+
+**Related Medici projects:**
+- `medici-hotels` — Hotel.Tools / Noovy integration, inventory mapping
+- `medici-server` — Backend server, booking engine
+- `medici-monitor-` — Monitor WebJob, data freshness bridge
+- `medici_web` — Web frontend
+- `delivery-` — Delivery & operations
+
+This gives Claude cross-project context for architecture decisions, shared schemas, and integration points.
 
 ## Claude Skill Memory
 

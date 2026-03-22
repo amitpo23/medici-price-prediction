@@ -2,6 +2,45 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [2.2.0] - 2026-03-22 - Command Center + Override Execution
+
+### Added — Command Center Dashboard
+- New unified 3-column trading dashboard at `/dashboard/command-center`
+- **Left Column** — Full portfolio options table with all 4,158 active rooms, inline signal badges, prices, T-values
+- **Center Column** — Real-time signal summary, hotel breakdown with signal counts per hotel
+- **Right Column** — Override queue status, opportunity queue status, recent activity feed
+- Single-page decision hub: see signals → select rooms → execute overrides — all without page navigation
+
+### Added — Override Execute Endpoint
+- `POST /override/execute` — Direct Zenith push endpoint for price overrides
+- **Safety mechanism**: `OVERRIDE_PUSH_ENABLED` env var (default: `false`) — must be explicitly enabled for live pushes
+- **Dry-run mode** — when push disabled, returns full preview: DB write result, SOAP XML payload, Zenith mapping (hotel_code, RPC, ITC)
+- Writes to `SalesOffice.PriceOverride` table (separate from Details/Orders — read-only boundary preserved)
+- **Blocker**: `prediction_reader` DB user needs `GRANT INSERT, UPDATE ON [SalesOffice.PriceOverride]` — see deployment notes
+
+### Deployment Notes — Override Permissions
+To enable override execution:
+1. Grant DB permissions:
+   ```sql
+   GRANT INSERT, UPDATE ON [SalesOffice.PriceOverride] TO prediction_reader;
+   ```
+   Run via Azure Portal → SQL databases → medici-db → Query editor, or:
+   ```bash
+   sqlcmd -S medici-sql-server.database.windows.net -d medici-db -U medici_sql_admin -P '<PASSWORD>' \
+     -Q "GRANT INSERT, UPDATE ON [SalesOffice.PriceOverride] TO prediction_reader;"
+   ```
+2. Enable Zenith push (optional):
+   ```
+   az webapp config appsettings set --name medici-prediction-api --resource-group medici-prediction-rg \
+     --settings OVERRIDE_PUSH_ENABLED=true
+   ```
+
+### Fixed
+- Options endpoint uses `all=true` instead of `limit=5000` for full dataset loading in Command Center
+
+### Changed
+- FastAPI / OpenAPI app version: `2.1.0` → `2.2.0`
+
 ## [2.1.0] - 2026-03-22 - Macro Terminal — Portfolio-Level Trading View
 
 ### Added — Macro Terminal Dashboard
