@@ -10,6 +10,8 @@ from src.utils.template_engine import render_template
 
 # Page definitions — static data for the landing page cards
 _PAGES = [
+    {"title": "Macro Terminal", "url": "/api/v1/salesoffice/dashboard/macro",
+     "icon": "&#x1F30D;", "description": "Portfolio-level trading view — heat map, drill-down, all hotels at once", "category": "core"},
     {"title": "Analytics Dashboard", "url": "/api/v1/salesoffice/dashboard",
      "icon": "&#x1F4CA;", "description": "Full interactive Plotly dashboard with room prices, predictions, and trading signals", "category": "core"},
     {"title": "Chart Pack", "url": "/api/v1/salesoffice/charts",
