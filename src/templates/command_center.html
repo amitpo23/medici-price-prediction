@@ -336,7 +336,7 @@ async function init(){
 
   const [sumData, optData]=await Promise.all([
     api(macroEndpoint),
-    api('/options?limit=5000&profile=lite'),
+    api('/options?all=true&profile=lite'),
   ]);
 
   // Portfolio strip
