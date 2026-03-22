@@ -2720,6 +2720,27 @@ async def monitor_ingest_report(
     return bridge.ingest_report(report_path)
 
 
+# ── Macro Terminal helpers ────────────────────────────────────────────
+
+
+def _get_signals_or_compute() -> list[dict]:
+    """Get cached signals, or compute on-demand from analysis cache."""
+    signals = _get_cached_signals()
+    if signals:
+        return signals
+    analysis = _get_cached_analysis()
+    if analysis and analysis.get("predictions"):
+        try:
+            from src.analytics.options_engine import compute_next_day_signals
+            signals = compute_next_day_signals(analysis)
+            _cm.set_data("signals", signals)
+            logger.info("Macro: computed %d signals on-demand", len(signals))
+            return signals
+        except (ImportError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Macro: on-demand signal compute failed: %s", exc)
+    return []
+
+
 # ── Macro Terminal endpoints ──────────────────────────────────────────
 
 
@@ -2727,7 +2748,7 @@ async def monitor_ingest_report(
 @limiter.limit(RATE_LIMIT_DATA)
 async def macro_portfolio_summary(request: Request, _key=Depends(_optional_api_key)):
     """L1 Portfolio View — summary header + hotel heat map."""
-    signals = _get_cached_signals()
+    signals = _get_signals_or_compute()
     if not signals:
         raise HTTPException(503, "Signals not ready — cache warming up")
 
@@ -2759,7 +2780,7 @@ async def macro_portfolio_summary(request: Request, _key=Depends(_optional_api_k
 @limiter.limit(RATE_LIMIT_DATA)
 async def macro_hotel_drilldown(hotel_id: int, request: Request, _key=Depends(_optional_api_key)):
     """L2 Hotel Drill-down — T-distribution, source agreement, drop history, options list."""
-    signals = _get_cached_signals()
+    signals = _get_signals_or_compute()
     if not signals:
         raise HTTPException(503, "Signals not ready — cache warming up")
 
@@ -2798,7 +2819,7 @@ async def macro_historical_t(detail_id: int, request: Request, _key=Depends(_opt
 
     # Get check-in date from signals or analysis
     checkin_date = None
-    signals = _get_cached_signals()
+    signals = _get_signals_or_compute()
     if signals:
         match = next((s for s in signals if str(s.get("detail_id")) == str(detail_id)), None)
         if match:
@@ -2854,7 +2875,7 @@ async def macro_filtered_by_source(
     source: str, request: Request, _key=Depends(_optional_api_key),
 ):
     """Portfolio signals filtered by a specific source (forward_curve, historical, ml, ensemble)."""
-    signals = _get_cached_signals()
+    signals = _get_signals_or_compute()
     if not signals:
         raise HTTPException(503, "Signals not ready — cache warming up")
 
