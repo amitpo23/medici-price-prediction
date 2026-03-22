@@ -120,6 +120,7 @@ a{color:#42a5f5;text-decoration:none}
   <select id="sel-option" disabled><option value="">Select Option...</option></select>
   <label><input type="checkbox" id="chk-refresh"> Auto-refresh</label>
   <span class="ts" id="ts-updated">--</span>
+  <a href="/api/v1/salesoffice/dashboard/macro" style="font-size:12px">&larr; Portfolio</a>
   <a href="/api/v1/salesoffice/home" style="font-size:12px">&larr; Home</a>
 </div>
 
@@ -135,6 +136,10 @@ a{color:#42a5f5;text-decoration:none}
     <div class="chart-title">Enrichment Decomposition</div>
     <div id="enrich-loading" class="empty">Select an option to view enrichments</div>
     <canvas id="enrich-chart" style="display:none"></canvas>
+  </div>
+  <div class="chart-box" id="hist-t-box" style="height:220px;display:none">
+    <div class="chart-title">Historical T — Actual vs Predicted</div>
+    <canvas id="hist-t-chart"></canvas>
   </div>
 
   <!-- Panels side by side -->
@@ -288,6 +293,8 @@ function clearTerminal(){
   el('sources-body').innerHTML='<div class="empty">Select an option</div>';
   el('accuracy-body').innerHTML='<div class="empty">Select an option</div>';
   el('disagree-warn').classList.remove('show');
+  el('hist-t-box').style.display='none';
+  if(typeof histTChart!=='undefined'&&histTChart){histTChart.destroy();histTChart=null}
 }
 
 /* ── Load Terminal ──────────────────────────────────────────────── */
@@ -313,6 +320,7 @@ async function loadTerminal(detailId){
   renderSignalPanel(fcRaw, pathData, detailData);
   renderSourcesPanel(sourceData);
   renderAccuracyPanel(detailData, fcRaw);
+  loadHistoricalT(detailId);
 
   // Load historical scan data in background (optional, may timeout)
   const opt=S.options.find(r=>String(r.detail_id)===String(detailId))||{};
@@ -771,7 +779,58 @@ el('ovr-discount').addEventListener('change',()=>{
   }
 });
 
-init();
+/* ── Historical T Chart ─────────────────────────────────────────── */
+let histTChart=null;
+async function loadHistoricalT(detailId){
+  const box=el('hist-t-box');
+  const data=await api(`/macro/historical-t/${detailId}`);
+  if(!data||!data.actual||data.actual.length<2){box.style.display='none';return}
+  box.style.display='block';
+  const actualPts=data.actual.map(p=>({x:p.t,y:p.price}));
+  const predictedPts=(data.predicted||[]).map(p=>({x:p.t,y:p.price}));
+  if(histTChart)histTChart.destroy();
+  histTChart=new Chart(el('hist-t-chart'),{
+    type:'line',
+    data:{datasets:[
+      {label:'Actual Price',data:actualPts,borderColor:'#42a5f5',backgroundColor:'rgba(66,165,245,0.1)',fill:true,tension:0.3,pointRadius:2,borderWidth:2},
+      {label:'Predicted (FC)',data:predictedPts,borderColor:'#ffa726',borderDash:[5,5],tension:0.3,pointRadius:0,borderWidth:1.5},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{type:'linear',reverse:true,title:{display:true,text:'T (days to check-in)',color:'#8899aa'},ticks:{color:'#8899aa'},grid:{color:'rgba(255,255,255,0.05)'}},
+        y:{title:{display:true,text:'Price ($)',color:'#8899aa'},ticks:{color:'#8899aa',callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.05)'}},
+      },
+      plugins:{legend:{labels:{color:'#eee'}},tooltip:{callbacks:{title:ctx=>'T = '+ctx[0].parsed.x+' days',label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y}}},
+    },
+  });
+}
+
+/* ── Query Param Auto-Select (from Macro Terminal) ─────────────── */
+async function handleQueryParams(){
+  const params=new URLSearchParams(window.location.search);
+  const presetHotel=params.get('hotel');
+  const presetDetail=params.get('detail');
+  if(!presetHotel)return;
+  // Find hotel by ID in the hotels map
+  if(S.hotels.has(parseInt(presetHotel))){
+    el('sel-hotel').value=presetHotel;
+    onHotelChange();
+    if(presetDetail){
+      el('sel-option').value=presetDetail;
+      await onOptionChange();
+    }
+  }
+}
+
+// Override init to handle query params after load
+const _origInit=init;
+async function initWithParams(){
+  await _origInit();
+  await handleQueryParams();
+}
+
+initWithParams();
 </script>
 </body>
 </html>
