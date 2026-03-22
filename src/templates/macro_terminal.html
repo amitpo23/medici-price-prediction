@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Macro Terminal — Medici</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#1a1a2e;--surface:#16213e;--panel:#0f3460;
+  --border:#1f4068;--text:#eee;--muted:#8899aa;
+  --call:#00c853;--put:#ff1744;--none:#757575;
+  --call-bg:rgba(0,200,83,.15);--put-bg:rgba(255,23,68,.15);--none-bg:rgba(117,117,117,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px}
+.page{max-width:1800px;margin:0 auto;padding:12px}
+a{color:#42a5f5;text-decoration:none}
+
+/* ── Summary Bar (sticky) ── */
+.summary-bar{position:sticky;top:0;z-index:100;background:var(--panel);border-bottom:2px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px;border-radius:0 0 8px 8px}
+.sb-title{font-size:18px;font-weight:700}
+.sb-stat{display:flex;flex-direction:column;align-items:center;padding:4px 12px;border-right:1px solid var(--border)}
+.sb-stat:last-of-type{border-right:none}
+.sb-num{font-size:20px;font-weight:700;font-family:monospace}
+.sb-num.call{color:var(--call)}.sb-num.put{color:var(--put)}.sb-num.neutral{color:var(--none)}
+.sb-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sb-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+
+/* ── Filter Bar ── */
+.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filter-bar select,.filter-bar input{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:12px}
+.filter-bar select{min-width:120px}
+.filter-bar .f-label{font-size:10px;color:var(--muted);text-transform:uppercase;margin-right:4px}
+.filter-bar .f-group{display:flex;align-items:center;gap:4px}
+.active-filters{display:flex;gap:6px;flex-wrap:wrap;margin-left:8px}
+.chip{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.chip .x{color:var(--put);font-weight:700}
+.f-count{margin-left:auto;font-size:11px;color:var(--muted);font-family:monospace}
+
+/* ── Heat Map ── */
+.heatmap{margin-bottom:16px}
+.hm-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.hm-grid{display:grid;grid-template-columns:200px repeat(5,1fr) 60px;gap:2px}
+.hm-header{background:var(--panel);padding:6px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;text-align:center;border-radius:4px}
+.hm-hotel{background:var(--surface);padding:6px 8px;font-size:12px;font-weight:600;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:6px;border:1px solid transparent;transition:border-color .2s}
+.hm-hotel:hover{border-color:var(--call)}
+.hm-hotel .h-sig{width:8px;height:8px;border-radius:50%}
+.hm-hotel .h-sig.call{background:var(--call)}.hm-hotel .h-sig.put{background:var(--put)}.hm-hotel .h-sig.none{background:var(--none)}
+.hm-cell{padding:6px;text-align:center;border-radius:4px;font-size:12px;font-family:monospace;font-weight:600;cursor:pointer;transition:transform .15s}
+.hm-cell:hover{transform:scale(1.08)}
+.hm-cell.call-hi{background:rgba(0,200,83,.5);color:#fff}
+.hm-cell.call-md{background:rgba(0,200,83,.3);color:#ccc}
+.hm-cell.call-lo{background:rgba(0,200,83,.12);color:#999}
+.hm-cell.put-hi{background:rgba(255,23,68,.5);color:#fff}
+.hm-cell.put-md{background:rgba(255,23,68,.3);color:#ccc}
+.hm-cell.put-lo{background:rgba(255,23,68,.12);color:#999}
+.hm-cell.none{background:rgba(117,117,117,.12);color:#888}
+.hm-cell.empty{background:transparent;color:#555}
+.hm-count{background:var(--surface);padding:6px;text-align:center;border-radius:4px;font-size:11px;color:var(--muted);font-family:monospace}
+
+/* ── Options Table ── */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.tbl-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border)}
+.tbl-header .tbl-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase}
+.opts-table{width:100%;border-collapse:collapse}
+.opts-table th{background:var(--panel);padding:6px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;text-align:left;cursor:pointer;white-space:nowrap;position:sticky;top:0;z-index:10}
+.opts-table th:hover{color:var(--text)}
+.opts-table td{padding:5px 8px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04)}
+.opts-table tr:hover{background:rgba(66,165,245,.08)}
+.opts-table tr{cursor:pointer}
+.opts-table .num{text-align:right;font-family:monospace}
+.sig-badge{display:inline-block;padding:1px 8px;border-radius:3px;font-weight:700;font-size:11px}
+.sig-badge.call{background:var(--call-bg);color:var(--call)}
+.sig-badge.put{background:var(--put-bg);color:var(--put)}
+.sig-badge.none{background:var(--none-bg);color:var(--none)}
+.risk-badge{font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px}
+.risk-badge.strong-put{background:rgba(255,23,68,.3);color:var(--put)}
+.risk-badge.put-risk{background:rgba(255,152,0,.3);color:#ffa726}
+.risk-badge.watch{background:rgba(255,235,59,.15);color:#ffee58}
+.risk-badge.neutral-risk{color:#666}
+.scroll-wrap{max-height:500px;overflow-y:auto}
+
+/* ── L2 Drilldown Section ── */
+.drilldown{background:var(--surface);border:2px solid var(--call);border-radius:8px;padding:16px;margin-bottom:16px;display:none}
+.drilldown.show{display:block}
+.dd-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.dd-title{font-size:16px;font-weight:700;flex:1}
+.dd-close{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px}
+.dd-close:hover{color:var(--text);border-color:var(--text)}
+.dd-stats{display:flex;gap:16px;margin-bottom:12px}
+.dd-stat{padding:6px 12px;background:var(--bg);border-radius:6px;text-align:center}
+.dd-stat .n{font-size:18px;font-weight:700;font-family:monospace}
+.dd-stat .l{font-size:10px;color:var(--muted);text-transform:uppercase}
+.dd-charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.dd-chart{background:var(--bg);border-radius:8px;padding:12px;height:220px;position:relative}
+.dd-chart canvas{width:100%!important;height:100%!important}
+.dd-chart-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.dd-drop{background:var(--bg);border-radius:6px;padding:8px 12px;margin-bottom:12px;display:flex;gap:16px;font-size:12px}
+.dd-drop .d-item{display:flex;flex-direction:column;align-items:center}
+.dd-drop .d-val{font-size:14px;font-weight:700;font-family:monospace}
+.dd-drop .d-val.neg{color:var(--put)}
+.dd-drop .d-lbl{font-size:10px;color:var(--muted)}
+
+/* ── Bulk Actions ── */
+.bulk-bar{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-bottom:12px;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+.bulk-bar.show{display:flex}
+.btn{border:none;border-radius:4px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:default}
+.btn-call{background:var(--call);color:#000}.btn-call:hover{filter:brightness(1.15)}
+.btn-put{background:var(--put);color:#fff}.btn-put:hover{filter:brightness(1.15)}
+.btn-sm{padding:3px 8px;font-size:10px}
+
+/* ── Mobile ── */
+@media(max-width:900px){
+  .hm-grid{grid-template-columns:140px repeat(5,1fr) 50px;font-size:10px}
+  .dd-charts{grid-template-columns:1fr}
+  .summary-bar{gap:8px}
+  .sb-stat{padding:4px 8px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ Summary Bar ═══════════════ -->
+<div class="summary-bar" id="summary-bar">
+  <div class="sb-title">Macro Terminal</div>
+  <div class="sb-stat"><span class="sb-num" id="sb-total">-</span><span class="sb-label">Options</span></div>
+  <div class="sb-stat"><span class="sb-num call" id="sb-calls">-</span><span class="sb-label">Call</span></div>
+  <div class="sb-stat"><span class="sb-num put" id="sb-puts">-</span><span class="sb-label">Put</span></div>
+  <div class="sb-stat"><span class="sb-num neutral" id="sb-neutrals">-</span><span class="sb-label">Neutral</span></div>
+  <div class="sb-stat"><span class="sb-num" id="sb-hotels">-</span><span class="sb-label">Hotels</span></div>
+  <div class="sb-stat"><span class="sb-num" id="sb-conf">-</span><span class="sb-label">Avg Conf</span></div>
+  <div class="sb-right">
+    <span id="sb-ts" style="font-size:11px;color:var(--muted);font-family:monospace">Loading...</span>
+    <a href="/api/v1/salesoffice/home" style="font-size:12px">&larr; Home</a>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- ═══════════════ Filter Bar ═══════════════ -->
+<div class="filter-bar" id="filter-bar">
+  <div class="f-group"><span class="f-label">Signal</span>
+    <select id="f-signal"><option value="">All</option><option value="CALL">CALL</option><option value="PUT">PUT</option><option value="NONE">NEUTRAL</option></select>
+  </div>
+  <div class="f-group"><span class="f-label">Hotel</span>
+    <select id="f-hotel"><option value="">All Hotels</option></select>
+  </div>
+  <div class="f-group"><span class="f-label">Source</span>
+    <select id="f-source">
+      <option value="ensemble">Ensemble</option>
+      <option value="forward_curve">Forward Curve</option>
+      <option value="historical">Historical</option>
+      <option value="ml">ML Model</option>
+    </select>
+  </div>
+  <div class="f-group"><span class="f-label">Confidence</span>
+    <select id="f-conf"><option value="">All</option><option value="High">High</option><option value="Med">Med</option><option value="Low">Low</option></select>
+  </div>
+  <div class="f-group"><span class="f-label">T min</span><input type="number" id="f-tmin" value="0" min="0" max="999" style="width:60px"></div>
+  <div class="f-group"><span class="f-label">T max</span><input type="number" id="f-tmax" value="999" min="0" max="999" style="width:60px"></div>
+  <div class="f-group"><span class="f-label">Category</span>
+    <select id="f-cat"><option value="">All</option><option value="standard">Standard</option><option value="superior">Superior</option><option value="deluxe">Deluxe</option><option value="suite">Suite</option></select>
+  </div>
+  <div class="f-group"><span class="f-label">Board</span>
+    <select id="f-board"><option value="">All</option><option value="ro">RO</option><option value="bb">BB</option></select>
+  </div>
+  <span class="f-count" id="f-count"></span>
+</div>
+
+<!-- ═══════════════ Heat Map ═══════════════ -->
+<div class="heatmap">
+  <div class="hm-title">Signal Heat Map — Hotels x T-Buckets</div>
+  <div class="hm-grid" id="hm-grid">
+    <div class="hm-header">Hotel</div>
+    <div class="hm-header">0-14d</div>
+    <div class="hm-header">15-30d</div>
+    <div class="hm-header">31-60d</div>
+    <div class="hm-header">61-90d</div>
+    <div class="hm-header">91+d</div>
+    <div class="hm-header">Total</div>
+  </div>
+</div>
+
+<!-- ═══════════════ L2 Drilldown (scroll-to) ═══════════════ -->
+<div class="drilldown" id="drilldown">
+  <div class="dd-header">
+    <div class="dd-title" id="dd-title">Hotel Details</div>
+    <button class="dd-close" onclick="closeDrilldown()">&times; Close</button>
+  </div>
+  <div class="dd-stats" id="dd-stats"></div>
+  <div class="dd-drop" id="dd-drop" style="display:none"></div>
+  <div class="dd-charts">
+    <div class="dd-chart"><div class="dd-chart-title">T-Decay Distribution</div><canvas id="dd-tdist-chart"></canvas></div>
+    <div class="dd-chart"><div class="dd-chart-title">Source Agreement</div><canvas id="dd-agree-chart"></canvas></div>
+  </div>
+  <div id="dd-table-wrap"></div>
+</div>
+
+<!-- ═══════════════ Bulk Actions ═══════════════ -->
+<div class="bulk-bar" id="bulk-bar">
+  <span style="font-size:12px;font-weight:600">Bulk Actions:</span>
+  <span id="bulk-count" style="font-size:12px;color:var(--muted)">0 selected</span>
+  <button class="btn btn-put btn-sm" id="btn-bulk-override" onclick="bulkOverride()">Override Selected</button>
+  <button class="btn btn-call btn-sm" id="btn-bulk-buy" onclick="bulkBuy()">Buy Selected</button>
+</div>
+
+<!-- ═══════════════ Options Table ═══════════════ -->
+<div class="tbl-wrap">
+  <div class="tbl-header">
+    <span class="tbl-title" id="tbl-title">All Options</span>
+  </div>
+  <div class="scroll-wrap">
+    <table class="opts-table" id="opts-table">
+      <thead><tr>
+        <th data-col="hotel_name">Hotel</th>
+        <th data-col="category">Cat</th>
+        <th data-col="board">Board</th>
+        <th data-col="checkin_date">Check-in</th>
+        <th data-col="T" class="num">T</th>
+        <th data-col="S_t" class="num">Price</th>
+        <th data-col="signal">Signal</th>
+        <th data-col="confidence">Conf</th>
+        <th data-col="next_scan_risk">Scan Risk</th>
+        <th data-col="regime">Regime</th>
+      </tr></thead>
+      <tbody id="opts-body"></tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- .page -->
+
+<script>
+const API = '/api/v1/salesoffice';
+const el = id => document.getElementById(id);
+
+// ── State ──
+const S = {
+  summary: null,
+  heatmap: [],
+  allOptions: [],   // flattened from heatmap signals (from hotel drilldowns)
+  filtered: [],
+  sortCol: 'T',
+  sortAsc: true,
+  activeHotel: null,
+};
+
+// ── API helper ──
+async function api(path) {
+  try {
+    const r = await fetch(API + path);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { console.error('API error:', path, e); return null; }
+}
+
+// ── Init ──
+async function init() {
+  const source = el('f-source').value;
+  const endpoint = source === 'ensemble' ? '/macro/summary' : `/macro/sources/${source}`;
+  const data = await api(endpoint);
+  if (!data) { el('sb-ts').textContent = 'Error loading data'; return; }
+
+  S.summary = data.summary;
+  S.heatmap = data.heatmap;
+  renderSummaryBar();
+  renderHeatmap();
+  populateHotelFilter();
+  buildFlatOptions();
+  applyFilters();
+  syncURL();
+  el('sb-ts').textContent = new Date().toLocaleTimeString();
+}
+
+// ── Summary Bar ──
+function renderSummaryBar() {
+  const s = S.summary;
+  if (!s) return;
+  el('sb-total').textContent = s.total_options;
+  el('sb-calls').textContent = s.calls;
+  el('sb-puts').textContent = s.puts;
+  el('sb-neutrals').textContent = s.neutrals;
+  el('sb-hotels').textContent = s.total_hotels;
+  el('sb-conf').textContent = s.avg_confidence;
+}
+
+// ── Heat Map ──
+function renderHeatmap() {
+  const grid = el('hm-grid');
+  // Remove old rows (keep header = first 7 children)
+  while (grid.children.length > 7) grid.removeChild(grid.lastChild);
+
+  for (const row of S.heatmap) {
+    // Hotel name cell
+    const hCell = document.createElement('div');
+    hCell.className = 'hm-hotel';
+    hCell.innerHTML = `<span class="h-sig ${row.dominant_signal.toLowerCase()}"></span>${row.hotel_name}`;
+    hCell.onclick = () => openDrilldown(row.hotel_id, row.hotel_name);
+    grid.appendChild(hCell);
+
+    // T-bucket cells
+    for (const b of row.buckets) {
+      const cell = document.createElement('div');
+      const cls = cellClass(b);
+      cell.className = `hm-cell ${cls}`;
+      cell.textContent = b.count || '-';
+      cell.title = `${b.calls}C / ${b.puts}P / ${b.neutrals}N`;
+      cell.onclick = () => openDrilldown(row.hotel_id, row.hotel_name);
+      grid.appendChild(cell);
+    }
+
+    // Total count
+    const tot = document.createElement('div');
+    tot.className = 'hm-count';
+    tot.textContent = row.total_options;
+    grid.appendChild(tot);
+  }
+}
+
+function cellClass(b) {
+  if (b.count === 0) return 'empty';
+  const sig = b.dominant_signal.toLowerCase();
+  if (sig === 'none') return 'none';
+  const intensity = b.avg_confidence_score >= 2.5 ? 'hi' : b.avg_confidence_score >= 1.5 ? 'md' : 'lo';
+  return `${sig}-${intensity}`;
+}
+
+// ── Hotel Filter Population ──
+function populateHotelFilter() {
+  const sel = el('f-hotel');
+  // Clear existing options except first
+  while (sel.options.length > 1) sel.remove(1);
+  for (const row of S.heatmap) {
+    const opt = document.createElement('option');
+    opt.value = row.hotel_id;
+    opt.textContent = row.hotel_name;
+    sel.appendChild(opt);
+  }
+}
+
+// ── Build flat options from heatmap data ──
+function buildFlatOptions() {
+  S.allOptions = [];
+  for (const row of S.heatmap) {
+    for (const b of row.buckets) {
+      // We need per-option data — heatmap only has aggregates
+      // Create synthetic rows from heatmap counts (limited info)
+      // Real data comes when user drills down
+    }
+    // For L1 table, create one summary row per hotel
+    S.allOptions.push({
+      hotel_id: row.hotel_id,
+      hotel_name: row.hotel_name,
+      total: row.total_options,
+      calls: row.calls,
+      puts: row.puts,
+      neutrals: row.neutrals,
+      dominant_signal: row.dominant_signal,
+      avg_price: row.avg_price,
+      agreement: row.agreement_score,
+      buckets: row.buckets,
+    });
+  }
+  S.filtered = [...S.allOptions];
+}
+
+// ── Filters ──
+function applyFilters() {
+  const signal = el('f-signal').value;
+  const hotel = el('f-hotel').value;
+  const conf = el('f-conf').value;
+  const tMin = parseInt(el('f-tmin').value) || 0;
+  const tMax = parseInt(el('f-tmax').value) || 999;
+  const cat = el('f-cat').value;
+  const board = el('f-board').value;
+
+  let rows = S.drilldownOptions || S.allOptions;
+
+  if (signal) {
+    if (S.drilldownOptions) {
+      rows = rows.filter(r => r.signal === signal);
+    } else {
+      rows = rows.filter(r => r.dominant_signal === signal);
+    }
+  }
+  if (hotel) rows = rows.filter(r => String(r.hotel_id) === hotel);
+  if (S.drilldownOptions) {
+    if (conf) rows = rows.filter(r => r.confidence === conf);
+    if (tMin > 0) rows = rows.filter(r => (r.T || 0) >= tMin);
+    if (tMax < 999) rows = rows.filter(r => (r.T || 0) <= tMax);
+    if (cat) rows = rows.filter(r => (r.category || '').toLowerCase() === cat);
+    if (board) rows = rows.filter(r => (r.board || '').toLowerCase() === board);
+  }
+
+  S.filtered = rows;
+  renderTable();
+  el('f-count').textContent = `${rows.length} results`;
+  syncURL();
+}
+
+// ── Table Rendering ──
+function renderTable() {
+  const tbody = el('opts-body');
+  tbody.innerHTML = '';
+
+  if (S.drilldownOptions) {
+    renderDetailTable();
+    return;
+  }
+
+  // L1 mode: hotel summary rows
+  const sorted = sortRows(S.filtered);
+  for (const row of sorted) {
+    const tr = document.createElement('tr');
+    tr.onclick = () => openDrilldown(row.hotel_id, row.hotel_name);
+    const sigCls = row.dominant_signal.toLowerCase();
+    tr.innerHTML = `
+      <td>${row.hotel_name}</td>
+      <td>-</td><td>-</td><td>-</td>
+      <td class="num">${row.total}</td>
+      <td class="num">$${row.avg_price}</td>
+      <td><span class="sig-badge ${sigCls === 'none' ? 'none' : sigCls}">${row.calls}C/${row.puts}P/${row.neutrals}N</span></td>
+      <td>-</td><td>-</td><td>-</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderDetailTable() {
+  const tbody = el('opts-body');
+  tbody.innerHTML = '';
+  const sorted = sortRows(S.filtered);
+
+  for (const row of sorted) {
+    const tr = document.createElement('tr');
+    const sigCls = (row.signal || 'none').toLowerCase();
+    const riskLabel = row.next_scan_risk ? row.next_scan_risk.label : 'NEUTRAL';
+    const riskCls = riskLabel === 'STRONG_PUT' ? 'strong-put' : riskLabel === 'PUT' ? 'put-risk' : riskLabel === 'WATCH' ? 'watch' : 'neutral-risk';
+
+    tr.onclick = () => window.location.href = `${API}/dashboard/terminal?hotel=${row.hotel_id || S.activeHotel}&detail=${row.detail_id}`;
+    tr.innerHTML = `
+      <td>${row.hotel_name || ''}</td>
+      <td>${row.category || ''}</td>
+      <td>${(row.board || '').toUpperCase()}</td>
+      <td>${row.checkin_date || ''}</td>
+      <td class="num">${row.T || 0}</td>
+      <td class="num">$${row.S_t || 0}</td>
+      <td><span class="sig-badge ${sigCls === 'none' ? 'none' : sigCls}">${(row.signal || 'NONE')}</span></td>
+      <td>${row.confidence || ''}</td>
+      <td><span class="risk-badge ${riskCls}">${riskLabel}</span></td>
+      <td>${row.regime || ''}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function sortRows(rows) {
+  const col = S.sortCol;
+  const asc = S.sortAsc ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    let va = a[col], vb = b[col];
+    if (typeof va === 'string') return va.localeCompare(vb) * asc;
+    return ((va || 0) - (vb || 0)) * asc;
+  });
+}
+
+// ── Column Sort ──
+document.querySelectorAll('.opts-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (!col) return;
+    if (S.sortCol === col) S.sortAsc = !S.sortAsc;
+    else { S.sortCol = col; S.sortAsc = true; }
+    renderTable();
+  });
+});
+
+// ── L2 Drilldown ──
+let ddTDistChart = null, ddAgreeChart = null;
+
+async function openDrilldown(hotelId, hotelName) {
+  S.activeHotel = hotelId;
+  const data = await api(`/macro/hotel/${hotelId}`);
+  if (!data) return;
+
+  const dd = el('drilldown');
+  dd.classList.add('show');
+  el('dd-title').textContent = `${hotelName} — ${data.total_options} options`;
+  el('tbl-title').textContent = `${hotelName} Options`;
+
+  // Stats
+  el('dd-stats').innerHTML = `
+    <div class="dd-stat"><div class="n" style="color:var(--call)">${data.calls}</div><div class="l">Call</div></div>
+    <div class="dd-stat"><div class="n" style="color:var(--put)">${data.puts}</div><div class="l">Put</div></div>
+    <div class="dd-stat"><div class="n" style="color:var(--none)">${data.neutrals}</div><div class="l">Neutral</div></div>
+    <div class="dd-stat"><div class="n">${data.total_options}</div><div class="l">Total</div></div>`;
+
+  // Drop history
+  const dh = data.drop_history;
+  if (dh && dh.total_drops_7d > 0) {
+    el('dd-drop').style.display = 'flex';
+    el('dd-drop').innerHTML = `
+      <div class="d-item"><div class="d-val neg">${dh.total_drops_7d}</div><div class="d-lbl">Drops (7d)</div></div>
+      <div class="d-item"><div class="d-val neg">${dh.avg_drop_pct}%</div><div class="d-lbl">Avg Drop</div></div>
+      <div class="d-item"><div class="d-val neg">${dh.max_drop_pct}%</div><div class="d-lbl">Max Drop</div></div>
+      <div class="d-item"><div class="d-val">${dh.rooms_with_drops}</div><div class="d-lbl">Rooms</div></div>`;
+  } else {
+    el('dd-drop').style.display = 'none';
+  }
+
+  // T-Dist Chart
+  renderTDistChart(data.t_distribution);
+  renderAgreeChart(data.source_agreement);
+
+  // Store options for detailed table
+  S.drilldownOptions = data.options.map(o => ({...o, hotel_name: hotelName, hotel_id: hotelId}));
+  applyFilters();
+
+  // Show bulk bar
+  el('bulk-bar').classList.add('show');
+  el('bulk-count').textContent = `${S.filtered.length} options`;
+
+  dd.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function closeDrilldown() {
+  el('drilldown').classList.remove('show');
+  el('bulk-bar').classList.remove('show');
+  el('tbl-title').textContent = 'All Options';
+  S.activeHotel = null;
+  S.drilldownOptions = null;
+  applyFilters();
+}
+
+function renderTDistChart(dist) {
+  if (ddTDistChart) ddTDistChart.destroy();
+  const labels = dist.map(d => d.bucket);
+  ddTDistChart = new Chart(el('dd-tdist-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {label: 'CALL', data: dist.map(d => d.calls), backgroundColor: 'rgba(0,200,83,.6)'},
+        {label: 'PUT', data: dist.map(d => d.puts), backgroundColor: 'rgba(255,23,68,.6)'},
+        {label: 'NEUTRAL', data: dist.map(d => d.neutrals), backgroundColor: 'rgba(117,117,117,.4)'},
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: {stacked: true, ticks:{color:'#8899aa'}, grid:{display:false}},
+        y: {stacked: true, ticks:{color:'#8899aa'}, grid:{color:'rgba(255,255,255,.05)'}},
+      },
+      plugins: {legend:{labels:{color:'#eee',boxWidth:12,font:{size:10}}}},
+    },
+  });
+}
+
+function renderAgreeChart(agreement) {
+  if (ddAgreeChart) ddAgreeChart.destroy();
+  if (!agreement || !agreement.length) {
+    el('dd-agree-chart').getContext('2d').clearRect(0, 0, 999, 999);
+    return;
+  }
+  ddAgreeChart = new Chart(el('dd-agree-chart'), {
+    type: 'bar',
+    data: {
+      labels: agreement.map(a => a.label),
+      datasets: [{
+        label: 'Agreement %',
+        data: agreement.map(a => a.agreement_pct),
+        backgroundColor: agreement.map(a => a.agreement_pct >= 70 ? 'rgba(0,200,83,.6)' : a.agreement_pct >= 40 ? 'rgba(255,152,0,.6)' : 'rgba(255,23,68,.6)'),
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: {max:100, ticks:{color:'#8899aa',callback:v=>v+'%'}, grid:{color:'rgba(255,255,255,.05)'}},
+        y: {ticks:{color:'#eee'}, grid:{display:false}},
+      },
+      plugins: {legend:{display:false}},
+    },
+  });
+}
+
+// ── Bulk Actions ──
+function bulkOverride() {
+  const puts = (S.drilldownOptions || []).filter(o => o.signal === 'PUT');
+  if (!puts.length) return alert('No PUT signals to override');
+  const discount = prompt('Discount USD per room:', '5');
+  if (!discount) return;
+  fetch(API + '/group/override', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({signal: 'PUT', hotel_id: S.activeHotel, discount_usd: parseFloat(discount)}),
+  }).then(r => r.json()).then(d => alert(`Queued ${d.queued || 0} overrides`)).catch(e => alert('Error: ' + e));
+}
+
+function bulkBuy() {
+  const calls = (S.drilldownOptions || []).filter(o => o.signal === 'CALL');
+  if (!calls.length) return alert('No CALL signals to buy');
+  fetch(API + '/group/opportunity', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({signal: 'CALL', hotel_id: S.activeHotel, max_rooms: 3}),
+  }).then(r => r.json()).then(d => alert(`Queued ${d.queued || 0} opportunities`)).catch(e => alert('Error: ' + e));
+}
+
+// ── URL State ──
+function syncURL() {
+  const p = new URLSearchParams();
+  const signal = el('f-signal').value;
+  const hotel = el('f-hotel').value;
+  const source = el('f-source').value;
+  const conf = el('f-conf').value;
+  if (signal) p.set('signal', signal);
+  if (hotel) p.set('hotel', hotel);
+  if (source !== 'ensemble') p.set('source', source);
+  if (conf) p.set('conf', conf);
+  const hash = p.toString();
+  if (hash) history.replaceState(null, '', '#' + hash);
+  else history.replaceState(null, '', location.pathname);
+}
+
+function loadFromURL() {
+  const hash = location.hash.slice(1);
+  if (!hash) return;
+  const p = new URLSearchParams(hash);
+  if (p.has('signal')) el('f-signal').value = p.get('signal');
+  if (p.has('hotel')) el('f-hotel').value = p.get('hotel');
+  if (p.has('source')) el('f-source').value = p.get('source');
+  if (p.has('conf')) el('f-conf').value = p.get('conf');
+}
+
+// ── Event Listeners ──
+['f-signal','f-hotel','f-conf','f-cat','f-board'].forEach(id => {
+  el(id).addEventListener('change', applyFilters);
+});
+['f-tmin','f-tmax'].forEach(id => {
+  el(id).addEventListener('input', applyFilters);
+});
+el('f-source').addEventListener('change', () => init());
+
+// ── Boot ──
+loadFromURL();
+init();
+</script>
+</body>
+</html>

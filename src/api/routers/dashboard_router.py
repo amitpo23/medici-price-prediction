@@ -377,6 +377,13 @@ async def dashboard_terminal():
     return HTMLResponse(content=generate_terminal_html())
 
 
+@dashboard_router.get("/dashboard/macro", response_class=HTMLResponse)
+async def dashboard_macro_terminal():
+    """Macro Trading Terminal — portfolio-level 3-level drill-down view."""
+    from src.utils.template_engine import render_template
+    return HTMLResponse(content=render_template("macro_terminal.html"))
+
+
 @dashboard_router.get("/dashboard/override-queue", response_class=HTMLResponse)
 async def dashboard_override_queue():
     """Override Queue management — pending, in-progress, completed overrides."""
