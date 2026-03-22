@@ -88,6 +88,7 @@ CACHE_CONFIG: dict[str, dict[str, int]] = {
     "analyst":        {"ttl": int(os.getenv("ANALYST_CACHE_TTL", "600")),      "max_size": 200},
     "salesoffice_options": {"ttl": 0, "max_size": 64},
     "salesoffice_detail":  {"ttl": 0, "max_size": 1000},
+    "signals":             {"ttl": 0, "max_size": 0},      # precomputed CALL/PUT signals
 }
 
 # API
