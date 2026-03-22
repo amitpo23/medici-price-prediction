@@ -384,6 +384,13 @@ async def dashboard_macro_terminal():
     return HTMLResponse(content=render_template("macro_terminal.html"))
 
 
+@dashboard_router.get("/dashboard/command-center", response_class=HTMLResponse)
+async def dashboard_command_center():
+    """Command Center — unified 3-column trading, analytics, and execution view."""
+    from src.analytics.command_center_page import generate_command_center_html
+    return HTMLResponse(content=generate_command_center_html())
+
+
 @dashboard_router.get("/dashboard/override-queue", response_class=HTMLResponse)
 async def dashboard_override_queue():
     """Override Queue management — pending, in-progress, completed overrides."""

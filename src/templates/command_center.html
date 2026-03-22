@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Command Center — Medici</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#1a1a2e;--surface:#16213e;--panel:#0f3460;
+  --border:#1f4068;--text:#eee;--muted:#8899aa;
+  --call:#00c853;--put:#ff1744;--none:#757575;
+  --call-bg:rgba(0,200,83,.15);--put-bg:rgba(255,23,68,.15);--none-bg:rgba(117,117,117,.15);
+  --pending:#ffa726;--done:#66bb6a;--failed:#ef5350;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;display:flex;flex-direction:column}
+a{color:#42a5f5;text-decoration:none}
+
+/* Portfolio Strip */
+.strip{background:var(--panel);border-bottom:2px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:14px;flex-wrap:nowrap;flex-shrink:0}
+.strip-title{font-size:16px;font-weight:700;white-space:nowrap}
+.strip-stat{display:flex;flex-direction:column;align-items:center;padding:2px 10px;border-right:1px solid var(--border)}
+.strip-stat:last-of-type{border-right:none}
+.strip-num{font-size:16px;font-weight:700;font-family:monospace;cursor:pointer}
+.strip-num.call{color:var(--call)}.strip-num.put{color:var(--put)}.strip-num.neutral{color:var(--none)}
+.strip-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.strip-right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:11px}
+
+/* 3-Column Grid */
+.grid{display:grid;grid-template-columns:320px 1fr 320px;flex:1;overflow:hidden;gap:0}
+.col{overflow-y:auto;padding:10px;border-right:1px solid var(--border)}
+.col:last-child{border-right:none}
+.col::-webkit-scrollbar{width:4px}
+.col::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Shared panel styles */
+.section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px}
+.section-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px}
+
+/* Chart boxes */
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;position:relative}
+.chart-box canvas{width:100%!important;height:100%!important}
+.chart-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+
+/* Signal badge */
+.sig{display:inline-block;padding:2px 8px;border-radius:3px;font-weight:700;font-size:11px}
+.sig.call{background:var(--call-bg);color:var(--call)}
+.sig.put{background:var(--put-bg);color:var(--put)}
+.sig.neutral,.sig.none{background:var(--none-bg);color:var(--none)}
+
+/* Filter bar */
+.filters{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px}
+.f-row{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.f-row select,.f-row input{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:3px 6px;font-size:11px}
+.f-row select{min-width:80px}
+.f-label{font-size:9px;color:var(--muted);text-transform:uppercase;width:40px;flex-shrink:0}
+.f-count{font-size:10px;color:var(--muted);font-family:monospace;text-align:right;margin-left:auto}
+
+/* Mini heatmap */
+.mini-hm{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px;max-height:180px;overflow-y:auto}
+.mini-hm-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.hm-row{display:grid;grid-template-columns:100px repeat(5,1fr);gap:1px;margin-bottom:1px}
+.hm-name{font-size:10px;padding:2px 4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-name:hover{color:var(--call)}
+.hm-cell{text-align:center;font-size:10px;font-family:monospace;padding:2px;border-radius:2px;cursor:pointer}
+.hm-cell.call-hi{background:rgba(0,200,83,.5)}.hm-cell.call-md{background:rgba(0,200,83,.3)}.hm-cell.call-lo{background:rgba(0,200,83,.12)}
+.hm-cell.put-hi{background:rgba(255,23,68,.5)}.hm-cell.put-md{background:rgba(255,23,68,.3)}.hm-cell.put-lo{background:rgba(255,23,68,.12)}
+.hm-cell.none{background:rgba(117,117,117,.12)}.hm-cell.empty{background:transparent;color:#555}
+
+/* Options table */
+.opts-table{width:100%;border-collapse:collapse;font-size:11px}
+.opts-table th{background:var(--panel);padding:4px 6px;font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;text-align:left;cursor:pointer;position:sticky;top:0;z-index:5;white-space:nowrap}
+.opts-table th:hover{color:var(--text)}
+.opts-table td{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.04);font-family:monospace;font-size:11px}
+.opts-table tr:hover{background:rgba(66,165,245,.08);cursor:pointer}
+.opts-table tr.active{background:rgba(33,150,243,.18)}
+.opts-scroll{overflow-y:auto;flex:1}
+
+/* Sig rows in panels */
+.sig-row{display:flex;justify-content:space-between;padding:2px 0;font-size:11px}
+.sig-row .lbl{color:var(--muted)}.sig-row .val{font-family:monospace;font-weight:600}
+.sig-row .val.up{color:var(--call)}.sig-row .val.down{color:var(--put)}
+
+/* Source rows */
+.src-row{display:flex;align-items:center;gap:4px;padding:3px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.src-name{flex:1;color:var(--muted);min-width:70px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-dir{width:48px;text-align:center;font-weight:600;border-radius:2px;padding:1px 3px;font-size:10px}
+.src-dir.call{background:rgba(0,200,83,.2);color:var(--call)}
+.src-dir.put{background:rgba(255,23,68,.2);color:var(--put)}
+.src-dir.neutral{background:rgba(117,117,117,.2);color:var(--none)}
+.src-conf{width:35px;text-align:right;font-family:monospace;color:var(--muted);font-size:10px}
+.src-price{width:50px;text-align:right;font-family:monospace;font-size:10px}
+
+/* Warning banner */
+.warn-banner{background:rgba(255,23,68,.15);border:1px solid var(--put);border-radius:4px;padding:4px 8px;font-size:10px;font-weight:600;color:var(--put);text-align:center;display:none}
+.warn-banner.show{display:block;margin-bottom:6px}
+
+/* Queue sidebar */
+.queue-tabs{display:flex;gap:0;margin-bottom:6px}
+.q-tab{flex:1;padding:4px 8px;text-align:center;font-size:10px;font-weight:600;cursor:pointer;background:var(--bg);border:1px solid var(--border);color:var(--muted)}
+.q-tab:first-child{border-radius:4px 0 0 4px}.q-tab:last-child{border-radius:0 4px 4px 0}
+.q-tab.active{background:var(--panel);color:var(--text);border-color:var(--call)}
+.q-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.q-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.q-status.pending{background:var(--pending)}.q-status.done{background:var(--done)}.q-status.failed{background:var(--failed)}
+.q-detail{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.q-price{font-family:monospace;color:var(--muted)}
+
+/* Action buttons */
+.btn{border:none;border-radius:3px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:default}
+.btn-call{background:var(--call);color:#000}.btn-put{background:var(--put);color:#fff}
+.btn:hover{filter:brightness(1.15)}
+.btn-sm{padding:2px 6px;font-size:9px}
+
+/* Bulk action bar */
+.bulk-row{display:flex;gap:4px;align-items:center;padding:4px 0;border-top:1px solid var(--border);margin-top:4px}
+
+/* Toast */
+.toast{position:fixed;top:12px;right:12px;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:500;z-index:9999;animation:fadeIn .3s}
+.toast.ok{background:rgba(76,175,80,.9);color:#fff}.toast.err{background:rgba(244,67,54,.9);color:#fff}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+
+/* Chart tabs */
+.chart-tabs{display:flex;gap:0;margin-bottom:6px}
+.c-tab{padding:3px 8px;font-size:10px;cursor:pointer;background:var(--bg);border:1px solid var(--border);color:var(--muted)}
+.c-tab:first-child{border-radius:4px 0 0 4px}.c-tab:last-child{border-radius:0 4px 4px 0}
+.c-tab.active{background:var(--panel);color:var(--text);border-color:var(--call)}
+
+/* Accuracy rows */
+.acc-row{display:flex;justify-content:space-between;padding:2px 0;font-size:11px}
+.acc-row .lbl{color:var(--muted)}.acc-row .val{font-family:monospace}
+
+/* Loading */
+.loading{text-align:center;padding:20px;color:var(--muted)}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:#42a5f5;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:16px;color:var(--muted);font-size:11px;font-style:italic}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ PORTFOLIO STRIP ═══════════ -->
+<div class="strip" id="strip">
+  <div class="strip-title">Command Center</div>
+  <div class="strip-stat"><span class="strip-num" id="s-total">-</span><span class="strip-label">Options</span></div>
+  <div class="strip-stat"><span class="strip-num call" id="s-calls">-</span><span class="strip-label">Call</span></div>
+  <div class="strip-stat"><span class="strip-num put" id="s-puts">-</span><span class="strip-label">Put</span></div>
+  <div class="strip-stat"><span class="strip-num neutral" id="s-neutrals">-</span><span class="strip-label">Neutral</span></div>
+  <div class="strip-stat"><span class="strip-num" id="s-hotels">-</span><span class="strip-label">Hotels</span></div>
+  <div class="strip-stat"><span class="strip-num" id="s-conf">-</span><span class="strip-label">Avg Conf</span></div>
+  <div class="strip-right">
+    <span id="s-ts" style="font-family:monospace;color:var(--muted)">Loading...</span>
+    <a href="/api/v1/salesoffice/home">&larr; Home</a>
+  </div>
+</div>
+
+<!-- ═══════════ 3-COLUMN GRID ═══════════ -->
+<div class="grid">
+
+  <!-- ═══ LEFT: Navigator + Table ═══ -->
+  <div class="col" id="col-left" style="display:flex;flex-direction:column">
+    <!-- Filters -->
+    <div class="filters" id="filters">
+      <div class="f-row">
+        <span class="f-label">Signal</span>
+        <select id="f-signal"><option value="">All</option><option value="CALL">CALL</option><option value="PUT">PUT</option><option value="NONE">NEUTRAL</option></select>
+        <select id="f-hotel"><option value="">All Hotels</option></select>
+      </div>
+      <div class="f-row">
+        <span class="f-label">T</span>
+        <input type="number" id="f-tmin" value="0" min="0" style="width:45px" placeholder="min">
+        <span style="color:var(--muted)">-</span>
+        <input type="number" id="f-tmax" value="999" min="0" style="width:45px" placeholder="max">
+        <select id="f-cat"><option value="">Cat</option><option value="standard">Std</option><option value="superior">Sup</option><option value="deluxe">Dlx</option><option value="suite">Suite</option></select>
+        <select id="f-board"><option value="">Board</option><option value="ro">RO</option><option value="bb">BB</option></select>
+      </div>
+      <div class="f-row">
+        <span class="f-label">Source</span>
+        <select id="f-source"><option value="ensemble">Ensemble</option><option value="forward_curve">FC</option><option value="historical">Historical</option><option value="ml">ML</option></select>
+        <span class="f-count" id="f-count"></span>
+      </div>
+    </div>
+
+    <!-- Mini Heatmap -->
+    <div class="mini-hm" id="mini-hm">
+      <div class="mini-hm-title">Hotel x T Heatmap</div>
+      <div id="hm-grid"></div>
+    </div>
+
+    <!-- Options Table -->
+    <div class="section" style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:6px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span class="section-title" style="border:none;padding:0;margin:0" id="tbl-title">Options</span>
+        <select id="opts-sort" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px;margin-left:auto">
+          <option value="signal">Signal</option>
+          <option value="trade">Trade%</option>
+          <option value="price">Price</option>
+          <option value="T">T</option>
+          <option value="hotel">Hotel</option>
+        </select>
+      </div>
+      <div class="opts-scroll">
+        <table class="opts-table">
+          <thead><tr>
+            <th>Hotel</th>
+            <th class="num">T</th>
+            <th class="num">$</th>
+            <th>Sig</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="opts-body"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <!-- Bulk action bar -->
+      <div class="bulk-row" id="bulk-row" style="display:none">
+        <input type="number" id="ovr-discount" value="1.00" min="0.01" max="10" step="0.50" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px;width:50px;font-family:monospace">
+        <button class="btn btn-put btn-sm" id="btn-bulk-ovr">Override PUTs</button>
+        <button class="btn btn-call btn-sm" id="btn-bulk-buy">Buy CALLs</button>
+        <span style="font-size:9px;color:var(--muted)" id="bulk-info"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CENTER: Charts Zone ═══ -->
+  <div class="col" id="col-center">
+    <!-- Main price chart -->
+    <div class="chart-box" id="main-chart-box" style="height:45%">
+      <div class="chart-title">Price Path + Path Forecast</div>
+      <div id="price-loading" class="empty">Select an option from the left panel</div>
+      <canvas id="price-chart" style="display:none"></canvas>
+    </div>
+
+    <!-- Secondary charts (tabs) -->
+    <div class="chart-box" style="height:25%">
+      <div class="chart-tabs">
+        <div class="c-tab active" data-chart="enrich">Enrichments</div>
+        <div class="c-tab" data-chart="hist-t">Historical T</div>
+      </div>
+      <div id="chart-enrich"><canvas id="enrich-chart"></canvas></div>
+      <div id="chart-hist-t" style="display:none"><canvas id="hist-t-chart"></canvas></div>
+    </div>
+
+    <!-- Option detail bar -->
+    <div class="section" id="detail-bar" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span id="d-hotel" style="font-weight:700"></span>
+        <span id="d-cat" style="color:var(--muted);font-size:11px"></span>
+        <span id="d-board" style="color:var(--muted);font-size:11px"></span>
+        <span id="d-checkin" style="color:var(--muted);font-size:11px"></span>
+        <span id="d-t" style="font-family:monospace;font-size:11px"></span>
+        <span id="d-price" style="font-family:monospace;font-weight:700"></span>
+        <span id="d-signal"></span>
+        <div style="margin-left:auto;display:flex;gap:4px" id="d-actions"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RIGHT: Intelligence + Queue ═══ -->
+  <div class="col" id="col-right">
+    <!-- Signal Summary -->
+    <div class="section" id="panel-signal">
+      <div class="section-title">Signal Summary</div>
+      <div id="signal-body" class="empty">Select an option</div>
+    </div>
+
+    <!-- Source Consensus -->
+    <div class="section" id="panel-sources">
+      <div class="section-title">Source Consensus</div>
+      <div class="warn-banner" id="disagree-warn">SOURCES DISAGREE</div>
+      <div id="sources-body" class="empty">Select an option</div>
+    </div>
+
+    <!-- Accuracy & Context -->
+    <div class="section" id="panel-accuracy">
+      <div class="section-title">Accuracy &amp; Context</div>
+      <div id="accuracy-body" class="empty">Select an option</div>
+    </div>
+
+    <!-- Alerts (for selected hotel/option) -->
+    <div class="section" id="panel-alerts">
+      <div class="section-title">Alerts &amp; Risk</div>
+      <div id="alerts-body" class="empty">No active alerts</div>
+    </div>
+
+    <!-- Queue Sidebar -->
+    <div class="section" id="panel-queue">
+      <div class="section-title">Execution Queue</div>
+      <div class="queue-tabs">
+        <div class="q-tab active" data-queue="override">Override</div>
+        <div class="q-tab" data-queue="opportunity">Opportunity</div>
+      </div>
+      <div id="queue-override"><div class="empty">No pending overrides</div></div>
+      <div id="queue-opportunity" style="display:none"><div class="empty">No pending opportunities</div></div>
+    </div>
+  </div>
+
+</div><!-- .grid -->
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   COMMAND CENTER — State & Helpers
+   ══════════════════════════════════════════════════════════════════ */
+const API = '/api/v1/salesoffice';
+const el = id => document.getElementById(id);
+const S = {
+  hotelId: null, detailId: null,
+  options: [], hotels: new Map(),
+  heatmap: [], summary: null,
+  filtered: [],
+  priceChart: null, enrichChart: null, histTChart: null,
+  activeChartTab: 'enrich',
+};
+
+function fmt$(v){return '$'+Number(v).toLocaleString('en-US',{maximumFractionDigits:0})}
+function fmtPct(v){return (v>=0?'+':'')+Number(v).toFixed(1)+'%'}
+function esc(v){const d=document.createElement('div');d.textContent=v;return d.innerHTML}
+function sigCls(s){return s==='CALL'||s==='STRONG_CALL'?'call':s==='PUT'||s==='STRONG_PUT'?'put':'neutral'}
+function shortDate(d){if(!d)return'';return d.length>=10?d.substring(5,10):d}
+
+async function api(path){
+  try{const r=await fetch(API+path,{cache:'no-store'});if(!r.ok)return null;return await r.json()}catch(e){return null}
+}
+
+function showToast(msg,ok){
+  const t=document.createElement('div');t.className='toast '+(ok?'ok':'err');t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),4000);
+}
+
+/* ══════════ INIT ══════════ */
+async function init(){
+  const source=el('f-source').value;
+  const macroEndpoint=source==='ensemble'?'/macro/summary':'/macro/sources/'+source;
+
+  const [sumData, optData]=await Promise.all([
+    api(macroEndpoint),
+    api('/options?limit=5000&profile=lite'),
+  ]);
+
+  // Portfolio strip
+  if(sumData?.summary){
+    const s=sumData.summary;
+    S.summary=s; S.heatmap=sumData.heatmap||[];
+    el('s-total').textContent=s.total_options;
+    el('s-calls').textContent=s.calls;
+    el('s-puts').textContent=s.puts;
+    el('s-neutrals').textContent=s.neutrals;
+    el('s-hotels').textContent=s.total_hotels;
+    el('s-conf').textContent=s.avg_confidence;
+    renderMiniHeatmap();
+  }
+
+  // Options
+  if(optData?.rows){
+    S.options=optData.rows;
+    S.hotels.clear();
+    optData.rows.forEach(r=>{if(!S.hotels.has(r.hotel_id))S.hotels.set(r.hotel_id,r.hotel_name)});
+    populateHotelFilter();
+    applyFilters();
+  }
+
+  el('s-ts').textContent=new Date().toLocaleTimeString();
+  loadQueues();
+}
+
+/* ══════════ PORTFOLIO STRIP — clickable counts ══════════ */
+el('s-calls').onclick=()=>{el('f-signal').value='CALL';applyFilters()};
+el('s-puts').onclick=()=>{el('f-signal').value='PUT';applyFilters()};
+el('s-neutrals').onclick=()=>{el('f-signal').value='NONE';applyFilters()};
+
+/* ══════════ MINI HEATMAP ══════════ */
+function renderMiniHeatmap(){
+  const grid=el('hm-grid');grid.innerHTML='';
+  for(const row of S.heatmap){
+    const r=document.createElement('div');r.className='hm-row';
+    const name=document.createElement('div');
+    name.className='hm-name';name.textContent=row.hotel_name;
+    name.onclick=()=>{el('f-hotel').value=row.hotel_id;applyFilters()};
+    r.appendChild(name);
+    for(const b of row.buckets){
+      const c=document.createElement('div');
+      c.className='hm-cell '+cellClass(b);c.textContent=b.count||'-';
+      c.title=b.calls+'C/'+b.puts+'P/'+b.neutrals+'N';
+      c.onclick=()=>{el('f-hotel').value=row.hotel_id;applyFilters()};
+      r.appendChild(c);
+    }
+    grid.appendChild(r);
+  }
+}
+
+function cellClass(b){
+  if(!b.count)return'empty';
+  const sig=b.dominant_signal.toLowerCase();
+  if(sig==='none')return'none';
+  const i=b.avg_confidence_score>=2.5?'hi':b.avg_confidence_score>=1.5?'md':'lo';
+  return sig+'-'+i;
+}
+
+/* ══════════ HOTEL FILTER ══════════ */
+function populateHotelFilter(){
+  const sel=el('f-hotel');
+  while(sel.options.length>1)sel.remove(1);
+  [...S.hotels.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id,name])=>{
+    const o=document.createElement('option');o.value=id;o.textContent=name;sel.appendChild(o);
+  });
+}
+
+/* ══════════ FILTERS ══════════ */
+function applyFilters(){
+  const signal=el('f-signal').value;
+  const hotel=el('f-hotel').value;
+  const tMin=parseInt(el('f-tmin').value)||0;
+  const tMax=parseInt(el('f-tmax').value)||999;
+  const cat=el('f-cat').value;
+  const board=el('f-board').value;
+
+  let rows=[...S.options];
+  if(signal){
+    if(signal==='NONE')rows=rows.filter(r=>r.option_signal==='NEUTRAL'||r.option_signal==='NONE'||!r.option_signal);
+    else rows=rows.filter(r=>r.option_signal===signal||r.option_signal==='STRONG_'+signal);
+  }
+  if(hotel)rows=rows.filter(r=>String(r.hotel_id)===hotel);
+  if(tMin>0)rows=rows.filter(r=>(r.days_to_checkin||0)>=tMin);
+  if(tMax<999)rows=rows.filter(r=>(r.days_to_checkin||0)<=tMax);
+  if(cat)rows=rows.filter(r=>(r.category||'').toLowerCase()===cat);
+  if(board)rows=rows.filter(r=>(r.board||'').toLowerCase()===board);
+
+  S.filtered=rows;
+  renderTable();
+  el('f-count').textContent=rows.length+' / '+S.options.length;
+
+  // Bulk bar
+  const puts=rows.filter(r=>r.option_signal==='PUT'||r.option_signal==='STRONG_PUT');
+  const calls=rows.filter(r=>r.option_signal==='CALL'||r.option_signal==='STRONG_CALL');
+  if(puts.length||calls.length){
+    el('bulk-row').style.display='flex';
+    el('bulk-info').textContent=puts.length+'P / '+calls.length+'C';
+    el('btn-bulk-ovr').disabled=!puts.length;
+    el('btn-bulk-buy').disabled=!calls.length;
+  }else{
+    el('bulk-row').style.display='none';
+  }
+}
+
+/* ══════════ OPTIONS TABLE ══════════ */
+function renderTable(){
+  const sortKey=el('opts-sort').value;
+  const rows=[...S.filtered];
+
+  if(sortKey==='signal')rows.sort((a,b)=>{const o={CALL:0,STRONG_CALL:0,PUT:1,STRONG_PUT:1,NEUTRAL:2,NONE:2};return(o[a.option_signal]??3)-(o[b.option_signal]??3)});
+  else if(sortKey==='trade')rows.sort((a,b)=>(b.path_best_trade_pct||0)-(a.path_best_trade_pct||0));
+  else if(sortKey==='price')rows.sort((a,b)=>(b.current_price||0)-(a.current_price||0));
+  else if(sortKey==='T')rows.sort((a,b)=>(a.days_to_checkin||0)-(b.days_to_checkin||0));
+  else if(sortKey==='hotel')rows.sort((a,b)=>(a.hotel_name||'').localeCompare(b.hotel_name||''));
+
+  if(!rows.length){el('opts-body').innerHTML='<tr><td colspan="5" class="empty">No results</td></tr>';return}
+
+  el('opts-body').innerHTML=rows.map(r=>{
+    const sig=r.option_signal||'NONE';
+    const active=String(r.detail_id)===String(S.detailId)?' class="active"':'';
+    const isPut=sig==='PUT'||sig==='STRONG_PUT';
+    const isCall=sig==='CALL'||sig==='STRONG_CALL';
+    let actionBtn='';
+    if(isPut)actionBtn='<button class="btn btn-put btn-sm" onclick="event.stopPropagation();queueOverride('+r.detail_id+','+(r.current_price||0)+')">&#11015;</button>';
+    else if(isCall)actionBtn='<button class="btn btn-call btn-sm" onclick="event.stopPropagation();queueOpportunity('+r.detail_id+','+(r.current_price||0)+')">&#11014;</button>';
+    return '<tr'+active+' data-id="'+r.detail_id+'" onclick="selectOption('+r.detail_id+')">'+
+      '<td style="font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.hotel_name||'')+'">'+esc(r.hotel_name||'')+'</td>'+
+      '<td class="num">'+( r.days_to_checkin||0)+'</td>'+
+      '<td class="num">'+fmt$(r.current_price||0)+'</td>'+
+      '<td><span class="sig '+sigCls(sig)+'">'+sig+'</span></td>'+
+      '<td style="padding:0">'+actionBtn+'</td>'+
+    '</tr>';
+  }).join('');
+
+  el('tbl-title').textContent='Options ('+rows.length+')';
+}
+
+/* ══════════ SELECT OPTION — Load Center + Right ══════════ */
+async function selectOption(detailId){
+  S.detailId=detailId;
+  // Highlight in table
+  document.querySelectorAll('.opts-table tbody tr').forEach(tr=>tr.classList.toggle('active',tr.dataset.id===String(detailId)));
+
+  // Show loading
+  el('price-loading').style.display='block';el('price-loading').innerHTML='<div class="spin"></div>';
+  el('price-chart').style.display='none';
+
+  // Find option info
+  const opt=S.options.find(r=>String(r.detail_id)===String(detailId))||{};
+
+  // Load core data in parallel
+  const [fcRaw, pathData, sourceData, detailData]=await Promise.all([
+    api('/forward-curve/'+detailId+'?raw=true'),
+    api('/path-forecast/'+detailId),
+    api('/sources/compare/'+detailId),
+    api('/options/detail/'+detailId),
+  ]);
+
+  // Detail bar
+  el('detail-bar').style.display='block';
+  el('d-hotel').textContent=opt.hotel_name||'';
+  el('d-cat').textContent=opt.category||'';
+  el('d-board').textContent=(opt.board||'').toUpperCase();
+  el('d-checkin').textContent=shortDate(opt.date_from);
+  el('d-t').textContent='T='+opt.days_to_checkin;
+  el('d-price').textContent=fmt$(opt.current_price||0);
+  const sig=opt.option_signal||'NONE';
+  el('d-signal').className='sig '+sigCls(sig);el('d-signal').textContent=sig;
+
+  // Action buttons in detail bar
+  const isPut=sig==='PUT'||sig==='STRONG_PUT';
+  const isCall=sig==='CALL'||sig==='STRONG_CALL';
+  el('d-actions').innerHTML=isPut
+    ?'<button class="btn btn-put" onclick="queueOverride('+detailId+','+(opt.current_price||0)+')">&#11015; Override</button>'
+    :isCall?'<button class="btn btn-call" onclick="queueOpportunity('+detailId+','+(opt.current_price||0)+')">&#11014; Buy Opp</button>':'';
+
+  // Render charts and panels
+  renderPriceChart(fcRaw, pathData, sourceData);
+  renderEnrichChart(fcRaw);
+  renderSignalPanel(fcRaw, pathData, detailData);
+  renderSourcesPanel(sourceData);
+  renderAccuracyPanel(detailData, fcRaw);
+  loadHistoricalT(detailId);
+
+  // Background: load historical scan data
+  const cdParams=new URLSearchParams({detail_id:String(detailId),hotel_id:String(opt.hotel_id||''),checkin_date:(opt.date_from||'').substring(0,10),category:opt.category||'',board:opt.board||''});
+  api('/charts/contract-data?'+cdParams).then(histData=>{
+    if(histData&&S.priceChart){
+      const series=histData.scan||histData.scan_price_series||histData.prices||[];
+      if(series.length){
+        const labels=S.priceChart.data.labels;
+        const pts=new Array(labels.length).fill(null);
+        series.forEach(s=>{const d=shortDate(s.date||s.d);const idx=labels.indexOf(d);if(idx>=0)pts[idx]=s.price||s.p});
+        S.priceChart.data.datasets.push({label:'Actual History',data:pts,borderColor:'#e0e0e0',backgroundColor:'transparent',borderWidth:1.5,pointRadius:2,pointBackgroundColor:'#e0e0e0',spanGaps:true,tension:0,order:1});
+        S.priceChart.update();
+      }
+    }
+  });
+}
+
+/* ══════════ PRICE CHART (with Path Forecast overlay) ══════════ */
+function renderPriceChart(fcRaw, pathData, sourceData){
+  el('price-loading').style.display='none';
+  const canvas=el('price-chart');canvas.style.display='block';
+
+  const fc=fcRaw?.forward_curve||[];
+  if(!fc.length){el('price-loading').style.display='block';el('price-loading').textContent='No forecast data';canvas.style.display='none';return}
+
+  const labels=fc.map(p=>shortDate(p.date));
+  const datasets=[];
+
+  // Confidence band
+  datasets.push({label:'Lower',data:fc.map(p=>p.lower_bound??p.predicted_price),borderColor:'transparent',backgroundColor:'transparent',pointRadius:0,fill:false,order:10});
+  datasets.push({label:'Band',data:fc.map(p=>p.upper_bound??p.predicted_price),borderColor:'transparent',backgroundColor:'rgba(33,150,243,0.12)',pointRadius:0,fill:'-1',order:9});
+
+  // Ensemble forecast
+  datasets.push({label:'Ensemble',data:fc.map(p=>p.predicted_price),borderColor:'#64b5f6',backgroundColor:'transparent',borderWidth:2.5,pointRadius:0,tension:0.3,order:2});
+
+  // Raw decay
+  const raw=fcRaw?.raw_forward_curve||[];
+  if(raw.length)datasets.push({label:'Raw Decay',data:raw.map(p=>p.predicted_price),borderColor:'#90a4ae',backgroundColor:'transparent',borderWidth:1.5,borderDash:[6,3],pointRadius:0,tension:0.3,order:3});
+
+  // Source reference lines from sourceData (FIX: reviewer issue #2 — don't use _source_prediction_summary_catalog)
+  const addLine=(lbl,price,color)=>{if(price>0)datasets.push({label:lbl,data:new Array(labels.length).fill(price),borderColor:color,backgroundColor:'transparent',borderWidth:1,borderDash:[3,3],pointRadius:0,order:5})};
+  if(sourceData?.source_predictions){
+    sourceData.source_predictions.forEach(sp=>{
+      const name=(sp.source_label||sp.source_name||'').toLowerCase();
+      if(name.includes('historical')&&sp.predicted_price>0)addLine('Historical',sp.predicted_price,'#ffcc80');
+      else if(name.includes('ml')&&sp.predicted_price>0)addLine('ML',sp.predicted_price,'#a5d6a7');
+    });
+  }
+
+  // Path Forecast overlays: turning points + best buy/sell
+  if(pathData?.turning_points?.length){
+    const tpMin=[],tpMax=[];
+    pathData.turning_points.forEach(tp=>{const d=shortDate(tp.date);const idx=labels.indexOf(d);if(idx<0)return;const pt={x:idx,y:tp.price};tp.type==='MIN'?tpMin.push(pt):tpMax.push(pt)});
+    if(tpMin.length)datasets.push({label:'MIN (Buy)',data:tpMin,type:'scatter',pointRadius:7,pointStyle:'triangle',pointBackgroundColor:'#00e676',pointBorderColor:'#00e676',order:0});
+    if(tpMax.length)datasets.push({label:'MAX (Sell)',data:tpMax,type:'scatter',pointRadius:7,pointStyle:'triangle',pointRotation:180,pointBackgroundColor:'#ff5252',pointBorderColor:'#ff5252',order:0});
+  }
+  if(pathData?.best_buy_price>0)addLine('Best Buy',pathData.best_buy_price,'rgba(0,230,118,0.6)');
+  if(pathData?.best_sell_price>0)addLine('Best Sell',pathData.best_sell_price,'rgba(255,82,82,0.6)');
+
+  if(S.priceChart)S.priceChart.destroy();
+  S.priceChart=new Chart(canvas,{type:'line',data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#aaa',font:{size:9},boxWidth:10,padding:6,usePointStyle:true}},
+      tooltip:{backgroundColor:'rgba(22,33,62,.95)',titleColor:'#eee',bodyColor:'#ccc',callbacks:{label:ctx=>ctx.parsed.y!=null?ctx.dataset.label+': $'+ctx.parsed.y.toFixed(0):null}}},
+    scales:{x:{ticks:{color:'#90a4ae',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,.06)'}},
+      y:{ticks:{color:'#b0bec5',font:{size:9},callback:v=>'$'+v},grid:{color:'rgba(255,255,255,.08)'},position:'right'}},
+  }});
+}
+
+/* ══════════ ENRICHMENT CHART ══════════ */
+function renderEnrichChart(fcRaw){
+  const fc=fcRaw?.forward_curve||[];
+  if(!fc.length)return;
+  const labels=fc.map(p=>shortDate(p.date));
+  const fields=[
+    {key:'event_adj_pct',label:'Events',color:'#ef5350'},
+    {key:'season_adj_pct',label:'Season',color:'#ffa726'},
+    {key:'demand_adj_pct',label:'Demand',color:'#42a5f5'},
+    {key:'momentum_adj_pct',label:'Momentum',color:'#ab47bc'},
+    {key:'weather_adj_pct',label:'Weather',color:'#26c6da'},
+    {key:'competitor_adj_pct',label:'Competitors',color:'#66bb6a'},
+  ];
+  const datasets=fields.map(f=>({label:f.label,data:fc.map(p=>parseFloat(p[f.key]||0)),backgroundColor:f.color+'cc',borderColor:f.color,borderWidth:0.5}));
+  if(S.enrichChart)S.enrichChart.destroy();
+  S.enrichChart=new Chart(el('enrich-chart'),{type:'bar',data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#aaa',font:{size:9},boxWidth:8,padding:4}},
+      tooltip:{backgroundColor:'rgba(22,33,62,.95)',callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(3)+'%'}}},
+    scales:{x:{stacked:true,ticks:{color:'#666',font:{size:8},maxTicksLimit:10},grid:{display:false}},
+      y:{stacked:true,ticks:{color:'#888',font:{size:9},callback:v=>v.toFixed(2)+'%'},grid:{color:'rgba(255,255,255,.05)'}}},
+  }});
+}
+
+/* ══════════ SIGNAL PANEL ══════════ */
+function renderSignalPanel(fcRaw, pathData, detailData){
+  const d=detailData||fcRaw||{};
+  const sig=d.sig||d.option_signal||'--';
+  const cp=d.cp||d.current_price||0;
+  const pp=d.pp||d.predicted_checkin_price||0;
+  const chg=cp>0?((pp/cp-1)*100):0;
+  const pMin=pathData?.predicted_min_price;const pMinT=pathData?.predicted_min_t;
+  const pMax=pathData?.predicted_max_price;const pMaxT=pathData?.predicted_max_t;
+  const bestTrade=pathData?.max_trade_profit_pct||0;
+  const reg=d.reg||d.regime||{};const mom=d.mom||d.momentum||{};
+
+  el('signal-body').innerHTML=
+    '<div style="text-align:center;margin-bottom:6px"><span class="sig '+sigCls(sig)+'" style="font-size:13px;padding:3px 12px">'+esc(sig)+'</span></div>'+
+    '<div class="sig-row"><span class="lbl">Current</span><span class="val">'+fmt$(cp)+'</span></div>'+
+    '<div class="sig-row"><span class="lbl">Predicted</span><span class="val '+(chg>=0?'up':'down')+'">'+fmt$(pp)+' ('+fmtPct(chg)+')</span></div>'+
+    (pMin!=null?'<div class="sig-row"><span class="lbl">Min</span><span class="val down">'+fmt$(pMin)+' T='+pMinT+'</span></div>':'')+
+    (pMax!=null?'<div class="sig-row"><span class="lbl">Max</span><span class="val up">'+fmt$(pMax)+' T='+pMaxT+'</span></div>':'')+
+    '<div class="sig-row"><span class="lbl">Best Trade</span><span class="val '+(bestTrade>0?'up':'')+'">'+fmtPct(bestTrade)+'</span></div>'+
+    '<div class="sig-row"><span class="lbl">Regime</span><span class="val">'+(reg.regime||reg.label||'--')+'</span></div>'+
+    '<div class="sig-row"><span class="lbl">Momentum</span><span class="val">'+(mom.signal||'--')+'</span></div>';
+}
+
+/* ══════════ SOURCES PANEL ══════════ */
+function renderSourcesPanel(sourceData){
+  if(!sourceData){el('sources-body').innerHTML='<div class="empty">No data</div>';return}
+  const preds=sourceData.source_predictions||[];
+  const consensus=sourceData.consensus_direction||'--';
+  const strength=sourceData.consensus_strength||0;
+  const disagree=sourceData.disagreement_flag;
+  el('disagree-warn').classList.toggle('show',!!disagree);
+
+  let html='';
+  preds.forEach(p=>{
+    const dir=p.direction||'NEUTRAL';
+    const agrees=dir===consensus;
+    html+='<div class="src-row">'+
+      '<span class="src-name">'+esc(p.source_label||p.source_name)+'</span>'+
+      '<span class="src-dir '+sigCls(dir)+'">'+dir+'</span>'+
+      '<span style="width:14px;text-align:center">'+(agrees?'<span style="color:var(--call)">&#10003;</span>':'<span style="color:var(--put)">&#10007;</span>')+'</span>'+
+      '<span class="src-conf">'+(p.confidence>0?(p.confidence*100).toFixed(0)+'%':'--')+'</span>'+
+      '<span class="src-price">'+fmt$(p.predicted_price)+'</span>'+
+    '</div>';
+  });
+  html+='<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-size:10px;display:flex;justify-content:space-between">'+
+    '<span>Consensus: <b class="'+sigCls(consensus)+'">'+consensus+'</b> '+(strength*100).toFixed(0)+'%</span></div>';
+  el('sources-body').innerHTML=html;
+}
+
+/* ══════════ ACCURACY PANEL ══════════ */
+function renderAccuracyPanel(detailData, fcRaw){
+  const d=detailData||{};
+  const q=d.confidence_quality||d.q||fcRaw?.confidence_quality||'--';
+  const scans=d.scan_count||d.scans||0;
+  const drops=d.price_drops||d.drops||0;
+  const rises=d.price_rises||d.rises||0;
+
+  el('accuracy-body').innerHTML=
+    '<div class="acc-row"><span class="lbl">Quality</span><span class="val">'+esc(String(q).toUpperCase())+'</span></div>'+
+    '<div class="acc-row"><span class="lbl">Scans</span><span class="val">'+scans+'</span></div>'+
+    '<div class="acc-row"><span class="lbl">Drops / Rises</span><span class="val" style="color:var(--put)">'+drops+'</span> / <span class="val" style="color:var(--call)">'+rises+'</span></div>'+
+    '<div class="acc-row"><span class="lbl">Enrichment</span><span class="val">'+(fcRaw?.enrichment_total_impact!=null?fmt$(fcRaw.enrichment_total_impact):'--')+'</span></div>';
+}
+
+/* ══════════ HISTORICAL T CHART ══════════ */
+async function loadHistoricalT(detailId){
+  const data=await api('/macro/historical-t/'+detailId);
+  if(!data||!data.actual||data.actual.length<2)return;
+  if(S.histTChart)S.histTChart.destroy();
+  S.histTChart=new Chart(el('hist-t-chart'),{type:'line',data:{datasets:[
+    {label:'Actual',data:data.actual.map(p=>({x:p.t,y:p.price})),borderColor:'#42a5f5',backgroundColor:'rgba(66,165,245,.1)',fill:true,tension:0.3,pointRadius:1.5,borderWidth:1.5},
+    {label:'Predicted',data:(data.predicted||[]).map(p=>({x:p.t,y:p.price})),borderColor:'#ffa726',borderDash:[5,5],tension:0.3,pointRadius:0,borderWidth:1},
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    scales:{x:{type:'linear',reverse:true,title:{display:true,text:'T',color:'#8899aa',font:{size:9}},ticks:{color:'#8899aa',font:{size:8}},grid:{color:'rgba(255,255,255,.04)'}},
+      y:{ticks:{color:'#8899aa',font:{size:8},callback:v=>'$'+v},grid:{color:'rgba(255,255,255,.04)'}}},
+    plugins:{legend:{labels:{color:'#eee',font:{size:9}}}}
+  }});
+}
+
+/* ══════════ QUEUE LOADING ══════════ */
+async function loadQueues(){
+  const [ovr, opp]=await Promise.all([api('/override/queue?limit=10'),api('/opportunity/queue?limit=10')]);
+  renderQueueList('queue-override', ovr?.items||ovr?.requests||[], 'override');
+  renderQueueList('queue-opportunity', opp?.items||opp?.requests||[], 'opportunity');
+}
+
+function renderQueueList(containerId, items, type){
+  const c=el(containerId);
+  if(!items.length){c.innerHTML='<div class="empty">No pending '+type+'s</div>';return}
+  c.innerHTML=items.map(q=>{
+    const status=q.status||'pending';
+    return '<div class="q-item">'+
+      '<span class="q-status '+status+'"></span>'+
+      '<span class="q-detail">#'+q.request_id+' '+esc(q.hotel_name||'ID:'+q.detail_id)+'</span>'+
+      '<span class="q-price">'+fmt$(q.target_price||q.buy_price||0)+'</span>'+
+    '</div>';
+  }).join('');
+}
+
+/* ══════════ OVERRIDE / OPPORTUNITY ACTIONS ══════════ */
+async function queueOverride(detailId, currentPrice){
+  const disc=parseFloat(el('ovr-discount').value)||1;
+  if(disc<=0||disc>10){showToast('Discount $0.01-$10',false);return}
+  try{
+    const r=await fetch(API+'/override/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({detail_id:detailId,discount_usd:disc})});
+    const data=await r.json();
+    if(r.ok){showToast('Override #'+data.request_id+': '+fmt$(currentPrice)+' -> '+fmt$(data.target_price),true);loadQueues()}
+    else showToast(data.detail||'Failed',false);
+  }catch(e){showToast('Network error',false)}
+}
+
+async function queueOpportunity(detailId, currentPrice){
+  try{
+    const r=await fetch(API+'/opportunity/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({detail_id:detailId,max_rooms:1})});
+    const data=await r.json();
+    if(r.ok){showToast('Opp #'+data.request_id+': buy '+fmt$(data.buy_price)+' push '+fmt$(data.push_price),true);loadQueues()}
+    else showToast(data.detail||'Failed',false);
+  }catch(e){showToast('Network error',false)}
+}
+
+/* ══════════ BULK ACTIONS ══════════ */
+el('btn-bulk-ovr').onclick=async()=>{
+  const disc=parseFloat(el('ovr-discount').value)||1;
+  const puts=S.filtered.filter(r=>r.option_signal==='PUT'||r.option_signal==='STRONG_PUT');
+  if(!puts.length)return;
+  const hotel=el('f-hotel').value;
+  const body={discount_usd:disc,signal:'PUT'};
+  if(hotel)body.hotel_id=parseInt(hotel);
+  try{
+    const r=await fetch(API+'/group/override',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(r.ok)showToast('Queued '+data.queued+' overrides',true);
+    else showToast(data.detail||'Failed',false);
+    loadQueues();
+  }catch(e){showToast('Error',false)}
+};
+
+el('btn-bulk-buy').onclick=async()=>{
+  const calls=S.filtered.filter(r=>r.option_signal==='CALL'||r.option_signal==='STRONG_CALL');
+  if(!calls.length)return;
+  const hotel=el('f-hotel').value;
+  const body={signal:'CALL',max_rooms:3};
+  if(hotel)body.hotel_id=parseInt(hotel);
+  try{
+    const r=await fetch(API+'/group/opportunity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(r.ok)showToast('Queued '+data.queued+' opportunities',true);
+    else showToast(data.detail||'Failed',false);
+    loadQueues();
+  }catch(e){showToast('Error',false)}
+};
+
+/* ══════════ CHART TABS ══════════ */
+document.querySelectorAll('.c-tab').forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll('.c-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const chart=tab.dataset.chart;
+    ['enrich','hist-t'].forEach(c=>{
+      const container=el('chart-'+c);
+      if(container)container.style.display=c===chart?'block':'none';
+    });
+    S.activeChartTab=chart;
+  };
+});
+
+/* ══════════ QUEUE TABS ══════════ */
+document.querySelectorAll('.q-tab').forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll('.q-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const q=tab.dataset.queue;
+    el('queue-override').style.display=q==='override'?'block':'none';
+    el('queue-opportunity').style.display=q==='opportunity'?'block':'none';
+  };
+});
+
+/* ══════════ FILTER EVENTS ══════════ */
+['f-signal','f-hotel','f-cat','f-board'].forEach(id=>el(id).addEventListener('change',applyFilters));
+['f-tmin','f-tmax'].forEach(id=>el(id).addEventListener('input',applyFilters));
+el('f-source').addEventListener('change',()=>init());
+el('opts-sort').addEventListener('change',()=>renderTable());
+
+/* ══════════ AUTO-REFRESH (every 3 min) ══════════ */
+setInterval(()=>{init()}, 180000);
+
+/* ══════════ BOOT ══════════ */
+init();
+</script>
+</body>
+</html>
