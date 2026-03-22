@@ -2,6 +2,76 @@
 
 All notable changes to the Medici Price Prediction system.
 
+## [2.1.0] - 2026-03-22 - Macro Terminal — Portfolio-Level Trading View
+
+### Added — Macro Terminal Dashboard
+- New portfolio-level trading dashboard at `/dashboard/macro` with 3-level drill-down (Portfolio → Hotel → Option)
+- **Summary Header Bar** — sticky bar showing total options (4,158), CALL/PUT/NEUTRAL counts, hotel count, avg confidence
+- **Signal Heat Map** — 23 hotels × 5 T-buckets (0-14d, 15-30d, 31-60d, 61-90d, 91+), color-coded by dominant signal and confidence intensity
+- **Filter Bar** — 8 filters (signal, hotel, source, confidence, T min/max, category, board) with URL state persistence via hash params
+- **L2 Hotel Drilldown** — click any hotel to see: signal breakdown, drop history (7d), T-Decay Distribution chart, Source Agreement chart, per-option table
+- **Bulk Actions** — Bulk Override (PUT) and Bulk Buy (CALL) buttons from drilldown view
+
+### Added — Portfolio Aggregator Engine
+- New `src/analytics/portfolio_aggregator.py` — pure aggregation module (no new prediction logic)
+- `PortfolioSummary`, `HotelHeatmapRow`, `HotelDrilldown` dataclasses with `to_dict()` serialization
+- **Next-Scan Risk Scoring** — weighted scoring (velocity, acceleration, momentum, regime, P_down, category) producing STRONG_PUT/PUT/WATCH/NEUTRAL labels
+- **Source Filtering** — re-derive signals from individual sources (FC only, Historical only, ML only) vs ensemble
+- **Drop History** — compute price drops from SQLite snapshots with configurable lookback window
+- 42 unit tests covering all aggregation, scoring, and filtering logic
+
+### Added — 5 New API Endpoints
+- `GET /macro/summary` — portfolio summary + hotel heat map grid
+- `GET /macro/hotel/{id}` — hotel drilldown with T-distribution, source agreement, drop history, options list
+- `GET /macro/historical-t/{id}` — actual vs predicted price indexed by T (days to check-in)
+- `GET /macro/sources/{source}` — signals filtered by FC/Historical/ML/Ensemble
+- `GET /macro/drop-history/{id}` — price drop history from snapshots
+
+### Added — Historical T Chart (Terminal Enhancement)
+- New "Historical T — Actual vs Predicted" chart in Trading Terminal showing real price observations vs forward curve predictions over time
+- X-axis = T (high to low), Y-axis = price — reveals how price actually evolved vs what was predicted
+- Query param auto-select (`?hotel=X&detail=Y`) for deep-linking from Macro Terminal to specific options
+- "← Portfolio" back-link in Terminal header
+
+### Fixed
+- Registered `signals` cache region in `CACHE_CONFIG` — was silently dropping precomputed signals
+- Macro endpoints compute signals on-demand when cache is cold (post-deploy warmup)
+
+### Changed
+- FastAPI / OpenAPI app version: `2.0.2` → `2.1.0`
+- Added Macro Terminal link to landing page (first position in core pages)
+- Added gotcha lists to `insert-opp` and `price-override` skills
+- Updated `--add-dir` documentation in CLAUDE.md with all related Medici projects
+
+## [2.0.2] - 2026-03-22 - Queue Validation And Mobile UI Hardening
+
+### Fixed — Queue Request Validation
+- Replaced manual request-body coercion on SalesOffice queue endpoints with typed FastAPI/Pydantic request models
+- Added explicit request schemas for single, bulk, and completion flows on override and opportunity queue APIs
+- Reduced invalid-payload runtime risk by moving validation to the API boundary in `src/api/routers/analytics_router.py`
+
+### Fixed — Override History Window
+- Corrected override history filtering to use a true rolling `timedelta(days=N)` window instead of month-boundary-sensitive logic
+- Added regression coverage for month-boundary history queries in `tests/unit/test_override_queue.py`
+
+### Added — API Regression Coverage
+- Added integration coverage for queue endpoint validation behavior in `tests/integration/test_api_endpoints.py`
+- Verified the queue remediation slice with `pytest tests/unit/test_override_queue.py tests/integration/test_api_endpoints.py -q` and 69 passing tests
+
+### Changed — Mobile UI Initial Rollout
+- Preserved desktop-first main screens while improving phone usability for shared shell and summary pages
+- Hardened responsive navigation, touch targets, spacing, and horizontal overflow handling in `src/templates/static/base.css`
+- Improved mobile rendering for `src/templates/landing.html`, `src/templates/alerts.html`, and `src/templates/health.html`
+- Added mobile card rendering to `src/templates/options_board.html` while keeping the desktop table, pagination, and detail modal flow intact
+
+### Added — Documentation
+- Added baseline documentation in `docs/REMEDIATION_BASELINE_2026-03-22.md`
+- Added mobile baseline documentation in `docs/MOBILE_UI_BASELINE_2026-03-22.md`
+- Added consolidated release notes in `docs/RELEASE_2.0.2_2026-03-22.md`
+
+### Changed
+- FastAPI / OpenAPI app version: `2.0.1` → `2.0.2`
+
 ## [2.0.1] - 2026-03-09 - Production Readiness Hotfixes
 
 ### Fixed — Azure Runtime Dependencies
