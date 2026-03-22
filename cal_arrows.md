@@ -1,0 +1,643 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e9] [cursor=pointer]
+      - region [ref=e1447]:
+        - generic [ref=e17]:
+          - link [ref=e18] [cursor=pointer]:
+            - /url: /
+            - img [ref=e20]
+          - link [ref=e23] [cursor=pointer]:
+            - /url: /room-calendar
+            - img [ref=e25]
+          - link [ref=e27] [cursor=pointer]:
+            - /url: /bookings
+            - img [ref=e29]
+          - link [ref=e32] [cursor=pointer]:
+            - /url: /pricing-availability
+            - img [ref=e34]
+          - link [ref=e1448] [cursor=pointer]:
+            - /url: /inbox
+            - img [ref=e39]
+          - link [ref=e41] [cursor=pointer]:
+            - /url: /tasks
+            - img [ref=e43]
+          - link [ref=e45] [cursor=pointer]:
+            - /url: /guests
+            - img [ref=e47]
+          - button [ref=e1449] [cursor=pointer]:
+            - img [ref=e51]
+            - generic [ref=e54]: Reports
+          - button [ref=e1450] [cursor=pointer]:
+            - img [ref=e58]
+            - generic [ref=e61]: Settings
+      - generic [ref=e63]:
+        - img [ref=e68]
+        - generic [ref=e72]: V17.17.6
+    - main [ref=e73]:
+      - button [ref=e1451] [cursor=pointer]:
+        - heading [level=3] [ref=e1452]: < Pricing and Availability
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e84]:
+              - combobox [ref=e85]: Standard
+              - button [ref=e1453] [cursor=pointer]:
+                - img [ref=e88]
+              - group
+            - generic [ref=e92]:
+              - combobox [ref=e93]: room only / ro
+              - button [ref=e1454] [cursor=pointer]:
+                - img [ref=e96]
+              - group
+            - button [ref=e99] [cursor=pointer]:
+              - img [ref=e100]
+            - button [ref=e1456] [cursor=pointer]:
+              - img [ref=e105]
+              - text: Bulk Update
+          - tablist [ref=e111]:
+            - tab [selected] [ref=e1457] [cursor=pointer]:
+              - generic [ref=e113]: Calendar
+            - tab [ref=e1458] [cursor=pointer]:
+              - generic [ref=e115]: Table
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - img [ref=e121]
+              - combobox [ref=e1459] [cursor=pointer]: "2026"
+              - textbox: "2026"
+              - img
+              - group
+            - generic [ref=e124]:
+              - img [ref=e1461] [cursor=pointer]
+              - tablist [ref=e127]:
+                - tab [ref=e1463] [cursor=pointer]: January
+                - tab [ref=e1464] [cursor=pointer]: February
+                - tab [ref=e1465] [cursor=pointer]: March
+                - tab [ref=e1466] [cursor=pointer]: April
+                - tab [ref=e1467] [cursor=pointer]: May
+                - tab [ref=e1468] [cursor=pointer]: June
+                - tab [ref=e1469] [cursor=pointer]: July
+                - tab [ref=e1470] [cursor=pointer]: August
+                - tab [selected] [ref=e1471] [cursor=pointer]: September
+                - tab [ref=e1472] [cursor=pointer]: October
+                - tab [ref=e1473] [cursor=pointer]: November
+                - tab [ref=e1474] [cursor=pointer]: December
+              - generic:
+                - img
+          - region [ref=e1475]:
+            - generic [ref=e150]:
+              - heading [level=6] [ref=e1476] [cursor=pointer]: Mon
+              - heading [level=6] [ref=e1477] [cursor=pointer]: Tue
+              - heading [level=6] [ref=e1478] [cursor=pointer]: Wed
+              - heading [level=6] [ref=e1479] [cursor=pointer]: Thu
+              - heading [level=6] [ref=e1480] [cursor=pointer]: Fri
+              - heading [level=6] [ref=e1481] [cursor=pointer]: Sat
+              - heading [level=6] [ref=e1482] [cursor=pointer]: Sun
+              - heading [level=6] [ref=e1483]: "31"
+              - generic [ref=e165] [cursor=pointer]:
+                - generic [ref=e166]:
+                  - generic [ref=e169]:
+                    - generic [ref=e170]: "0"
+                    - generic [ref=e171]: "|"
+                    - generic [ref=e172]: 0.00%
+                  - generic [ref=e174]:
+                    - heading [level=5] [ref=e1484]: $ 100
+                    - generic [ref=e176]: ".00"
+                - heading [level=6] [ref=e1485]: "1"
+              - generic [ref=e182] [cursor=pointer]:
+                - generic [ref=e183]:
+                  - generic [ref=e186]:
+                    - generic [ref=e187]: "0"
+                    - generic [ref=e188]: "|"
+                    - generic [ref=e189]: 0.00%
+                  - generic [ref=e191]:
+                    - heading [level=5] [ref=e1486]: $ 100
+                    - generic [ref=e193]: ".00"
+                - heading [level=6] [ref=e1487]: "2"
+              - generic [ref=e199] [cursor=pointer]:
+                - generic [ref=e200]:
+                  - generic [ref=e203]:
+                    - generic [ref=e204]: "0"
+                    - generic [ref=e205]: "|"
+                    - generic [ref=e206]: 0.00%
+                  - generic [ref=e208]:
+                    - heading [level=5] [ref=e1488]: $ 100
+                    - generic [ref=e210]: ".00"
+                - heading [level=6] [ref=e1489]: "3"
+              - generic [ref=e216] [cursor=pointer]:
+                - generic [ref=e217]:
+                  - generic [ref=e220]:
+                    - generic [ref=e221]: "0"
+                    - generic [ref=e222]: "|"
+                    - generic [ref=e223]: 0.00%
+                  - generic [ref=e225]:
+                    - heading [level=5] [ref=e1490]: $ 100
+                    - generic [ref=e227]: ".00"
+                - heading [level=6] [ref=e1491]: "4"
+              - generic [ref=e233] [cursor=pointer]:
+                - generic [ref=e234]:
+                  - generic [ref=e237]:
+                    - generic [ref=e238]: "0"
+                    - generic [ref=e239]: "|"
+                    - generic [ref=e240]: 0.00%
+                  - generic [ref=e242]:
+                    - heading [level=5] [ref=e1492]: $ 100
+                    - generic [ref=e244]: ".00"
+                - heading [level=6] [ref=e1493]: "5"
+              - generic [ref=e250] [cursor=pointer]:
+                - generic [ref=e251]:
+                  - generic [ref=e254]:
+                    - generic [ref=e255]: "0"
+                    - generic [ref=e256]: "|"
+                    - generic [ref=e257]: 0.00%
+                  - generic [ref=e259]:
+                    - heading [level=5] [ref=e1494]: $ 100
+                    - generic [ref=e261]: ".00"
+                - heading [level=6] [ref=e1495]: "6"
+              - generic [ref=e267] [cursor=pointer]:
+                - generic [ref=e268]:
+                  - generic [ref=e271]:
+                    - generic [ref=e272]: "0"
+                    - generic [ref=e273]: "|"
+                    - generic [ref=e274]: 0.00%
+                  - generic [ref=e276]:
+                    - heading [level=5] [ref=e1496]: $ 100
+                    - generic [ref=e278]: ".00"
+                - heading [level=6] [ref=e1497]: "7"
+              - generic [ref=e284] [cursor=pointer]:
+                - generic [ref=e285]:
+                  - generic [ref=e288]:
+                    - generic [ref=e289]: "0"
+                    - generic [ref=e290]: "|"
+                    - generic [ref=e291]: 0.00%
+                  - generic [ref=e293]:
+                    - heading [level=5] [ref=e1498]: $ 100
+                    - generic [ref=e295]: ".00"
+                - heading [level=6] [ref=e1499]: "8"
+              - generic [ref=e301] [cursor=pointer]:
+                - generic [ref=e302]:
+                  - generic [ref=e305]:
+                    - generic [ref=e306]: "0"
+                    - generic [ref=e307]: "|"
+                    - generic [ref=e308]: 0.00%
+                  - generic [ref=e310]:
+                    - heading [level=5] [ref=e1500]: $ 100
+                    - generic [ref=e312]: ".00"
+                - heading [level=6] [ref=e1501]: "9"
+              - generic [ref=e318] [cursor=pointer]:
+                - generic [ref=e319]:
+                  - generic [ref=e322]:
+                    - generic [ref=e323]: "0"
+                    - generic [ref=e324]: "|"
+                    - generic [ref=e325]: 0.00%
+                  - generic [ref=e327]:
+                    - heading [level=5] [ref=e1502]: $ 100
+                    - generic [ref=e329]: ".00"
+                - heading [level=6] [ref=e1503]: "10"
+              - generic [ref=e335] [cursor=pointer]:
+                - generic [ref=e336]:
+                  - generic [ref=e339]:
+                    - generic [ref=e340]: "0"
+                    - generic [ref=e341]: "|"
+                    - generic [ref=e342]: 0.00%
+                  - generic [ref=e344]:
+                    - heading [level=5] [ref=e1504]: $ 100
+                    - generic [ref=e346]: ".00"
+                - heading [level=6] [ref=e1505]: "11"
+              - generic [ref=e352] [cursor=pointer]:
+                - generic [ref=e353]:
+                  - generic [ref=e356]:
+                    - generic [ref=e357]: "0"
+                    - generic [ref=e358]: "|"
+                    - generic [ref=e359]: 0.00%
+                  - generic [ref=e361]:
+                    - heading [level=5] [ref=e1506]: $ 100
+                    - generic [ref=e363]: ".00"
+                - heading [level=6] [ref=e1507]: "12"
+              - generic [ref=e369] [cursor=pointer]:
+                - generic [ref=e370]:
+                  - generic [ref=e373]:
+                    - generic [ref=e374]: "0"
+                    - generic [ref=e375]: "|"
+                    - generic [ref=e376]: 0.00%
+                  - generic [ref=e378]:
+                    - heading [level=5] [ref=e1508]: $ 100
+                    - generic [ref=e380]: ".00"
+                - heading [level=6] [ref=e1509]: "13"
+              - generic [ref=e386] [cursor=pointer]:
+                - generic [ref=e387]:
+                  - generic [ref=e390]:
+                    - generic [ref=e391]: "0"
+                    - generic [ref=e392]: "|"
+                    - generic [ref=e393]: 0.00%
+                  - generic [ref=e395]:
+                    - heading [level=5] [ref=e1510]: $ 100
+                    - generic [ref=e397]: ".00"
+                - heading [level=6] [ref=e1511]: "14"
+              - generic [ref=e403] [cursor=pointer]:
+                - generic [ref=e404]:
+                  - generic [ref=e407]:
+                    - generic [ref=e408]: "0"
+                    - generic [ref=e409]: "|"
+                    - generic [ref=e410]: 0.00%
+                  - generic [ref=e412]:
+                    - heading [level=5] [ref=e1512]: $ 100
+                    - generic [ref=e414]: ".00"
+                - heading [level=6] [ref=e1513]: "15"
+              - generic [ref=e420] [cursor=pointer]:
+                - generic [ref=e421]:
+                  - generic [ref=e424]:
+                    - generic [ref=e425]: "0"
+                    - generic [ref=e426]: "|"
+                    - generic [ref=e427]: 0.00%
+                  - generic [ref=e429]:
+                    - heading [level=5] [ref=e1514]: $ 100
+                    - generic [ref=e431]: ".00"
+                - heading [level=6] [ref=e1515]: "16"
+              - generic [ref=e437] [cursor=pointer]:
+                - generic [ref=e438]:
+                  - generic [ref=e441]:
+                    - generic [ref=e442]: "0"
+                    - generic [ref=e443]: "|"
+                    - generic [ref=e444]: 0.00%
+                  - generic [ref=e446]:
+                    - heading [level=5] [ref=e1516]: $ 100
+                    - generic [ref=e448]: ".00"
+                - heading [level=6] [ref=e1517]: "17"
+              - generic [ref=e454] [cursor=pointer]:
+                - generic [ref=e455]:
+                  - generic [ref=e458]:
+                    - generic [ref=e459]: "0"
+                    - generic [ref=e460]: "|"
+                    - generic [ref=e461]: 0.00%
+                  - generic [ref=e463]:
+                    - heading [level=5] [ref=e1518]: $ 100
+                    - generic [ref=e465]: ".00"
+                - heading [level=6] [ref=e1519]: "18"
+              - generic [ref=e471] [cursor=pointer]:
+                - generic [ref=e472]:
+                  - generic [ref=e475]:
+                    - generic [ref=e476]: "0"
+                    - generic [ref=e477]: "|"
+                    - generic [ref=e478]: 0.00%
+                  - generic [ref=e480]:
+                    - heading [level=5] [ref=e1520]: $ 100
+                    - generic [ref=e482]: ".00"
+                - heading [level=6] [ref=e1521]: "19"
+              - generic [ref=e488] [cursor=pointer]:
+                - generic [ref=e489]:
+                  - generic [ref=e492]:
+                    - generic [ref=e493]: "0"
+                    - generic [ref=e494]: "|"
+                    - generic [ref=e495]: 0.00%
+                  - generic [ref=e497]:
+                    - heading [level=5] [ref=e1522]: $ 100
+                    - generic [ref=e499]: ".00"
+                - heading [level=6] [ref=e1523]: "20"
+              - generic [ref=e505] [cursor=pointer]:
+                - generic [ref=e506]:
+                  - generic [ref=e509]:
+                    - generic [ref=e510]: "0"
+                    - generic [ref=e511]: "|"
+                    - generic [ref=e512]: 0.00%
+                  - generic [ref=e514]:
+                    - heading [level=5] [ref=e1524]: $ 100
+                    - generic [ref=e516]: ".00"
+                - heading [level=6] [ref=e1525]: "21"
+              - generic [ref=e522] [cursor=pointer]:
+                - generic [ref=e523]:
+                  - generic [ref=e526]:
+                    - generic [ref=e527]: "0"
+                    - generic [ref=e528]: "|"
+                    - generic [ref=e529]: 0.00%
+                  - generic [ref=e531]:
+                    - heading [level=5] [ref=e1526]: $ 100
+                    - generic [ref=e533]: ".00"
+                - heading [level=6] [ref=e1527]: "22"
+              - generic [ref=e539] [cursor=pointer]:
+                - generic [ref=e540]:
+                  - generic [ref=e543]:
+                    - generic [ref=e544]: "0"
+                    - generic [ref=e545]: "|"
+                    - generic [ref=e546]: 0.00%
+                  - generic [ref=e548]:
+                    - heading [level=5] [ref=e1528]: $ 100
+                    - generic [ref=e550]: ".00"
+                - heading [level=6] [ref=e1529]: "23"
+              - generic [ref=e556] [cursor=pointer]:
+                - generic [ref=e557]:
+                  - generic [ref=e560]:
+                    - generic [ref=e561]: "0"
+                    - generic [ref=e562]: "|"
+                    - generic [ref=e563]: 0.00%
+                  - generic [ref=e565]:
+                    - heading [level=5] [ref=e1530]: $ 100
+                    - generic [ref=e567]: ".00"
+                - heading [level=6] [ref=e1531]: "24"
+              - generic [ref=e573] [cursor=pointer]:
+                - generic [ref=e574]:
+                  - generic [ref=e577]:
+                    - generic [ref=e578]: "0"
+                    - generic [ref=e579]: "|"
+                    - generic [ref=e580]: 0.00%
+                  - generic [ref=e582]:
+                    - heading [level=5] [ref=e1532]: $ 100
+                    - generic [ref=e584]: ".00"
+                - heading [level=6] [ref=e1533]: "25"
+              - generic [ref=e590] [cursor=pointer]:
+                - generic [ref=e591]:
+                  - generic [ref=e594]:
+                    - generic [ref=e595]: "0"
+                    - generic [ref=e596]: "|"
+                    - generic [ref=e597]: 0.00%
+                  - generic [ref=e599]:
+                    - heading [level=5] [ref=e1534]: $ 100
+                    - generic [ref=e601]: ".00"
+                - heading [level=6] [ref=e1535]: "26"
+              - generic [ref=e607] [cursor=pointer]:
+                - generic [ref=e608]:
+                  - generic [ref=e611]:
+                    - generic [ref=e612]: "0"
+                    - generic [ref=e613]: "|"
+                    - generic [ref=e614]: 0.00%
+                  - generic [ref=e616]:
+                    - heading [level=5] [ref=e1536]: $ 100
+                    - generic [ref=e618]: ".00"
+                - heading [level=6] [ref=e1537]: "27"
+              - generic [ref=e624] [cursor=pointer]:
+                - generic [ref=e625]:
+                  - generic [ref=e628]:
+                    - generic [ref=e629]: "0"
+                    - generic [ref=e630]: "|"
+                    - generic [ref=e631]: 0.00%
+                  - generic [ref=e633]:
+                    - heading [level=5] [ref=e1538]: $ 100
+                    - generic [ref=e635]: ".00"
+                - heading [level=6] [ref=e1539]: "28"
+              - generic [ref=e641] [cursor=pointer]:
+                - generic [ref=e642]:
+                  - generic [ref=e645]:
+                    - generic [ref=e646]: "0"
+                    - generic [ref=e647]: "|"
+                    - generic [ref=e648]: 0.00%
+                  - generic [ref=e650]:
+                    - heading [level=5] [ref=e1540]: $ 100
+                    - generic [ref=e652]: ".00"
+                - heading [level=6] [ref=e1541]: "29"
+              - generic [ref=e658] [cursor=pointer]:
+                - generic [ref=e659]:
+                  - generic [ref=e662]:
+                    - generic [ref=e663]: "0"
+                    - generic [ref=e664]: "|"
+                    - generic [ref=e665]: 0.00%
+                  - generic [ref=e667]:
+                    - heading [level=5] [ref=e1542]: $ 100
+                    - generic [ref=e669]: ".00"
+                - heading [level=6] [ref=e1543]: "30"
+              - heading [level=6] [ref=e1544]: "1"
+              - heading [level=6] [ref=e1545]: "2"
+              - heading [level=6] [ref=e1546]: "3"
+              - heading [level=6] [ref=e1547]: "4"
+          - heading [level=6] [ref=e1548]:
+            - text: "Selected Range:"
+            - img [ref=e694]
+  - alert [ref=e696]
+  - dialog [ref=e1550]:
+    - generic [ref=e1551]:
+      - generic [ref=e1552]:
+        - button [ref=e1553] [cursor=pointer]:
+          - img [ref=e1554]
+        - heading "Bulk Update" [level=6] [ref=e1556]
+      - generic [ref=e1560]:
+        - generic [ref=e1562]:
+          - generic [ref=e1563]: ROOMS
+          - generic [ref=e1564]:
+            - button "Standard" [ref=e1565]:
+              - generic [ref=e1566]: Standard
+              - img [ref=e1567] [cursor=pointer]
+            - combobox "ROOMS" [ref=e1569]
+            - button "Open" [ref=e1571] [cursor=pointer]:
+              - img [ref=e1572]
+            - group:
+              - generic: ROOMS
+        - generic [ref=e1575]:
+          - generic [ref=e1576]: RATE PLANS
+          - generic [ref=e1577]:
+            - button "room only / ro" [ref=e1578]:
+              - generic [ref=e1579]: room only / ro
+              - img [ref=e1580] [cursor=pointer]
+            - combobox "RATE PLANS" [ref=e1582]
+            - button "Open" [ref=e1584] [cursor=pointer]:
+              - img [ref=e1585]
+            - group:
+              - generic: RATE PLANS
+        - generic [ref=e1587]:
+          - generic [ref=e1588]: DATE RANGE
+          - generic [ref=e1589]:
+            - generic [ref=e1590]:
+              - generic [ref=e1593]:
+                - textbox "DD/MM/YY – DD/MM/YY" [ref=e1594]
+                - img [ref=e1595]
+                - group
+              - button [ref=e1639] [cursor=pointer]:
+                - img [ref=e1640]
+            - generic [ref=e1642]:
+              - generic [ref=e1645]:
+                - textbox "DD/MM/YY – DD/MM/YY" [active] [ref=e1646]
+                - img [ref=e1647]
+                - group
+              - button [ref=e1649] [cursor=pointer]:
+                - img [ref=e1650]
+        - generic [ref=e1600]:
+          - generic [ref=e1601]: Days of the Week
+          - generic [ref=e1602]:
+            - button "Sun" [ref=e1603] [cursor=pointer]
+            - button "Mon" [ref=e1604] [cursor=pointer]
+            - button "Tue" [ref=e1605] [cursor=pointer]
+            - button "Wed" [ref=e1606] [cursor=pointer]
+            - button "Thu" [ref=e1607] [cursor=pointer]
+            - button "Fri" [ref=e1608] [cursor=pointer]
+            - button "Sat" [ref=e1609] [cursor=pointer]
+        - generic [ref=e1611]:
+          - generic [ref=e1612]: RATE UPDATE
+          - generic [ref=e1613]:
+            - combobox "RATE UPDATE" [ref=e1614] [cursor=pointer]: "No"
+            - textbox: "no"
+            - img
+            - group:
+              - generic: RATE UPDATE
+        - generic [ref=e1616]:
+          - generic [ref=e1617]: AVAILABILITY UPDATE
+          - generic [ref=e1618]:
+            - combobox "AVAILABILITY UPDATE" [ref=e1619] [cursor=pointer]: "No"
+            - textbox: "no"
+            - img
+            - group:
+              - generic: AVAILABILITY UPDATE
+        - generic [ref=e1620]:
+          - generic [ref=e1621]: RESTRICTIONS
+          - generic [ref=e1622]:
+            - button "No Arrivals" [ref=e1623] [cursor=pointer]
+            - button "No Departures" [ref=e1624] [cursor=pointer]
+            - button "Max. Length of Stay" [ref=e1625] [cursor=pointer]:
+              - generic [ref=e1627]: Max. Length of Stay
+            - button "Min. Length of Stay" [ref=e1628] [cursor=pointer]:
+              - generic [ref=e1630]: Min. Length of Stay
+            - button "Auto Close Out" [ref=e1631] [cursor=pointer]:
+              - generic [ref=e1633]: Auto Close Out
+            - button "Max. Number of Rooms" [ref=e1634] [cursor=pointer]:
+              - generic [ref=e1636]: Max. Number of Rooms
+      - generic [ref=e1637]:
+        - button "Reset to Default" [ref=e1638] [cursor=pointer]
+        - button "Save" [disabled]
+  - tooltip "Previous month March 2026 April 2026 Next month" [ref=e1652]:
+    - generic [ref=e1656]:
+      - generic [ref=e1657]:
+        - generic [ref=e1658]:
+          - button "Previous month" [disabled]:
+            - img
+          - generic [ref=e1659]: March 2026
+        - grid "March 2026" [ref=e1660]:
+          - row "Monday Tuesday Wednesday Thursday Friday Saturday Sunday" [ref=e1661]:
+            - columnheader "Monday" [ref=e1662]: M
+            - columnheader "Tuesday" [ref=e1663]: T
+            - columnheader "Wednesday" [ref=e1664]: W
+            - columnheader "Thursday" [ref=e1665]: T
+            - columnheader "Friday" [ref=e1666]: F
+            - columnheader "Saturday" [ref=e1667]: S
+            - columnheader "Sunday" [ref=e1668]: S
+          - rowgroup [ref=e1669]:
+            - row "1" [ref=e1670]:
+              - generic [ref=e1672]:
+                - gridcell
+              - generic [ref=e1674]:
+                - gridcell
+              - generic [ref=e1676]:
+                - gridcell
+              - generic [ref=e1678]:
+                - gridcell
+              - generic [ref=e1680]:
+                - gridcell
+              - generic [ref=e1682]:
+                - gridcell
+              - generic [ref=e1684]:
+                - gridcell "1" [disabled]
+            - row "2 3 4 5 6 7 8" [ref=e1685]:
+              - generic [ref=e1687]:
+                - gridcell "2" [disabled]
+              - generic [ref=e1689]:
+                - gridcell "3" [disabled]
+              - generic [ref=e1691]:
+                - gridcell "4" [disabled]
+              - generic [ref=e1693]:
+                - gridcell "5" [disabled]
+              - generic [ref=e1695]:
+                - gridcell "6" [disabled]
+              - generic [ref=e1697]:
+                - gridcell "7" [disabled]
+              - generic [ref=e1699]:
+                - gridcell "8" [disabled]
+            - row "9 10 11 12 13 14 15" [ref=e1700]:
+              - generic [ref=e1702]:
+                - gridcell "9" [disabled]
+              - generic [ref=e1704]:
+                - gridcell "10" [disabled]
+              - generic [ref=e1706]:
+                - gridcell "11" [disabled]
+              - generic [ref=e1708]:
+                - gridcell "12" [disabled]
+              - generic [ref=e1710]:
+                - gridcell "13" [disabled]
+              - generic [ref=e1712]:
+                - gridcell "14" [disabled]
+              - gridcell "15" [ref=e1715] [cursor=pointer]
+            - row "16 17 18 19 20 21 22" [ref=e1716]:
+              - gridcell "16" [ref=e1719] [cursor=pointer]
+              - gridcell "17" [ref=e1722] [cursor=pointer]
+              - gridcell "18" [ref=e1725] [cursor=pointer]
+              - gridcell "19" [ref=e1728] [cursor=pointer]
+              - gridcell "20" [ref=e1731] [cursor=pointer]
+              - gridcell "21" [ref=e1734] [cursor=pointer]
+              - gridcell "22" [ref=e1737] [cursor=pointer]
+            - row "23 24 25 26 27 28 29" [ref=e1738]:
+              - gridcell "23" [ref=e1741] [cursor=pointer]
+              - gridcell "24" [ref=e1744] [cursor=pointer]
+              - gridcell "25" [ref=e1747] [cursor=pointer]
+              - gridcell "26" [ref=e1750] [cursor=pointer]
+              - gridcell "27" [ref=e1753] [cursor=pointer]
+              - gridcell "28" [ref=e1756] [cursor=pointer]
+              - gridcell "29" [ref=e1759] [cursor=pointer]
+            - row "30 31" [ref=e1760]:
+              - gridcell "30" [ref=e1763] [cursor=pointer]
+              - gridcell "31" [ref=e1766] [cursor=pointer]
+              - generic [ref=e1768]:
+                - gridcell
+              - generic [ref=e1770]:
+                - gridcell
+              - generic [ref=e1772]:
+                - gridcell
+              - generic [ref=e1774]:
+                - gridcell
+              - generic [ref=e1776]:
+                - gridcell
+      - generic [ref=e1777]:
+        - generic [ref=e1778]:
+          - generic [ref=e1779]: April 2026
+          - button "Next month" [ref=e1780] [cursor=pointer]:
+            - img [ref=e1781]
+        - grid "April 2026" [ref=e1783]:
+          - row "Monday Tuesday Wednesday Thursday Friday Saturday Sunday" [ref=e1784]:
+            - columnheader "Monday" [ref=e1785]: M
+            - columnheader "Tuesday" [ref=e1786]: T
+            - columnheader "Wednesday" [ref=e1787]: W
+            - columnheader "Thursday" [ref=e1788]: T
+            - columnheader "Friday" [ref=e1789]: F
+            - columnheader "Saturday" [ref=e1790]: S
+            - columnheader "Sunday" [ref=e1791]: S
+          - rowgroup [ref=e1792]:
+            - row "1 2 3 4 5" [ref=e1793]:
+              - generic [ref=e1795]:
+                - gridcell
+              - generic [ref=e1797]:
+                - gridcell
+              - gridcell "1" [ref=e1800] [cursor=pointer]
+              - gridcell "2" [ref=e1803] [cursor=pointer]
+              - gridcell "3" [ref=e1806] [cursor=pointer]
+              - gridcell "4" [ref=e1809] [cursor=pointer]
+              - gridcell "5" [ref=e1812] [cursor=pointer]
+            - row "6 7 8 9 10 11 12" [ref=e1813]:
+              - gridcell "6" [ref=e1816] [cursor=pointer]
+              - gridcell "7" [ref=e1819] [cursor=pointer]
+              - gridcell "8" [ref=e1822] [cursor=pointer]
+              - gridcell "9" [ref=e1825] [cursor=pointer]
+              - gridcell "10" [ref=e1828] [cursor=pointer]
+              - gridcell "11" [ref=e1831] [cursor=pointer]
+              - gridcell "12" [ref=e1834] [cursor=pointer]
+            - row "13 14 15 16 17 18 19" [ref=e1835]:
+              - gridcell "13" [ref=e1838] [cursor=pointer]
+              - gridcell "14" [ref=e1841] [cursor=pointer]
+              - gridcell "15" [ref=e1844] [cursor=pointer]
+              - gridcell "16" [ref=e1847] [cursor=pointer]
+              - gridcell "17" [ref=e1850] [cursor=pointer]
+              - gridcell "18" [ref=e1853] [cursor=pointer]
+              - gridcell "19" [ref=e1856] [cursor=pointer]
+            - row "20 21 22 23 24 25 26" [ref=e1857]:
+              - gridcell "20" [ref=e1860] [cursor=pointer]
+              - gridcell "21" [ref=e1863] [cursor=pointer]
+              - gridcell "22" [ref=e1866] [cursor=pointer]
+              - gridcell "23" [ref=e1869] [cursor=pointer]
+              - gridcell "24" [ref=e1872] [cursor=pointer]
+              - gridcell "25" [ref=e1875] [cursor=pointer]
+              - gridcell "26" [ref=e1878] [cursor=pointer]
+            - row "27 28 29 30" [ref=e1879]:
+              - gridcell "27" [ref=e1882] [cursor=pointer]
+              - gridcell "28" [ref=e1885] [cursor=pointer]
+              - gridcell "29" [ref=e1888] [cursor=pointer]
+              - gridcell "30" [ref=e1891] [cursor=pointer]
+              - generic [ref=e1893]:
+                - gridcell
+              - generic [ref=e1895]:
+                - gridcell
+              - generic [ref=e1897]:
+                - gridcell

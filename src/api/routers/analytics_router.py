@@ -2453,6 +2453,216 @@ async def override_history(
     return get_history(days=days, hotel_id=hotel_id)
 
 
+# ── Override Execute (Direct Push to Zenith) ────────────────────────────
+
+@analytics_router.post("/override/execute")
+@limiter.limit("10/minute")
+async def override_execute_direct(
+    request: Request,
+    payload: OverrideRequestBody,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Execute a single price override directly — write to DB + push to Zenith.
+
+    This is the live execution endpoint. It:
+    1. Looks up the detail in Azure SQL (mapping, current price)
+    2. Writes to SalesOffice.PriceOverride
+    3. Pushes the new price to Zenith via SOAP
+    4. Returns the result
+
+    Use /override/request for queue-based (async) flow instead.
+    """
+    import pyodbc
+    import os
+
+    detail_id = payload.detail_id
+    discount_usd = payload.discount_usd
+
+    # Get current prediction data
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(503, "No analysis data — run warmup first")
+
+    pred = analysis["predictions"].get(str(detail_id)) or analysis["predictions"].get(detail_id)
+    if not pred:
+        raise HTTPException(404, f"Detail {detail_id} not found")
+
+    current_price = float(pred.get("current_price", 0) or 0)
+    if current_price <= 0:
+        raise HTTPException(400, f"Detail {detail_id}: no valid price")
+
+    target_price = round(current_price - discount_usd, 2)
+    if target_price < 50:
+        raise HTTPException(400, f"Target ${target_price} below $50 minimum")
+    if discount_usd <= 0 or discount_usd > 10:
+        raise HTTPException(400, f"Discount must be $0.01-$10.00")
+
+    # Connect to Azure SQL
+    db_url = os.getenv("MEDICI_DB_URL", "")
+    if not db_url:
+        raise HTTPException(503, "MEDICI_DB_URL not configured")
+
+    # Convert SQLAlchemy URL to pyodbc connection string
+    # mssql+pyodbc://user:pass@server/db?driver=... → DRIVER=...;Server=...;...
+    try:
+        from urllib.parse import urlparse, parse_qs, unquote
+        parsed = urlparse(db_url)
+        user = unquote(parsed.username or "")
+        password = unquote(parsed.password or "")
+        server = parsed.hostname or ""
+        database = parsed.path.lstrip("/")
+        qs = parse_qs(parsed.query)
+        driver = qs.get("driver", ["ODBC Driver 18 for SQL Server"])[0]
+
+        conn_str = (
+            f"DRIVER={{{driver}}};Server={server};Database={database};"
+            f"Uid={user};Pwd={password};Encrypt=yes;TrustServerCertificate=no;"
+            f"Connection Timeout=15"
+        )
+        conn = pyodbc.connect(conn_str, timeout=15)
+    except Exception as exc:
+        logger.error("Override execute: DB connect failed: %s", exc)
+        raise HTTPException(503, f"DB connection failed: {str(exc)[:100]}")
+
+    try:
+        cursor = conn.cursor()
+
+        # Step 1: Get detail with Zenith mapping
+        cursor.execute("""
+            SELECT d.Id, d.HotelId, d.RoomCategory, d.RoomBoard, d.RoomPrice,
+                   d.IsDeleted, d.SalesOfficeOrderId,
+                   o.DateFrom, o.DateTo,
+                   h.Innstant_ZenithId, h.[Name] as HotelName,
+                   r.RatePlanCode, r.InvTypeCode
+            FROM [SalesOffice.Details] d
+            JOIN [SalesOffice.Orders] o ON o.Id = d.SalesOfficeOrderId
+            LEFT JOIN Med_Hotels h ON h.HotelId = d.HotelId
+            LEFT JOIN MED_Board brd ON brd.BoardCode = d.RoomBoard
+            LEFT JOIN MED_RoomCategory cat ON LOWER(cat.[Name]) = LOWER(d.RoomCategory)
+            LEFT JOIN Med_Hotels_ratebycat r
+                ON r.HotelId = d.HotelId AND r.BoardId = brd.BoardId AND r.CategoryId = cat.CategoryId
+            WHERE d.Id = ?
+        """, detail_id)
+        row = cursor.fetchone()
+
+        if not row:
+            raise HTTPException(404, f"Detail {detail_id} not found in DB")
+
+        cols = [desc[0] for desc in cursor.description]
+        detail = dict(zip(cols, row))
+
+        if detail.get("IsDeleted"):
+            raise HTTPException(400, f"Detail {detail_id} is deleted")
+
+        if not detail.get("RatePlanCode") or not detail.get("InvTypeCode"):
+            raise HTTPException(400, f"Detail {detail_id}: no Zenith mapping (RPC/ITC missing)")
+
+        original_price = float(detail["RoomPrice"])
+        zenith_id = str(detail["Innstant_ZenithId"])
+        rpc = detail["RatePlanCode"]
+        itc = detail["InvTypeCode"]
+        date_from = detail["DateFrom"].strftime("%Y-%m-%d")
+        hotel_name = detail.get("HotelName", "")
+
+        # Deviation check
+        if original_price > 0:
+            deviation = abs(target_price - original_price) / original_price * 100
+            if deviation > 50:
+                raise HTTPException(400, f"Target ${target_price} deviates {deviation:.0f}% from DB price ${original_price} (max 50%)")
+
+        # Step 2: Write to SalesOffice.PriceOverride
+        try:
+            cursor.execute("""
+                UPDATE [SalesOffice.PriceOverride]
+                SET IsActive = 0
+                WHERE DetailId = ? AND IsActive = 1
+            """, detail_id)
+
+            cursor.execute("""
+                INSERT INTO [SalesOffice.PriceOverride]
+                (DetailId, OriginalPrice, OverridePrice, CreatedBy, IsActive)
+                VALUES (?, ?, ?, 'PricePredictor', 1)
+            """, detail_id, original_price, target_price)
+            conn.commit()
+            db_write = "success"
+        except Exception as exc:
+            db_write = f"failed: {str(exc)[:100]}"
+            logger.error("Override DB write failed: %s", exc)
+
+        # Step 3: Push to Zenith
+        import requests as req_lib
+        from datetime import datetime as dt
+
+        soap = f'''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Header>
+    <wsse:Security soap:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+      <wsse:UsernameToken>
+        <wsse:Username>APIMedici:Medici Live</wsse:Username>
+        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">12345</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </SOAP-ENV:Header>
+  <SOAP-ENV:Body>
+    <OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="{dt.now().strftime("%Y-%m-%dT%H:%M:%S")}" Version="1.0" EchoToken="override-test">
+      <RateAmountMessages HotelCode="{zenith_id}">
+        <RateAmountMessage>
+          <StatusApplicationControl InvTypeCode="{itc}" RatePlanCode="{rpc}" Start="{date_from}" End="{date_from}"/>
+          <Rates>
+            <Rate>
+              <BaseByGuestAmts>
+                <BaseByGuestAmt AgeQualifyingCode="10" AmountAfterTax="{target_price}"/>
+                <BaseByGuestAmt AgeQualifyingCode="8" AmountAfterTax="{target_price}"/>
+              </BaseByGuestAmts>
+            </Rate>
+          </Rates>
+        </RateAmountMessage>
+      </RateAmountMessages>
+    </OTA_HotelRateAmountNotifRQ>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>'''
+
+        zenith_result = {"status": "not_pushed", "detail": "Waiting for confirmation"}
+        # *** SAFETY: Only push if explicitly enabled ***
+        push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
+        if push_enabled:
+            try:
+                resp = req_lib.post(
+                    "https://hotel.tools/service/Medici%20new",
+                    data=soap,
+                    headers={"Content-Type": "text/xml"},
+                    timeout=10,
+                )
+                zenith_success = resp.status_code == 200 and "Error" not in resp.text
+                zenith_result = {
+                    "status": "success" if zenith_success else "error",
+                    "http_code": resp.status_code,
+                    "response_preview": resp.text[:200],
+                }
+            except Exception as exc:
+                zenith_result = {"status": "error", "detail": str(exc)[:200]}
+        else:
+            zenith_result = {
+                "status": "dry_run",
+                "detail": "OVERRIDE_PUSH_ENABLED=false — Zenith push skipped. Set to true to enable.",
+                "soap_preview": soap[:300] + "...",
+            }
+
+        return {
+            "action": "override_execute",
+            "detail_id": detail_id,
+            "hotel_name": hotel_name,
+            "original_price": original_price,
+            "discount_usd": discount_usd,
+            "target_price": target_price,
+            "db_write": db_write,
+            "zenith_push": zenith_result,
+            "zenith_mapping": {"hotel_code": zenith_id, "rpc": rpc, "itc": itc, "date": date_from},
+        }
+
+    finally:
+        conn.close()
+
+
 # ── Insert Opportunity Endpoints ─────────────────────────────────────
 
 @analytics_router.post("/opportunity/request")

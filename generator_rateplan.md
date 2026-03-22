@@ -1,0 +1,375 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e10] [cursor=pointer]
+      - region [ref=e16]:
+        - generic [ref=e18]:
+          - link [ref=e19] [cursor=pointer]:
+            - /url: /
+            - img [ref=e21]
+          - link [ref=e24] [cursor=pointer]:
+            - /url: /room-calendar
+            - img [ref=e26]
+          - link [ref=e28] [cursor=pointer]:
+            - /url: /bookings
+            - img [ref=e30]
+          - link [ref=e33] [cursor=pointer]:
+            - /url: /pricing-availability
+            - img [ref=e35]
+          - link [ref=e38] [cursor=pointer]:
+            - /url: /inbox
+            - img [ref=e40]
+          - link [ref=e42] [cursor=pointer]:
+            - /url: /tasks
+            - img [ref=e44]
+          - link [ref=e46] [cursor=pointer]:
+            - /url: /guests
+            - img [ref=e48]
+          - button [ref=e50] [cursor=pointer]:
+            - img [ref=e52]
+            - generic [ref=e55]: Reports
+          - button [ref=e57] [cursor=pointer]:
+            - img [ref=e59]
+            - generic [ref=e62]: Settings
+      - generic [ref=e64]:
+        - img [ref=e69]
+        - generic [ref=e73]: V17.17.6
+    - main [ref=e74]:
+      - generic [ref=e76]:
+        - button [ref=e77] [cursor=pointer]:
+          - heading [level=3] [ref=e78]: < Rate Plans
+        - generic [ref=e79]:
+          - button [ref=e80] [cursor=pointer]:
+            - img [ref=e82]
+            - text: New Rate
+          - generic [ref=e84]:
+            - generic [ref=e86]:
+              - generic: Search by full Name
+              - generic [ref=e87]:
+                - textbox [ref=e88]
+                - button [ref=e90] [cursor=pointer]:
+                  - img [ref=e91]
+                - group:
+                  - generic: Search by full Name
+            - generic [ref=e93]:
+              - generic [ref=e94]:
+                - button [disabled]:
+                  - img
+              - button [ref=e95] [cursor=pointer]:
+                - img [ref=e97]
+                - text: Filter
+      - generic [ref=e99]:
+        - grid [ref=e103]:
+          - row [ref=e104]:
+            - columnheader [ref=e105]:
+              - generic [ref=e107]: ID
+              - generic [ref=e108]:
+                - img
+            - columnheader [ref=e109]:
+              - generic [ref=e111]: Name
+              - generic [ref=e112]:
+                - img
+            - columnheader [ref=e113]:
+              - generic [ref=e115]: Affected By
+              - generic [ref=e116]:
+                - img
+            - columnheader [ref=e117]:
+              - generic [ref=e119]: Change
+              - generic [ref=e120]:
+                - img
+            - columnheader [ref=e121]:
+              - generic [ref=e123]: M/B
+              - generic [ref=e124]:
+                - img
+            - columnheader [ref=e125]:
+              - generic [ref=e127]: MGB
+              - generic [ref=e128]:
+                - img
+            - columnheader [ref=e129]:
+              - generic [ref=e131]: Guarantee
+              - generic [ref=e132]:
+                - img
+            - columnheader [ref=e133]:
+              - generic [ref=e135]: Currency
+              - generic [ref=e136]:
+                - img
+            - columnheader [ref=e137]:
+              - generic [ref=e139]: Condition
+              - generic [ref=e140]:
+                - img
+            - columnheader [ref=e141]:
+              - generic [ref=e143]: Meal
+              - generic [ref=e144]:
+                - img
+            - columnheader [ref=e145]:
+              - generic [ref=e147]: Products
+              - generic [ref=e148]:
+                - img
+            - columnheader [ref=e149]:
+              - generic [ref=e151]: Status
+              - generic [ref=e152]:
+                - img
+            - columnheader [ref=e153]:
+              - generic [ref=e155]: Tags
+              - generic [ref=e156]:
+                - img
+            - columnheader [ref=e157]:
+              - generic [ref=e158]:
+                - img
+          - generic [ref=e160]:
+            - img [ref=e161]
+            - generic [ref=e220]: No data to display
+        - generic [ref=e224]:
+          - generic [ref=e225]:
+            - generic [ref=e226]: "Rows per page:"
+            - generic [ref=e228]:
+              - combobox [ref=e229] [cursor=pointer]: "30"
+              - textbox: "30"
+              - img
+              - group
+          - navigation [ref=e230]:
+            - generic [ref=e231]:
+              - button [disabled]:
+                - img
+              - button [disabled]:
+                - img
+  - alert [ref=e3]
+  - dialog [ref=e233]:
+    - generic [ref=e234]:
+      - generic [ref=e235]:
+        - button [ref=e236] [cursor=pointer]:
+          - img [ref=e237]
+        - heading "New Rate Plan" [level=6] [ref=e239]
+      - generic [ref=e241]:
+        - generic [ref=e242]:
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - text: Full Name
+              - generic [ref=e247]: "*"
+            - generic [ref=e248]:
+              - textbox "Full Name" [ref=e249]: room only / ro
+              - group:
+                - generic: Full Name *
+          - generic [ref=e252]:
+            - generic [ref=e253]:
+              - text: Short Name
+              - generic [ref=e254]: "*"
+            - generic [ref=e255]:
+              - textbox "Short Name" [active] [ref=e256]: RO
+              - group:
+                - generic: Short Name *
+        - generic [ref=e257]:
+          - generic [ref=e260]:
+            - generic [ref=e261]: Affected By
+            - generic [ref=e262]:
+              - combobox "No" [ref=e263] [cursor=pointer]
+              - textbox: "no"
+              - img
+              - group:
+                - generic: Affected By
+          - generic [ref=e265] [cursor=pointer]:
+            - switch "Is Default" [ref=e268]
+            - generic [ref=e271]: Is Default
+        - generic [ref=e273]: Child Rates
+        - generic [ref=e274]:
+          - img [ref=e275]
+          - generic [ref=e277]: Please do not use child rate settings if there are also set pax supplements for this rate plan.
+        - generic [ref=e281] [cursor=pointer]:
+          - switch "Child Settings" [ref=e284]
+          - generic [ref=e287]: Child Settings
+        - generic [ref=e289]:
+          - generic [ref=e292]:
+            - generic:
+              - text: Rate Plan Currency
+              - generic: "*"
+            - generic [ref=e293]:
+              - combobox [ref=e294] [cursor=pointer]
+              - textbox
+              - img
+              - group:
+                - generic: Rate Plan Currency *
+          - generic [ref=e297]:
+            - generic [ref=e298]: Booking Status
+            - generic [ref=e299]:
+              - combobox "Confirmed" [ref=e300] [cursor=pointer]
+              - textbox: confirmed
+              - img
+              - group:
+                - generic: Booking Status
+        - heading "Release Period" [level=6] [ref=e302]
+        - generic [ref=e303]:
+          - generic "Days available for reservation, from booking creation date" [ref=e304]:
+            - generic [ref=e305] [cursor=pointer]:
+              - switch "Days From Now" [ref=e308]
+              - generic [ref=e311]: Days From Now
+            - generic [ref=e313]:
+              - textbox [disabled] [ref=e314]: "0"
+              - group
+          - generic "Days not available for reservation, from booking creation date" [ref=e315]:
+            - generic [ref=e316] [cursor=pointer]:
+              - switch "Days IN Advance" [ref=e319]
+              - generic [ref=e322]: Days IN Advance
+            - generic [ref=e324]:
+              - textbox [disabled] [ref=e325]: "0"
+              - group
+        - generic [ref=e327]:
+          - generic [ref=e330] [cursor=pointer]:
+            - switch "Open for Manual Group Booking" [checked] [ref=e333]
+            - generic [ref=e336]: Open for Manual Group Booking
+          - generic [ref=e339] [cursor=pointer]:
+            - switch "Open for Manual Booking" [checked] [ref=e342]
+            - generic [ref=e345]: Open for Manual Booking
+          - generic [ref=e349]:
+            - generic: Guarantee Option
+            - generic [ref=e350]:
+              - combobox "Guarantee Option" [ref=e351]
+              - button "Open" [ref=e353] [cursor=pointer]:
+                - img [ref=e354]
+              - group:
+                - generic: Guarantee Option
+        - generic [ref=e357]: Guest Information
+        - generic [ref=e358]:
+          - generic [ref=e362]:
+            - generic: Guest Country
+            - generic [ref=e363]:
+              - combobox "Guest Country" [ref=e364]
+              - button "Open" [ref=e366] [cursor=pointer]:
+                - img [ref=e367]
+              - group:
+                - generic: Guest Country
+          - generic [ref=e372]:
+            - generic: Meal Plans
+            - generic [ref=e373]:
+              - combobox "Meal Plans" [ref=e374]
+              - button "Open" [ref=e376] [cursor=pointer]:
+                - img [ref=e377]
+              - group:
+                - generic: Meal Plans
+          - generic [ref=e379]:
+            - generic [ref=e380]:
+              - generic [ref=e381]:
+                - text: Guest age from
+                - generic [ref=e382]: "*"
+              - generic [ref=e383]:
+                - textbox "Guest age from" [ref=e384]: "1"
+                - group:
+                  - generic: Guest age from
+            - generic [ref=e385]:
+              - generic [ref=e386]:
+                - text: To
+                - generic [ref=e387]: "*"
+              - generic [ref=e388]:
+                - textbox "To" [ref=e389]: "100"
+                - group:
+                  - generic: To
+          - generic [ref=e390]:
+            - generic [ref=e391]:
+              - generic [ref=e392]:
+                - text: Number of guests from 1 to 10
+                - generic [ref=e393]: "*"
+              - generic [ref=e394]:
+                - textbox "Number of guests from 1 to 10" [ref=e395]: "1"
+                - group:
+                  - generic: Number of guests from 1 to 10
+            - generic [ref=e396]:
+              - generic [ref=e397]:
+                - text: To
+                - generic [ref=e398]: "*"
+              - generic [ref=e399]:
+                - textbox "To" [ref=e400]: "10"
+                - group:
+                  - generic: To
+          - generic [ref=e401]:
+            - generic [ref=e402]:
+              - generic: Min Los
+              - generic [ref=e403]:
+                - textbox "Min Los" [ref=e404]
+                - group:
+                  - generic: Min Los
+            - generic [ref=e405]:
+              - generic: Max Los
+              - generic [ref=e406]:
+                - textbox "Max Los" [ref=e407]
+                - group:
+                  - generic: Max Los
+          - generic [ref=e409]:
+            - generic: "Auto Close-out when availability is equal to:"
+            - generic [ref=e410]:
+              - textbox "Auto Close-out when availability is equal to:" [ref=e411]
+              - group:
+                - generic: "Auto Close-out when availability is equal to:"
+        - generic [ref=e413]: Auto close-out in Day / Time
+        - generic [ref=e417] [cursor=pointer]:
+          - switch "Enable Auto Close-out" [ref=e420]
+          - generic [ref=e423]: Enable Auto Close-out
+        - generic [ref=e425]:
+          - generic [ref=e426]:
+            - generic [ref=e428] [cursor=pointer]:
+              - checkbox [ref=e429]
+              - img [ref=e430]
+            - generic [ref=e433]:
+              - generic:
+                - text: Products
+                - generic: "*"
+              - generic [ref=e434]:
+                - combobox "Products" [ref=e435]
+                - button "Open" [ref=e437] [cursor=pointer]:
+                  - img [ref=e438]
+                - group:
+                  - generic: Products *
+          - generic [ref=e442]:
+            - generic: Payable Items Package
+            - generic [ref=e443]:
+              - combobox "Payable Items Package" [ref=e444]
+              - button "Open" [ref=e446] [cursor=pointer]:
+                - img [ref=e447]
+              - group:
+                - generic: Payable Items Package
+          - generic [ref=e451]:
+            - generic: Free Items Package
+            - generic [ref=e452]:
+              - combobox "Free Items Package" [ref=e453]
+              - button "Open" [ref=e455] [cursor=pointer]:
+                - img [ref=e456]
+              - group:
+                - generic: Free Items Package
+          - generic [ref=e460]:
+            - generic [ref=e461]: Payment Type
+            - generic [ref=e462]:
+              - combobox "Post Paid" [ref=e463] [cursor=pointer]
+              - textbox: post
+              - img
+              - group:
+                - generic: Payment Type
+          - generic [ref=e465]:
+            - generic [ref=e466]:
+              - generic [ref=e467]: Priority Range
+              - generic [ref=e468]:
+                - textbox "Priority Range" [ref=e469]: "1"
+                - group:
+                  - generic: Priority Range
+            - paragraph
+          - generic [ref=e472] [cursor=pointer]:
+            - switch "Package view by default" [ref=e475]
+            - generic [ref=e478]: Package view by default
+          - generic [ref=e479]:
+            - generic [ref=e481] [cursor=pointer]:
+              - switch "Status" [checked] [ref=e484]
+              - generic [ref=e487]: Status
+            - generic [ref=e489] [cursor=pointer]:
+              - switch "Show on Calendar Page" [checked] [ref=e492]
+              - generic [ref=e495]: Show on Calendar Page
+        - generic [ref=e497]: TAGS
+        - generic [ref=e499]:
+          - generic: Select TAGS
+          - generic [ref=e500]:
+            - combobox "Select TAGS" [ref=e501]
+            - button "Open" [ref=e503] [cursor=pointer]:
+              - img [ref=e504]
+            - group:
+              - generic: Select TAGS
+      - generic [ref=e508]:
+        - button "Cancel" [ref=e509] [cursor=pointer]
+        - generic [ref=e510]:
+          - button "Cancellation Policy" [ref=e511] [cursor=pointer]
+          - button "Save" [disabled]
