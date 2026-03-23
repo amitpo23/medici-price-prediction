@@ -2938,6 +2938,239 @@ async def trigger_override_rules(
     }
 
 
+# ── Opportunity Rules (Persistent CALL Strategies) ──────────────────────
+
+
+class OpportunityRuleCreate(BaseModel):
+    """Request body for creating an opportunity rule."""
+    name: str = ""
+    signal: str = "CALL"
+    hotel_id: int | None = None
+    category: str | None = None
+    board: str | None = None
+    min_T: int = 7
+    max_T: int = 120
+    push_markup_pct: float = 30.0
+
+
+@analytics_router.post("/opportunity/rules")
+@limiter.limit("10/minute")
+async def create_opportunity_rule(
+    request: Request,
+    body: OpportunityRuleCreate,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Create a persistent opportunity (CALL) rule."""
+    from src.analytics.opportunity_rules import init_opp_rules_db, create_opp_rule, OppRuleValidationError
+
+    try:
+        init_opp_rules_db()
+        rule = create_opp_rule(
+            signal=body.signal,
+            push_markup_pct=body.push_markup_pct,
+            name=body.name,
+            hotel_id=body.hotel_id,
+            category=body.category,
+            board=body.board,
+            min_T=body.min_T,
+            max_T=body.max_T,
+        )
+        return {"status": "created", "rule": rule.to_dict()}
+    except OppRuleValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@analytics_router.get("/opportunity/rules")
+@limiter.limit(RATE_LIMIT_DATA)
+async def list_opportunity_rules(
+    request: Request,
+    active_only: bool = Query(False, description="Only return active rules"),
+    _api_key: str = Depends(_optional_api_key),
+):
+    """List all opportunity rules."""
+    from src.analytics.opportunity_rules import get_opp_rules
+
+    rules = get_opp_rules(active_only=active_only)
+    rule_dicts = [r.to_dict() for r in rules]
+    active_count = sum(1 for r in rules if r.is_active)
+    return {"rules": rule_dicts, "total": len(rule_dicts), "active": active_count}
+
+
+@analytics_router.get("/opportunity/rules/{rule_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def get_opportunity_rule(
+    request: Request,
+    rule_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Get a single opportunity rule with its execution log."""
+    from src.analytics.opportunity_rules import get_opp_rule, get_opp_execution_log
+
+    rule = get_opp_rule(rule_id)
+    if rule is None:
+        raise HTTPException(status_code=404, detail=f"Rule {rule_id} not found")
+    executions = get_opp_execution_log(rule_id=rule_id, limit=50)
+    return {"rule": rule.to_dict(), "executions": executions}
+
+
+@analytics_router.put("/opportunity/rules/{rule_id}")
+@limiter.limit("10/minute")
+async def update_opportunity_rule(
+    request: Request,
+    rule_id: int,
+    action: str = Query(..., description="'pause' or 'resume'"),
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Pause or resume an opportunity rule."""
+    from src.analytics.opportunity_rules import pause_opp_rule, resume_opp_rule, get_opp_rule
+
+    if action not in ("pause", "resume"):
+        raise HTTPException(status_code=400, detail="action must be 'pause' or 'resume'")
+
+    rule = get_opp_rule(rule_id)
+    if rule is None:
+        raise HTTPException(status_code=404, detail=f"Rule {rule_id} not found")
+
+    if action == "pause":
+        changed = pause_opp_rule(rule_id)
+    else:
+        changed = resume_opp_rule(rule_id)
+
+    return {"status": action + "d", "rule_id": rule_id, "changed": changed}
+
+
+@analytics_router.delete("/opportunity/rules/{rule_id}")
+@limiter.limit("10/minute")
+async def delete_opportunity_rule(
+    request: Request,
+    rule_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Delete an opportunity rule permanently."""
+    from src.analytics.opportunity_rules import delete_opp_rule
+
+    deleted = delete_opp_rule(rule_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Rule {rule_id} not found")
+    return {"status": "deleted", "rule_id": rule_id}
+
+
+@analytics_router.post("/opportunity/rules/trigger")
+@limiter.limit("10/minute")
+async def trigger_opportunity_rules(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Manually trigger all active CALL rules — match, write to BackOfficeOPT + MED_Opportunities."""
+    from src.analytics.opportunity_rules import match_opp_rules, execute_matched_opportunities
+
+    analysis = _get_cached_analysis()
+    if not analysis:
+        raise HTTPException(status_code=503, detail="No cached analysis available — run a collection cycle first")
+
+    base = _get_or_build_options_base_payload(
+        analysis, t_days=None, include_chart=False, profile="lite", source=None, source_only=False,
+    )
+    options = base.get("rows", []) if isinstance(base, dict) else []
+
+    matches = match_opp_rules(options)
+
+    # Cap at 20 per trigger — budget conscious
+    MAX_TRIGGER = 20
+    total_matched = len(matches)
+    capped = matches[:MAX_TRIGGER]
+
+    import threading
+    results_holder: dict = {"success": 0, "failed": 0, "skipped": 0, "total": 0}
+
+    if capped:
+        if len(capped) <= 10:
+            results_holder = execute_matched_opportunities(capped)
+        else:
+            def _bg():
+                try:
+                    execute_matched_opportunities(capped)
+                except Exception as exc:
+                    logger.error("Opportunity trigger background execution failed: %s", exc)
+            threading.Thread(target=_bg, daemon=True).start()
+            results_holder = {"status": "executing_in_background", "queued": len(capped)}
+
+    return {
+        "status": "triggered",
+        "options_scanned": len(options),
+        "matched": total_matched,
+        "executing": len(capped),
+        "capped_at": MAX_TRIGGER if total_matched > MAX_TRIGGER else None,
+        "results": results_holder,
+    }
+
+
+class OpportunitySingleExecute(BaseModel):
+    """Request body for single opportunity execution."""
+    detail_id: int = Field(gt=0)
+
+
+@analytics_router.post("/opportunity/execute")
+@limiter.limit("10/minute")
+async def opportunity_execute_single(
+    request: Request,
+    body: OpportunitySingleExecute,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Execute a single CALL opportunity — buy 1 room, write to BackOfficeOPT + MED_Opportunities.
+
+    Auto-computes buy_price from current option price and push_price with 30% markup.
+    """
+    from src.analytics.opportunity_rules import execute_matched_opportunities
+
+    # Look up the option to get current price
+    analysis = _get_cached_analysis()
+    if not analysis:
+        raise HTTPException(status_code=503, detail="No cached analysis — run a collection cycle first")
+
+    base = _get_or_build_options_base_payload(
+        analysis, t_days=None, include_chart=False, profile="lite", source=None, source_only=False,
+    )
+    options = base.get("rows", []) if isinstance(base, dict) else []
+
+    target = None
+    for opt in options:
+        if opt.get("detail_id") == body.detail_id:
+            target = opt
+            break
+
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Option detail_id={body.detail_id} not found in current scan")
+
+    buy_price = float(target.get("current_price", 0))
+    if buy_price <= 0:
+        raise HTTPException(status_code=400, detail="Option has zero or negative price")
+
+    push_price = round(buy_price * 1.30, 2)
+    profit_usd = round(push_price - buy_price, 2)
+
+    match_entry = {
+        "detail_id": body.detail_id,
+        "hotel_id": target.get("hotel_id", 0),
+        "hotel_name": target.get("hotel_name", ""),
+        "buy_price": buy_price,
+        "push_price": push_price,
+        "profit_usd": profit_usd,
+        "rule_id": 0,  # manual execution, no rule
+        "rule_name": "Manual",
+    }
+
+    result = execute_matched_opportunities([match_entry])
+    return {
+        "status": "executed",
+        "detail_id": body.detail_id,
+        "buy_price": buy_price,
+        "push_price": push_price,
+        "profit_usd": profit_usd,
+        "result": result,
+    }
+
+
 # ── Override Execute Bulk (Direct Push to Zenith) ───────────────────────
 
 @analytics_router.post("/override/execute-bulk")
