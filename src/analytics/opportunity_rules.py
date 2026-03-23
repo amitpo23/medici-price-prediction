@@ -491,7 +491,7 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
             try:
                 cursor.execute("""
                     SELECT TOP 1 Id FROM BackOfficeOPT
-                    WHERE HotelId = ? AND Status = 0
+                    WHERE HotelID = ? AND Status IN (0, 1)
                     AND StartDate = (
                         SELECT TOP 1 o.DateFrom
                         FROM [SalesOffice.Details] d
@@ -589,9 +589,9 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
             try:
                 cursor.execute(
                     """INSERT INTO BackOfficeOPT
-                       (HotelId, StartDate, EndDate, BordId, CategoryId,
+                       (HotelID, StartDate, EndDate, BordID, CatrgoryID,
                         BuyPrice, PushPrice, MaxRooms, Status, DateInsert, [Name])
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0, GETDATE(), 'PricePredictor Auto')""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, GETDATE(), 'PricePredictor Auto')""",
                     hotel_id, start_date, end_date, board_id, category_id,
                     buy_price, push_price,
                 )
@@ -634,7 +634,7 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                     """INSERT INTO MED_Opportunities
                        (OpportunityId, HotelId, CategoryId, BoardId,
                         [Date], BuyPrice, PushPrice, MaxRooms, Status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0)""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)""",
                     opp_id, hotel_id, category_id, board_id,
                     start_date, buy_price, push_price,
                 )
