@@ -2891,8 +2891,8 @@ async def trigger_override_rules(
     request: Request,
     _api_key: str = Depends(_optional_api_key),
 ):
-    """Manually trigger all active rules against current options."""
-    from src.analytics.override_rules import match_rules, log_execution
+    """Manually trigger all active rules — match, write to DB, push to Zenith."""
+    from src.analytics.override_rules import match_rules, execute_matched_overrides
 
     analysis = _get_cached_analysis()
     if not analysis:
@@ -2905,26 +2905,16 @@ async def trigger_override_rules(
 
     matches = match_rules(options)
 
-    # Log each match to the execution audit trail (db_write only, no Zenith push)
-    for m in matches:
-        log_execution(
-            rule_id=m["rule_id"],
-            rule_name=m["rule_name"],
-            detail_id=m["detail_id"],
-            hotel_id=m["hotel_id"],
-            hotel_name=m.get("hotel_name", ""),
-            original_price=m["current_price"],
-            target_price=m["target_price"],
-            discount_usd=m["discount_usd"],
-            db_write=True,
-            zenith_push=False,
-        )
+    # Execute: DB write + Zenith push (same as collection cycle hook)
+    results = {"success": 0, "failed": 0, "skipped": 0}
+    if matches:
+        results = execute_matched_overrides(matches)
 
     return {
         "status": "triggered",
         "options_scanned": len(options),
-        "matches": len(matches),
-        "details": matches,
+        "matched": len(matches),
+        "results": results,
     }
 
 
