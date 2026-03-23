@@ -242,6 +242,9 @@ def _run_collection_cycle() -> dict | None:
 
     _persist_salesoffice_state()
 
+    # Shared options rows — computed once, reused by both override + opportunity rules
+    options_rows: list[dict] = []
+
     # ── Override Rules: auto-match and execute ───────────────────────
     try:
         from src.analytics.override_rules import (
@@ -279,6 +282,45 @@ def _run_collection_cycle() -> dict | None:
             logger.debug("Override rules: no active rules")
     except Exception as exc:
         logger.warning("Override rules execution failed (non-fatal): %s", exc)
+
+    # ── Opportunity Rules: auto-match and execute ────────────────────
+    try:
+        from src.analytics.opportunity_rules import (
+            init_opp_rules_db,
+            get_opp_rules,
+            match_opp_rules,
+            execute_matched_opportunities,
+        )
+
+        init_opp_rules_db()
+        active_opp_rules = get_opp_rules(active_only=True)
+
+        if active_opp_rules:
+            logger.info("Opportunity rules: %d active rules — running matcher", len(active_opp_rules))
+            # Reuse options_rows from override rules block if already computed
+            if not options_rows:
+                from src.api.routers.analytics_router import _get_or_build_options_base_payload as _build_opp
+                opp_options_payload = _build_opp(
+                    analysis, t_days=None, include_chart=False,
+                    profile="lite", source=None, source_only=False,
+                )
+                options_rows = opp_options_payload.get("rows", [])
+            if options_rows:
+                opp_matches = match_opp_rules(options_rows)
+                if opp_matches:
+                    opp_result = execute_matched_opportunities(opp_matches)
+                    logger.info(
+                        "Opportunity rules: %d matched, %d executed",
+                        len(opp_matches), opp_result.get("success", 0),
+                    )
+                else:
+                    logger.info("Opportunity rules: no matches found")
+            else:
+                logger.warning("Opportunity rules: options payload empty — skipping")
+        else:
+            logger.debug("Opportunity rules: no active rules")
+    except Exception as exc:
+        logger.warning("Opportunity rules execution failed (non-fatal): %s", exc)
 
     logger.info(
         "SalesOffice: analysis complete — %d rooms, %d hotels",
