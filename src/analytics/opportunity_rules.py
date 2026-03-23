@@ -577,6 +577,7 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                     detail_id, board_id, category_id, date_from,
                 )
                 summary["failed"] += 1
+                summary.setdefault("errors", []).append(f"{detail_id}: missing mapping board={board_id} cat={category_id} date={date_from}")
                 log_opp_execution(
                     rule_id=rule_id, rule_name=rule_name, detail_id=detail_id,
                     hotel_id=hotel_id, hotel_name=hotel_name,
