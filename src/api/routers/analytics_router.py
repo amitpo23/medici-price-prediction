@@ -2704,8 +2704,11 @@ async def override_execute_bulk(
     if not analysis or not analysis.get("predictions"):
         raise HTTPException(503, "No analysis data — cache warming up")
 
-    base = _get_or_build_options_base_payload(analysis, profile="lite")
-    signals = base.get("rows", []) if isinstance(base, dict) else base
+    base = _get_or_build_options_base_payload(
+        analysis, t_days=None, include_chart=False, profile="lite",
+        source=None, source_only=False,
+    )
+    signals = base.get("rows", []) if isinstance(base, dict) else []
 
     candidates = []
     for pred in signals:
