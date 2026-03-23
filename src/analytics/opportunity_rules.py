@@ -656,13 +656,11 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
             # Step 5: INSERT into MED_Opportunities (matching C# BaseEF.cs pattern)
             # Table name has hidden Unicode chars — must read actual name from sys.tables
             try:
-                cursor.execute("SELECT name FROM sys.tables WHERE object_id = OBJECT_ID('MED_Opportunities')")
+                # Table name has hidden Unicode chars — find the real MED_ table
+                cursor.execute("SELECT name FROM sys.tables WHERE name LIKE 'MED%pportunities' AND name NOT LIKE 'BAK%'")
                 tbl_row = cursor.fetchone()
-                if not tbl_row:
-                    # Fallback: search by pattern
-                    cursor.execute("SELECT name FROM sys.tables WHERE name LIKE '%pportunities%'")
-                    tbl_row = cursor.fetchone()
                 med_opp_table = tbl_row[0] if tbl_row else "MED_Opportunities"
+                logger.info("opportunity_rules: resolved MED_Opportunities table name: [%s]", med_opp_table)
 
                 cursor.execute(
                     f"""INSERT INTO [{med_opp_table}]
