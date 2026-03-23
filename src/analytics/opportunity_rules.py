@@ -664,24 +664,26 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
 
                 cursor.execute(
                     f"""INSERT INTO [{med_opp_table}]
-                       (OpportunityMlId, DateForm, DateTo,
-                        DestinationsType, DestinationsId,
-                        PushHotelCode, PushBookingLimit,
-                        PushInvTypeCode, PushRatePlanCode,
-                        PushPrice, IsActive, IsPush, IsSale,
-                        NumberOfNights, Price)
-                       VALUES (?, ?, ?,
-                        'hotel', ?,
-                        ?, 1,
-                        ?, ?,
-                        ?, 1, 0, 0,
-                        1, ?)""",
-                    opp_id, start_date, end_date,
-                    hotel_id,
-                    hotel_id,
-                    inv_type_code, rate_plan_code,
-                    push_price,
+                       (DestinationsType, DestinationsId, DateForm, DateTo,
+                        NumberOfNights, Price, Operator, Currency,
+                        FreeCancelation, CountryCode, PaxAdultsCount, PaxChildrenCount,
+                        OpportunityMlId, DateCreate, BoardId, CategoryId,
+                        PushHotelCode, PushBookingLimit, PushInvTypeCode, PushRatePlanCode,
+                        PushPrice, PushCurrency, IsActive, IsPush, IsSale,
+                        ReservationFirstName)
+                       VALUES (
+                        'hotel', ?, ?, ?,
+                        1, ?, 'LTE', 'USD',
+                        1, 'IL', 2, 0,
+                        ?, GETDATE(), ?, ?,
+                        ?, 1, ?, ?,
+                        ?, 'USD', 1, 0, 0,
+                        'PricePredictor')""",
+                    hotel_id, start_date, end_date,
                     buy_price,
+                    opp_id, board_id, category_id,
+                    hotel_id, inv_type_code, rate_plan_code,
+                    push_price,
                 )
                 conn.commit()
             except (pyodbc.Error, OSError, Exception) as exc:
