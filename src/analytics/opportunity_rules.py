@@ -527,7 +527,7 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                            r.RatePlanCode, r.InvTypeCode
                     FROM [SalesOffice.Details] d
                     JOIN [SalesOffice.Orders] o ON o.Id = d.SalesOfficeOrderId
-                    LEFT JOIN MED_Board brd ON brd.BoardCode = d.RoomBoard
+                    LEFT JOIN MED_Board brd ON LOWER(brd.BoardCode) = LOWER(d.RoomBoard)
                     LEFT JOIN MED_RoomCategory cat ON LOWER(cat.[Name]) = LOWER(d.RoomCategory)
                     LEFT JOIN Med_Hotels_ratebycat r
                         ON r.HotelId = d.HotelId AND r.BoardId = brd.BoardId
