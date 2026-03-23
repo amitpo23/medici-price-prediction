@@ -541,6 +541,7 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                         detail_id,
                     )
                     summary["failed"] += 1
+                    summary.setdefault("errors", []).append(f"detail {detail_id}: not found in DB")
                     log_opp_execution(
                         rule_id=rule_id, rule_name=rule_name, detail_id=detail_id,
                         hotel_id=hotel_id, hotel_name=hotel_name,
@@ -610,6 +611,7 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                     detail_id, exc,
                 )
                 summary["failed"] += 1
+                summary.setdefault("errors", []).append(f"BackOfficeOPT {detail_id}: {str(exc)[:200]}")
                 log_opp_execution(
                     rule_id=rule_id, rule_name=rule_name, detail_id=detail_id,
                     hotel_id=hotel_id, hotel_name=hotel_name,
