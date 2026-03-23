@@ -2699,18 +2699,23 @@ async def override_execute_bulk(
 
     push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
 
-    # Step 1: Filter options from cached analysis
-    analysis = _get_cached_analysis()
-    if not analysis or not analysis.get("predictions"):
-        raise HTTPException(503, "No analysis data — run warmup first")
+    # Step 1: Filter options from cached signals (same source as /options endpoint)
+    signals = _get_cached_signals()
+    if not signals:
+        # Fallback to analysis predictions
+        analysis = _get_cached_analysis()
+        if analysis and analysis.get("predictions"):
+            signals = list(analysis["predictions"].values())
+        else:
+            raise HTTPException(503, "No signals data — cache warming up")
 
-    preds = analysis["predictions"]
     candidates = []
-    for key, pred in preds.items():
-        sig = pred.get("option_signal", "")
+    for pred in signals:
+        sig = pred.get("option_signal", "") or pred.get("signal", "")
         if signal and sig not in (signal, f"STRONG_{signal}"):
             continue
-        if hotel_id and int(pred.get("hotel_id", 0)) != hotel_id:
+        hid = int(pred.get("hotel_id", 0) or 0)
+        if hotel_id and hid != hotel_id:
             continue
         if category and (pred.get("category", "") or "").lower() != category.lower():
             continue
@@ -2726,8 +2731,8 @@ async def override_execute_bulk(
         if target < 50:
             continue
         candidates.append({
-            "detail_id": int(pred.get("detail_id", key)),
-            "hotel_id": int(pred.get("hotel_id", 0)),
+            "detail_id": int(pred.get("detail_id", 0)),
+            "hotel_id": hid,
             "hotel_name": str(pred.get("hotel_name", "")),
             "category": str(pred.get("category", "")),
             "board": str(pred.get("board", "")),
