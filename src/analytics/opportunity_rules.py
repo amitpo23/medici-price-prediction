@@ -669,18 +669,19 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                         PushHotelCode, PushBookingLimit,
                         PushInvTypeCode, PushRatePlanCode,
                         PushPrice, IsActive, IsPush, IsSale,
-                        NumberOfNights)
+                        NumberOfNights, Price)
                        VALUES (?, ?, ?,
                         'hotel', ?,
                         ?, 1,
                         ?, ?,
                         ?, 1, 0, 0,
-                        1)""",
+                        1, ?)""",
                     opp_id, start_date, end_date,
                     hotel_id,
                     hotel_id,
                     inv_type_code, rate_plan_code,
                     push_price,
+                    buy_price,
                 )
                 conn.commit()
             except (pyodbc.Error, OSError, Exception) as exc:
