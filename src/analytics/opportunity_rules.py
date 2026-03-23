@@ -485,12 +485,13 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                     current_spend, buy_price, daily_budget,
                 )
                 summary["skipped"] += 1
+                summary.setdefault("skip_reasons", []).append(f"{detail_id}: budget")
                 continue
 
             # Step 2: Duplicate check — existing active opp
             try:
                 cursor.execute("""
-                    SELECT TOP 1 Id FROM BackOfficeOPT
+                    SELECT TOP 1 Id, StartDate, BuyPrice, Status FROM BackOfficeOPT
                     WHERE HotelID = ? AND Status IN (0, 1)
                     AND StartDate = (
                         SELECT TOP 1 o.DateFrom
@@ -501,11 +502,14 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                 """, hotel_id, detail_id)
                 existing = cursor.fetchone()
                 if existing:
+                    dup_id = existing[0]
+                    dup_date = existing[1]
                     logger.info(
-                        "opportunity_rules: duplicate opp for hotel=%d detail=%d — skipping",
-                        hotel_id, detail_id,
+                        "opportunity_rules: duplicate opp #%s date=%s for hotel=%d detail=%d — skipping",
+                        dup_id, dup_date, hotel_id, detail_id,
                     )
                     summary["skipped"] += 1
+                    summary.setdefault("skip_reasons", []).append(f"{detail_id}: duplicate opp #{dup_id}")
                     continue
             except (pyodbc.Error, OSError) as exc:
                 logger.warning(
