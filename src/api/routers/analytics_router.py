@@ -2527,6 +2527,11 @@ async def override_execute_direct(
     try:
         cursor = conn.cursor()
 
+        # Debug: check which user we're connected as
+        cursor.execute("SELECT CURRENT_USER AS cu, SYSTEM_USER AS su")
+        _dbuser = cursor.fetchone()
+        db_user_info = {"current_user": _dbuser[0], "system_user": _dbuser[1]}
+
         # Step 1: Get detail with Zenith mapping
         cursor.execute("""
             SELECT d.Id, d.HotelId, d.RoomCategory, d.RoomBoard, d.RoomPrice,
@@ -2586,7 +2591,7 @@ async def override_execute_direct(
             conn.commit()
             db_write = "success"
         except Exception as exc:
-            db_write = f"failed: {str(exc)[:100]}"
+            db_write = f"failed: {str(exc)[:300]}"
             logger.error("Override DB write failed: %s", exc)
 
         # Step 3: Push to Zenith
@@ -2657,10 +2662,241 @@ async def override_execute_direct(
             "db_write": db_write,
             "zenith_push": zenith_result,
             "zenith_mapping": {"hotel_code": zenith_id, "rpc": rpc, "itc": itc, "date": date_from},
+            "db_user": db_user_info,
         }
 
     finally:
         conn.close()
+
+
+# ── Override Execute Bulk (Direct Push to Zenith) ───────────────────────
+
+@analytics_router.post("/override/execute-bulk")
+@limiter.limit("5/minute")
+async def override_execute_bulk(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    signal: str = Query("PUT", description="PUT or STRONG_PUT"),
+    hotel_id: int | None = Query(None, description="Specific hotel or null=all"),
+    category: str | None = Query(None, description="standard, deluxe, suite, superior"),
+    board: str | None = Query(None, description="ro, bb"),
+    min_T: int = Query(7, description="Min days to check-in"),
+    max_T: int = Query(120, description="Max days to check-in"),
+    discount_usd: float = Query(1.0, ge=0.01, le=10.0),
+    max_items: int = Query(50, ge=1, le=200, description="Max overrides to execute"),
+):
+    """Execute price overrides in bulk — filter, write to DB, push to Zenith.
+
+    Flow: filter PUT signals → write PriceOverride rows → push each to Zenith.
+    Safety: OVERRIDE_PUSH_ENABLED env var must be true. 200ms delay between pushes.
+    """
+    import pyodbc
+    import os
+    import time as _time
+    import requests as req_lib
+    from datetime import datetime as dt
+    from urllib.parse import urlparse, parse_qs, unquote
+
+    push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
+
+    # Step 1: Filter options from cached analysis
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(503, "No analysis data — run warmup first")
+
+    preds = analysis["predictions"]
+    candidates = []
+    for key, pred in preds.items():
+        sig = pred.get("option_signal", "")
+        if signal and sig not in (signal, f"STRONG_{signal}"):
+            continue
+        if hotel_id and int(pred.get("hotel_id", 0)) != hotel_id:
+            continue
+        if category and (pred.get("category", "") or "").lower() != category.lower():
+            continue
+        if board and (pred.get("board", "") or "").lower() != board.lower():
+            continue
+        t = int(pred.get("days_to_checkin", 0) or 0)
+        if t < min_T or t > max_T:
+            continue
+        cp = float(pred.get("current_price", 0) or 0)
+        if cp <= 0:
+            continue
+        target = round(cp - discount_usd, 2)
+        if target < 50:
+            continue
+        candidates.append({
+            "detail_id": int(pred.get("detail_id", key)),
+            "hotel_id": int(pred.get("hotel_id", 0)),
+            "hotel_name": str(pred.get("hotel_name", "")),
+            "category": str(pred.get("category", "")),
+            "board": str(pred.get("board", "")),
+            "current_price": cp,
+            "target_price": target,
+            "date_from": str(pred.get("date_from", "")),
+            "signal": sig,
+            "T": t,
+        })
+
+    # Cap to max_items
+    candidates = candidates[:max_items]
+
+    if not candidates:
+        return {
+            "action": "override_execute_bulk",
+            "filter": {"signal": signal, "hotel_id": hotel_id, "category": category, "board": board, "min_T": min_T, "max_T": max_T},
+            "total_matched": 0,
+            "message": "No matching PUT signals found",
+        }
+
+    # Step 2: Connect to DB
+    db_url = os.getenv("MEDICI_DB_URL", "")
+    if not db_url:
+        raise HTTPException(503, "MEDICI_DB_URL not configured")
+
+    try:
+        parsed = urlparse(db_url)
+        user = unquote(parsed.username or "")
+        password = unquote(parsed.password or "")
+        server = parsed.hostname or ""
+        database = parsed.path.lstrip("/")
+        qs_params = parse_qs(parsed.query)
+        driver = qs_params.get("driver", ["ODBC Driver 18 for SQL Server"])[0]
+
+        conn_str = (
+            f"DRIVER={{{driver}}};Server={server};Database={database};"
+            f"Uid={user};Pwd={password};Encrypt=yes;TrustServerCertificate=no;"
+            f"Connection Timeout=15"
+        )
+        conn = pyodbc.connect(conn_str, timeout=15)
+    except Exception as exc:
+        logger.error("Override bulk: DB connect failed: %s", exc)
+        raise HTTPException(503, f"DB connection failed: {str(exc)[:100]}")
+
+    results = {"success": 0, "db_only": 0, "failed": 0, "skipped": 0, "errors": [], "details": []}
+
+    try:
+        cursor = conn.cursor()
+
+        for item in candidates:
+            detail_id = item["detail_id"]
+            target_price = item["target_price"]
+
+            # Get Zenith mapping
+            cursor.execute("""
+                SELECT d.Id, d.HotelId, d.RoomPrice, d.IsDeleted,
+                       o.DateFrom,
+                       h.Innstant_ZenithId,
+                       r.RatePlanCode, r.InvTypeCode
+                FROM [SalesOffice.Details] d
+                JOIN [SalesOffice.Orders] o ON o.Id = d.SalesOfficeOrderId
+                LEFT JOIN Med_Hotels h ON h.HotelId = d.HotelId
+                LEFT JOIN MED_Board brd ON brd.BoardCode = d.RoomBoard
+                LEFT JOIN MED_RoomCategory cat ON LOWER(cat.[Name]) = LOWER(d.RoomCategory)
+                LEFT JOIN Med_Hotels_ratebycat r
+                    ON r.HotelId = d.HotelId AND r.BoardId = brd.BoardId AND r.CategoryId = cat.CategoryId
+                WHERE d.Id = ?
+            """, detail_id)
+            row = cursor.fetchone()
+
+            if not row:
+                results["skipped"] += 1
+                results["errors"].append(f"{detail_id}: not found in DB")
+                continue
+
+            cols = [desc[0] for desc in cursor.description]
+            detail = dict(zip(cols, row))
+
+            if detail.get("IsDeleted") or not detail.get("RatePlanCode") or not detail.get("InvTypeCode"):
+                results["skipped"] += 1
+                continue
+
+            zenith_id = str(detail["Innstant_ZenithId"])
+            rpc = detail["RatePlanCode"]
+            itc = detail["InvTypeCode"]
+            date_from = detail["DateFrom"].strftime("%Y-%m-%d")
+            original_price = float(detail["RoomPrice"])
+
+            # Deviation check
+            if original_price > 0:
+                deviation = abs(target_price - original_price) / original_price * 100
+                if deviation > 50:
+                    results["skipped"] += 1
+                    results["errors"].append(f"{detail_id}: deviation {deviation:.0f}% > 50%")
+                    continue
+
+            # Write to PriceOverride
+            try:
+                cursor.execute("""
+                    UPDATE [SalesOffice.PriceOverride]
+                    SET IsActive = 0
+                    WHERE DetailId = ? AND IsActive = 1
+                """, detail_id)
+                cursor.execute("""
+                    INSERT INTO [SalesOffice.PriceOverride]
+                    (DetailId, OriginalPrice, OverridePrice, CreatedBy, IsActive)
+                    VALUES (?, ?, ?, 'PricePredictor', 1)
+                """, detail_id, original_price, target_price)
+                conn.commit()
+            except Exception as exc:
+                results["failed"] += 1
+                results["errors"].append(f"{detail_id}: DB write failed - {str(exc)[:80]}")
+                continue
+
+            # Push to Zenith
+            if push_enabled:
+                soap = f'''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Header><wsse:Security soap:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <wsse:UsernameToken><wsse:Username>APIMedici:Medici Live</wsse:Username>
+      <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">12345</wsse:Password>
+    </wsse:UsernameToken></wsse:Security></SOAP-ENV:Header>
+  <SOAP-ENV:Body><OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="{dt.now().strftime("%Y-%m-%dT%H:%M:%S")}" Version="1.0" EchoToken="bulk-override">
+    <RateAmountMessages HotelCode="{zenith_id}"><RateAmountMessage>
+      <StatusApplicationControl InvTypeCode="{itc}" RatePlanCode="{rpc}" Start="{date_from}" End="{date_from}"/>
+      <Rates><Rate><BaseByGuestAmts>
+        <BaseByGuestAmt AgeQualifyingCode="10" AmountAfterTax="{target_price}"/>
+        <BaseByGuestAmt AgeQualifyingCode="8" AmountAfterTax="{target_price}"/>
+      </BaseByGuestAmts></Rate></Rates>
+    </RateAmountMessage></RateAmountMessages>
+  </OTA_HotelRateAmountNotifRQ></SOAP-ENV:Body></SOAP-ENV:Envelope>'''
+
+                try:
+                    _time.sleep(0.2)  # 200ms delay between pushes
+                    resp = req_lib.post(
+                        "https://hotel.tools/service/Medici%20new",
+                        data=soap, headers={"Content-Type": "text/xml"}, timeout=10,
+                    )
+                    if resp.status_code == 200 and "Error" not in resp.text:
+                        results["success"] += 1
+                        results["details"].append({
+                            "detail_id": detail_id, "hotel": item["hotel_name"],
+                            "price": f"${original_price} → ${target_price}",
+                            "zenith": "pushed",
+                        })
+                    else:
+                        results["failed"] += 1
+                        results["errors"].append(f"{detail_id}: Zenith error {resp.status_code}")
+                except Exception as exc:
+                    results["failed"] += 1
+                    results["errors"].append(f"{detail_id}: push error - {str(exc)[:80]}")
+            else:
+                results["db_only"] += 1
+                results["details"].append({
+                    "detail_id": detail_id, "hotel": item["hotel_name"],
+                    "price": f"${original_price} → ${target_price}",
+                    "zenith": "dry_run",
+                })
+
+    finally:
+        conn.close()
+
+    return {
+        "action": "override_execute_bulk",
+        "filter": {"signal": signal, "hotel_id": hotel_id, "category": category, "board": board, "min_T": min_T, "max_T": max_T, "discount_usd": discount_usd},
+        "total_matched": len(candidates),
+        "push_enabled": push_enabled,
+        "results": results,
+    }
 
 
 # ── Insert Opportunity Endpoints ─────────────────────────────────────
