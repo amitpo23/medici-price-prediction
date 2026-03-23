@@ -654,10 +654,18 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                 continue
 
             # Step 5: INSERT into MED_Opportunities (matching C# BaseEF.cs pattern)
-            # One row per night (1-night stay = 1 row)
+            # Table name has hidden Unicode chars — must read actual name from sys.tables
             try:
+                cursor.execute("SELECT name FROM sys.tables WHERE object_id = OBJECT_ID('MED_Opportunities')")
+                tbl_row = cursor.fetchone()
+                if not tbl_row:
+                    # Fallback: search by pattern
+                    cursor.execute("SELECT name FROM sys.tables WHERE name LIKE '%pportunities%'")
+                    tbl_row = cursor.fetchone()
+                med_opp_table = tbl_row[0] if tbl_row else "MED_Opportunities"
+
                 cursor.execute(
-                    """INSERT INTO MED_Opportunities
+                    f"""INSERT INTO [{med_opp_table}]
                        (OpportunityMlId, DateForm, DateTo,
                         DestinationsType, DestinationsId,
                         PushHotelCode, PushBookingLimit,
@@ -675,11 +683,12 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                     push_price,
                 )
                 conn.commit()
-            except (pyodbc.Error, OSError) as exc:
+            except (pyodbc.Error, OSError, Exception) as exc:
                 logger.error(
-                    "opportunity_rules: MED_Opportunities insert failed opp=%d: %s",
-                    opp_id, exc,
+                    "opportunity_rules: MED_Opportunities insert failed opp=%d table=[%s]: %s",
+                    opp_id, med_opp_table, exc,
                 )
+                summary.setdefault("errors", []).append(f"MED_Opp {detail_id}: {str(exc)[:200]}")
                 # BackOfficeOPT was already inserted — log partial success
                 log_opp_execution(
                     rule_id=rule_id, rule_name=rule_name, detail_id=detail_id,
