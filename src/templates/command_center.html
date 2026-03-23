@@ -324,6 +324,33 @@ a{color:#42a5f5;text-decoration:none}
       </div>
     </div>
 
+    <!-- Opportunity Rules -->
+    <div class="section" id="panel-opp-rules">
+      <div class="section-title">Opportunity Rules (<span id="opp-rules-count">0</span>)</div>
+      <div id="opp-rules-body" class="empty">No active rules</div>
+      <div id="opp-rules-form" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+        <input id="opp-rule-name" placeholder="Rule name" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:3px 6px;font-size:10px;margin-bottom:4px">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <select id="opp-rule-hotel" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px"><option value="">All Hotels</option></select>
+          <input id="opp-rule-markup" type="number" value="30" min="30" max="200" step="5" style="width:50px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px;font-family:monospace" placeholder="%">
+        </div>
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <select id="opp-rule-cat" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px"><option value="">Cat</option><option value="standard">Std</option><option value="superior">Sup</option><option value="deluxe">Dlx</option><option value="suite">Suite</option></select>
+          <select id="opp-rule-board" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px"><option value="">Board</option><option value="ro">RO</option><option value="bb">BB</option></select>
+          <input id="opp-rule-mint" type="number" value="7" min="0" style="width:35px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px" placeholder="T">
+          <input id="opp-rule-maxt" type="number" value="120" min="0" style="width:35px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px" placeholder="T">
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" style="background:var(--call);color:#000" onclick="createOppRule()">Create</button>
+          <button class="btn btn-sm" style="background:var(--muted)" onclick="el('opp-rules-form').style.display='none'">Cancel</button>
+        </div>
+      </div>
+      <div style="margin-top:4px;display:flex;gap:4px">
+        <button class="btn btn-sm" style="background:var(--panel);color:var(--text);border:1px solid var(--border)" onclick="el('opp-rules-form').style.display='block';populateOppRuleHotels()">+ Rule</button>
+        <button class="btn btn-sm" style="background:var(--panel);color:var(--text);border:1px solid var(--border)" onclick="triggerOppRules()">Run Now</button>
+      </div>
+    </div>
+
     <!-- Queue Sidebar -->
     <div class="section" id="panel-queue">
       <div class="section-title">Execution Queue</div>
@@ -406,6 +433,7 @@ async function init(){
   loadQueues();
   loadOverrideAudit();
   loadRules();
+  loadOppRules();
   renderOverrideHistory(null);
 }
 
@@ -928,6 +956,88 @@ async function triggerRules(){
       const s=data.results?.success||0;
       showToast('Rules: '+m+' matched, '+s+' executed',true);
       loadRules();loadOverrideAudit();loadQueues();
+    }else showToast(data.detail||'Trigger failed',false);
+  }catch(e){showToast('Error',false)}
+}
+
+/* ══════════ OPPORTUNITY RULES ══════════ */
+async function loadOppRules(){
+  const data=await api('/opportunity/rules?active_only=false');
+  if(!data)return;
+  el('opp-rules-count').textContent=data.active||0;
+  const rules=data.rules||[];
+  const body=el('opp-rules-body');
+  if(!rules.length){body.innerHTML='<div class="empty">No rules defined</div>';return}
+  body.innerHTML=rules.map(r=>{
+    const active=r.is_active;
+    const hotel=r.hotel_id?'Hotel #'+r.hotel_id:'All Hotels';
+    const filters=[r.category,r.board].filter(Boolean).join('/');
+    const t='T='+r.min_T+'-'+r.max_T;
+    const execs=r.total_executions||0;
+    const lastRun=r.last_run_at?r.last_run_at.substring(5,16).replace('T',' '):'never';
+    return '<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);opacity:'+(active?'1':'0.4')+'">'+
+      '<div style="flex:1;font-size:10px">'+
+        '<div style="font-weight:600">'+esc(r.name)+'</div>'+
+        '<div style="color:var(--muted);font-size:9px">'+hotel+(filters?' / '+filters:'')+' / '+t+' / +'+r.push_markup_pct+'%</div>'+
+        '<div style="color:var(--muted);font-size:9px">'+execs+' runs, last: '+lastRun+'</div>'+
+      '</div>'+
+      '<button class="btn btn-sm" style="background:'+(active?'var(--pending)':'var(--done)')+';color:#000;font-size:8px" onclick="toggleOppRule('+r.id+',\''+(active?'pause':'resume')+'\')">'+(active?'Pause':'Resume')+'</button>'+
+      '<button class="btn btn-sm" style="background:var(--failed);color:#fff;font-size:8px" onclick="deleteOppRuleConfirm('+r.id+')">X</button>'+
+    '</div>';
+  }).join('');
+}
+
+function populateOppRuleHotels(){
+  const sel=el('opp-rule-hotel');
+  if(sel.options.length>1)return;
+  S.hotels.forEach((name,id)=>{
+    const o=document.createElement('option');o.value=id;o.textContent=name;sel.appendChild(o);
+  });
+}
+
+async function createOppRule(){
+  const name=el('opp-rule-name').value.trim();
+  if(!name){showToast('Rule name required',false);return}
+  const body={
+    name,
+    signal:'CALL',
+    push_markup_pct:parseFloat(el('opp-rule-markup').value)||30.0,
+  };
+  const hotel=el('opp-rule-hotel').value;
+  if(hotel)body.hotel_id=parseInt(hotel);
+  const cat=el('opp-rule-cat').value;if(cat)body.category=cat;
+  const board=el('opp-rule-board').value;if(board)body.board=board;
+  body.min_T=parseInt(el('opp-rule-mint').value)||7;
+  body.max_T=parseInt(el('opp-rule-maxt').value)||120;
+  try{
+    const r=await fetch(API+'/opportunity/rules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(r.ok){showToast('Opp rule created: '+data.rule?.name,true);el('opp-rules-form').style.display='none';el('opp-rule-name').value='';loadOppRules()}
+    else showToast(data.detail||'Failed',false);
+  }catch(e){showToast('Error',false)}
+}
+
+async function toggleOppRule(id,action){
+  await fetch(API+'/opportunity/rules/'+id+'?action='+action,{method:'PUT'});
+  loadOppRules();
+}
+
+async function deleteOppRuleConfirm(id){
+  await fetch(API+'/opportunity/rules/'+id,{method:'DELETE'});
+  showToast('Opp rule deleted',true);
+  loadOppRules();
+}
+
+async function triggerOppRules(){
+  showToast('Running opportunity rules...',true);
+  try{
+    const r=await fetch(API+'/opportunity/rules/trigger',{method:'POST'});
+    const data=await r.json();
+    if(r.ok){
+      const m=data.matched||0;
+      const s=data.results?.success||0;
+      showToast('Opp rules: '+m+' matched, '+s+' executed',true);
+      loadOppRules();loadQueues();
     }else showToast(data.detail||'Trigger failed',false);
   }catch(e){showToast('Error',false)}
 }
