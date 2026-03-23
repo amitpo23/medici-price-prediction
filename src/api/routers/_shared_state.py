@@ -242,6 +242,44 @@ def _run_collection_cycle() -> dict | None:
 
     _persist_salesoffice_state()
 
+    # ── Override Rules: auto-match and execute ───────────────────────
+    try:
+        from src.analytics.override_rules import (
+            init_rules_db,
+            get_rules,
+            match_rules,
+            execute_matched_overrides,
+        )
+        from src.api.routers.analytics_router import _get_or_build_options_base_payload
+
+        init_rules_db()
+        active_rules = get_rules(active_only=True)
+
+        if active_rules:
+            logger.info("Override rules: %d active rules — running matcher", len(active_rules))
+            options_payload = _get_or_build_options_base_payload(
+                analysis, t_days=None, include_chart=False,
+                profile="lite", source=None, source_only=False,
+            )
+            options_rows = options_payload.get("rows", [])
+            if options_rows:
+                matches = match_rules(options_rows)
+                if matches:
+                    result = execute_matched_overrides(matches)
+                    logger.info(
+                        "Override rules: executed %d/%d (success=%d failed=%d skipped=%d)",
+                        result["success"], result["total"],
+                        result["success"], result["failed"], result["skipped"],
+                    )
+                else:
+                    logger.info("Override rules: no matches found")
+            else:
+                logger.warning("Override rules: options payload empty — skipping")
+        else:
+            logger.debug("Override rules: no active rules")
+    except Exception as exc:
+        logger.warning("Override rules execution failed (non-fatal): %s", exc)
+
     logger.info(
         "SalesOffice: analysis complete — %d rooms, %d hotels",
         analysis.get("statistics", {}).get("total_rooms", 0),

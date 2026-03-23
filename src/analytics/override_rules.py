@@ -417,6 +417,236 @@ def log_execution(
     return log_id
 
 
+def execute_matched_overrides(matches: list[dict]) -> dict:
+    """Execute matched overrides: write to Azure SQL PriceOverride + push to Zenith.
+
+    For each match dict (from match_rules()):
+        - Deactivates existing PriceOverride rows for that DetailId
+        - Inserts new PriceOverride row
+        - Pushes new price to Zenith SOAP if OVERRIDE_PUSH_ENABLED=true
+        - Logs execution via log_execution()
+
+    Returns summary: {"success": N, "failed": N, "skipped": N, "total": N}
+    """
+    import os
+    import time
+    from urllib.parse import urlparse, parse_qs, unquote
+
+    summary = {"success": 0, "failed": 0, "skipped": 0, "total": len(matches)}
+
+    if not matches:
+        return summary
+
+    # Connect to Azure SQL
+    db_url = os.getenv("MEDICI_DB_URL", "")
+    if not db_url:
+        logger.warning("override_rules execute: MEDICI_DB_URL not configured — skipping all")
+        summary["skipped"] = len(matches)
+        return summary
+
+    try:
+        import pyodbc
+    except ImportError:
+        logger.warning("override_rules execute: pyodbc not installed — skipping all")
+        summary["skipped"] = len(matches)
+        return summary
+
+    try:
+        parsed = urlparse(db_url)
+        user = unquote(parsed.username or "")
+        password = unquote(parsed.password or "")
+        server = parsed.hostname or ""
+        database = parsed.path.lstrip("/")
+        qs_params = parse_qs(parsed.query)
+        driver = qs_params.get("driver", ["ODBC Driver 18 for SQL Server"])[0]
+        conn_str = (
+            f"DRIVER={{{driver}}};Server={server};Database={database};"
+            f"Uid={user};Pwd={password};Encrypt=yes;TrustServerCertificate=no;"
+            f"Connection Timeout=15"
+        )
+        conn = pyodbc.connect(conn_str, timeout=15)
+    except (pyodbc.Error, OSError, ValueError) as exc:
+        logger.error("override_rules execute: DB connect failed: %s", exc)
+        summary["failed"] = len(matches)
+        return summary
+
+    push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
+
+    try:
+        cursor = conn.cursor()
+
+        for i, match in enumerate(matches):
+            detail_id = match["detail_id"]
+            original_price = match["current_price"]
+            target_price = match["target_price"]
+            rule_id = match["rule_id"]
+            rule_name = match.get("rule_name", "")
+            hotel_id = match.get("hotel_id", 0)
+            hotel_name = match.get("hotel_name", "")
+
+            db_write_ok = False
+            zenith_push_ok = False
+
+            # Step 1: Write to SalesOffice.PriceOverride
+            try:
+                cursor.execute(
+                    "UPDATE [SalesOffice.PriceOverride] SET IsActive = 0 "
+                    "WHERE DetailId = ? AND IsActive = 1",
+                    detail_id,
+                )
+                cursor.execute(
+                    "INSERT INTO [SalesOffice.PriceOverride] "
+                    "(DetailId, OriginalPrice, OverridePrice, CreatedBy, IsActive) "
+                    "VALUES (?, ?, ?, 'PricePredictor', 1)",
+                    detail_id, original_price, target_price,
+                )
+                conn.commit()
+                db_write_ok = True
+            except (pyodbc.Error, OSError) as exc:
+                logger.error(
+                    "override_rules execute: DB write failed detail=%d: %s",
+                    detail_id, exc,
+                )
+                summary["failed"] += 1
+                log_execution(
+                    rule_id=rule_id, rule_name=rule_name, detail_id=detail_id,
+                    hotel_id=hotel_id, hotel_name=hotel_name,
+                    original_price=original_price, target_price=target_price,
+                    discount_usd=match["discount_usd"],
+                    db_write=False, zenith_push=False,
+                )
+                continue
+
+            # Step 2: Push to Zenith if enabled
+            if push_enabled:
+                try:
+                    # Fetch Zenith mapping
+                    cursor.execute("""
+                        SELECT d.Id, d.HotelId, d.RoomPrice, d.IsDeleted, o.DateFrom,
+                               h.Innstant_ZenithId, r.RatePlanCode, r.InvTypeCode
+                        FROM [SalesOffice.Details] d
+                        JOIN [SalesOffice.Orders] o ON o.Id = d.SalesOfficeOrderId
+                        LEFT JOIN Med_Hotels h ON h.HotelId = d.HotelId
+                        LEFT JOIN MED_Board brd ON brd.BoardCode = d.RoomBoard
+                        LEFT JOIN MED_RoomCategory cat ON LOWER(cat.[Name]) = LOWER(d.RoomCategory)
+                        LEFT JOIN Med_Hotels_ratebycat r
+                            ON r.HotelId = d.HotelId AND r.BoardId = brd.BoardId
+                            AND r.CategoryId = cat.CategoryId
+                        WHERE d.Id = ?
+                    """, detail_id)
+                    row = cursor.fetchone()
+
+                    if row:
+                        cols = [desc[0] for desc in cursor.description]
+                        detail = dict(zip(cols, row))
+                        zenith_id = str(detail.get("Innstant_ZenithId", ""))
+                        rpc = detail.get("RatePlanCode", "")
+                        itc = detail.get("InvTypeCode", "")
+                        date_from_raw = detail.get("DateFrom")
+
+                        if zenith_id and rpc and itc and date_from_raw:
+                            date_from = date_from_raw.strftime("%Y-%m-%d") if hasattr(date_from_raw, "strftime") else str(date_from_raw)[:10]
+                            zenith_push_ok = _push_zenith_soap(
+                                zenith_id, rpc, itc, date_from, target_price,
+                            )
+                            if i < len(matches) - 1:
+                                time.sleep(0.2)  # 200ms delay between pushes
+                        else:
+                            logger.warning(
+                                "override_rules execute: detail=%d missing Zenith mapping",
+                                detail_id,
+                            )
+                    else:
+                        logger.warning(
+                            "override_rules execute: detail=%d not found for Zenith lookup",
+                            detail_id,
+                        )
+                except (pyodbc.Error, OSError, ValueError) as exc:
+                    logger.error(
+                        "override_rules execute: Zenith push failed detail=%d: %s",
+                        detail_id, exc,
+                    )
+
+            # Step 3: Log execution
+            log_execution(
+                rule_id=rule_id, rule_name=rule_name, detail_id=detail_id,
+                hotel_id=hotel_id, hotel_name=hotel_name,
+                original_price=original_price, target_price=target_price,
+                discount_usd=match["discount_usd"],
+                db_write=db_write_ok, zenith_push=zenith_push_ok,
+            )
+            summary["success"] += 1
+
+    except (pyodbc.Error, OSError, ValueError) as exc:
+        logger.error("override_rules execute: unexpected error: %s", exc)
+    finally:
+        conn.close()
+
+    logger.info(
+        "override_rules execute: total=%d success=%d failed=%d skipped=%d",
+        summary["total"], summary["success"], summary["failed"], summary["skipped"],
+    )
+    return summary
+
+
+def _push_zenith_soap(
+    zenith_id: str,
+    rpc: str,
+    itc: str,
+    date_from: str,
+    target_price: float,
+) -> bool:
+    """Push a price update to Zenith via SOAP. Returns True on success."""
+    import requests as req_lib
+
+    now_str = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+    soap = f'''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Header>
+    <wsse:Security soap:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+      <wsse:UsernameToken>
+        <wsse:Username>APIMedici:Medici Live</wsse:Username>
+        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">12345</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </SOAP-ENV:Header>
+  <SOAP-ENV:Body>
+    <OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="{now_str}" Version="1.0" EchoToken="rule-override">
+      <RateAmountMessages HotelCode="{zenith_id}">
+        <RateAmountMessage>
+          <StatusApplicationControl InvTypeCode="{itc}" RatePlanCode="{rpc}" Start="{date_from}" End="{date_from}"/>
+          <Rates>
+            <Rate>
+              <BaseByGuestAmts>
+                <BaseByGuestAmt AgeQualifyingCode="10" AmountAfterTax="{target_price}"/>
+                <BaseByGuestAmt AgeQualifyingCode="8" AmountAfterTax="{target_price}"/>
+              </BaseByGuestAmts>
+            </Rate>
+          </Rates>
+        </RateAmountMessage>
+      </RateAmountMessages>
+    </OTA_HotelRateAmountNotifRQ>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>'''
+
+    try:
+        resp = req_lib.post(
+            "https://hotel.tools/service/Medici%20new",
+            data=soap,
+            headers={"Content-Type": "text/xml"},
+            timeout=10,
+        )
+        success = resp.status_code == 200 and "Error" not in resp.text
+        if not success:
+            logger.warning(
+                "Zenith push failed: HTTP %d, response=%s",
+                resp.status_code, resp.text[:200],
+            )
+        return success
+    except (req_lib.RequestException, OSError) as exc:
+        logger.error("Zenith push error: %s", exc)
+        return False
+
+
 def get_execution_log(
     rule_id: int | None = None,
     limit: int = 50,
