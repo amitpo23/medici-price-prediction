@@ -622,11 +622,21 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                 continue
 
             if not opp_id:
+                # Try @@IDENTITY as fallback
+                try:
+                    cursor.execute("SELECT @@IDENTITY")
+                    alt_row = cursor.fetchone()
+                    opp_id = int(alt_row[0]) if alt_row and alt_row[0] else None
+                except Exception:
+                    pass
+
+            if not opp_id:
                 logger.error(
                     "opportunity_rules: SCOPE_IDENTITY returned None for detail=%d",
                     detail_id,
                 )
                 summary["failed"] += 1
+                summary.setdefault("errors", []).append(f"{detail_id}: SCOPE_IDENTITY=None (INSERT may have succeeded)")
                 log_opp_execution(
                     rule_id=rule_id, rule_name=rule_name, detail_id=detail_id,
                     hotel_id=hotel_id, hotel_name=hotel_name,
