@@ -595,8 +595,8 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                 cursor.execute(
                     """INSERT INTO BackOfficeOPT
                        (HotelID, StartDate, EndDate, BordID, CatrgoryID,
-                        BuyPrice, PushPrice, MaxRooms, Status, DateInsert, [Name])
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, GETDATE(), 'PricePredictor Auto')""",
+                        BuyPrice, PushPrice, MaxRooms, Status, DateInsert)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, GETDATE())""",
                     hotel_id, start_date, end_date, board_id, category_id,
                     buy_price, push_price,
                 )
