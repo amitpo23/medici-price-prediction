@@ -2674,6 +2674,100 @@ async def override_execute_direct(
         conn.close()
 
 
+# ── Override Audit Log (from Azure SQL PriceOverride table) ─────────────
+
+@analytics_router.get("/override/audit")
+@limiter.limit(RATE_LIMIT_DATA)
+async def override_audit_log(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+    hotel_id: int | None = Query(None),
+    detail_id: int | None = Query(None),
+    active_only: bool = Query(False),
+    limit: int = Query(100, ge=1, le=500),
+):
+    """Override audit log from Azure SQL — shows all PriceOverride records.
+
+    Returns which options were overridden, when, by whom, original vs override price.
+    Use this to track execution history across scan cycles.
+    """
+    import pyodbc
+    import os
+    from urllib.parse import urlparse, parse_qs, unquote
+
+    db_url = os.getenv("MEDICI_DB_URL", "")
+    if not db_url:
+        raise HTTPException(503, "MEDICI_DB_URL not configured")
+
+    try:
+        parsed = urlparse(db_url)
+        user = unquote(parsed.username or "")
+        password = unquote(parsed.password or "")
+        server = parsed.hostname or ""
+        database = parsed.path.lstrip("/")
+        qs_params = parse_qs(parsed.query)
+        driver = qs_params.get("driver", ["ODBC Driver 18 for SQL Server"])[0]
+        conn_str = (
+            f"DRIVER={{{driver}}};Server={server};Database={database};"
+            f"Uid={user};Pwd={password};Encrypt=yes;TrustServerCertificate=no;"
+            f"Connection Timeout=15"
+        )
+        conn = pyodbc.connect(conn_str, timeout=15)
+    except Exception as exc:
+        raise HTTPException(503, f"DB connection failed: {str(exc)[:100]}")
+
+    try:
+        cursor = conn.cursor()
+        sql = """
+            SELECT TOP (?) po.Id, po.DetailId, po.OriginalPrice, po.OverridePrice,
+                   po.CreatedBy, po.IsActive, po.PushStatus, po.PushedAt, po.CreatedAt,
+                   d.HotelId, h.[Name] as HotelName, d.RoomCategory, d.RoomBoard,
+                   o.DateFrom
+            FROM [SalesOffice.PriceOverride] po
+            LEFT JOIN [SalesOffice.Details] d ON d.Id = po.DetailId
+            LEFT JOIN [SalesOffice.Orders] o ON o.Id = d.SalesOfficeOrderId
+            LEFT JOIN Med_Hotels h ON h.HotelId = d.HotelId
+            WHERE 1=1
+        """
+        params = [limit]
+        if hotel_id:
+            sql += " AND d.HotelId = ?"
+            params.append(hotel_id)
+        if detail_id:
+            sql += " AND po.DetailId = ?"
+            params.append(detail_id)
+        if active_only:
+            sql += " AND po.IsActive = 1"
+        sql += " ORDER BY po.CreatedAt DESC"
+
+        cursor.execute(sql, params)
+        cols = [desc[0] for desc in cursor.description]
+        rows = [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+        # Summary stats
+        active_count = sum(1 for r in rows if r.get("IsActive"))
+        total_discount = sum(float(r.get("OriginalPrice", 0) or 0) - float(r.get("OverridePrice", 0) or 0) for r in rows)
+
+        # Detail IDs with active overrides (for Command Center marking)
+        active_detail_ids = [r["DetailId"] for r in rows if r.get("IsActive")]
+
+        # Serialize datetime fields
+        for r in rows:
+            for k in ("PushedAt", "CreatedAt", "DateFrom"):
+                if r.get(k) and hasattr(r[k], "isoformat"):
+                    r[k] = r[k].isoformat()
+
+        return {
+            "total": len(rows),
+            "active_overrides": active_count,
+            "total_discount_usd": round(total_discount, 2),
+            "active_detail_ids": active_detail_ids,
+            "records": rows,
+        }
+    finally:
+        conn.close()
+
+
 # ── Override Execute Bulk (Direct Push to Zenith) ───────────────────────
 
 @analytics_router.post("/override/execute-bulk")

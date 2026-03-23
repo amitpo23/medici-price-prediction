@@ -118,6 +118,12 @@ a{color:#42a5f5;text-decoration:none}
 /* Bulk action bar */
 .bulk-row{display:flex;gap:4px;align-items:center;padding:4px 0;border-top:1px solid var(--border);margin-top:4px}
 
+/* Override indicator in table */
+.ovr-badge{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--pending);margin-left:3px;vertical-align:middle;title:attr(data-title)}
+.ovr-active{background:var(--done)}
+.ovr-row{display:flex;justify-content:space-between;padding:2px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.ovr-row .lbl{color:var(--muted)}.ovr-row .val{font-family:monospace}
+
 /* Toast */
 .toast{position:fixed;top:12px;right:12px;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:500;z-index:9999;animation:fadeIn .3s}
 .toast.ok{background:rgba(76,175,80,.9);color:#fff}.toast.err{background:rgba(244,67,54,.9);color:#fff}
@@ -285,6 +291,12 @@ a{color:#42a5f5;text-decoration:none}
       <div id="alerts-body" class="empty">No active alerts</div>
     </div>
 
+    <!-- Override History -->
+    <div class="section" id="panel-override-history">
+      <div class="section-title">Override History</div>
+      <div id="override-history-body" class="empty">No overrides recorded</div>
+    </div>
+
     <!-- Queue Sidebar -->
     <div class="section" id="panel-queue">
       <div class="section-title">Execution Queue</div>
@@ -312,6 +324,8 @@ const S = {
   filtered: [],
   priceChart: null, enrichChart: null, histTChart: null,
   activeChartTab: 'enrich',
+  overrideDetailIds: new Set(), // detail IDs with active overrides
+  overrideRecords: [],          // full override history
 };
 
 function fmt$(v){return '$'+Number(v).toLocaleString('en-US',{maximumFractionDigits:0})}
@@ -363,6 +377,8 @@ async function init(){
 
   el('s-ts').textContent=new Date().toLocaleTimeString();
   loadQueues();
+  loadOverrideAudit();
+  renderOverrideHistory(null);
 }
 
 /* ══════════ PORTFOLIO STRIP — clickable counts ══════════ */
@@ -465,8 +481,10 @@ function renderTable(){
     let actionBtn='';
     if(isPut)actionBtn='<button class="btn btn-put btn-sm" onclick="event.stopPropagation();queueOverride('+r.detail_id+','+(r.current_price||0)+')">&#11015;</button>';
     else if(isCall)actionBtn='<button class="btn btn-call btn-sm" onclick="event.stopPropagation();queueOpportunity('+r.detail_id+','+(r.current_price||0)+')">&#11014;</button>';
+    const hasOverride=S.overrideDetailIds.has(r.detail_id);
+    const ovrBadge=hasOverride?'<span class="ovr-badge ovr-active" title="Override active"></span>':'';
     return '<tr'+active+' data-id="'+r.detail_id+'" onclick="selectOption('+r.detail_id+')">'+
-      '<td style="font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.hotel_name||'')+'">'+esc(r.hotel_name||'')+'</td>'+
+      '<td style="font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.hotel_name||'')+'">'+esc(r.hotel_name||'')+ovrBadge+'</td>'+
       '<td class="num">'+( r.days_to_checkin||0)+'</td>'+
       '<td class="num">'+fmt$(r.current_price||0)+'</td>'+
       '<td><span class="sig '+sigCls(sig)+'">'+sig+'</span></td>'+
@@ -522,6 +540,7 @@ async function selectOption(detailId){
   renderSignalPanel(fcRaw, pathData, detailData);
   renderSourcesPanel(sourceData);
   renderAccuracyPanel(detailData, fcRaw);
+  renderOverrideHistory(detailId);
   loadHistoricalT(detailId);
 
   // Background: load historical scan data
@@ -723,7 +742,7 @@ async function queueOverride(detailId, currentPrice){
   try{
     const r=await fetch(API+'/override/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({detail_id:detailId,discount_usd:disc})});
     const data=await r.json();
-    if(r.ok){showToast('Override #'+data.request_id+': '+fmt$(currentPrice)+' -> '+fmt$(data.target_price),true);loadQueues()}
+    if(r.ok){showToast('Override #'+data.request_id+': '+fmt$(currentPrice)+' -> '+fmt$(data.target_price),true);loadQueues();loadOverrideAudit()}
     else showToast(data.detail||'Failed',false);
   }catch(e){showToast('Network error',false)}
 }
@@ -802,6 +821,59 @@ el('opts-sort').addEventListener('change',()=>renderTable());
 
 /* ══════════ AUTO-REFRESH (every 3 min) ══════════ */
 setInterval(()=>{init()}, 180000);
+
+/* ══════════ OVERRIDE AUDIT ══════════ */
+async function loadOverrideAudit(){
+  const data=await api('/override/audit?limit=200');
+  if(!data)return;
+  S.overrideDetailIds=new Set(data.active_detail_ids||[]);
+  S.overrideRecords=data.records||[];
+  // Re-render table to show override badges
+  renderTable();
+  // Update override panel count
+  const c=el('panel-override-history');
+  if(c){
+    const t=c.querySelector('.section-title');
+    if(t)t.textContent='Override History ('+data.total+')';
+  }
+}
+
+function renderOverrideHistory(detailId){
+  const records=S.overrideRecords.filter(r=>r.DetailId===detailId);
+  const allRecords=S.overrideRecords;
+  const body=el('override-history-body');
+  if(!body)return;
+
+  if(detailId && records.length){
+    // Show history for selected option
+    body.innerHTML=records.map(r=>{
+      const active=r.IsActive?'<span style="color:var(--done)">Active</span>':'<span style="color:var(--muted)">Expired</span>';
+      const pushed=r.PushStatus==='success'?'<span style="color:var(--done)">Pushed</span>':r.PushStatus?'<span style="color:var(--failed)">'+r.PushStatus+'</span>':'<span style="color:var(--muted)">Pending</span>';
+      const date=r.CreatedAt?r.CreatedAt.substring(0,16).replace('T',' '):'';
+      return '<div class="ovr-row"><span class="lbl">'+date+'</span><span class="val">$'+r.OriginalPrice+' → $'+r.OverridePrice+'</span><span>'+active+' '+pushed+'</span></div>';
+    }).join('');
+  } else {
+    // Show summary
+    const total=allRecords.length;
+    const active=allRecords.filter(r=>r.IsActive).length;
+    const pushed=allRecords.filter(r=>r.PushStatus==='success').length;
+    const hotels=new Set(allRecords.map(r=>r.HotelName).filter(Boolean));
+    if(!total){body.innerHTML='<div class="empty">No overrides recorded</div>';return}
+    body.innerHTML=
+      '<div class="ovr-row"><span class="lbl">Total overrides</span><span class="val">'+total+'</span></div>'+
+      '<div class="ovr-row"><span class="lbl">Active now</span><span class="val" style="color:var(--done)">'+active+'</span></div>'+
+      '<div class="ovr-row"><span class="lbl">Pushed to Zenith</span><span class="val">'+pushed+'</span></div>'+
+      '<div class="ovr-row"><span class="lbl">Hotels</span><span class="val">'+hotels.size+'</span></div>'+
+      '<div style="margin-top:4px;max-height:100px;overflow-y:auto;font-size:9px">'+
+      allRecords.slice(0,20).map(r=>{
+        const d=r.CreatedAt?r.CreatedAt.substring(5,16).replace('T',' '):'';
+        return '<div style="display:flex;justify-content:space-between;padding:1px 0;color:var(--muted)">'+
+          '<span>'+(r.HotelName||'').substring(0,20)+'</span>'+
+          '<span>$'+r.OriginalPrice+'→$'+r.OverridePrice+'</span>'+
+          '<span>'+d+'</span></div>';
+      }).join('')+'</div>';
+  }
+}
 
 /* ══════════ BOOT ══════════ */
 init();
