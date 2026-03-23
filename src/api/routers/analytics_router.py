@@ -2905,16 +2905,36 @@ async def trigger_override_rules(
 
     matches = match_rules(options)
 
-    # Execute: DB write + Zenith push (same as collection cycle hook)
-    results = {"success": 0, "failed": 0, "skipped": 0}
-    if matches:
-        results = execute_matched_overrides(matches)
+    # Cap at 50 per trigger to avoid gateway timeout (121 * 200ms = 24s + DB = too slow)
+    MAX_TRIGGER = 50
+    total_matched = len(matches)
+    capped = matches[:MAX_TRIGGER]
+
+    # Execute in background thread to avoid timeout
+    import threading
+    results_holder = {"success": 0, "failed": 0, "skipped": 0, "total": 0}
+
+    if capped:
+        # Run synchronously for small batches, async for large
+        if len(capped) <= 20:
+            results_holder = execute_matched_overrides(capped)
+        else:
+            # Fire and forget — results logged to override_rule_log
+            def _bg():
+                try:
+                    execute_matched_overrides(capped)
+                except Exception as exc:
+                    logger.error("Trigger background execution failed: %s", exc)
+            threading.Thread(target=_bg, daemon=True).start()
+            results_holder = {"status": "executing_in_background", "queued": len(capped)}
 
     return {
         "status": "triggered",
         "options_scanned": len(options),
-        "matched": len(matches),
-        "results": results,
+        "matched": total_matched,
+        "executing": len(capped),
+        "capped_at": MAX_TRIGGER if total_matched > MAX_TRIGGER else None,
+        "results": results_holder,
     }
 
 
