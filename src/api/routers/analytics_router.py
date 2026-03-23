@@ -2699,15 +2699,13 @@ async def override_execute_bulk(
 
     push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
 
-    # Step 1: Filter options from cached signals (same source as /options endpoint)
-    signals = _get_cached_signals()
-    if not signals:
-        # Fallback to analysis predictions
-        analysis = _get_cached_analysis()
-        if analysis and analysis.get("predictions"):
-            signals = list(analysis["predictions"].values())
-        else:
-            raise HTTPException(503, "No signals data — cache warming up")
+    # Step 1: Build options list from analysis (same logic as /options endpoint)
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(503, "No analysis data — cache warming up")
+
+    base = _get_or_build_options_base_payload(analysis, profile="lite")
+    signals = base.get("rows", []) if isinstance(base, dict) else base
 
     candidates = []
     for pred in signals:
