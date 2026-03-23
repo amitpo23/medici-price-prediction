@@ -297,6 +297,33 @@ a{color:#42a5f5;text-decoration:none}
       <div id="override-history-body" class="empty">No overrides recorded</div>
     </div>
 
+    <!-- Override Rules -->
+    <div class="section" id="panel-rules">
+      <div class="section-title">Override Rules (<span id="rules-count">0</span>)</div>
+      <div id="rules-body" class="empty">No active rules</div>
+      <div id="rules-form" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+        <input id="rule-name" placeholder="Rule name" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:3px 6px;font-size:10px;margin-bottom:4px">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <select id="rule-hotel" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px"><option value="">All Hotels</option></select>
+          <input id="rule-discount" type="number" value="1.0" min="0.01" max="10" step="0.5" style="width:50px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px;font-family:monospace" placeholder="$">
+        </div>
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <select id="rule-cat" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px"><option value="">Cat</option><option value="standard">Std</option><option value="superior">Sup</option><option value="deluxe">Dlx</option><option value="suite">Suite</option></select>
+          <select id="rule-board" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px"><option value="">Board</option><option value="ro">RO</option><option value="bb">BB</option></select>
+          <input id="rule-mint" type="number" value="7" min="0" style="width:35px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px" placeholder="T">
+          <input id="rule-maxt" type="number" value="120" min="0" style="width:35px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:10px" placeholder="T">
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-put btn-sm" onclick="createRule()">Create</button>
+          <button class="btn btn-sm" style="background:var(--muted)" onclick="el('rules-form').style.display='none'">Cancel</button>
+        </div>
+      </div>
+      <div style="margin-top:4px;display:flex;gap:4px">
+        <button class="btn btn-sm" style="background:var(--panel);color:var(--text);border:1px solid var(--border)" onclick="el('rules-form').style.display='block';populateRuleHotels()">+ Rule</button>
+        <button class="btn btn-sm" style="background:var(--panel);color:var(--text);border:1px solid var(--border)" onclick="triggerRules()">Run Now</button>
+      </div>
+    </div>
+
     <!-- Queue Sidebar -->
     <div class="section" id="panel-queue">
       <div class="section-title">Execution Queue</div>
@@ -378,6 +405,7 @@ async function init(){
   el('s-ts').textContent=new Date().toLocaleTimeString();
   loadQueues();
   loadOverrideAudit();
+  loadRules();
   renderOverrideHistory(null);
 }
 
@@ -821,6 +849,88 @@ el('opts-sort').addEventListener('change',()=>renderTable());
 
 /* ══════════ AUTO-REFRESH (every 3 min) ══════════ */
 setInterval(()=>{init()}, 180000);
+
+/* ══════════ OVERRIDE RULES ══════════ */
+async function loadRules(){
+  const data=await api('/override/rules?active_only=false');
+  if(!data)return;
+  el('rules-count').textContent=data.active||0;
+  const rules=data.rules||[];
+  const body=el('rules-body');
+  if(!rules.length){body.innerHTML='<div class="empty">No rules defined</div>';return}
+  body.innerHTML=rules.map(r=>{
+    const active=r.is_active;
+    const hotel=r.hotel_id?'Hotel #'+r.hotel_id:'All Hotels';
+    const filters=[r.category,r.board].filter(Boolean).join('/');
+    const t='T='+r.min_T+'-'+r.max_T;
+    const execs=r.total_executions||0;
+    const lastRun=r.last_run_at?r.last_run_at.substring(5,16).replace('T',' '):'never';
+    return '<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);opacity:'+(active?'1':'0.4')+'">'+
+      '<div style="flex:1;font-size:10px">'+
+        '<div style="font-weight:600">'+esc(r.name)+'</div>'+
+        '<div style="color:var(--muted);font-size:9px">'+hotel+(filters?' / '+filters:'')+' / '+t+' / -$'+r.discount_usd+'</div>'+
+        '<div style="color:var(--muted);font-size:9px">'+execs+' runs, last: '+lastRun+'</div>'+
+      '</div>'+
+      '<button class="btn btn-sm" style="background:'+(active?'var(--pending)':'var(--done)')+';color:#000;font-size:8px" onclick="toggleRule('+r.id+',\''+(active?'pause':'resume')+'\')">'+(active?'Pause':'Resume')+'</button>'+
+      '<button class="btn btn-sm" style="background:var(--failed);color:#fff;font-size:8px" onclick="deleteRuleConfirm('+r.id+')">X</button>'+
+    '</div>';
+  }).join('');
+}
+
+function populateRuleHotels(){
+  const sel=el('rule-hotel');
+  if(sel.options.length>1)return;
+  S.hotels.forEach((name,id)=>{
+    const o=document.createElement('option');o.value=id;o.textContent=name;sel.appendChild(o);
+  });
+}
+
+async function createRule(){
+  const name=el('rule-name').value.trim();
+  if(!name){showToast('Rule name required',false);return}
+  const body={
+    name,
+    signal:'PUT',
+    discount_usd:parseFloat(el('rule-discount').value)||1.0,
+  };
+  const hotel=el('rule-hotel').value;
+  if(hotel)body.hotel_id=parseInt(hotel);
+  const cat=el('rule-cat').value;if(cat)body.category=cat;
+  const board=el('rule-board').value;if(board)body.board=board;
+  body.min_T=parseInt(el('rule-mint').value)||7;
+  body.max_T=parseInt(el('rule-maxt').value)||120;
+  try{
+    const r=await fetch(API+'/override/rules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(r.ok){showToast('Rule created: '+data.name,true);el('rules-form').style.display='none';el('rule-name').value='';loadRules()}
+    else showToast(data.detail||'Failed',false);
+  }catch(e){showToast('Error',false)}
+}
+
+async function toggleRule(id,action){
+  await fetch(API+'/override/rules/'+id+'?action='+action,{method:'PUT'});
+  loadRules();
+}
+
+async function deleteRuleConfirm(id){
+  await fetch(API+'/override/rules/'+id,{method:'DELETE'});
+  showToast('Rule deleted',true);
+  loadRules();
+}
+
+async function triggerRules(){
+  showToast('Running rules...',true);
+  try{
+    const r=await fetch(API+'/override/rules/trigger',{method:'POST'});
+    const data=await r.json();
+    if(r.ok){
+      const m=data.matched||0;
+      const s=data.results?.success||0;
+      showToast('Rules: '+m+' matched, '+s+' executed',true);
+      loadRules();loadOverrideAudit();loadQueues();
+    }else showToast(data.detail||'Trigger failed',false);
+  }catch(e){showToast('Error',false)}
+}
 
 /* ══════════ OVERRIDE AUDIT ══════════ */
 async function loadOverrideAudit(){
