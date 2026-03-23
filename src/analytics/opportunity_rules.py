@@ -568,6 +568,8 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
 
             board_id = detail.get("BoardId")
             category_id = detail.get("CategoryId")
+            rate_plan_code = detail.get("RatePlanCode") or ""
+            inv_type_code = detail.get("InvTypeCode") or ""
             date_from = detail.get("DateFrom")
             date_to = detail.get("DateTo")
 
@@ -586,20 +588,26 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                 )
                 continue
 
-            # For 1-night stay, StartDate = EndDate = checkin date
+            # StartDate = checkin, EndDate = checkout (next day)
             start_date = date_from
-            end_date = date_from  # single night
+            if hasattr(date_from, "strftime"):
+                from datetime import timedelta
+                end_date = date_from + timedelta(days=1)
+            else:
+                end_date = date_from  # fallback
 
-            # Step 4: INSERT into BackOfficeOPT
+            # Step 4: INSERT into BackOfficeOPT (matching C# BaseEF.cs pattern)
             opp_id = None
             try:
                 cursor.execute(
                     """INSERT INTO BackOfficeOPT
                        (HotelID, StartDate, EndDate, BordID, CatrgoryID,
-                        BuyPrice, PushPrice, MaxRooms, Status, DateInsert)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, GETDATE())""",
+                        BuyPrice, PushPrice, MaxRooms, Status, DateInsert,
+                        invTypeCode, ratePlanCode, CountryId, ReservationFirstName)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, GETDATE(),
+                        ?, ?, 1, 'PricePredictor')""",
                     hotel_id, start_date, end_date, board_id, category_id,
-                    buy_price, push_price,
+                    buy_price, push_price, inv_type_code, rate_plan_code,
                 )
                 # Get the new opp_id
                 cursor.execute("SELECT SCOPE_IDENTITY()")
@@ -645,15 +653,26 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                 )
                 continue
 
-            # Step 5: INSERT into MED_Opportunities (one row per night, 1-night = 1 row)
+            # Step 5: INSERT into MED_Opportunities (matching C# BaseEF.cs pattern)
+            # One row per night (1-night stay = 1 row)
             try:
                 cursor.execute(
                     """INSERT INTO MED_Opportunities
-                       (OpportunityId, HotelId, CategoryId, BoardId,
-                        [Date], BuyPrice, PushPrice, MaxRooms, Status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)""",
-                    opp_id, hotel_id, category_id, board_id,
-                    start_date, buy_price, push_price,
+                       (OpportunityMlId, DateForm, DateTo,
+                        DestinationsType, DestinationsId,
+                        PushHotelCode, PushBookingLimit,
+                        PushInvTypeCode, PushRatePlanCode,
+                        PushPrice, IsActive, IsPush, IsSale)
+                       VALUES (?, ?, ?,
+                        'hotel', ?,
+                        ?, 1,
+                        ?, ?,
+                        ?, 1, 0, 0)""",
+                    opp_id, start_date, end_date,
+                    hotel_id,
+                    hotel_id,
+                    inv_type_code, rate_plan_code,
+                    push_price,
                 )
                 conn.commit()
             except (pyodbc.Error, OSError) as exc:
