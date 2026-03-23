@@ -2487,6 +2487,11 @@ async def override_execute_direct(
     if not pred:
         raise HTTPException(404, f"Detail {detail_id} not found")
 
+    # Guardrail: only PUT signals can be overridden
+    pred_signal = pred.get("option_signal", "")
+    if pred_signal not in ("PUT", "STRONG_PUT"):
+        raise HTTPException(400, f"Detail {detail_id} signal is {pred_signal}, not PUT — override rejected")
+
     current_price = float(pred.get("current_price", 0) or 0)
     if current_price <= 0:
         raise HTTPException(400, f"Detail {detail_id}: no valid price")
@@ -2676,7 +2681,7 @@ async def override_execute_direct(
 async def override_execute_bulk(
     request: Request,
     _api_key: str = Depends(_optional_api_key),
-    signal: str = Query("PUT", description="PUT or STRONG_PUT"),
+    signal: str = Query("PUT", description="PUT only — override is for price reductions"),
     hotel_id: int | None = Query(None, description="Specific hotel or null=all"),
     category: str | None = Query(None, description="standard, deluxe, suite, superior"),
     board: str | None = Query(None, description="ro, bb"),
@@ -2698,6 +2703,10 @@ async def override_execute_bulk(
     from urllib.parse import urlparse, parse_qs, unquote
 
     push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
+
+    # Guardrail: override only works for PUT signals
+    if signal not in ("PUT", "STRONG_PUT"):
+        raise HTTPException(400, f"Override only supports PUT/STRONG_PUT signals, got: {signal}")
 
     # Step 1: Build options list from analysis (same logic as /options endpoint)
     analysis = _get_cached_analysis()
