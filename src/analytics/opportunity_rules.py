@@ -668,12 +668,14 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                         DestinationsType, DestinationsId,
                         PushHotelCode, PushBookingLimit,
                         PushInvTypeCode, PushRatePlanCode,
-                        PushPrice, IsActive, IsPush, IsSale)
+                        PushPrice, IsActive, IsPush, IsSale,
+                        NumberOfNights)
                        VALUES (?, ?, ?,
                         'hotel', ?,
                         ?, 1,
                         ?, ?,
-                        ?, 1, 0, 0)""",
+                        ?, 1, 0, 0,
+                        1)""",
                     opp_id, start_date, end_date,
                     hotel_id,
                     hotel_id,
