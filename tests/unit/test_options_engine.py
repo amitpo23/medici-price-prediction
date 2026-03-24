@@ -108,8 +108,17 @@ def _make_prediction(
     hotel_id: int = 42,
     current_price: float = 200.0,
     days_to_checkin: int = 14,
+    fc_prices: list = None,
 ) -> dict:
-    """Build a realistic prediction dict for compute_next_day_signals."""
+    """Build a realistic prediction dict for compute_next_day_signals.
+
+    fc_prices: list of predicted prices along forward curve.
+    Default: flat at current_price (no movement → NEUTRAL).
+    """
+    if fc_prices is None:
+        fc_prices = [current_price] * 5  # flat = no signal
+    fc = [{"predicted_price": p, "volatility_at_t": 1.2, "date": f"2025-06-{i+1:02d}"}
+          for i, p in enumerate(fc_prices)]
     return {
         detail_id: {
             "hotel_id": hotel_id,
@@ -124,7 +133,7 @@ def _make_prediction(
             "regime": {"regime": regime},
             "momentum": {"acceleration": accel, "velocity_24h": velocity_24h, "signal": "NORMAL"},
             "confidence_quality": quality,
-            "forward_curve": [{"volatility_at_t": 1.2}],
+            "forward_curve": fc,
         }
     }
 
@@ -139,40 +148,55 @@ class TestComputeNextDaySignals:
         assert signals == []
 
     def test_call_high_signal(self):
-        """P_up >= 70 and accel >= 0 → CALL High."""
-        analysis = {"predictions": _make_prediction(p_up=75.0, p_down=10.0, accel=0.5)}
+        """FC shows ≥45% rise (≥30% * 1.5) → CALL High."""
+        # current=200, FC peaks at 300 = +50% rise → CALL High
+        analysis = {"predictions": _make_prediction(
+            current_price=200.0, fc_prices=[200, 220, 260, 300, 290]
+        )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "CALL"
         assert signals[0]["confidence"] == "High"
 
     def test_call_med_signal(self):
-        """P_up >= 60 (but < 70) and accel >= 0 → CALL Med."""
-        analysis = {"predictions": _make_prediction(p_up=65.0, p_down=10.0, accel=0.1)}
+        """FC shows 30-44% rise → CALL Med."""
+        # current=200, FC peaks at 270 = +35% rise → CALL Med
+        analysis = {"predictions": _make_prediction(
+            current_price=200.0, fc_prices=[200, 210, 240, 270, 260]
+        )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "CALL"
         assert signals[0]["confidence"] == "Med"
 
     def test_put_high_signal(self):
-        """P_down >= 70 and accel <= 0 → PUT High."""
-        analysis = {"predictions": _make_prediction(p_up=10.0, p_down=75.0, accel=-0.3)}
+        """FC shows ≥10% drop (≥5% * 2) → PUT High."""
+        # current=200, FC dips to 176 = -12% → PUT High
+        analysis = {"predictions": _make_prediction(
+            current_price=200.0, fc_prices=[200, 195, 185, 176, 180]
+        )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "PUT"
         assert signals[0]["confidence"] == "High"
 
     def test_put_med_signal(self):
-        """P_down >= 60 (but < 70) and accel <= 0 → PUT Med."""
-        analysis = {"predictions": _make_prediction(p_up=10.0, p_down=65.0, accel=-0.1)}
+        """FC shows 5-9% drop → PUT (Med or High depending on market context)."""
+        # current=200, FC dips to 186 = -7% → PUT
+        analysis = {"predictions": _make_prediction(
+            current_price=200.0, fc_prices=[200, 196, 190, 186, 188]
+        )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "PUT"
-        assert signals[0]["confidence"] == "Med"
+        assert signals[0]["confidence"] in ("Med", "High")  # market context may promote
 
     def test_none_signal_neutral(self):
-        """P_up and P_down both below threshold → NONE."""
-        analysis = {"predictions": _make_prediction(p_up=40.0, p_down=40.0, accel=0.0)}
+        """FC shows <5% drop and <30% rise → NONE (no significant movement)."""
+        # current=200, FC range 195-205 = ±2.5% → NONE
+        analysis = {"predictions": _make_prediction(
+            current_price=200.0, fc_prices=[200, 198, 195, 202, 205]
+        )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "NONE"

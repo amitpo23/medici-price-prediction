@@ -90,21 +90,51 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
 
             exp_return = float(pred.get("expected_change_pct", 0) or 0)
 
-            # --- Decision rules ---
-            suppress = (regime in ("STALE", "VOLATILE")) or (quality == "low")
+            # --- New signal logic: forward curve based ---
+            # PUT:  predicted price drops ≥5% from current at any point in T
+            # CALL: predicted price rises ≥30% from current at any point in T
+            # Both can be true for same option at different points
+            # No data → NEUTRAL (don't guess)
 
-            if suppress:
+            PUT_DROP_PCT = 5.0    # Min % drop for PUT signal
+            CALL_RISE_PCT = 30.0  # Min % rise for CALL signal
+
+            current_price = float(pred.get("current_price", 0) or 0)
+            suppress = (regime in ("STALE",)) or (quality == "low") or (current_price <= 0)
+
+            # Scan forward curve for min/max predicted prices
+            fc_prices = [float(pt.get("predicted_price", 0)) for pt in fc if pt.get("predicted_price")]
+            max_drop_pct = 0.0
+            max_rise_pct = 0.0
+            if fc_prices and current_price > 0:
+                fc_min = min(fc_prices)
+                fc_max = max(fc_prices)
+                max_drop_pct = ((current_price - fc_min) / current_price) * 100  # positive = drop
+                max_rise_pct = ((fc_max - current_price) / current_price) * 100  # positive = rise
+
+            has_put_signal = max_drop_pct >= PUT_DROP_PCT
+            has_call_signal = max_rise_pct >= CALL_RISE_PCT
+            has_data = len(fc_prices) >= 3  # need at least 3 FC points
+
+            if suppress or not has_data:
                 rec, conf = "NONE", "Low"
-            elif p_up >= P_THRESHOLD_HIGH and accel >= 0:
-                rec, conf = "CALL", "High"
-            elif p_up >= P_THRESHOLD_MED and accel >= 0:
-                rec, conf = "CALL", "Med"
-            elif p_down >= P_THRESHOLD_HIGH and accel <= 0:
-                rec, conf = "PUT", "High"
-            elif p_down >= P_THRESHOLD_MED and accel <= 0:
-                rec, conf = "PUT", "Med"
+            elif has_call_signal and has_put_signal:
+                # Both signals — pick the stronger one
+                if max_rise_pct >= max_drop_pct * 2:
+                    rec = "CALL"  # Rise is much stronger
+                elif max_drop_pct >= max_rise_pct:
+                    rec = "PUT"   # Drop is dominant
+                else:
+                    rec = "CALL"  # Default to CALL when rise > drop
+                conf = "Med"  # Mixed signal → medium confidence
+            elif has_call_signal:
+                rec = "CALL"
+                conf = "High" if max_rise_pct >= CALL_RISE_PCT * 1.5 else "Med"
+            elif has_put_signal:
+                rec = "PUT"
+                conf = "High" if max_drop_pct >= PUT_DROP_PCT * 2 else "Med"
             else:
-                rec, conf = "NONE", "Low"
+                rec, conf = "NONE", "Low"  # No significant movement expected
 
             # --- Market signal adjustment (from MonitorBridge) ---
             market_ctx = {}
@@ -162,6 +192,9 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 "quality":          quality,
                 "recommendation":   rec,
                 "confidence":       conf,
+                "fc_max_drop_pct":  round(max_drop_pct, 1),
+                "fc_max_rise_pct":  round(max_rise_pct, 1),
+                "fc_points":        len(fc_prices),
                 "market_context":   market_ctx,
             })
         except (KeyError, ValueError, TypeError, AttributeError, ZeroDivisionError) as exc:
