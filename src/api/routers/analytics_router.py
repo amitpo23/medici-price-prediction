@@ -3142,6 +3142,11 @@ async def opportunity_execute_single(
     if not target:
         raise HTTPException(status_code=404, detail=f"Option detail_id={body.detail_id} not found in current scan")
 
+    # Guardrail: only CALL signals can create opportunities
+    opt_signal = target.get("option_signal", "")
+    if opt_signal not in ("CALL", "STRONG_CALL"):
+        raise HTTPException(status_code=400, detail=f"Detail {body.detail_id} signal is {opt_signal}, not CALL — buy rejected")
+
     buy_price = float(target.get("current_price", 0))
     if buy_price <= 0:
         raise HTTPException(status_code=400, detail="Option has zero or negative price")

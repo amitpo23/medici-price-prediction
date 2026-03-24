@@ -708,7 +708,7 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                     guest_first,
                 )
                 conn.commit()
-            except (pyodbc.Error, OSError, Exception) as exc:
+            except (pyodbc.Error, OSError) as exc:
                 logger.error(
                     "opportunity_rules: MED_Opportunities insert failed opp=%d table=[%s]: %s",
                     opp_id, med_opp_table, exc,

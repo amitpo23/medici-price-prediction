@@ -597,54 +597,11 @@ def _push_zenith_soap(
     target_price: float,
 ) -> bool:
     """Push a price update to Zenith via SOAP. Returns True on success."""
-    import requests as req_lib
-
-    now_str = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-    soap = f'''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
-  <SOAP-ENV:Header>
-    <wsse:Security soap:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-      <wsse:UsernameToken>
-        <wsse:Username>APIMedici:Medici Live</wsse:Username>
-        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">12345</wsse:Password>
-      </wsse:UsernameToken>
-    </wsse:Security>
-  </SOAP-ENV:Header>
-  <SOAP-ENV:Body>
-    <OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="{now_str}" Version="1.0" EchoToken="rule-override">
-      <RateAmountMessages HotelCode="{zenith_id}">
-        <RateAmountMessage>
-          <StatusApplicationControl InvTypeCode="{itc}" RatePlanCode="{rpc}" Start="{date_from}" End="{date_from}"/>
-          <Rates>
-            <Rate>
-              <BaseByGuestAmts>
-                <BaseByGuestAmt AgeQualifyingCode="10" AmountAfterTax="{target_price}"/>
-                <BaseByGuestAmt AgeQualifyingCode="8" AmountAfterTax="{target_price}"/>
-              </BaseByGuestAmts>
-            </Rate>
-          </Rates>
-        </RateAmountMessage>
-      </RateAmountMessages>
-    </OTA_HotelRateAmountNotifRQ>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>'''
-
-    try:
-        resp = req_lib.post(
-            "https://hotel.tools/service/Medici%20new",
-            data=soap,
-            headers={"Content-Type": "text/xml"},
-            timeout=10,
-        )
-        success = resp.status_code == 200 and "Error" not in resp.text
-        if not success:
-            logger.warning(
-                "Zenith push failed: HTTP %d, response=%s",
-                resp.status_code, resp.text[:200],
-            )
-        return success
-    except (req_lib.RequestException, OSError) as exc:
-        logger.error("Zenith push error: %s", exc)
-        return False
+    from src.utils.zenith_push import push_rate_to_zenith
+    success, response = push_rate_to_zenith(zenith_id, itc, rpc, date_from, date_from, target_price, echo_token="rule-override")
+    if not success:
+        logger.warning("Zenith push failed: %s", response)
+    return success
 
 
 def get_execution_log(
