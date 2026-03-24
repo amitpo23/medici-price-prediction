@@ -3894,6 +3894,47 @@ async def macro_drop_history(
 # ──────────────────────────────────────────────────────────────────
 
 
+@analytics_router.get("/signal/consensus/{detail_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def signal_consensus_detail(
+    request: Request,
+    detail_id: int,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Full consensus signal breakdown — all 11 source votes for one option."""
+    from src.analytics.consensus_signal import compute_consensus_signal
+    from config.hotel_segments import get_hotel_segment, HOTEL_SEGMENTS
+
+    analysis = _get_cached_analysis()
+    if not analysis or not analysis.get("predictions"):
+        raise HTTPException(503, "No analysis data")
+
+    pred = analysis["predictions"].get(str(detail_id)) or analysis["predictions"].get(detail_id)
+    if not pred:
+        raise HTTPException(404, f"Detail {detail_id} not found")
+
+    # Compute zone average
+    zone_avg = 0.0
+    hotel_id = int(pred.get("hotel_id", 0) or 0)
+    seg = get_hotel_segment(hotel_id)
+    if seg:
+        zone = seg["zone"]
+        zone_prices = []
+        for _, other_pred in analysis["predictions"].items():
+            other_hid = int(other_pred.get("hotel_id", 0) or 0)
+            other_seg = HOTEL_SEGMENTS.get(other_hid, {})
+            if other_seg.get("zone") == zone:
+                cp = float(other_pred.get("current_price", 0) or 0)
+                if cp > 0:
+                    zone_prices.append(cp)
+        if zone_prices:
+            zone_avg = sum(zone_prices) / len(zone_prices)
+
+    result = compute_consensus_signal(pred, zone_avg=zone_avg)
+    result["segment"] = seg
+    return result
+
+
 @analytics_router.get("/hotel-segments")
 @limiter.limit(RATE_LIMIT_DATA)
 async def hotel_segments(
