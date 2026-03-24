@@ -467,6 +467,26 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
     try:
         cursor = conn.cursor()
 
+        # Get random guest name from existing bookings
+        guest_first = "Guest"
+        guest_last = "Booking"
+        try:
+            cursor.execute("""
+                SELECT TOP 1 ReservationFirstName, ReservationLastName
+                FROM BackOfficeOPT
+                WHERE ReservationFirstName IS NOT NULL
+                  AND ReservationLastName IS NOT NULL
+                  AND LEN(ReservationFirstName) > 1
+                  AND LEN(ReservationLastName) > 1
+                ORDER BY NEWID()
+            """)
+            name_row = cursor.fetchone()
+            if name_row and name_row[0] and name_row[1]:
+                guest_first = str(name_row[0]).strip()
+                guest_last = str(name_row[1]).strip()
+        except Exception:
+            pass  # fallback to default names
+
         for match in matches:
             detail_id = match["detail_id"]
             buy_price = match["buy_price"]
@@ -605,9 +625,10 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                         BuyPrice, PushPrice, MaxRooms, Status, DateInsert,
                         invTypeCode, ratePlanCode, CountryId, ReservationFirstName)
                        VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, GETDATE(),
-                        ?, ?, 1, 'PricePredictor')""",
+                        ?, ?, 1, ?)""",
                     hotel_id, start_date, end_date, board_id, category_id,
                     buy_price, push_price, inv_type_code, rate_plan_code,
+                    guest_first,
                 )
                 # Get the new opp_id
                 cursor.execute("SELECT SCOPE_IDENTITY()")
@@ -678,12 +699,13 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                         ?, GETDATE(), ?, ?,
                         ?, 1, ?, ?,
                         ?, 'USD', 1, 0, 0,
-                        'PricePredictor')""",
+                        ?)""",
                     hotel_id, start_date, end_date,
                     buy_price,
                     opp_id, board_id, category_id,
                     hotel_id, inv_type_code, rate_plan_code,
                     push_price,
+                    guest_first,
                 )
                 conn.commit()
             except (pyodbc.Error, OSError, Exception) as exc:
