@@ -3913,20 +3913,29 @@ async def signal_consensus_detail(
     if not pred:
         raise HTTPException(404, f"Detail {detail_id} not found")
 
-    # Compute zone average
+    # Compute zone average + peer directions
     zone_avg = 0.0
+    peer_directions = []
     hotel_id = int(pred.get("hotel_id", 0) or 0)
     seg = get_hotel_segment(hotel_id)
     if seg:
         zone = seg["zone"]
+        tier = seg["tier"]
         zone_prices = []
         for _, other_pred in analysis["predictions"].items():
             other_hid = int(other_pred.get("hotel_id", 0) or 0)
+            if other_hid == hotel_id:
+                continue  # skip self
             other_seg = HOTEL_SEGMENTS.get(other_hid, {})
-            if other_seg.get("zone") == zone:
+            if other_seg.get("zone") == zone and other_seg.get("tier") == tier:
                 cp = float(other_pred.get("current_price", 0) or 0)
                 if cp > 0:
                     zone_prices.append(cp)
+                other_change = float(other_pred.get("expected_change_pct", 0) or 0)
+                if other_change > 0:
+                    peer_directions.append({"direction": "up"})
+                elif other_change < 0:
+                    peer_directions.append({"direction": "down"})
         if zone_prices:
             zone_avg = sum(zone_prices) / len(zone_prices)
 
@@ -3939,7 +3948,34 @@ async def signal_consensus_detail(
     except ImportError:
         pass
 
-    result = compute_consensus_signal(pred, zone_avg=zone_avg, official_adr=official_adr)
+    # Build events list for consensus voter
+    events_for_voter = []
+    try:
+        from src.analytics.events_store import MIAMI_MAJOR_EVENTS
+        from datetime import datetime, timedelta
+        date_from_str = pred.get("date_from", "")
+        if date_from_str:
+            if isinstance(date_from_str, str):
+                checkin = datetime.strptime(date_from_str[:10], "%Y-%m-%d").date()
+            elif hasattr(date_from_str, 'date'):
+                checkin = date_from_str.date()
+            else:
+                checkin = date_from_str
+            for ev in MIAMI_MAJOR_EVENTS:
+                ev_start = datetime.strptime(ev["start"], "%Y-%m-%d").date()
+                ev_end = datetime.strptime(ev["end"], "%Y-%m-%d").date()
+                if ev_start <= checkin <= ev_end + timedelta(days=3):
+                    events_for_voter.append({"name": ev["name"], "status": "upcoming"})
+                elif ev_end < checkin <= ev_end + timedelta(days=7):
+                    events_for_voter.append({"name": ev["name"], "status": "past"})
+    except (ImportError, ValueError, TypeError):
+        pass
+
+    result = compute_consensus_signal(
+        pred, zone_avg=zone_avg, official_adr=official_adr,
+        events=events_for_voter or None,
+        peer_prices=peer_directions or None,
+    )
     result["segment"] = seg
     return result
 

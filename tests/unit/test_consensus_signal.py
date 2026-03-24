@@ -391,3 +391,73 @@ class TestComputeConsensusSignal:
         pred = _make_pred()
         result = compute_consensus_signal(pred)
         assert result["signal"] == "NEUTRAL"
+
+
+# ===================================================================
+# Voter enrichment wiring tests (events + peers via compute_consensus_signal)
+# ===================================================================
+
+class TestVoterEnrichmentWiring:
+    """Tests for events and peer data being properly wired to voters."""
+
+    def test_events_upcoming_produces_call(self):
+        """Events voter returns CALL when an upcoming event is present."""
+        pred = _make_pred()
+        events = [{"name": "Art Basel", "status": "upcoming"}]
+        result = compute_consensus_signal(pred, events=events)
+        events_vote = [v for v in result["votes"] if v["source"] == "events"]
+        assert len(events_vote) == 1
+        assert events_vote[0]["vote"] == "CALL"
+
+    def test_events_past_produces_put(self):
+        """Events voter returns PUT when a past event is present."""
+        pred = _make_pred()
+        events = [{"name": "Ultra", "status": "past"}]
+        result = compute_consensus_signal(pred, events=events)
+        events_vote = [v for v in result["votes"] if v["source"] == "events"]
+        assert events_vote[0]["vote"] == "PUT"
+
+    def test_events_none_produces_neutral(self):
+        """Events voter returns NEUTRAL when no events provided."""
+        pred = _make_pred()
+        result = compute_consensus_signal(pred)
+        events_vote = [v for v in result["votes"] if v["source"] == "events"]
+        assert events_vote[0]["vote"] == "NEUTRAL"
+
+    def test_peers_majority_rising_produces_call(self):
+        """Peers voter returns CALL when >= 66% peers are rising."""
+        pred = _make_pred()
+        peers = [{"direction": "up"}, {"direction": "up"}, {"direction": "down"}]
+        result = compute_consensus_signal(pred, peer_prices=peers)
+        peers_vote = [v for v in result["votes"] if v["source"] == "peers"]
+        assert peers_vote[0]["vote"] == "CALL"
+
+    def test_peers_majority_falling_produces_put(self):
+        """Peers voter returns PUT when >= 66% peers are falling."""
+        pred = _make_pred()
+        peers = [{"direction": "down"}, {"direction": "down"}, {"direction": "up"}]
+        result = compute_consensus_signal(pred, peer_prices=peers)
+        peers_vote = [v for v in result["votes"] if v["source"] == "peers"]
+        assert peers_vote[0]["vote"] == "PUT"
+
+    def test_peers_split_produces_neutral(self):
+        """Peers voter returns NEUTRAL when peers are split."""
+        pred = _make_pred()
+        peers = [{"direction": "up"}, {"direction": "down"}]
+        result = compute_consensus_signal(pred, peer_prices=peers)
+        peers_vote = [v for v in result["votes"] if v["source"] == "peers"]
+        assert peers_vote[0]["vote"] == "NEUTRAL"
+
+    def test_full_consensus_with_events_and_peers(self):
+        """Full consensus computation works with events and peers included."""
+        pred = _make_pred(
+            fc_change_pct=-10.0,
+            velocity_24h=-0.05,
+            prob_up=30.0,
+            prob_down=70.0,
+        )
+        events = [{"name": "Post-event", "status": "past"}]
+        peers = [{"direction": "down"}, {"direction": "down"}, {"direction": "down"}]
+        result = compute_consensus_signal(pred, events=events, peer_prices=peers)
+        assert result["signal"] in ("CALL", "PUT", "NEUTRAL")
+        assert result["sources_voting"] > 0

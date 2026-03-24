@@ -175,6 +175,22 @@ def collect_prices() -> pd.DataFrame:
     return df
 
 
+def collect_med_book_predictions() -> pd.DataFrame:
+    """Collect active MED_Book rooms for prediction pipeline.
+
+    Returns DataFrame with same schema as SalesOffice collection for direct merging.
+    """
+    try:
+        from src.data.trading_db import load_med_book_for_prediction
+        df = load_med_book_for_prediction()
+        if not df.empty:
+            logger.info("MED_Book: loaded %d active rooms for prediction", len(df))
+        return df
+    except (ImportError, OSError, ConnectionError, ValueError) as exc:
+        logger.warning("MED_Book collection failed: %s", exc)
+        return pd.DataFrame()
+
+
 HISTORY_QUERY = """
 SELECT
     d.SalesOfficeOrderId AS order_id,

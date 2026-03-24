@@ -20,8 +20,8 @@ const sql = require("mssql");
 const DB_CONFIG = {
   server: process.env.MEDICI_DB_SERVER || "medici-sql-server.database.windows.net",
   database: process.env.MEDICI_DB_NAME || "medici-db",
-  user: process.env.MEDICI_DB_USER || "prediction_readonly",
-  password: process.env.MEDICI_DB_PASSWORD || "Medici2025!",
+  user: process.env.MEDICI_DB_USER || "prediction_reader",
+  password: process.env.MEDICI_DB_PASSWORD || "Pr3d!rzn223y5KoNdQ^z8nG&YJ7N%rdRc",
   options: {
     encrypt: true,
     trustServerCertificate: false,

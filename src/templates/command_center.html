@@ -244,9 +244,11 @@ a{color:#42a5f5;text-decoration:none}
       <div class="chart-tabs">
         <div class="c-tab active" data-chart="enrich">Enrichments</div>
         <div class="c-tab" data-chart="hist-t">Historical T</div>
+        <div class="c-tab" data-chart="term">Term</div>
       </div>
       <div id="chart-enrich"><canvas id="enrich-chart"></canvas></div>
       <div id="chart-hist-t" style="display:none"><canvas id="hist-t-chart"></canvas></div>
+      <div id="chart-term" style="display:none"><canvas id="term-chart"></canvas></div>
     </div>
 
     <!-- Option detail bar -->
@@ -277,6 +279,7 @@ a{color:#42a5f5;text-decoration:none}
       <div class="section-title">Source Consensus</div>
       <div class="warn-banner" id="disagree-warn">SOURCES DISAGREE</div>
       <div id="sources-body" class="empty">Select an option</div>
+      <div id="consensus-chart-box" style="display:none;margin-top:6px;height:120px"><canvas id="consensusChart"></canvas></div>
     </div>
 
     <!-- Accuracy & Context -->
@@ -382,7 +385,7 @@ const S = {
   options: [], hotels: new Map(),
   heatmap: [], summary: null,
   filtered: [],
-  priceChart: null, enrichChart: null, histTChart: null,
+  priceChart: null, enrichChart: null, histTChart: null, termChart: null, consensusChart: null,
   activeChartTab: 'enrich',
   overrideDetailIds: new Set(), // detail IDs with active overrides
   overrideRecords: [],          // full override history
@@ -613,6 +616,7 @@ async function selectOption(detailId){
   renderAccuracyPanel(detailData, fcRaw);
   renderOverrideHistory(detailId);
   loadHistoricalT(detailId);
+  if(S.activeChartTab==='term')renderTermChart(detailId);
 
   // Background: load historical scan data (contract-data)
   const cdParams=new URLSearchParams({detail_id:String(detailId),hotel_id:String(opt.hotel_id||''),checkin_date:(opt.date_from||'').substring(0,10),category:opt.category||'',board:opt.board||''});
@@ -859,6 +863,15 @@ function renderSourcesPanel(sourceData){
   html+='<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-size:10px;display:flex;justify-content:space-between">'+
     '<span>Consensus: <b class="'+sigCls(consensus)+'">'+consensus+'</b> '+(strength*100).toFixed(0)+'%</span></div>';
   el('sources-body').innerHTML=html;
+
+  // Build vote data for bar chart from source predictions
+  const chartVotes=preds.map(p=>({source:p.source_label||p.source_name||'',vote:p.direction||'NEUTRAL'}));
+  if(chartVotes.length){
+    el('consensus-chart-box').style.display='block';
+    renderConsensusBarChart(chartVotes);
+  }else{
+    el('consensus-chart-box').style.display='none';
+  }
 }
 
 /* ══════════ ACCURACY PANEL ══════════ */
@@ -970,10 +983,11 @@ document.querySelectorAll('.c-tab').forEach(tab=>{
     document.querySelectorAll('.c-tab').forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
     const chart=tab.dataset.chart;
-    ['enrich','hist-t'].forEach(c=>{
+    ['enrich','hist-t','term'].forEach(c=>{
       const container=el('chart-'+c);
       if(container)container.style.display=c===chart?'block':'none';
     });
+    if(chart==='term'&&S.detailId)renderTermChart(S.detailId);
     S.activeChartTab=chart;
   };
 });
@@ -1238,6 +1252,62 @@ function renderOverrideHistory(detailId){
           '<span>'+d+'</span></div>';
       }).join('')+'</div>';
   }
+}
+
+/* ══════════ TERM STRUCTURE CHART ══════════ */
+function renderTermChart(detailId){
+  const opt=S.options.find(r=>String(r.detail_id)===String(detailId));
+  if(!opt)return;
+  const hotelId=opt.hotel_id;
+  const peers=S.options.filter(r=>r.hotel_id===hotelId&&r.days_to_checkin!=null&&r.current_price>0);
+  if(!peers.length)return;
+  peers.sort((a,b)=>(b.days_to_checkin||0)-(a.days_to_checkin||0));
+
+  const otherPts=[];const selectedPt=[];
+  peers.forEach(r=>{
+    const pt={x:r.days_to_checkin||0,y:r.current_price};
+    if(String(r.detail_id)===String(detailId))selectedPt.push(pt);
+    else otherPts.push(pt);
+  });
+
+  if(S.termChart)S.termChart.destroy();
+  S.termChart=new Chart(el('term-chart'),{type:'scatter',data:{datasets:[
+    {label:'Hotel Rooms',data:otherPts,backgroundColor:'rgba(66,165,245,.5)',borderColor:'rgba(66,165,245,.7)',pointRadius:4,pointHoverRadius:6,order:2},
+    {label:'Selected',data:selectedPt,backgroundColor:'#ffa726',borderColor:'#fff',pointRadius:8,pointBorderWidth:2,pointHoverRadius:10,order:1},
+  ]},options:{
+    responsive:true,maintainAspectRatio:false,
+    scales:{
+      x:{reverse:true,title:{display:true,text:'T (days to checkin)',color:'#8899aa',font:{size:9}},ticks:{color:'#8899aa',font:{size:8}},grid:{color:'rgba(255,255,255,.04)'}},
+      y:{title:{display:true,text:'Price',color:'#8899aa',font:{size:9}},ticks:{color:'#8899aa',font:{size:8},callback:v=>'$'+v},grid:{color:'rgba(255,255,255,.04)'}},
+    },
+    plugins:{
+      legend:{labels:{color:'#eee',font:{size:9},boxWidth:8,padding:6}},
+      tooltip:{backgroundColor:'rgba(22,33,62,.95)',titleColor:'#eee',bodyColor:'#ccc',callbacks:{
+        label:ctx=>'T='+ctx.parsed.x+' $'+ctx.parsed.y.toFixed(0)
+      }},
+    },
+  }});
+}
+
+/* ══════════ CONSENSUS BAR CHART ══════════ */
+function renderConsensusBarChart(votes){
+  if(S.consensusChart){S.consensusChart.destroy();S.consensusChart=null}
+  if(!votes||!votes.length)return;
+  const canvas=el('consensusChart');
+  if(!canvas)return;
+  const labels=votes.map(v=>v.source.replace(/_/g,' ').substring(0,12));
+  const colors=votes.map(v=>v.vote==='CALL'?'rgba(0,200,83,.7)':v.vote==='PUT'?'rgba(255,23,68,.7)':'rgba(117,117,117,.5)');
+  S.consensusChart=new Chart(canvas,{type:'bar',data:{
+    labels,
+    datasets:[{data:votes.map(()=>1),backgroundColor:colors,borderWidth:0}]
+  },options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:(_,ctx)=>votes[ctx.dataIndex]?.vote||''}}},
+    scales:{
+      x:{display:false,max:1.2},
+      y:{ticks:{color:'#8899aa',font:{size:8}},grid:{display:false}},
+    },
+  }});
 }
 
 /* ══════════ BOOT ══════════ */

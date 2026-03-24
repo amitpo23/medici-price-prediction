@@ -108,6 +108,44 @@ def load_active_bookings() -> pd.DataFrame:
     return _convert_date_columns(df, ["DateFrom", "DateTo", "CancellationTo", "Created"])
 
 
+def load_med_book_for_prediction() -> pd.DataFrame:
+    """Load active MED_Book rooms in a schema compatible with the prediction pipeline.
+
+    Maps MED_Book columns to match SalesOffice.Details output:
+    - PreBookId -> detail_id  (prefixed with 'MB_' to avoid collision)
+    - HotelId -> hotel_id
+    - BuyPrice -> room_price (baseline for prediction)
+    - DateFrom/DateTo preserved
+
+    Filters: IsActive=1, IsSold=0, DateFrom >= today (future stays only)
+    """
+    opp_table = _get_opportunities_table_name()
+    query = f"""
+        SELECT
+            CONCAT('MB_', CAST(b.id AS VARCHAR)) AS detail_id,
+            b.id AS booking_id,
+            b.HotelId AS hotel_id,
+            h.name AS hotel_name,
+            'Standard' AS room_category,
+            'RO' AS room_board,
+            b.price AS room_price,
+            COALESCE(o.PushPrice, b.price) AS push_price,
+            b.startDate AS date_from,
+            b.endDate AS date_to,
+            b.source AS booking_source,
+            'MED_Book' AS prediction_source
+        FROM MED_Book b
+        LEFT JOIN Med_Hotels h ON b.HotelId = h.HotelId
+        LEFT JOIN [{opp_table}] o ON b.OpportunityId = o.OpportunityId
+        WHERE b.IsActive = 1
+          AND b.IsSold = 0
+          AND b.startDate >= GETDATE()
+        ORDER BY b.HotelId, b.startDate
+    """
+    df = run_trading_query(query)
+    return _convert_date_columns(df, ["date_from", "date_to"])
+
+
 def load_all_bookings(days_back: int = 180) -> pd.DataFrame:
     """Load booking history (active + sold + cancelled) for analysis."""
     opp_table = _get_opportunities_table_name()

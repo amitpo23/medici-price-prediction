@@ -66,3 +66,71 @@ def get_hotel_ppi_trend() -> dict:
         direction = "flat"
 
     return {"direction": direction, "change_pct": round(change_pct, 2), "latest": latest, "previous": prev}
+
+
+# ---------------------------------------------------------------------------
+# BaseCollector subclass for registry / scheduled collection
+# ---------------------------------------------------------------------------
+
+import sqlite3
+
+import pandas as pd
+
+from config.settings import DATA_DIR
+from src.collectors.base import BaseCollector
+
+FRED_DB_PATH = DATA_DIR / "fred_data.db"
+
+DISPLAY_SERIES = {
+    "hotel_employment": "IPUTN721110W200000000",
+    "lodging_cpi": "CUSR0000SEHB",
+    "fl_hospitality_jobs": "FLLEIH",
+}
+
+
+class FREDCollector(BaseCollector):
+    """Collector for FRED economic indicators relevant to hotel pricing."""
+
+    name = "fred"
+
+    def is_available(self) -> bool:
+        return bool(FRED_API_KEY)
+
+    def collect(self, **kwargs) -> pd.DataFrame:
+        """Fetch all FRED series and persist to SQLite."""
+        if not self.is_available():
+            logger.info("FRED collector skipped — no API key")
+            return pd.DataFrame()
+
+        all_series = {**SERIES, **DISPLAY_SERIES}
+        rows = []
+        for name, series_id in all_series.items():
+            obs = fetch_fred_series(series_id, months_back=13)
+            for o in obs:
+                rows.append({
+                    "series_name": name,
+                    "series_id": series_id,
+                    "date": o["date"],
+                    "value": o["value"],
+                    "fetched_at": datetime.utcnow().isoformat(),
+                })
+
+        df = pd.DataFrame(rows)
+        if not df.empty:
+            self._persist(df)
+        return df
+
+    def _persist(self, df: pd.DataFrame) -> None:
+        """Write observations to SQLite for freshness tracking."""
+        try:
+            conn = sqlite3.connect(str(FRED_DB_PATH))
+            conn.execute("""CREATE TABLE IF NOT EXISTS fred_observations (
+                series_name TEXT, series_id TEXT, date TEXT, value REAL, fetched_at TEXT,
+                PRIMARY KEY (series_id, date)
+            )""")
+            df.to_sql("fred_observations", conn, if_exists="replace", index=False)
+            conn.commit()
+            conn.close()
+            logger.info("FRED: persisted %d observations to %s", len(df), FRED_DB_PATH)
+        except Exception as exc:
+            logger.warning("FRED persist failed: %s", exc)

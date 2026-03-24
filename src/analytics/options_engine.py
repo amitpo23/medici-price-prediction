@@ -106,6 +106,7 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
             # Get zone context for competitor/benchmark voting
             zone_avg = 0.0
             official_adr = 0.0
+            peer_directions = []
             hotel_id_val = pred.get("hotel_id", 0)
             try:
                 from config.hotel_segments import get_hotel_segment, HOTEL_SEGMENTS
@@ -124,6 +125,12 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                             other_cp = float(other_pred.get("current_price", 0) or 0)
                             if other_cp > 0:
                                 zone_prices.append(other_cp)
+                            # Collect peer direction for consensus voter
+                            other_change = float(other_pred.get("expected_change_pct", 0) or 0)
+                            if other_change > 0:
+                                peer_directions.append({"direction": "up"})
+                            elif other_change < 0:
+                                peer_directions.append({"direction": "down"})
                     if zone_prices:
                         zone_avg = sum(zone_prices) / len(zone_prices)
             except (ImportError, ValueError, TypeError):
@@ -137,8 +144,35 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
             except ImportError:
                 pass
 
+            # Build events list for consensus voter
+            events_for_voter = []
+            try:
+                from src.analytics.events_store import MIAMI_MAJOR_EVENTS
+                from datetime import datetime, timedelta
+                date_from_str = pred.get("date_from", "")
+                if date_from_str:
+                    if isinstance(date_from_str, str):
+                        checkin = datetime.strptime(date_from_str[:10], "%Y-%m-%d").date()
+                    elif hasattr(date_from_str, 'date'):
+                        checkin = date_from_str.date()
+                    else:
+                        checkin = date_from_str
+                    for ev in MIAMI_MAJOR_EVENTS:
+                        ev_start = datetime.strptime(ev["start"], "%Y-%m-%d").date()
+                        ev_end = datetime.strptime(ev["end"], "%Y-%m-%d").date()
+                        if ev_start <= checkin <= ev_end + timedelta(days=3):
+                            events_for_voter.append({"name": ev["name"], "status": "upcoming"})
+                        elif ev_end < checkin <= ev_end + timedelta(days=7):
+                            events_for_voter.append({"name": ev["name"], "status": "past"})
+            except (ImportError, ValueError, TypeError):
+                pass
+
             from src.analytics.consensus_signal import compute_consensus_signal
-            consensus = compute_consensus_signal(pred, zone_avg=zone_avg, official_adr=official_adr)
+            consensus = compute_consensus_signal(
+                pred, zone_avg=zone_avg, official_adr=official_adr,
+                events=events_for_voter or None,
+                peer_prices=peer_directions or None,
+            )
 
             rec = consensus["signal"]
             if rec == "NEUTRAL":
