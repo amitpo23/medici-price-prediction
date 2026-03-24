@@ -247,21 +247,24 @@
 
 ---
 
-## 8. Consensus Signal Engine — 11 Voters
+## 8. Consensus Signal Engine — 14 Voters
 
-| Voter | Category | Data Source | Connected |
-|-------|----------|-------------|-----------|
-| Forward Curve | Lagging | FC change_pct | Yes |
-| Scan Velocity | Coincident | momentum.velocity_24h | Yes |
-| Competitors | Coincident | Zone avg price (same tier) | Yes |
-| Events | Leading | MIAMI_MAJOR_EVENTS (v2.6.0) | Yes |
-| Seasonality | Leading | FC season_adj_pct | Yes |
-| Flight Demand | Leading | FC demand_adj_pct | Yes |
-| Weather | Leading | FC weather_adj_pct | Yes |
-| Peers | Coincident | Peer hotel directions (v2.6.0) | Yes |
-| Booking Momentum | Lagging | FC cancellation_adj_pct | Yes |
-| Historical | Lagging | probability.up/down | Yes |
-| Official Benchmark | Lagging | GMCVB ADR by zone | Yes |
+| # | Voter | Category | Data Source | Connected |
+|---|-------|----------|-------------|-----------|
+| 1 | Forward Curve | Lagging | FC change_pct | Yes |
+| 2 | Scan Velocity | Coincident | momentum.velocity_24h | Yes |
+| 3 | Competitors | Coincident | Zone avg price (same tier) | Yes |
+| 4 | Events | Leading | MIAMI_MAJOR_EVENTS (v2.6.0) | Yes |
+| 5 | Seasonality | Leading | FC season_adj_pct | Yes |
+| 6 | Flight Demand | Leading | FC demand_adj_pct | Yes |
+| 7 | Weather | Leading | FC weather_adj_pct | Yes |
+| 8 | Peers | Coincident | Peer hotel directions (v2.6.0) | Yes |
+| 9 | Booking Momentum | Lagging | FC cancellation_adj_pct | Yes |
+| 10 | Historical | Lagging | probability.up/down | Yes |
+| 11 | Official Benchmark | Lagging | GMCVB ADR by zone | Yes |
+| 12 | Scan Drop Risk | Coincident | scan_history (SalesOffice.Details scans) | Yes |
+| 13 | Provider Spread | Coincident | SearchResultsPollLog (8.3M, 129 providers) | Yes |
+| 14 | Margin Erosion | Lagging | MED_Book buy prices (10.7K active bookings) | Yes |
 
 **Rules**: Equal weight, probability = agreeing/voting × 100%, ≥66% = signal, MIN_VOTING=4
 
