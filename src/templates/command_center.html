@@ -380,6 +380,7 @@ const S = {
   activeChartTab: 'enrich',
   overrideDetailIds: new Set(), // detail IDs with active overrides
   overrideRecords: [],          // full override history
+  segments: {},                 // hotel_id → {zone, tier, zone_name, tier_name, ...}
 };
 
 function fmt$(v){return '$'+Number(v).toLocaleString('en-US',{maximumFractionDigits:0})}
@@ -434,6 +435,7 @@ async function init(){
   loadOverrideAudit();
   loadRules();
   loadOppRules();
+  loadSegments();
   renderOverrideHistory(null);
 }
 
@@ -539,8 +541,10 @@ function renderTable(){
     else if(isCall)actionBtn='<button class="btn btn-call btn-sm" onclick="event.stopPropagation();queueOpportunity('+r.detail_id+','+(r.current_price||0)+')">&#11014;</button>';
     const hasOverride=S.overrideDetailIds.has(r.detail_id);
     const ovrBadge=hasOverride?'<span class="ovr-badge ovr-active" title="Override active"></span>':'';
+    const _rseg=S.segments[r.hotel_id];
+    const zoneTag=_rseg?'<span style="color:var(--muted);font-size:8px;display:block">'+_rseg.zone_name+'</span>':'';
     return '<tr'+active+' data-id="'+r.detail_id+'" onclick="selectOption('+r.detail_id+')">'+
-      '<td style="font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.hotel_name||'')+'">'+esc(r.hotel_name||'')+ovrBadge+'</td>'+
+      '<td style="font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.hotel_name||'')+'">'+esc(r.hotel_name||'')+ovrBadge+zoneTag+'</td>'+
       '<td class="num">'+( r.days_to_checkin||0)+'</td>'+
       '<td class="num">'+fmt$(r.current_price||0)+'</td>'+
       '<td><span class="sig '+sigCls(sig)+'">'+sig+'</span></td>'+
@@ -574,8 +578,9 @@ async function selectOption(detailId){
 
   // Detail bar
   el('detail-bar').style.display='block';
-  el('d-hotel').textContent=opt.hotel_name||'';
-  el('d-cat').textContent=opt.category||'';
+  const _seg=S.segments[opt.hotel_id];
+  el('d-hotel').textContent=(opt.hotel_name||'')+(_seg?' ('+_seg.zone_name+')':'');
+  el('d-cat').textContent=(_seg?_seg.tier_name+' · ':'')+( opt.category||'');
   el('d-board').textContent=(opt.board||'').toUpperCase();
   el('d-checkin').textContent=shortDate(opt.date_from);
   el('d-t').textContent='T='+opt.days_to_checkin;
@@ -594,6 +599,7 @@ async function selectOption(detailId){
   renderPriceChart(fcRaw, pathData, sourceData);
   renderEnrichChart(fcRaw);
   renderSignalPanel(fcRaw, pathData, detailData);
+  loadPeerComparison(opt.hotel_id, opt.current_price);
   renderSourcesPanel(sourceData);
   renderAccuracyPanel(detailData, fcRaw);
   renderOverrideHistory(detailId);
@@ -1040,6 +1046,31 @@ async function triggerOppRules(){
       loadOppRules();loadQueues();
     }else showToast(data.detail||'Trigger failed',false);
   }catch(e){showToast('Error',false)}
+}
+
+/* ══════════ HOTEL SEGMENTS ══════════ */
+async function loadSegments(){
+  const data=await api('/hotel-segments');
+  if(data && data.segments) S.segments=data.segments;
+}
+
+async function loadPeerComparison(hotelId, currentPrice){
+  const data=await api('/hotel-peers/'+hotelId);
+  if(!data||!data.peers||!data.peers.length)return;
+  const zoneAvg=data.zone_avg;
+  const diff=currentPrice&&zoneAvg?((currentPrice/zoneAvg-1)*100).toFixed(0):'?';
+  const seg=data.segment;
+  let html='<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px">';
+  html+='<div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Zone: '+(seg?seg.zone_name:'')+'</div>';
+  html+='<div class="sig-row"><span class="lbl">Zone Avg</span><span class="val">'+fmt$(zoneAvg)+'</span></div>';
+  html+='<div class="sig-row"><span class="lbl">vs Zone</span><span class="val '+(diff>0?'up':'down')+'">'+diff+'%</span></div>';
+  data.peers.forEach(p=>{
+    html+='<div style="display:flex;justify-content:space-between;font-size:9px;padding:1px 0;color:var(--muted)">';
+    html+='<span>'+p.hotel_name.substring(0,20)+'</span>';
+    html+='<span>'+fmt$(p.avg_price)+'</span></div>';
+  });
+  html+='</div>';
+  el('signal-body').innerHTML+=html;
 }
 
 /* ══════════ OVERRIDE AUDIT ══════════ */

@@ -683,10 +683,17 @@ def _build_options_rows(
             include_decline_events=not is_lite_profile,
         )
 
+        # Segment enrichment — zone + tier
+        from config.hotel_segments import get_hotel_segment
+        _hotel_id = pred_view.get("hotel_id")
+        _seg = get_hotel_segment(int(_hotel_id)) if _hotel_id else None
+
         row = {
             "detail_id": int(detail_id),
-            "hotel_id": pred_view.get("hotel_id"),
+            "hotel_id": _hotel_id,
             "hotel_name": pred_view.get("hotel_name"),
+            "zone": _seg["zone_name"] if _seg else "",
+            "tier": _seg["tier_name"] if _seg else "",
             "category": pred_view.get("category"),
             "board": pred_view.get("board"),
             "date_from": pred_view.get("date_from"),
@@ -3880,3 +3887,68 @@ async def macro_drop_history(
 
     result = compute_drop_history(snapshots, hotel_id, days=days)
     return result.to_dict()
+
+
+# ──────────────────────────────────────────────────────────────────
+#  Hotel Segments & Peer Comparison
+# ──────────────────────────────────────────────────────────────────
+
+
+@analytics_router.get("/hotel-segments")
+@limiter.limit(RATE_LIMIT_DATA)
+async def hotel_segments(
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Return all hotel segment mappings (zone + tier)."""
+    from config.hotel_segments import HOTEL_SEGMENTS, ZONES, TIERS
+    return {"segments": HOTEL_SEGMENTS, "zones": ZONES, "tiers": TIERS}
+
+
+@analytics_router.get("/hotel-peers/{hotel_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def hotel_peers(
+    request: Request,
+    hotel_id: int,
+    _key=Depends(_optional_api_key),
+):
+    """Peer comparison for a hotel — same-zone peers with price stats."""
+    from config.hotel_segments import get_hotel_segment, get_peer_hotels, HOTEL_SEGMENTS
+
+    seg = get_hotel_segment(hotel_id)
+    if not seg:
+        return {"hotel_id": hotel_id, "segment": None, "peers": []}
+
+    peer_ids = get_peer_hotels(hotel_id, same_zone=True, same_tier=False)
+
+    # Get current prices for peers from cached analysis
+    analysis = _get_cached_analysis()
+    peer_data = []
+    if analysis and analysis.get("predictions"):
+        preds = analysis["predictions"]
+        for pid in peer_ids:
+            peer_prices = []
+            for _key_id, pred in preds.items():
+                if int(pred.get("hotel_id", 0)) == pid:
+                    cp = float(pred.get("current_price", 0) or 0)
+                    if cp > 0:
+                        peer_prices.append(cp)
+            if peer_prices:
+                peer_data.append({
+                    "hotel_id": pid,
+                    "hotel_name": HOTEL_SEGMENTS.get(pid, {}).get("name", ""),
+                    "tier": HOTEL_SEGMENTS.get(pid, {}).get("tier", ""),
+                    "avg_price": round(sum(peer_prices) / len(peer_prices), 2),
+                    "min_price": min(peer_prices),
+                    "max_price": max(peer_prices),
+                    "options_count": len(peer_prices),
+                })
+
+    zone_avg = round(sum(p["avg_price"] for p in peer_data) / len(peer_data), 2) if peer_data else None
+
+    return {
+        "hotel_id": hotel_id,
+        "segment": seg,
+        "peers": peer_data,
+        "zone_avg": zone_avg,
+    }
