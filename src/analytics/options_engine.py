@@ -90,51 +90,59 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
 
             exp_return = float(pred.get("expected_change_pct", 0) or 0)
 
-            # --- New signal logic: forward curve based ---
-            # PUT:  predicted price drops ≥5% from current at any point in T
-            # CALL: predicted price rises ≥30% from current at any point in T
-            # Both can be true for same option at different points
-            # No data → NEUTRAL (don't guess)
-
-            PUT_DROP_PCT = 5.0    # Min % drop for PUT signal
-            CALL_RISE_PCT = 30.0  # Min % rise for CALL signal
-
             current_price = float(pred.get("current_price", 0) or 0)
-            suppress = (regime in ("STALE",)) or (quality == "low") or (current_price <= 0)
 
-            # Scan forward curve for min/max predicted prices
+            # FC metrics kept for output (max_drop_pct, max_rise_pct, fc_points)
             fc_prices = [float(pt.get("predicted_price", 0)) for pt in fc if pt.get("predicted_price")]
             max_drop_pct = 0.0
             max_rise_pct = 0.0
             if fc_prices and current_price > 0:
                 fc_min = min(fc_prices)
                 fc_max = max(fc_prices)
-                max_drop_pct = ((current_price - fc_min) / current_price) * 100  # positive = drop
-                max_rise_pct = ((fc_max - current_price) / current_price) * 100  # positive = rise
+                max_drop_pct = ((current_price - fc_min) / current_price) * 100
+                max_rise_pct = ((fc_max - current_price) / current_price) * 100
 
-            has_put_signal = max_drop_pct >= PUT_DROP_PCT
-            has_call_signal = max_rise_pct >= CALL_RISE_PCT
-            has_data = len(fc_prices) >= 3  # need at least 3 FC points
+            # --- Consensus signal from 11 independent voters ---
+            # Get zone context for competitor/benchmark voting
+            zone_avg = 0.0
+            official_adr = 0.0
+            hotel_id_val = pred.get("hotel_id", 0)
+            try:
+                from config.hotel_segments import get_hotel_segment, HOTEL_SEGMENTS
+                seg = get_hotel_segment(int(hotel_id_val)) if hotel_id_val else None
+                if seg:
+                    zone = seg["zone"]
+                    zone_prices = []
+                    for _, other_pred in predictions.items():
+                        other_hid = int(other_pred.get("hotel_id", 0) or 0)
+                        other_seg = HOTEL_SEGMENTS.get(other_hid, {})
+                        if other_seg.get("zone") == zone:
+                            other_cp = float(other_pred.get("current_price", 0) or 0)
+                            if other_cp > 0:
+                                zone_prices.append(other_cp)
+                    if zone_prices:
+                        zone_avg = sum(zone_prices) / len(zone_prices)
+            except (ImportError, ValueError, TypeError):
+                pass  # hotel_segments is optional
 
-            if suppress or not has_data:
-                rec, conf = "NONE", "Low"
-            elif has_call_signal and has_put_signal:
-                # Both signals — pick the stronger one
-                if max_rise_pct >= max_drop_pct * 2:
-                    rec = "CALL"  # Rise is much stronger
-                elif max_drop_pct >= max_rise_pct:
-                    rec = "PUT"   # Drop is dominant
-                else:
-                    rec = "CALL"  # Default to CALL when rise > drop
-                conf = "Med"  # Mixed signal → medium confidence
-            elif has_call_signal:
-                rec = "CALL"
-                conf = "High" if max_rise_pct >= CALL_RISE_PCT * 1.5 else "Med"
-            elif has_put_signal:
-                rec = "PUT"
-                conf = "High" if max_drop_pct >= PUT_DROP_PCT * 2 else "Med"
+            from src.analytics.consensus_signal import compute_consensus_signal
+            consensus = compute_consensus_signal(pred, zone_avg=zone_avg, official_adr=official_adr)
+
+            rec = consensus["signal"]
+            if rec == "NEUTRAL":
+                rec = "NONE"  # Keep backward compat with existing UI
+            conf_pct = consensus["probability"]
+            if conf_pct >= 90:
+                conf = "High"
+            elif conf_pct >= 66:
+                conf = "Med"
             else:
-                rec, conf = "NONE", "Low"  # No significant movement expected
+                conf = "Low"
+
+            # Regime/quality suppression
+            suppress = (regime in ("STALE",)) or (quality == "low") or (current_price <= 0)
+            if suppress:
+                rec, conf = "NONE", "Low"
 
             # --- Market signal adjustment (from MonitorBridge) ---
             market_ctx = {}
@@ -192,6 +200,10 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 "quality":          quality,
                 "recommendation":   rec,
                 "confidence":       conf,
+                "consensus_probability":    consensus.get("probability", 0),
+                "consensus_sources_agree":  consensus.get("sources_agree", 0),
+                "consensus_sources_voting": consensus.get("sources_voting", 0),
+                "consensus_by_category":    consensus.get("by_category", {}),
                 "fc_max_drop_pct":  round(max_drop_pct, 1),
                 "fc_max_rise_pct":  round(max_rise_pct, 1),
                 "fc_points":        len(fc_prices),

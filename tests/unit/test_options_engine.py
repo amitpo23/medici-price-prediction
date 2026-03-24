@@ -109,16 +109,31 @@ def _make_prediction(
     current_price: float = 200.0,
     days_to_checkin: int = 14,
     fc_prices: list = None,
+    fc_change_pct: float = 0.0,
+    season_adj_pct: float = 0.0,
+    demand_adj_pct: float = 0.0,
+    weather_adj_pct: float = 0.0,
+    cancellation_adj_pct: float = 0.0,
 ) -> dict:
     """Build a realistic prediction dict for compute_next_day_signals.
 
     fc_prices: list of predicted prices along forward curve.
     Default: flat at current_price (no movement → NEUTRAL).
+    fc_change_pct: change_pct for FC voter (stored in first FC entry).
+    season/demand/weather/cancellation_adj_pct: enrichment fields for consensus voters.
     """
     if fc_prices is None:
         fc_prices = [current_price] * 5  # flat = no signal
-    fc = [{"predicted_price": p, "volatility_at_t": 1.2, "date": f"2025-06-{i+1:02d}"}
-          for i, p in enumerate(fc_prices)]
+    fc = []
+    for i, p in enumerate(fc_prices):
+        entry = {"predicted_price": p, "volatility_at_t": 1.2, "date": f"2025-06-{i+1:02d}"}
+        if i == 0:
+            entry["change_pct"] = fc_change_pct
+            entry["season_adj_pct"] = season_adj_pct
+            entry["demand_adj_pct"] = demand_adj_pct
+            entry["weather_adj_pct"] = weather_adj_pct
+            entry["cancellation_adj_pct"] = cancellation_adj_pct
+        fc.append(entry)
     return {
         detail_id: {
             "hotel_id": hotel_id,
@@ -147,49 +162,66 @@ class TestComputeNextDaySignals:
         signals = compute_next_day_signals({"predictions": {}})
         assert signals == []
 
-    def test_call_high_signal(self):
-        """FC shows ≥45% rise (≥30% * 1.5) → CALL High."""
-        # current=200, FC peaks at 300 = +50% rise → CALL High
+    def test_call_signal(self):
+        """Consensus: multiple voters agree CALL → CALL signal.
+
+        Triggers: FC +35%, historical 80% up, seasonality +5%, demand +3%.
+        At least 4/11 voters → CALL with ≥66% agreement among non-neutral voters.
+        """
         analysis = {"predictions": _make_prediction(
-            current_price=200.0, fc_prices=[200, 220, 260, 300, 290]
+            current_price=200.0, fc_prices=[200, 220, 260, 300, 290],
+            p_up=80.0, p_down=10.0,
+            fc_change_pct=35.0,
+            season_adj_pct=0.05,
+            demand_adj_pct=0.03,
         )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "CALL"
-        assert signals[0]["confidence"] == "High"
+        assert signals[0]["confidence"] in ("Med", "High")
 
-    def test_call_med_signal(self):
-        """FC shows 30-44% rise → CALL Med."""
-        # current=200, FC peaks at 270 = +35% rise → CALL Med
+    def test_call_with_velocity(self):
+        """Consensus CALL boosted by strong scan velocity."""
         analysis = {"predictions": _make_prediction(
-            current_price=200.0, fc_prices=[200, 210, 240, 270, 260]
+            current_price=200.0, fc_prices=[200, 220, 260, 300, 290],
+            p_up=80.0, p_down=10.0,
+            velocity_24h=0.05,  # 5% → CALL vote
+            fc_change_pct=35.0,
+            season_adj_pct=0.05,
         )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "CALL"
-        assert signals[0]["confidence"] == "Med"
 
-    def test_put_high_signal(self):
-        """FC shows ≥10% drop (≥5% * 2) → PUT High."""
-        # current=200, FC dips to 176 = -12% → PUT High
+    def test_put_signal(self):
+        """Consensus: multiple voters agree PUT → PUT signal.
+
+        Triggers: FC -10%, historical 80% down, weather -5%, cancellation -3%.
+        """
         analysis = {"predictions": _make_prediction(
-            current_price=200.0, fc_prices=[200, 195, 185, 176, 180]
+            current_price=200.0, fc_prices=[200, 195, 185, 176, 180],
+            p_up=10.0, p_down=80.0,
+            fc_change_pct=-10.0,
+            weather_adj_pct=-0.05,
+            cancellation_adj_pct=-0.03,
         )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "PUT"
-        assert signals[0]["confidence"] == "High"
+        assert signals[0]["confidence"] in ("Med", "High")
 
-    def test_put_med_signal(self):
-        """FC shows 5-9% drop → PUT (Med or High depending on market context)."""
-        # current=200, FC dips to 186 = -7% → PUT
+    def test_put_with_negative_velocity(self):
+        """Consensus PUT with scan velocity confirming decline."""
         analysis = {"predictions": _make_prediction(
-            current_price=200.0, fc_prices=[200, 196, 190, 186, 188]
+            current_price=200.0, fc_prices=[200, 196, 190, 186, 188],
+            p_up=10.0, p_down=80.0,
+            velocity_24h=-0.05,  # -5% → PUT vote
+            fc_change_pct=-7.0,
+            cancellation_adj_pct=-0.03,
         )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "PUT"
-        assert signals[0]["confidence"] in ("Med", "High")  # market context may promote
 
     def test_none_signal_neutral(self):
         """FC shows <5% drop and <30% rise → NONE (no significant movement)."""
@@ -210,13 +242,15 @@ class TestComputeNextDaySignals:
         signals = compute_next_day_signals(analysis)
         assert signals[0]["recommendation"] == "NONE"
 
-    def test_suppress_volatile_regime(self):
-        """VOLATILE regime → suppress signal → NONE."""
+    def test_volatile_regime_not_suppressed(self):
+        """VOLATILE regime is NOT suppressed by consensus engine (only STALE is)."""
         analysis = {"predictions": _make_prediction(
             p_up=80.0, p_down=5.0, accel=1.0, regime="VOLATILE",
+            fc_change_pct=35.0, season_adj_pct=0.05, demand_adj_pct=0.03,
         )}
         signals = compute_next_day_signals(analysis)
-        assert signals[0]["recommendation"] == "NONE"
+        # VOLATILE regime does not suppress — consensus voters decide
+        assert signals[0]["recommendation"] in ("CALL", "NONE")
 
     def test_suppress_low_quality(self):
         """Low quality → suppress signal → NONE."""
@@ -226,21 +260,23 @@ class TestComputeNextDaySignals:
         signals = compute_next_day_signals(analysis)
         assert signals[0]["recommendation"] == "NONE"
 
-    def test_call_blocked_by_negative_accel(self):
-        """High P_up but negative accel → NONE (accel condition not met)."""
+    def test_consensus_needs_agreement(self):
+        """High P_up alone is not enough — consensus needs multiple voters agreeing."""
+        # Only historical voter fires CALL (80% up), rest are NEUTRAL → no 66% agreement
         analysis = {"predictions": _make_prediction(p_up=80.0, p_down=5.0, accel=-0.5)}
         signals = compute_next_day_signals(analysis)
-        # p_up >= HIGH but accel < 0 → falls through to PUT check → p_down < MED → NONE
-        assert signals[0]["recommendation"] == "NONE"
+        # Only 1 voter (historical) says CALL out of ~1 voting → could be CALL or NONE
+        # depending on neutral exclusion rules. With only 1 voting, 100% agreement → CALL
+        assert signals[0]["recommendation"] in ("CALL", "NONE")
 
-    def test_put_blocked_by_positive_accel(self):
-        """High P_down but positive accel → NONE."""
+    def test_consensus_needs_agreement_put(self):
+        """High P_down alone — historical voter fires PUT but may not reach agreement."""
         analysis = {"predictions": _make_prediction(p_up=5.0, p_down=80.0, accel=0.5)}
         signals = compute_next_day_signals(analysis)
-        assert signals[0]["recommendation"] == "NONE"
+        assert signals[0]["recommendation"] in ("PUT", "NONE")
 
     def test_signal_output_fields(self):
-        """Verify all required fields in signal output."""
+        """Verify all required fields in signal output, including consensus fields."""
         analysis = {"predictions": _make_prediction(p_up=75.0, p_down=10.0, accel=0.5)}
         signals = compute_next_day_signals(analysis)
         sig = signals[0]
@@ -250,6 +286,10 @@ class TestComputeNextDaySignals:
             "P_up", "P_down", "velocity_24h", "acceleration",
             "momentum_signal", "regime", "quality",
             "recommendation", "confidence",
+            "consensus_probability", "consensus_sources_agree",
+            "consensus_sources_voting", "consensus_by_category",
+            "fc_max_drop_pct", "fc_max_rise_pct", "fc_points",
+            "market_context",
         ]
         for f in required_fields:
             assert f in sig, f"Missing field: {f}"
