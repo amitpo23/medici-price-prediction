@@ -506,11 +506,17 @@ def _kickoff_analysis_warmup() -> dict[str, object]:
         _restore_salesoffice_persisted_state()
         data = _cm.get_data("analytics")
     if data:
+        # Ensure scheduler is running even when cache was restored from persistence
+        scheduler_alive = _scheduler_thread is not None and _scheduler_thread.is_alive()
+        if not scheduler_alive and _salesoffice_scheduler_allowed():
+            logger.info("Cache ready but scheduler dead — restarting")
+            start_salesoffice_scheduler()
+            scheduler_alive = _scheduler_thread is not None and _scheduler_thread.is_alive()
         return {
             "cache_ready": True,
             "analysis_warming": False,
-            "scheduler_running": _scheduler_thread is not None and _scheduler_thread.is_alive(),
-            "started": False,
+            "scheduler_running": scheduler_alive,
+            "started": not scheduler_alive,  # True if we just restarted it
             "detail": "Analysis cache is already ready.",
             "retry_after": 0,
         }
