@@ -13,8 +13,11 @@ from src.analytics.consensus_signal import (
     vote_flight_demand,
     vote_forward_curve,
     vote_historical,
+    vote_margin_erosion,
     vote_official_benchmark,
     vote_peers,
+    vote_provider_spread,
+    vote_scan_drop_risk,
     vote_scan_velocity,
     vote_seasonality,
     vote_weather,
@@ -384,7 +387,7 @@ class TestComputeConsensusSignal:
         assert result["T"] == 7
         assert "votes" in result
         assert "by_category" in result
-        assert len(result["votes"]) == 11
+        assert len(result["votes"]) == 14  # 11 original + 3 new data-driven voters
 
     def test_all_neutral_default_pred(self):
         """A bland prediction should produce mostly NEUTRAL votes."""
@@ -461,3 +464,116 @@ class TestVoterEnrichmentWiring:
         result = compute_consensus_signal(pred, events=events, peer_prices=peers)
         assert result["signal"] in ("CALL", "PUT", "NEUTRAL")
         assert result["sources_voting"] > 0
+
+
+# ---------------------------------------------------------------------------
+# v2.6.0: New Data-Driven Voters
+# ---------------------------------------------------------------------------
+
+class TestScanDropRiskVoter:
+    """Tests for vote_scan_drop_risk — uses real scan history data."""
+
+    def test_no_scan_history(self):
+        pred = {"current_price": 100}
+        v = vote_scan_drop_risk(pred)
+        assert v.vote == "NEUTRAL"
+
+    def test_few_scans_neutral(self):
+        pred = {"scan_history": {"scan_snapshots": 2, "scan_actual_drops": 1, "scan_actual_rises": 0, "scan_trend": "down"}}
+        v = vote_scan_drop_risk(pred)
+        assert v.vote == "NEUTRAL"
+        assert "Only 2 scans" in v.reason
+
+    def test_high_drop_frequency_put(self):
+        pred = {"scan_history": {
+            "scan_snapshots": 10,
+            "scan_actual_drops": 7,
+            "scan_actual_rises": 1,
+            "scan_trend": "down",
+            "scan_max_single_drop": 25,
+        }}
+        v = vote_scan_drop_risk(pred)
+        assert v.vote == "PUT"
+
+    def test_uptrend_no_drops(self):
+        pred = {"scan_history": {
+            "scan_snapshots": 10,
+            "scan_actual_drops": 0,
+            "scan_actual_rises": 8,
+            "scan_trend": "up",
+            "scan_max_single_drop": 0,
+        }}
+        v = vote_scan_drop_risk(pred)
+        assert v.vote != "PUT"
+
+
+class TestProviderSpreadVoter:
+    """Tests for vote_provider_spread — uses SearchResultsPollLog data."""
+
+    def test_no_source_inputs(self):
+        pred = {"current_price": 100}
+        v = vote_provider_spread(pred)
+        assert v.vote == "NEUTRAL"
+
+    def test_strong_undercut_put(self):
+        pred = {"source_inputs": {"provider_pressure": -0.4}}
+        v = vote_provider_spread(pred)
+        assert v.vote == "PUT"
+        assert "undercutting" in v.reason
+
+    def test_priced_low_call(self):
+        pred = {"source_inputs": {"provider_pressure": 0.35}}
+        v = vote_provider_spread(pred)
+        assert v.vote == "CALL"
+
+    def test_neutral_range(self):
+        pred = {"source_inputs": {"provider_pressure": 0.05}}
+        v = vote_provider_spread(pred)
+        assert v.vote == "NEUTRAL"
+
+
+class TestMarginErosionVoter:
+    """Tests for vote_margin_erosion — uses MED_Book buy prices."""
+
+    def test_no_buy_price(self):
+        pred = {"current_price": 100}
+        v = vote_margin_erosion(pred, med_book_buy_price=0)
+        assert v.vote == "NEUTRAL"
+
+    def test_margin_eroded_put(self):
+        pred = {"current_price": 80}
+        v = vote_margin_erosion(pred, med_book_buy_price=100)
+        assert v.vote == "PUT"
+        assert "erosion" in v.reason
+
+    def test_good_margin_call(self):
+        pred = {"current_price": 150}
+        v = vote_margin_erosion(pred, med_book_buy_price=100)
+        assert v.vote == "CALL"
+        assert "margin" in v.reason.lower()
+
+    def test_small_margin_neutral(self):
+        pred = {"current_price": 105}
+        v = vote_margin_erosion(pred, med_book_buy_price=100)
+        assert v.vote == "NEUTRAL"
+
+
+class TestFullConsensus14Voters:
+    """Test that all 14 voters participate in consensus."""
+
+    def test_14_votes_returned(self):
+        pred = _make_pred()
+        result = compute_consensus_signal(pred)
+        assert len(result["votes"]) == 14
+
+    def test_all_voter_names_present(self):
+        pred = _make_pred()
+        result = compute_consensus_signal(pred)
+        names = {v["source"] for v in result["votes"]}
+        expected = {
+            "forward_curve", "scan_velocity", "competitors", "events",
+            "seasonality", "flight_demand", "weather", "peers",
+            "booking_momentum", "historical", "official_benchmark",
+            "scan_drop_risk", "provider_spread", "margin_erosion",
+        }
+        assert names == expected

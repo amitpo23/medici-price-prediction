@@ -3971,10 +3971,24 @@ async def signal_consensus_detail(
     except (ImportError, ValueError, TypeError):
         pass
 
+    # MED_Book buy price for margin erosion voter
+    _buy_price = 0.0
+    try:
+        from src.data.trading_db import load_active_bookings
+        _mb = load_active_bookings()
+        if not _mb.empty and "HotelId" in _mb.columns and "BuyPrice" in _mb.columns:
+            _hid = int(pred.get("hotel_id", 0) or 0)
+            _hotel_rows = _mb[_mb["HotelId"] == _hid]
+            if not _hotel_rows.empty:
+                _buy_price = float(_hotel_rows["BuyPrice"].mean())
+    except (ImportError, OSError, ConnectionError, ValueError):
+        pass
+
     result = compute_consensus_signal(
         pred, zone_avg=zone_avg, official_adr=official_adr,
         events=events_for_voter or None,
         peer_prices=peer_directions or None,
+        med_book_buy_price=_buy_price,
     )
     result["segment"] = seg
     return result

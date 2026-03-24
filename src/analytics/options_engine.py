@@ -66,6 +66,17 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
     if not predictions:
         return []
 
+    # Pre-load MED_Book buy prices for margin erosion voter
+    med_book_prices: dict[int, float] = {}  # hotel_id -> avg buy price
+    try:
+        from src.data.trading_db import load_active_bookings
+        mb_df = load_active_bookings()
+        if not mb_df.empty and "HotelId" in mb_df.columns and "BuyPrice" in mb_df.columns:
+            for _, row in mb_df.groupby("HotelId")["BuyPrice"].mean().items():
+                med_book_prices[int(_)] = float(row)
+    except (ImportError, OSError, ConnectionError, ValueError):
+        pass  # MED_Book data optional
+
     signals: list[dict] = []
 
     for detail_id, pred in predictions.items():
@@ -167,11 +178,15 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
             except (ImportError, ValueError, TypeError):
                 pass
 
+            # MED_Book buy price for margin erosion voter
+            buy_price = med_book_prices.get(int(hotel_id_val), 0.0) if hotel_id_val else 0.0
+
             from src.analytics.consensus_signal import compute_consensus_signal
             consensus = compute_consensus_signal(
                 pred, zone_avg=zone_avg, official_adr=official_adr,
                 events=events_for_voter or None,
                 peer_prices=peer_directions or None,
+                med_book_buy_price=buy_price,
             )
 
             rec = consensus["signal"]

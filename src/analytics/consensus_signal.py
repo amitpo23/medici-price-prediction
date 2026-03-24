@@ -310,6 +310,143 @@ def vote_historical(pred: dict) -> SourceVote:
     return SourceVote("historical", "NEUTRAL", "Lagging", f"Historical split: {prob_up:.0f}% up / {prob_down:.0f}% down")
 
 
+def vote_scan_drop_risk(pred: dict) -> SourceVote:
+    """Coincident — scan history drop patterns: high drop frequency + streak -> PUT.
+
+    Uses real scan data from SalesOffice.Details historical scans:
+    - drop_frequency (% of scans with price drops)
+    - consecutive trend (scan_trend = "down")
+    - max single drop magnitude
+    - scan_actual_drops vs scan_actual_rises ratio
+    """
+    scan = pred.get("scan_history")
+    if not scan or not isinstance(scan, dict):
+        return SourceVote("scan_drop_risk", "NEUTRAL", "Coincident", "No scan history")
+
+    snapshots = int(scan.get("scan_snapshots", 0) or 0)
+    if snapshots < 3:
+        return SourceVote("scan_drop_risk", "NEUTRAL", "Coincident", f"Only {snapshots} scans")
+
+    drops = int(scan.get("scan_actual_drops", 0) or 0)
+    rises = int(scan.get("scan_actual_rises", 0) or 0)
+    total_moves = drops + rises
+    trend = scan.get("scan_trend", "no_data")
+
+    # Score the drop risk (simplified from next-scan-drop skill)
+    score = 0.0
+
+    # Drop frequency
+    if total_moves > 0:
+        drop_freq = drops / total_moves
+        if drop_freq > 0.6:
+            score += 30
+        elif drop_freq > 0.4:
+            score += 15
+
+    # Trend direction
+    if trend == "down":
+        score += 25
+    elif trend == "up":
+        score -= 15  # Reduces risk
+
+    # Max single drop magnitude
+    max_drop = abs(float(scan.get("scan_max_single_drop", 0) or 0))
+    if max_drop > 20:
+        score += 20
+    elif max_drop > 10:
+        score += 10
+
+    # Ratio of drops to rises
+    if drops > 0 and rises == 0:
+        score += 15  # All drops, no rises
+    elif drops > rises * 2:
+        score += 10
+
+    if score >= 50:
+        return SourceVote("scan_drop_risk", "PUT", "Coincident",
+                          f"Drop risk score {score:.0f}: {drops} drops/{rises} rises, trend={trend}")
+    elif score <= -10:
+        return SourceVote("scan_drop_risk", "CALL", "Coincident",
+                          f"Low drop risk score {score:.0f}: trend={trend}")
+    return SourceVote("scan_drop_risk", "NEUTRAL", "Coincident",
+                      f"Drop risk score {score:.0f}")
+
+
+def vote_provider_spread(pred: dict) -> SourceVote:
+    """Coincident — provider pressure from SearchResultsPollLog (8.3M rows, 129 providers).
+
+    provider_pressure is pre-computed in the enrichment cycle from search results:
+    - Negative = providers offering lower prices -> PUT pressure
+    - Positive = providers offering higher prices -> CALL opportunity
+    Range: -1.0 to +1.0
+    """
+    source_inputs = pred.get("source_inputs")
+    if not source_inputs or not isinstance(source_inputs, dict):
+        return SourceVote("provider_spread", "NEUTRAL", "Coincident", "No source inputs")
+
+    pressure = source_inputs.get("provider_pressure", 0.0)
+    try:
+        pressure = float(pressure)
+    except (TypeError, ValueError):
+        return SourceVote("provider_spread", "NEUTRAL", "Coincident", "Invalid provider pressure")
+
+    if abs(pressure) < 0.01:
+        return SourceVote("provider_spread", "NEUTRAL", "Coincident", "No provider data")
+
+    # Strong negative pressure = providers undercut us = PUT
+    if pressure <= -0.3:
+        return SourceVote("provider_spread", "PUT", "Coincident",
+                          f"Provider pressure {pressure:.2f} — OTAs undercutting")
+    elif pressure <= -0.1:
+        return SourceVote("provider_spread", "PUT", "Coincident",
+                          f"Provider pressure {pressure:.2f} — mild undercut")
+    elif pressure >= 0.3:
+        return SourceVote("provider_spread", "CALL", "Coincident",
+                          f"Provider pressure {pressure:.2f} — we're priced low")
+    elif pressure >= 0.1:
+        return SourceVote("provider_spread", "CALL", "Coincident",
+                          f"Provider pressure {pressure:.2f} — slight advantage")
+    return SourceVote("provider_spread", "NEUTRAL", "Coincident",
+                      f"Provider pressure {pressure:.2f}")
+
+
+def vote_margin_erosion(pred: dict, med_book_buy_price: float = 0.0) -> SourceVote:
+    """Lagging — if we bought this room (MED_Book), compare buy price vs current market.
+
+    If current market price dropped below our buy price -> strong PUT signal
+    (margin eroding, may need to cut losses or rebuy cheaper).
+    If market price is above buy price with good margin -> CALL (profitable position).
+    """
+    if med_book_buy_price <= 0:
+        return SourceVote("margin_erosion", "NEUTRAL", "Lagging", "No MED_Book buy price")
+
+    current_price = pred.get("current_price", 0)
+    try:
+        current_price = float(current_price)
+    except (TypeError, ValueError):
+        return SourceVote("margin_erosion", "NEUTRAL", "Lagging", "Invalid current price")
+
+    if current_price <= 0:
+        return SourceVote("margin_erosion", "NEUTRAL", "Lagging", "No current price")
+
+    margin_pct = ((current_price - med_book_buy_price) / med_book_buy_price) * 100
+
+    if margin_pct <= -10.0:
+        return SourceVote("margin_erosion", "PUT", "Lagging",
+                          f"Margin erosion {margin_pct:.1f}% — market below buy price")
+    elif margin_pct <= -3.0:
+        return SourceVote("margin_erosion", "PUT", "Lagging",
+                          f"Margin pressure {margin_pct:.1f}%")
+    elif margin_pct >= 30.0:
+        return SourceVote("margin_erosion", "CALL", "Lagging",
+                          f"Strong margin +{margin_pct:.1f}% — profitable position")
+    elif margin_pct >= 15.0:
+        return SourceVote("margin_erosion", "CALL", "Lagging",
+                          f"Good margin +{margin_pct:.1f}%")
+    return SourceVote("margin_erosion", "NEUTRAL", "Lagging",
+                      f"Margin {margin_pct:.1f}%")
+
+
 def vote_official_benchmark(pred: dict, official_adr: float = 0.0) -> SourceVote:
     """Lagging — price vs official ADR: <= -20% -> CALL, >= +15% -> PUT."""
     if official_adr <= 0:
@@ -343,8 +480,9 @@ def compute_consensus_signal(
     official_adr: float = 0.0,
     events: Optional[List[dict]] = None,
     peer_prices: Optional[List[dict]] = None,
+    med_book_buy_price: float = 0.0,
 ) -> dict:
-    """Run all 11 voters and return a consensus signal with full metadata."""
+    """Run all 14 voters and return a consensus signal with full metadata."""
     votes = [
         vote_forward_curve(pred),
         vote_scan_velocity(pred),
@@ -357,6 +495,10 @@ def compute_consensus_signal(
         vote_booking_momentum(pred),
         vote_historical(pred),
         vote_official_benchmark(pred, official_adr),
+        # v2.6.0: 3 new data-driven voters
+        vote_scan_drop_risk(pred),
+        vote_provider_spread(pred),
+        vote_margin_erosion(pred, med_book_buy_price),
     ]
 
     result = calculate_consensus(votes)
