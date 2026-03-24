@@ -285,6 +285,12 @@ a{color:#42a5f5;text-decoration:none}
       <div id="accuracy-body" class="empty">Select an option</div>
     </div>
 
+    <!-- Arbitrage Opportunity -->
+    <div class="section" id="panel-arbitrage">
+      <div class="section-title">Arbitrage Opportunity</div>
+      <div id="arbitrage-body" class="empty">Select an option</div>
+    </div>
+
     <!-- Alerts (for selected hotel/option) -->
     <div class="section" id="panel-alerts">
       <div class="section-title">Alerts &amp; Risk</div>
@@ -381,6 +387,7 @@ const S = {
   overrideDetailIds: new Set(), // detail IDs with active overrides
   overrideRecords: [],          // full override history
   segments: {},                 // hotel_id → {zone, tier, zone_name, tier_name, ...}
+  arbitrageData: null,
 };
 
 function fmt$(v){return '$'+Number(v).toLocaleString('en-US',{maximumFractionDigits:0})}
@@ -599,6 +606,8 @@ async function selectOption(detailId){
   renderPriceChart(fcRaw, pathData, sourceData);
   renderEnrichChart(fcRaw);
   renderSignalPanel(fcRaw, pathData, detailData);
+  loadConsensusVotes(detailId);
+  loadArbitrage(detailId);
   loadPeerComparison(opt.hotel_id, opt.current_price);
   renderSourcesPanel(sourceData);
   renderAccuracyPanel(detailData, fcRaw);
@@ -719,6 +728,74 @@ function renderSignalPanel(fcRaw, pathData, detailData){
     '<div class="sig-row"><span class="lbl">Best Trade</span><span class="val '+(bestTrade>0?'up':'')+'">'+fmtPct(bestTrade)+'</span></div>'+
     '<div class="sig-row"><span class="lbl">Regime</span><span class="val">'+(reg.regime||reg.label||'--')+'</span></div>'+
     '<div class="sig-row"><span class="lbl">Momentum</span><span class="val">'+(mom.signal||'--')+'</span></div>';
+}
+
+/* ══════════ CONSENSUS VOTES ══════════ */
+async function loadConsensusVotes(detailId){
+  const data=await api('/signal/consensus/'+detailId);
+  if(!data||!data.votes)return;
+
+  let html='<div style="text-align:center;margin-bottom:6px">';
+  html+='<span class="sig '+(data.signal==='CALL'?'call':data.signal==='PUT'?'put':'neutral')+'" style="font-size:13px;padding:3px 12px">'+data.signal+' '+data.probability+'%</span>';
+  html+='</div>';
+
+  // Category breakdown
+  const cats=data.by_category||{};
+  for(const [cat,counts] of Object.entries(cats)){
+    const label=cat==='Leading'?'Leading (predict)':cat==='Coincident'?'Now (real-time)':'Lagging (history)';
+    html+='<div style="font-size:9px;color:var(--muted);margin-top:4px;text-transform:uppercase">'+label+'</div>';
+    // Show individual votes for this category
+    data.votes.filter(v=>v.category===cat).forEach(v=>{
+      const icon=v.vote==='CALL'?'<span style="color:var(--call)">&#10003;</span>':v.vote==='PUT'?'<span style="color:var(--put)">&#10007;</span>':'<span style="color:var(--muted)">&mdash;</span>';
+      const voteBg=v.vote==='CALL'?'rgba(0,200,83,.08)':v.vote==='PUT'?'rgba(255,23,68,.08)':'transparent';
+      html+='<div style="display:flex;align-items:center;gap:4px;padding:2px 4px;font-size:10px;border-radius:3px;background:'+voteBg+'">';
+      html+='<span style="width:14px">'+icon+'</span>';
+      html+='<span style="flex:1;color:var(--muted)">'+v.source.replace(/_/g,' ')+'</span>';
+      html+='<span class="sig '+(v.vote==='CALL'?'call':v.vote==='PUT'?'put':'neutral')+'" style="font-size:8px;padding:1px 4px">'+v.vote+'</span>';
+      html+='</div>';
+    });
+  }
+
+  el('signal-body').innerHTML=html;
+}
+
+/* ══════════ ARBITRAGE PANEL ══════════ */
+async function loadArbitrage(detailId){
+  const data=await api('/signal/arbitrage/'+detailId);
+  if(!data)return;
+  S.arbitrageData=data;
+  const arb=data.arbitrage||{};
+  const buy=data.buy_point||{};
+  const sell=data.sell_point||{};
+  const body=el('arbitrage-body');
+
+  if(!arb.feasible){
+    body.innerHTML='<div class="empty">No feasible arbitrage</div>';
+    return;
+  }
+
+  body.innerHTML=
+    '<div style="text-align:center;margin-bottom:6px;padding:6px;background:rgba(0,200,83,.1);border-radius:4px">'+
+    '<div style="font-size:14px;font-weight:700;color:var(--call)">'+fmt$(arb.profit_usd)+' ('+arb.profit_pct.toFixed(0)+'%)</div>'+
+    '<div style="font-size:9px;color:var(--muted)">Arbitrage Profit</div>'+
+    '</div>'+
+    '<div class="sig-row"><span class="lbl">Buy at</span><span class="val down">'+fmt$(buy.price)+' T='+buy.t_days+'</span></div>'+
+    '<div class="sig-row"><span class="lbl">Buy date</span><span class="val">'+shortDate(buy.date)+'</span></div>'+
+    '<div class="sig-row"><span class="lbl">Sell at</span><span class="val up">'+fmt$(sell.price)+' T='+sell.t_days+'</span></div>'+
+    '<div class="sig-row"><span class="lbl">Sell date</span><span class="val">'+shortDate(sell.date)+'</span></div>';
+
+  // Add buy/sell markers to existing price chart
+  if(S.priceChart&&S.priceChart.data.labels){
+    const labels=S.priceChart.data.labels;
+    const buyIdx=labels.indexOf(shortDate(buy.date));
+    const sellIdx=labels.indexOf(shortDate(sell.date));
+    const buyPts=[],sellPts=[];
+    if(buyIdx>=0)buyPts.push({x:buyIdx,y:buy.price});
+    if(sellIdx>=0)sellPts.push({x:sellIdx,y:sell.price});
+    if(buyPts.length)S.priceChart.data.datasets.push({label:'Arb Buy',data:buyPts,type:'scatter',pointRadius:9,pointStyle:'triangle',pointBackgroundColor:'#00e676',pointBorderColor:'#fff',pointBorderWidth:1,order:0});
+    if(sellPts.length)S.priceChart.data.datasets.push({label:'Arb Sell',data:sellPts,type:'scatter',pointRadius:9,pointStyle:'triangle',pointRotation:180,pointBackgroundColor:'#ff5252',pointBorderColor:'#fff',pointBorderWidth:1,order:0});
+    if(buyPts.length||sellPts.length)S.priceChart.update();
+  }
 }
 
 /* ══════════ SOURCES PANEL ══════════ */
