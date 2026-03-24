@@ -112,11 +112,15 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 seg = get_hotel_segment(int(hotel_id_val)) if hotel_id_val else None
                 if seg:
                     zone = seg["zone"]
+                    tier = seg["tier"]
                     zone_prices = []
                     for _, other_pred in predictions.items():
                         other_hid = int(other_pred.get("hotel_id", 0) or 0)
+                        if other_hid == int(hotel_id_val):
+                            continue  # skip self
                         other_seg = HOTEL_SEGMENTS.get(other_hid, {})
-                        if other_seg.get("zone") == zone:
+                        # Compare within same zone AND same tier
+                        if other_seg.get("zone") == zone and other_seg.get("tier") == tier:
                             other_cp = float(other_pred.get("current_price", 0) or 0)
                             if other_cp > 0:
                                 zone_prices.append(other_cp)
@@ -124,6 +128,14 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                         zone_avg = sum(zone_prices) / len(zone_prices)
             except (ImportError, ValueError, TypeError):
                 pass  # hotel_segments is optional
+
+            # Get official ADR for this zone from GMCVB benchmarks
+            try:
+                from src.collectors.gmcvb_collector import get_official_adr
+                if seg:
+                    official_adr = get_official_adr(seg["zone"])
+            except ImportError:
+                pass
 
             from src.analytics.consensus_signal import compute_consensus_signal
             consensus = compute_consensus_signal(pred, zone_avg=zone_avg, official_adr=official_adr)

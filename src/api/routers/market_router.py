@@ -250,6 +250,13 @@ async def market_fred():
     return get_fred_indicators()
 
 
+@market_router.get("/market/official-benchmarks")
+async def market_official_benchmarks():
+    """Official Miami hotel market benchmarks from GMCVB."""
+    from src.collectors.gmcvb_collector import get_market_summary
+    return get_market_summary()
+
+
 @market_router.get("/market/kaggle-bookings")
 async def market_kaggle_bookings():
     """Lead-time price curves + DOW premiums from Kaggle Hotel Booking Demand dataset."""

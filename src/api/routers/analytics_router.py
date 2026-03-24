@@ -3930,7 +3930,16 @@ async def signal_consensus_detail(
         if zone_prices:
             zone_avg = sum(zone_prices) / len(zone_prices)
 
-    result = compute_consensus_signal(pred, zone_avg=zone_avg)
+    # Get official ADR for this zone from GMCVB benchmarks
+    official_adr = 0.0
+    try:
+        from src.collectors.gmcvb_collector import get_official_adr
+        if seg:
+            official_adr = get_official_adr(seg["zone"])
+    except ImportError:
+        pass
+
+    result = compute_consensus_signal(pred, zone_avg=zone_avg, official_adr=official_adr)
     result["segment"] = seg
     return result
 
@@ -4031,6 +4040,14 @@ async def signal_arbitrage_detail(
                     zone_prices.append(cp)
         if zone_prices:
             zone_avg = sum(zone_prices) / len(zone_prices)
+
+    # Get official ADR for this zone from GMCVB benchmarks
+    try:
+        from src.collectors.gmcvb_collector import get_official_adr
+        if seg:
+            official_adr = get_official_adr(seg["zone"])
+    except ImportError:
+        pass
 
     result = compute_arbitrage_timeline(pred, zone_avg=zone_avg, official_adr=official_adr)
     result["segment"] = seg
