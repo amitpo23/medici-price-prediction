@@ -614,7 +614,7 @@ async function selectOption(detailId){
   renderOverrideHistory(detailId);
   loadHistoricalT(detailId);
 
-  // Background: load historical scan data
+  // Background: load historical scan data (contract-data)
   const cdParams=new URLSearchParams({detail_id:String(detailId),hotel_id:String(opt.hotel_id||''),checkin_date:(opt.date_from||'').substring(0,10),category:opt.category||'',board:opt.board||''});
   api('/charts/contract-data?'+cdParams).then(histData=>{
     if(histData&&S.priceChart){
@@ -628,6 +628,43 @@ async function selectOption(detailId){
       }
     }
   });
+
+  // Background: load REAL scan history from Azure SQL (EKG-like price movements)
+  api('/scan-history/'+detailId+'?days_back=60').then(scanData=>{
+    if(!scanData||!S.priceChart)return;
+    const labels=S.priceChart.data.labels;
+
+    // SalesOffice.Log price changes (orange — actual scan events)
+    const history=scanData.scan_history?.from_salesoffice_log||[];
+    if(history.length>1){
+      const scanPts=new Array(labels.length).fill(null);
+      history.forEach(h=>{
+        const d=shortDate(h.timestamp);
+        const idx=labels.indexOf(d);
+        if(idx>=0)scanPts[idx]=h.new_price;
+      });
+      // Only add if we have at least some data points on the chart
+      if(scanPts.some(v=>v!==null)){
+        S.priceChart.data.datasets.push({label:'Actual Scans',data:scanPts,borderColor:'#ff9800',backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:'#ff9800',spanGaps:false,tension:0,order:0});
+        S.priceChart.update();
+      }
+    }
+
+    // RoomPriceUpdateLog (grey — market price updates)
+    const updates=scanData.scan_history?.from_price_update_log||[];
+    if(updates.length>1){
+      const updatePts=new Array(labels.length).fill(null);
+      updates.forEach(u=>{
+        const d=shortDate(u.timestamp);
+        const idx=labels.indexOf(d);
+        if(idx>=0)updatePts[idx]=u.price;
+      });
+      if(updatePts.some(v=>v!==null)){
+        S.priceChart.data.datasets.push({label:'Price Updates',data:updatePts,borderColor:'#b0bec5',backgroundColor:'transparent',borderWidth:1.5,pointRadius:2,pointBackgroundColor:'#b0bec5',spanGaps:false,tension:0,order:1});
+        S.priceChart.update();
+      }
+    }
+  }).catch(e=>console.warn('scan-history unavailable:',e));
 }
 
 /* ══════════ PRICE CHART (with Path Forecast overlay) ══════════ */

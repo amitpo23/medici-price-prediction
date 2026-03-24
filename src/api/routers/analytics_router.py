@@ -4052,3 +4052,122 @@ async def signal_arbitrage_detail(
     result = compute_arbitrage_timeline(pred, zone_avg=zone_avg, official_adr=official_adr)
     result["segment"] = seg
     return result
+
+
+# ---------------------------------------------------------------------------
+# Scan History — real price movements from Azure SQL
+# ---------------------------------------------------------------------------
+
+@analytics_router.get("/scan-history/{detail_id}")
+@limiter.limit(RATE_LIMIT_DATA)
+async def scan_price_history(
+    request: Request,
+    detail_id: int,
+    days_back: int = Query(30, ge=1, le=180),
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Real price scan history for a detail — shows actual EKG-like price movements."""
+    import os
+    import re
+
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection
+        conn = get_pyodbc_connection()
+    except Exception as exc:
+        logger.warning("scan-history: DB connection failed: %s", exc)
+        raise HTTPException(503, f"DB connection failed: {str(exc)[:100]}")
+
+    try:
+        cursor = conn.cursor()
+
+        # Get detail info
+        cursor.execute("""
+            SELECT d.HotelId, d.RoomCategory, d.RoomBoard, d.RoomPrice,
+                   o.DateFrom, h.[Name] AS HotelName
+            FROM [SalesOffice.Details] d
+            JOIN [SalesOffice.Orders] o ON o.Id = d.SalesOfficeOrderId
+            LEFT JOIN Med_Hotels h ON h.HotelId = d.HotelId
+            WHERE d.Id = ?
+        """, detail_id)
+        detail_row = cursor.fetchone()
+        if not detail_row:
+            raise HTTPException(404, f"Detail {detail_id} not found")
+
+        cols = [desc[0] for desc in cursor.description]
+        detail = dict(zip(cols, detail_row))
+
+        # Price change history from SalesOffice.Log
+        cursor.execute("""
+            SELECT l.DateCreated, l.Message, l.ActionId
+            FROM [SalesOffice.Log] l
+            WHERE l.SalesOfficeDetailId = ?
+              AND l.DateCreated >= DATEADD(day, ?, GETDATE())
+            ORDER BY l.DateCreated ASC
+        """, detail_id, -abs(days_back))
+
+        log_rows = cursor.fetchall()
+        log_cols = [desc[0] for desc in cursor.description]
+
+        # Parse price changes: "DbRoomPrice: 195.02 -> API RoomPrice: 193.95"
+        price_pattern = re.compile(
+            r"DbRoomPrice:\s*([\d.]+)\s*->\s*API RoomPrice:\s*([\d.]+)"
+        )
+        price_history: list[dict] = []
+        for row in log_rows:
+            log_entry = dict(zip(log_cols, row))
+            msg = str(log_entry.get("Message", ""))
+            dt = log_entry.get("DateCreated")
+            match = price_pattern.search(msg)
+            if match:
+                old_price = float(match.group(1))
+                new_price = float(match.group(2))
+                price_history.append({
+                    "timestamp": dt.isoformat() if hasattr(dt, "isoformat") else str(dt),
+                    "old_price": old_price,
+                    "new_price": new_price,
+                    "change_pct": round(
+                        (new_price - old_price) / old_price * 100, 2
+                    ) if old_price else 0,
+                })
+
+        # RoomPriceUpdateLog for same hotel+date
+        hotel_id = detail.get("HotelId")
+        date_from = detail.get("DateFrom")
+        price_updates: list[dict] = []
+        try:
+            cursor.execute("""
+                SELECT r.DateInsert, r.Price
+                FROM RoomPriceUpdateLog r
+                JOIN MED_Book b ON r.PreBookId = b.PreBookId
+                WHERE b.HotelId = ?
+                  AND b.startDate = ?
+                  AND r.DateInsert >= DATEADD(day, ?, GETDATE())
+                ORDER BY r.DateInsert ASC
+            """, hotel_id, date_from, -abs(days_back))
+            for row in cursor.fetchall():
+                price_updates.append({
+                    "timestamp": row[0].isoformat() if hasattr(row[0], "isoformat") else str(row[0]),
+                    "price": float(row[1]),
+                })
+        except Exception as exc:
+            logger.warning("scan-history: RoomPriceUpdateLog query failed: %s", exc)
+
+        return {
+            "detail_id": detail_id,
+            "hotel_name": detail.get("HotelName", ""),
+            "hotel_id": hotel_id,
+            "category": detail.get("RoomCategory", ""),
+            "board": detail.get("RoomBoard", ""),
+            "checkin_date": (
+                date_from.isoformat() if hasattr(date_from, "isoformat") else str(date_from)
+            ),
+            "current_price": float(detail.get("RoomPrice", 0)),
+            "scan_history": {
+                "from_salesoffice_log": price_history,
+                "from_price_update_log": price_updates,
+                "total_changes": len(price_history),
+                "total_updates": len(price_updates),
+            },
+        }
+    finally:
+        conn.close()
