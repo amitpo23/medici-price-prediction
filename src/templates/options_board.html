@@ -50,6 +50,21 @@
   .status-text { color: var(--text-dim); }
   .status-meta { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; color: var(--text-dim); font-size: 12px; }
   .table-shell { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .mobile-cards-shell { display: none; padding: 14px; gap: 12px; }
+  .mobile-option-card { border: 1px solid var(--border); border-radius: 14px; padding: 14px; background: #fff; box-shadow: 0 8px 20px rgba(15, 23, 42, .04); }
+  .mobile-option-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .mobile-option-title { font-size: 15px; font-weight: 700; }
+  .mobile-option-subtitle { margin-top: 3px; color: var(--text-dim); font-size: 12px; }
+  .mobile-option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .mobile-metric { padding: 10px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--border); }
+  .mobile-metric .k { color: var(--text-dim); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .mobile-metric .v { font-size: 14px; font-weight: 700; }
+  .mobile-meta-list { display: grid; gap: 8px; margin-bottom: 12px; }
+  .mobile-meta-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+  .mobile-meta-row .k { color: var(--text-dim); }
+  .mobile-meta-row .v { text-align: right; }
+  .mobile-card-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .mobile-card-actions button { border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 10px 12px; cursor: pointer; font-weight: 600; }
   .table-scroll { overflow: auto; max-height: 70vh; }
   table { width: 100%; border-collapse: collapse; min-width: 1100px; }
   thead th { position: sticky; top: 0; z-index: 1; background: #f8fafc; color: var(--text-dim); text-align: left; font-size: 12px; font-weight: 700; letter-spacing: .03em; padding: 12px; border-bottom: 1px solid var(--border); }
@@ -110,6 +125,30 @@
     .controls label { width: 100%; }
     .controls input, .controls select { width: 100%; }
     .detail-grid-2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    body { font-size: 15px; }
+    .page { padding: 14px; }
+    .hero { margin-bottom: 14px; }
+    .hero h1 { font-size: 22px; }
+    .hero p { font-size: 13px; }
+    .hero-actions { width: 100%; }
+    .hero-actions a, .hero-actions button { flex: 1 1 calc(50% - 6px); justify-content: center; text-align: center; }
+    .status-bar { gap: 8px; }
+    .status-chip { width: 100%; text-align: center; }
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card { padding: 14px; }
+    .card .value { font-size: 24px; }
+    .controls { padding: 12px; gap: 10px; }
+    .controls-note { font-size: 11px; }
+    .mobile-cards-shell { display: grid; }
+    .table-scroll { display: none; }
+    .mobile-option-grid { grid-template-columns: 1fr 1fr; }
+    .mobile-card-actions { align-items: stretch; }
+    .mobile-card-actions button { width: 100%; }
+    .pager { padding: 12px; }
+    .pager .buttons { width: 100%; }
+    .pager button { flex: 1 1 0; }
   }
 </style>
 </head>
@@ -261,6 +300,7 @@
   </div>
 
   <div class="table-shell">
+    <div class="mobile-cards-shell" id="mobile-cards"></div>
     <div class="table-scroll">
       <table>
         <thead>
@@ -371,6 +411,7 @@ const el = {
   putRatePct: document.getElementById('put-rate-pct'),
   putAvgDrop: document.getElementById('put-avg-drop'),
   putTopHotels: document.getElementById('put-top-hotels'),
+  mobileCards: document.getElementById('mobile-cards'),
 };
 
 el.signalFilter.value = state.signal || '';
@@ -615,6 +656,7 @@ function updatePutSummary() {
 function renderRows() {
   if (!state.filteredRows.length) {
     el.tableBody.innerHTML = '<tr><td class="empty" colspan="17">No rows match the current view.</td></tr>';
+    el.mobileCards.innerHTML = '<div class="mobile-option-card"><div class="empty">No rows match the current view.</div></div>';
     updateSummary();
     return;
   }
@@ -659,6 +701,50 @@ function renderRows() {
         <td>${sourceHtml}</td>
         <td class="row-actions"><button type="button" data-detail-id="${escapeHtml(row.detail_id)}">Chart + analysis</button></td>
       </tr>`;
+  }).join('');
+
+  el.mobileCards.innerHTML = state.filteredRows.map((row) => {
+    const quality = row.quality || {};
+    const signal = String(row.option_signal || 'NEUTRAL').toUpperCase();
+    const change = Number(row.expected_change_pct || 0);
+    const changeCls = change > 0 ? 'pos' : (change < 0 ? 'neg' : '');
+    const nextScan = computeNextScanSignal(row);
+    const selectedSourcePrice = state.source ? getRowSourcePredictedPrice(row, state.source) : null;
+    const selectedSourceValue = state.source
+      ? (selectedSourcePrice != null ? formatCurrency(selectedSourcePrice) : '--')
+      : 'Ensemble';
+    const sourceHtml = Array.isArray(row.sources) && row.sources.length
+      ? '<div class="source-badges">' + row.sources.slice(0, 4).map((item) => '<span class="source-badge">' + escapeHtml((item && item.source) || 'unknown') + '</span>').join('') + '</div>'
+      : '<span class="muted">--</span>';
+
+    return `
+      <article class="mobile-option-card">
+        <div class="mobile-option-head">
+          <div>
+            <div class="mobile-option-title">${escapeHtml(row.hotel_name || '')}</div>
+            <div class="mobile-option-subtitle">${escapeHtml(row.category || '')} • ${escapeHtml(row.board || '')} • ${escapeHtml(row.date_from || '')}</div>
+          </div>
+          <span class="pill ${signalClass(signal)}">${escapeHtml(signal)}</span>
+        </div>
+        <div class="mobile-option-grid">
+          <div class="mobile-metric"><div class="k">Current</div><div class="v">${formatCurrency(row.current_price)}</div></div>
+          <div class="mobile-metric"><div class="k">Predicted</div><div class="v">${formatCurrency(row.predicted_checkin_price)}</div></div>
+          <div class="mobile-metric"><div class="k">Change</div><div class="v num ${changeCls}">${formatPercent(change)}</div></div>
+          <div class="mobile-metric"><div class="k">Quality</div><div class="v quality ${String(quality.label || '').toLowerCase()}">${escapeHtml(quality.label || '--')}</div></div>
+        </div>
+        <div class="mobile-meta-list">
+          <div class="mobile-meta-row"><span class="k">Selected source</span><span class="v">${escapeHtml(state.source ? getSourceDisplayName(state.source) : 'Ensemble')}</span></div>
+          <div class="mobile-meta-row"><span class="k">Selected source $</span><span class="v">${selectedSourceValue}</span></div>
+          <div class="mobile-meta-row"><span class="k">Min / Max</span><span class="v">${formatCurrency(row.expected_min_price)} / ${formatCurrency(row.expected_max_price)}</span></div>
+          <div class="mobile-meta-row"><span class="k">Scans</span><span class="v">${escapeHtml((row.scan_history || {}).scan_snapshots ?? 0)}</span></div>
+          <div class="mobile-meta-row"><span class="k">Next scan</span><span class="v"><span class="pill ${nextScan.cls}">${nextScan.label}</span></span></div>
+        </div>
+        ${sourceHtml}
+        <div class="mobile-card-actions">
+          <span class="muted">ID ${escapeHtml(row.detail_id)}</span>
+          <button type="button" data-detail-id="${escapeHtml(row.detail_id)}">Chart + analysis</button>
+        </div>
+      </article>`;
   }).join('');
 
   updateSummary();
@@ -1622,6 +1708,7 @@ async function fetchRows() {
       setStatus('error', 'Failed to load options data', error.message || 'Unknown error');
     }
     el.tableBody.innerHTML = '<tr><td class="empty" colspan="17">Request timed out or failed. Click <b>Refresh data</b> to retry.</td></tr>';
+    el.mobileCards.innerHTML = '<div class="mobile-option-card"><div class="empty">Request timed out or failed. Click <b>Refresh data</b> to retry.</div></div>';
   } finally {
     state.loading = false;
     state._fetchController = null;
@@ -1659,6 +1746,12 @@ async function openDetail(detailId) {
 }
 
 el.tableBody.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-detail-id]');
+  if (!button) return;
+  void openDetail(button.getAttribute('data-detail-id'));
+});
+
+el.mobileCards.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-detail-id]');
   if (!button) return;
   void openDetail(button.getAttribute('data-detail-id'));

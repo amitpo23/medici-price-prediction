@@ -148,3 +148,12 @@ Uses the same SOAP API as the WebJob:
 | `override_push.py` | Main skill script |
 | `config.json` | Guardrails configuration |
 | `SKILL.md` | This file |
+
+## Gotchas
+
+<!-- Add entries immediately after errors occur. Format: [date] what happened; rule -->
+<!-- Each entry prevents the same mistake from recurring in future sessions -->
+
+- [2026-03-22] Override history filtering used month-boundary logic instead of rolling window, missing overrides from previous month; rule: Always use timedelta(days=N) for history windows, never calendar month boundaries
+- [2026-03-20] Override price calculated without checking ±50% max deviation guardrail, causing rejection; rule: Always clamp override_price to [original * 0.5, original * 1.5] before writing
+- [2026-03-21] Bulk override CSV sent without deduplication, creating multiple overrides for same detail_id; rule: Deduplicate by detail_id before writing, keep last entry if duplicates exist

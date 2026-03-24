@@ -140,6 +140,21 @@ If you want, this file can be appended automatically after every major run (comp
 - Diagnostics: attempted=27, success2xx=0, failed4xx5xx=27, exceptions=0
 - Innstant validation: hotels=54, passed=3, failed=51
 
+## Run Snapshot — 2026-03-22T00:00:00Z
+- Snapshot-Key: remediation_baseline_2.0.1|queue_request_models|override_history_window_fix
+- App version: 2.0.1
+- Git branch: main
+- Git commit: 57ebbe1
+- Baseline document: docs/REMEDIATION_BASELINE_2026-03-22.md
+- Initial remediation slice completed:
+  - Added typed request models for override and opportunity queue endpoints.
+  - Replaced manual payload coercion on queue endpoints in `src/api/routers/analytics_router.py`.
+  - Fixed override history day-window logic in `src/analytics/override_queue.py` to use `timedelta`.
+  - Added regression coverage for API validation and month-boundary history filtering.
+- Verification:
+  - `pytest tests/unit/test_override_queue.py tests/integration/test_api_endpoints.py -q`
+  - Result: 69 passed
+
 ## Run Snapshot — 2026-03-13T07:41:19.536Z
 - Snapshot-Key: inventory_compare_innstant_hoteltools_1773384759321.json|hoteltools_creation_diagnostics_1773386713487.json|innstant_inventory_validation_1773328247079.json
 - Compare report: data/reports/inventory_compare_innstant_hoteltools_1773384759321.json
@@ -225,3 +240,40 @@ If you want, this file can be appended automatically after every major run (comp
   - Partial external coverage in current run (e.g., flights NO_DATA, FRED unavailable) lowers external confidence.
 - Next step:
   - Keep scheduler running every 6h, monitor table trend, and improve external source availability to raise external signal quality.
+
+## Run Snapshot — 2026-03-22T00:00:00Z
+- Snapshot-Key: mobile_ui_baseline_2.0.1|shared_mobile_shell|summary_pages_mobile_slice
+- App version: 2.0.1
+- Baseline document: docs/MOBILE_UI_BASELINE_2026-03-22.md
+- Initial mobile slice completed:
+  - Hardened shared responsive shell behavior in `src/templates/static/base.css`.
+  - Preserved desktop home layout while improving phone behavior in `src/templates/landing.html`.
+  - Improved mobile stacking and spacing in `src/templates/alerts.html`.
+  - Added viewport meta and horizontal table overflow handling in `src/templates/health.html`.
+- Verification:
+  - `get_errors` on edited template/CSS files
+  - Result: no errors found
+
+## Run Snapshot — 2026-03-22T00:00:00Z
+- Snapshot-Key: options_board_mobile_cards|desktop_table_preserved
+- App version: 2.0.1
+- What changed:
+  - Added mobile card rendering mode to `src/templates/options_board.html`.
+  - Kept desktop table rendering and pagination behavior intact.
+  - Reused the same detail modal flow for both table rows and mobile cards.
+- Verification:
+  - `get_errors` on `src/templates/options_board.html`
+  - Result: no errors found
+
+## Run Snapshot — 2026-03-22T00:00:00Z
+- Snapshot-Key: release_2.0.2|queue_validation_and_mobile_ui_rollup
+- App version: 2.0.2
+- Consolidated release scope:
+  - Queue endpoint request validation hardening in `src/api/routers/analytics_router.py`
+  - Rolling-window history fix in `src/analytics/override_queue.py`
+  - Regression and integration coverage in `tests/unit/test_override_queue.py` and `tests/integration/test_api_endpoints.py`
+  - Initial mobile shell and summary-page rollout in `src/templates/static/base.css`, `src/templates/landing.html`, `src/templates/alerts.html`, `src/templates/health.html`
+  - Mobile card mode for `src/templates/options_board.html` with desktop table preserved
+- Release documentation:
+  - `CHANGELOG.md` updated with `2.0.2`
+  - `docs/RELEASE_2.0.2_2026-03-22.md` added

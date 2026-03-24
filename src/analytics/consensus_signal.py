@@ -71,7 +71,10 @@ def calculate_consensus(votes: List[SourceVote]) -> dict:
 
         probability = round(agreeing / n_voting * 100, 1)
 
-        if probability >= 66.0:
+        MIN_VOTING_SOURCES = 4  # Need at least 4 non-neutral voters for a signal
+        if n_voting < MIN_VOTING_SOURCES:
+            signal = "NEUTRAL"  # Too few voters = insufficient data
+        elif probability >= 66.0:
             signal = majority_signal
         else:
             signal = "NEUTRAL"
@@ -219,38 +222,37 @@ def vote_events(pred: dict, events: Optional[List[dict]] = None) -> SourceVote:
 
 
 def vote_seasonality(pred: dict) -> SourceVote:
-    """Leading — season_adj_pct from FC enrichments: > 2% -> CALL, < -2% -> PUT."""
+    """Leading — season_adj_pct from FC enrichments: > 5% -> CALL, < -5% -> PUT."""
     adj = _fc_field(pred, "season_adj_pct", 0.0)
-    # Values stored as fractions, e.g. 0.03 = 3%
     adj_pct = adj * 100
 
-    if adj_pct > 2.0:
+    if adj_pct > 5.0:
         return SourceVote("seasonality", "CALL", "Leading", f"Season boost +{adj_pct:.1f}%")
-    elif adj_pct < -2.0:
+    elif adj_pct < -5.0:
         return SourceVote("seasonality", "PUT", "Leading", f"Season drag {adj_pct:.1f}%")
     return SourceVote("seasonality", "NEUTRAL", "Leading", f"Season adj {adj_pct:.1f}%")
 
 
 def vote_flight_demand(pred: dict) -> SourceVote:
-    """Leading — demand_adj_pct from FC: > 1% -> CALL, < -1% -> PUT."""
+    """Leading — demand_adj_pct from FC: > 3% -> CALL, < -3% -> PUT."""
     adj = _fc_field(pred, "demand_adj_pct", 0.0)
     adj_pct = adj * 100
 
-    if adj_pct > 1.0:
+    if adj_pct > 3.0:
         return SourceVote("flight_demand", "CALL", "Leading", f"Flight demand +{adj_pct:.1f}%")
-    elif adj_pct < -1.0:
+    elif adj_pct < -3.0:
         return SourceVote("flight_demand", "PUT", "Leading", f"Flight demand {adj_pct:.1f}%")
     return SourceVote("flight_demand", "NEUTRAL", "Leading", f"Flight demand {adj_pct:.1f}%")
 
 
 def vote_weather(pred: dict) -> SourceVote:
-    """Leading — weather_adj_pct from FC: < -3% -> PUT, > 1% -> CALL."""
+    """Leading — weather_adj_pct from FC: < -5% -> PUT, > 3% -> CALL."""
     adj = _fc_field(pred, "weather_adj_pct", 0.0)
     adj_pct = adj * 100
 
-    if adj_pct < -3.0:
+    if adj_pct < -5.0:
         return SourceVote("weather", "PUT", "Leading", f"Weather drag {adj_pct:.1f}%")
-    elif adj_pct > 1.0:
+    elif adj_pct > 3.0:
         return SourceVote("weather", "CALL", "Leading", f"Weather boost +{adj_pct:.1f}%")
     return SourceVote("weather", "NEUTRAL", "Leading", f"Weather adj {adj_pct:.1f}%")
 

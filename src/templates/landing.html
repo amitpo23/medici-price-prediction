@@ -33,7 +33,15 @@ border-bottom:1px solid var(--border);}
 .api-link{color:var(--cyan);text-decoration:none;font-family:monospace;}
 .api-link:hover{text-decoration:underline;}
 @media(max-width:768px){.cards-grid{grid-template-columns:1fr;}
-.status-bar{flex-direction:column;align-items:center;}}
+.hero{padding:20px 0 12px;}
+.hero h1{font-size:1.75em;}
+.hero p{font-size:0.98em;}
+.status-bar{flex-direction:column;align-items:stretch;margin:16px 0 24px;}
+.status-item{justify-content:space-between;padding:12px 14px;}
+.page-card{align-items:flex-start;padding:14px;}
+.card-icon{width:40px;font-size:1.5em;}
+.card-arrow{display:none;}
+.api-section{padding:16px;}}
 {% endblock %}
 
 {% block body %}
@@ -104,14 +112,16 @@ border-bottom:1px solid var(--border);}
 
 <div class="api-section">
     <h3>API Endpoints</h3>
-    <table class="api-table">
-        <thead><tr><th>Endpoint</th><th>Description</th></tr></thead>
-        <tbody>
-        {% for path, desc in api_endpoints %}
-        <tr><td><a href="/api/v1/salesoffice{{ path }}" class="api-link">/api/v1/salesoffice{{ path }}</a></td><td>{{ desc }}</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <div class="mobile-table-wrap">
+        <table class="api-table">
+            <thead><tr><th>Endpoint</th><th>Description</th></tr></thead>
+            <tbody>
+            {% for path, desc in api_endpoints %}
+            <tr><td><a href="/api/v1/salesoffice{{ path }}" class="api-link">/api/v1/salesoffice{{ path }}</a></td><td>{{ desc }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <footer>

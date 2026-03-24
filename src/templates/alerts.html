@@ -42,6 +42,20 @@ padding:24px;text-align:center;color:var(--green);}
 .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;
 padding:16px;margin:24px 0;}
 .chart-box h3{color:var(--text-dim);margin-bottom:12px;}
+@media(max-width:768px){
+.container{padding:16px;}
+h1{font-size:1.5em;}
+.subtitle{margin-bottom:18px;}
+.kpi-row{gap:12px;margin-bottom:20px;}
+.kpi{min-width:0;width:100%;padding:14px 16px;}
+.alert-card{align-items:flex-start;padding:12px;}
+.alert-icon{width:32px;height:32px;font-size:1em;}
+.hotels-grid{grid-template-columns:1fr;gap:12px;margin:20px 0;}
+.hotel-alert-card{padding:16px;}
+.alert-stats{flex-wrap:wrap;gap:16px;justify-content:space-between;}
+.alert-stat{flex:1 1 90px;}
+.chart-box{padding:14px;margin:20px 0;}
+}
 {% endblock %}
 
 {% set alert_icons = {"critical": "!!", "warning": "!", "info": "i"} %}

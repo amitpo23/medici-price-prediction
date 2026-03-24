@@ -136,3 +136,12 @@ skill.close()
 | `insert_opp.py` | Main skill script |
 | `config.json` | Guardrails configuration |
 | `SKILL.md` | This file |
+
+## Gotchas
+
+<!-- Add entries immediately after errors occur. Format: [date] what happened; rule -->
+<!-- Each entry prevents the same mistake from recurring in future sessions -->
+
+- [2026-03-20] Opportunity created with push_price < 103% of buy_price causing BuyRoom WebJob rejection; rule: Always validate push_price >= buy_price * 1.03 before submission
+- [2026-03-20] Duplicate opportunity created for same hotel+date+board+category while previous was still active; rule: Always query active opportunities first and skip if duplicate exists
+- [2026-03-21] Used predicted_checkin_price field name but endpoint expected buy_price; rule: Always use field names from the Parameters table above, never from internal analytics models

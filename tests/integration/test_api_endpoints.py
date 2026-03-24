@@ -347,6 +347,52 @@ async def test_sources_raw_invalid_source(test_client):
     assert "Traceback" not in resp.text
 
 
+# ── Queue Validation Endpoints ──────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_override_request_validation_error(test_client):
+    """Override request rejects invalid typed payloads at the API boundary."""
+    resp = await test_client.post(
+        "/api/v1/salesoffice/override/request",
+        json={"detail_id": 0, "discount_usd": "bad"},
+    )
+    assert resp.status_code == 422
+    assert "Traceback" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_override_complete_validation_error(test_client):
+    """Override completion enforces the allowed status enum."""
+    resp = await test_client.post(
+        "/api/v1/salesoffice/override/1/complete",
+        json={"status": "processing"},
+    )
+    assert resp.status_code == 422
+    assert "Traceback" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_opportunity_request_validation_error(test_client):
+    """Opportunity request rejects invalid typed payloads at the API boundary."""
+    resp = await test_client.post(
+        "/api/v1/salesoffice/opportunity/request",
+        json={"detail_id": "bad", "max_rooms": "many"},
+    )
+    assert resp.status_code == 422
+    assert "Traceback" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_opportunity_complete_validation_error(test_client):
+    """Opportunity completion enforces the allowed status enum."""
+    resp = await test_client.post(
+        "/api/v1/salesoffice/opportunity/1/complete",
+        json={"status": "queued"},
+    )
+    assert resp.status_code == 422
+    assert "Traceback" not in resp.text
+
+
 # ── Dashboard HTML Pages ─────────────────────────────────────────────
 
 @pytest.mark.asyncio

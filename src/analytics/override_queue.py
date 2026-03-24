@@ -19,7 +19,7 @@ import sqlite3
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -443,8 +443,7 @@ def get_history(
     breakdown by hotel.
     """
     init_db()
-    from_date = datetime.utcnow().replace(hour=0, minute=0, second=0)
-    from_date = from_date.replace(day=max(1, from_date.day - days))
+    from_date = datetime.utcnow() - timedelta(days=days)
 
     with _get_db() as conn:
         where = "created_at >= ?"

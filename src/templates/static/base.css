@@ -20,6 +20,7 @@ body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.5;
 }
 
 .container {
@@ -39,9 +40,24 @@ nav {
     font-size: 0.9em;
     flex-wrap: wrap;
 }
-nav a { color: var(--text-dim); text-decoration: none; }
+nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+}
 nav a:hover { color: var(--accent2); }
 nav .active { color: var(--accent2); font-weight: 600; }
+
+.mobile-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.mobile-table-wrap table {
+    min-width: 640px;
+}
 
 /* Footer */
 footer {
@@ -86,5 +102,39 @@ footer {
 
 /* Responsive */
 @media (max-width: 768px) {
+    body {
+        font-size: 15px;
+    }
+
+    .container {
+        padding: 16px;
+    }
+
+    nav {
+        padding: 10px 16px;
+        gap: 10px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    nav a {
+        white-space: nowrap;
+        flex: 0 0 auto;
+        min-height: 42px;
+        padding: 0 2px;
+    }
+
     .cards-grid { grid-template-columns: 1fr; }
+
+    .section-title {
+        margin: 20px 0 10px;
+        font-size: 1em;
+    }
+
+    .badge,
+    .pill {
+        white-space: nowrap;
+    }
 }

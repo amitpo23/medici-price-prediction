@@ -1,4 +1,5 @@
 """Tests for the price override queue — SQLite-based job queue."""
+from datetime import datetime
 import os
 import sqlite3
 import tempfile
@@ -380,6 +381,33 @@ class TestHistory:
         # Sorted by total descending
         assert h["by_hotel"][0]["hotel_id"] == 66814
         assert h["by_hotel"][0]["total"] == 2
+
+    def test_history_days_filter_uses_true_rolling_window(self, _use_temp_db):
+        old_req = enqueue_override(detail_id=1, hotel_id=66814, current_price=200.0)
+        recent_req = enqueue_override(detail_id=2, hotel_id=66814, current_price=200.0)
+
+        conn = sqlite3.connect(str(_use_temp_db))
+        conn.execute(
+            "UPDATE override_requests SET created_at = ? WHERE id = ?",
+            ("2026-02-28T10:00:00", old_req.id),
+        )
+        conn.execute(
+            "UPDATE override_requests SET created_at = ? WHERE id = ?",
+            ("2026-03-15T10:00:00", recent_req.id),
+        )
+        conn.commit()
+        conn.close()
+
+        class FrozenDateTime(datetime):
+            @classmethod
+            def utcnow(cls):
+                return cls(2026, 3, 31, 12, 0, 0)
+
+        with patch("src.analytics.override_queue.datetime", FrozenDateTime):
+            history = get_history(days=30)
+
+        assert history["total"] == 1
+        assert history["by_hotel"][0]["total"] == 1
 
 
 # ── Constants ────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>Medici Health Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="60">
 <style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:20px;background:#1a1a2e;color:#e0e0e0}
@@ -27,6 +28,17 @@ td{padding:8px 6px;border-bottom:1px solid #222}
 .metric-label{font-size:12px;color:#888;margin-top:2px}
 .cache-bar{height:6px;background:#333;border-radius:3px;margin-top:4px}
 .cache-fill{height:100%;border-radius:3px;background:#4fc3f7}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{min-width:560px}
+@media(max-width:768px){
+body{padding:12px}
+h1{font-size:24px}
+.subtitle{margin-bottom:16px;font-size:13px}
+.grid{grid-template-columns:1fr;gap:12px}
+.card{padding:14px}
+.metric{font-size:24px}
+th,td{padding:7px 6px;font-size:12px}
+}
 </style>
 </head>
 <body>
@@ -58,50 +70,56 @@ td{padding:8px 6px;border-bottom:1px solid #222}
 
   <div class="card">
     <h3>Models</h3>
-    <table>
-      <tr><td>Price Forecaster</td><td><span class="status-badge {{ 'green' if forecaster_loaded else 'red' }}">{{ 'Loaded' if forecaster_loaded else 'Not loaded' }}</span></td></tr>
-      <tr><td>Occupancy Model</td><td><span class="status-badge {{ 'green' if occupancy_loaded else 'yellow' }}">{{ 'Loaded' if occupancy_loaded else 'Not loaded' }}</span></td></tr>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <tr><td>Price Forecaster</td><td><span class="status-badge {{ 'green' if forecaster_loaded else 'red' }}">{{ 'Loaded' if forecaster_loaded else 'Not loaded' }}</span></td></tr>
+        <tr><td>Occupancy Model</td><td><span class="status-badge {{ 'green' if occupancy_loaded else 'yellow' }}">{{ 'Loaded' if occupancy_loaded else 'Not loaded' }}</span></td></tr>
+      </table>
+    </div>
   </div>
 </div>
 
 <div class="card" style="margin-bottom:20px">
   <h3>Data Sources</h3>
-  <table>
-    <thead>
-      <tr><th>Source</th><th>Status</th><th>Last Updated</th><th>Age</th></tr>
-    </thead>
-    <tbody>
-    {% for src in sources %}
-      <tr>
-        <td>{{ src.name }}</td>
-        <td><span class="status-badge {{ src.status }}">{{ src.status }}</span></td>
-        <td>{{ src.last_updated or 'N/A' }}</td>
-        <td>{{ src.age_display or 'N/A' }}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Source</th><th>Status</th><th>Last Updated</th><th>Age</th></tr>
+        </thead>
+        <tbody>
+        {% for src in sources %}
+          <tr>
+            <td>{{ src.name }}</td>
+            <td><span class="status-badge {{ src.status }}">{{ src.status }}</span></td>
+            <td>{{ src.last_updated or 'N/A' }}</td>
+            <td>{{ src.age_display or 'N/A' }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
 </div>
 
 <div class="card">
   <h3>Cache Regions</h3>
-  <table>
-    <thead>
-      <tr><th>Region</th><th>Size</th><th>Hit Rate</th><th>Hits</th><th>Misses</th></tr>
-    </thead>
-    <tbody>
-    {% for name, info in cache_regions.items() %}
-      <tr>
-        <td>{{ name }}</td>
-        <td>{{ info.get('size', 0) }} / {{ info.get('max_size', '∞') }}</td>
-        <td>{{ '%.1f' | format(info.get('hit_rate', 0) * 100) }}%</td>
-        <td>{{ info.get('hits', 0) }}</td>
-        <td>{{ info.get('misses', 0) }}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Region</th><th>Size</th><th>Hit Rate</th><th>Hits</th><th>Misses</th></tr>
+        </thead>
+        <tbody>
+        {% for name, info in cache_regions.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{ info.get('size', 0) }} / {{ info.get('max_size', '∞') }}</td>
+            <td>{{ '%.1f' | format(info.get('hit_rate', 0) * 100) }}%</td>
+            <td>{{ info.get('hits', 0) }}</td>
+            <td>{{ info.get('misses', 0) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
 </div>
 
 </body>
