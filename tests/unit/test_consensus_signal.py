@@ -78,13 +78,14 @@ class TestCalculateConsensus:
             SourceVote("a", "CALL", "Leading", "reason"),
             SourceVote("b", "CALL", "Coincident", "reason"),
             SourceVote("c", "CALL", "Lagging", "reason"),
+            SourceVote("d", "CALL", "Leading", "reason"),
         ]
         result = calculate_consensus(votes)
         assert result["signal"] == "CALL"
         assert result["probability"] == 100.0
-        assert result["sources_voting"] == 3
+        assert result["sources_voting"] == 4
         assert result["sources_neutral"] == 0
-        assert result["sources_agree"] == 3
+        assert result["sources_agree"] == 4
         assert result["sources_disagree"] == 0
 
     def test_unanimous_put(self):
@@ -92,6 +93,7 @@ class TestCalculateConsensus:
             SourceVote("a", "PUT", "Leading"),
             SourceVote("b", "PUT", "Coincident"),
             SourceVote("c", "PUT", "Lagging"),
+            SourceVote("d", "PUT", "Leading"),
         ]
         result = calculate_consensus(votes)
         assert result["signal"] == "PUT"
@@ -125,16 +127,18 @@ class TestCalculateConsensus:
         assert result["probability"] == 60.0
 
     def test_neutral_excluded_from_voting(self):
-        """2 CALL + 1 NEUTRAL = 2 voting, 100% CALL."""
+        """4 CALL + 1 NEUTRAL = 4 voting, 100% CALL."""
         votes = [
             SourceVote("a", "CALL", "Leading"),
             SourceVote("b", "CALL", "Coincident"),
             SourceVote("c", "NEUTRAL", "Lagging"),
+            SourceVote("d", "CALL", "Leading"),
+            SourceVote("e", "CALL", "Coincident"),
         ]
         result = calculate_consensus(votes)
         assert result["signal"] == "CALL"
         assert result["probability"] == 100.0
-        assert result["sources_voting"] == 2
+        assert result["sources_voting"] == 4
         assert result["sources_neutral"] == 1
 
     def test_all_neutral(self):
@@ -170,11 +174,14 @@ class TestCalculateConsensus:
         assert result["by_category"]["Lagging"]["neutral"] == 1
 
     def test_exact_threshold_66_percent(self):
-        """2 CALL + 1 PUT = 66.7% -> CALL (above 66%)."""
+        """4 CALL + 2 PUT = 66.7% -> CALL (above 66%)."""
         votes = [
             SourceVote("a", "CALL", "Leading"),
             SourceVote("b", "CALL", "Coincident"),
             SourceVote("c", "PUT", "Lagging"),
+            SourceVote("d", "CALL", "Leading"),
+            SourceVote("e", "CALL", "Coincident"),
+            SourceVote("f", "PUT", "Lagging"),
         ]
         result = calculate_consensus(votes)
         assert result["signal"] == "CALL"
@@ -260,12 +267,12 @@ class TestVoteEvents:
 
 class TestVoteSeasonality:
     def test_positive_season_call(self):
-        pred = _make_pred(season_adj_pct=0.05)  # 5%
+        pred = _make_pred(season_adj_pct=0.06)  # 6% (above 5% threshold)
         v = vote_seasonality(pred)
         assert v.vote == "CALL"
 
     def test_negative_season_put(self):
-        pred = _make_pred(season_adj_pct=-0.03)  # -3%
+        pred = _make_pred(season_adj_pct=-0.06)  # -6% (below -5% threshold)
         v = vote_seasonality(pred)
         assert v.vote == "PUT"
 
@@ -304,12 +311,12 @@ class TestVoteHistorical:
 
 class TestVoteWeather:
     def test_bad_weather_put(self):
-        pred = _make_pred(weather_adj_pct=-0.04)  # -4%
+        pred = _make_pred(weather_adj_pct=-0.06)  # -6% (below -5% threshold)
         v = vote_weather(pred)
         assert v.vote == "PUT"
 
     def test_good_weather_call(self):
-        pred = _make_pred(weather_adj_pct=0.02)  # 2%
+        pred = _make_pred(weather_adj_pct=0.04)  # 4% (above 3% threshold)
         v = vote_weather(pred)
         assert v.vote == "CALL"
 

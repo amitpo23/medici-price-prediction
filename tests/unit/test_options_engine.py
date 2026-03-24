@@ -172,8 +172,8 @@ class TestComputeNextDaySignals:
             current_price=200.0, fc_prices=[200, 220, 260, 300, 290],
             p_up=80.0, p_down=10.0,
             fc_change_pct=35.0,
-            season_adj_pct=0.05,
-            demand_adj_pct=0.03,
+            season_adj_pct=0.06,
+            demand_adj_pct=0.04,
         )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
@@ -187,7 +187,7 @@ class TestComputeNextDaySignals:
             p_up=80.0, p_down=10.0,
             velocity_24h=0.05,  # 5% → CALL vote
             fc_change_pct=35.0,
-            season_adj_pct=0.05,
+            season_adj_pct=0.06,
         )}
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
@@ -202,7 +202,7 @@ class TestComputeNextDaySignals:
             current_price=200.0, fc_prices=[200, 195, 185, 176, 180],
             p_up=10.0, p_down=80.0,
             fc_change_pct=-10.0,
-            weather_adj_pct=-0.05,
+            weather_adj_pct=-0.06,
             cancellation_adj_pct=-0.03,
         )}
         signals = compute_next_day_signals(analysis)
@@ -246,7 +246,7 @@ class TestComputeNextDaySignals:
         """VOLATILE regime is NOT suppressed by consensus engine (only STALE is)."""
         analysis = {"predictions": _make_prediction(
             p_up=80.0, p_down=5.0, accel=1.0, regime="VOLATILE",
-            fc_change_pct=35.0, season_adj_pct=0.05, demand_adj_pct=0.03,
+            fc_change_pct=35.0, season_adj_pct=0.06, demand_adj_pct=0.04,
         )}
         signals = compute_next_day_signals(analysis)
         # VOLATILE regime does not suppress — consensus voters decide
