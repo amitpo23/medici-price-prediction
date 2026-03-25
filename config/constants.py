@@ -23,9 +23,9 @@ MIN_VOLATILITY = 0.5
 MAX_PREDICTION_HORIZON = 180
 
 # Hard clamp bounds on ensemble price (fraction of current price)
-# Hotel rooms don't jump 150% in weeks — max +50% is realistic for Miami market
-PRICE_CLAMP_MIN = 0.50   # 50% of current price (max -50% drop)
-PRICE_CLAMP_MAX = 1.50   # 150% of current price (max +50% rise)
+# Hotel rooms typically move ±20-30% over T period — tighter clamp prevents all-CALL bias
+PRICE_CLAMP_MIN = 0.70   # 70% of current price (max -30% drop)
+PRICE_CLAMP_MAX = 1.30   # 130% of current price (max +30% rise)
 
 # Sanity check bounds — blend toward current price if exceeded
 # Triggers earlier to prevent Historical Pattern from inflating ensemble
