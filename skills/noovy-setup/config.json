@@ -1,0 +1,73 @@
+{
+  "name": "noovy-setup",
+  "description": "Diagnose and fix missing Noovy/Hotel.Tools configurations. Analyzes gaps between SalesOffice DB and Noovy, generates fix instructions, and executes Bulk Updates via Playwright.",
+  "triggers": [
+    "noovy setup",
+    "noovy fix",
+    "hotel.tools setup",
+    "fix noovy",
+    "innstant not showing",
+    "knowaa missing",
+    "set availability",
+    "bulk update noovy",
+    "hotel onboarding",
+    "noovy gaps",
+    "noovy remediation"
+  ],
+  "tools_required": [
+    "mcp__playwright__browser_navigate",
+    "mcp__playwright__browser_click",
+    "mcp__playwright__browser_type",
+    "mcp__playwright__browser_select_option",
+    "mcp__playwright__browser_evaluate",
+    "mcp__playwright__browser_wait_for",
+    "mcp__playwright__browser_snapshot",
+    "mcp__playwright__browser_take_screenshot"
+  ],
+  "credentials": {
+    "noovy": {
+      "url": "https://app.noovy.com",
+      "account": "Medici LIVE",
+      "user": "zvi",
+      "password": "karpad66"
+    },
+    "innstant": {
+      "url": "https://b2b.innstant.travel",
+      "account": "Knowaa",
+      "agent": "Amit",
+      "password": "porat10"
+    }
+  },
+  "venue_mapping": {
+    "5113": "Cavalier Hotel",
+    "5119": "citizenM Miami South Beach",
+    "5266": "Dorchester Hotel",
+    "5082": "DoubleTree by Hilton Miami Doral",
+    "5268": "Fontainebleau Miami Beach",
+    "5278": "Gale Miami Hotel and Residences",
+    "5267": "Gale South Beach",
+    "5274": "Generator Miami",
+    "5124": "Grand Beach Hotel Miami",
+    "5115": "Hilton Cabana Miami Beach",
+    "5279": "Hilton Garden Inn Miami South Beach",
+    "5083": "Hilton Miami Airport",
+    "5130": "Holiday Inn Express Hotel & Suites",
+    "5265": "Hotel Belleza",
+    "5064": "Hotel Chelsea",
+    "5131": "Hotel Croydon",
+    "5132": "Hotel Gaythering",
+    "5276": "InterContinental Miami",
+    "5136": "Kimpton Angler's Hotel",
+    "5116": "Kimpton Hotel Palomar South Beach",
+    "5073": "Loews Miami Beach Hotel",
+    "5141": "Metropole South Beach",
+    "5275": "Miami International Airport Hotel",
+    "5102": "Notebook Miami Beach",
+    "5139": "SERENA Hotel Aventura Miami",
+    "5117": "The Albion Hotel",
+    "5277": "The Catalina Hotel & Beach Club",
+    "5140": "The Gates Hotel South Beach",
+    "5138": "The Landon Bay Harbor",
+    "5075": "The Villa Casa Casuarina"
+  }
+}
