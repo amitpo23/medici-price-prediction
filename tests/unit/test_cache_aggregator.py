@@ -327,3 +327,170 @@ class TestErrorHandling:
         result = aggregator.refresh_market_data()
         assert result["market_daily"] == 1
         assert result["competitors"] == 0
+
+
+# ── Search Results Intelligence ──────────────────────────────────────
+
+
+class TestSearchResultsIntelligence:
+    """Tests for SearchResultsSessionPollLog integration."""
+
+    def test_get_search_results_daily(self, aggregator):
+        df = pd.DataFrame([
+            {"hotel_id": 1, "search_date": "2026-03-20", "room_category": "std",
+             "room_board": "bb", "avg_sell_price": 250.0, "avg_net_price": 200.0,
+             "avg_bar_rate": 300.0, "min_sell_price": 230.0, "max_sell_price": 270.0,
+             "min_net_price": 185.0, "max_net_price": 215.0,
+             "search_count": 15, "provider_count": 3, "avg_margin_pct": 20.0},
+        ])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_search_results_daily(days_back=30)
+        assert len(result) == 1
+        assert result.iloc[0]["avg_sell_price"] == 250.0
+
+    def test_get_provider_prices(self, aggregator):
+        df = pd.DataFrame([
+            {"hotel_id": 1, "provider": "Booking", "avg_sell_price": 250.0,
+             "avg_net_price": 200.0, "best_sell_price": 230.0,
+             "best_net_price": 185.0, "result_count": 50, "free_cancel_pct": 0.8},
+        ])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_provider_prices(hotel_id=1)
+        assert len(result) == 1
+
+    def test_get_margin_spread(self, aggregator):
+        df = pd.DataFrame([{"hotel_id": 1, "date": "2026-03-20",
+                             "avg_sell": 250.0, "avg_net": 200.0, "avg_bar": 300.0}])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_margin_spread()
+        assert len(result) == 1
+
+    def test_get_search_volume(self, aggregator):
+        df = pd.DataFrame([{"hotel_id": 1, "date": "2026-03-20", "search_count": 150}])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_search_volume()
+        assert len(result) == 1
+
+    def test_get_arbitrage_opportunities(self, aggregator):
+        df = pd.DataFrame([{"hotel_id": 1, "sell_price": 300.0, "net_price": 200.0,
+                             "margin_pct": 33.3}])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_arbitrage_opportunities()
+        assert len(result) == 1
+
+
+# ── Rebuy & Override Intelligence ────────────────────────────────────
+
+
+class TestTradingIntelligence:
+    """Tests for cancellation rebuy signals and price overrides."""
+
+    def test_get_cancel_book(self, aggregator):
+        df = pd.DataFrame([{"cancel_id": 1, "book_id": 100, "reason": "test"}])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_cancel_book()
+        assert len(result) == 1
+
+    def test_get_rebuy_signals(self, aggregator):
+        df = pd.DataFrame([{"hotel_id": 1, "reason": "Cancelled By Last Price Update Job",
+                             "cancel_count": 12}])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_rebuy_signals()
+        assert len(result) == 1
+
+    def test_get_prebook_data(self, aggregator):
+        df = pd.DataFrame([{"prebook_id": 1, "hotel_id": 1, "provider": "Booking",
+                             "net_price": 200.0}])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_prebook_data()
+        assert len(result) == 1
+
+    def test_get_price_overrides(self, aggregator):
+        df = pd.DataFrame([{"override_id": 1, "detail_id": 100, "hotel_id": 1,
+                             "old_price": 200.0, "new_price": 220.0}])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_price_overrides()
+        assert len(result) == 1
+
+    def test_get_mapping_misses(self, aggregator):
+        df = pd.DataFrame([{"hotel_id": 1, "unmapped_category": "junior suite"}])
+        aggregator._run_query = MagicMock(return_value=df)
+        result = aggregator.get_mapping_misses()
+        assert len(result) == 1
+
+
+# ── Search Intelligence Refresh ──────────────────────────────────────
+
+
+class TestSearchIntelligenceRefresh:
+    """Tests for refresh_search_intelligence() and refresh_trading_signals()."""
+
+    def test_refresh_search_intelligence(self, aggregator):
+        search_df = pd.DataFrame([
+            {"hotel_id": 1, "search_date": "2026-03-20", "room_category": "std",
+             "room_board": "bb", "avg_sell_price": 250.0, "avg_net_price": 200.0,
+             "avg_bar_rate": 300.0, "search_count": 15, "provider_count": 3,
+             "avg_margin_pct": 20.0},
+        ])
+        margin_df = pd.DataFrame([
+            {"hotel_id": 1, "date": "2026-03-20", "avg_sell": 250.0, "avg_net": 200.0,
+             "avg_bar": 300.0, "avg_margin_usd": 50.0, "avg_margin_pct": 20.0,
+             "discount_from_bar_pct": 16.7, "search_count": 15},
+        ])
+        volume_df = pd.DataFrame([
+            {"hotel_id": 1, "date": "2026-03-20", "search_count": 150,
+             "unique_rooms_searched": 8, "active_providers": 5},
+        ])
+        call_count = [0]
+        def mock_query(sql, params=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return search_df
+            elif call_count[0] == 2:
+                return margin_df
+            elif call_count[0] == 3:
+                return volume_df
+            return pd.DataFrame()
+
+        aggregator._run_query = mock_query
+        result = aggregator.refresh_search_intelligence()
+        assert result["search_daily"] == 1
+        assert result["margin_spread"] == 1
+        assert result["search_volume"] == 1
+
+    def test_refresh_trading_signals(self, aggregator):
+        rebuy_df = pd.DataFrame([
+            {"hotel_id": 1, "reason": "Last Price Update", "cancel_count": 5,
+             "avg_sell_rate": 250.0, "avg_cost": 200.0},
+        ])
+        override_df = pd.DataFrame([
+            {"override_id": 1, "detail_id": 100, "hotel_id": 1, "room_category": "std",
+             "room_board": "bb", "date_from": "2026-05-15",
+             "old_price": 200.0, "new_price": 220.0, "change_amount": 20.0,
+             "change_pct": 10.0, "override_date": "2026-03-20", "user_id": "admin"},
+        ])
+        call_count = [0]
+        def mock_query(sql, params=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return rebuy_df
+            elif call_count[0] == 2:
+                return override_df
+            return pd.DataFrame()
+
+        aggregator._run_query = mock_query
+        result = aggregator.refresh_trading_signals()
+        assert result["rebuy_signals"] == 1
+        assert result["price_overrides"] == 1
+
+    def test_refresh_handles_partial_failures(self, aggregator):
+        call_count = [0]
+        def mock_query(sql, params=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise Exception("Search query failed")
+            return pd.DataFrame()
+
+        aggregator._run_query = mock_query
+        result = aggregator.refresh_search_intelligence()
+        assert result["search_daily"] == 0  # Failed gracefully

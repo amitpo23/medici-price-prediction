@@ -432,9 +432,161 @@ class TestMetadata:
         cache.clear_layer(3)
         assert cache.get_hotel_daily_signals(1, signal_date="2026-03-25") == []
 
+    def test_clear_layer_2_includes_new_tables(self, cache):
+        """Clearing layer 2 also clears search, margin, volume, rebuy, overrides."""
+        cache.save_search_daily([{
+            "hotel_id": 1, "search_date": "2026-03-20", "room_category": "std",
+            "room_board": "bb", "avg_sell_price": 200.0,
+        }])
+        cache.save_rebuy_signals([{"hotel_id": 1, "reason": "test", "cancel_count": 5}])
+        cache.clear_layer(2)
+        assert cache.get_search_daily(1) == []
+        assert cache.get_rebuy_activity(1) == []
+
     def test_schema_is_idempotent(self, tmp_path):
         """Creating cache twice on same DB shouldn't error."""
         db_path = tmp_path / "idempotent.db"
         c1 = AnalyticalCache(db_path=db_path)
         c2 = AnalyticalCache(db_path=db_path)
         assert c2.get_hotels() == []
+
+
+# ── Search Results Intelligence ──────────────────────────────────────
+
+
+class TestSearchIntelligence:
+    """Tests for search results (3 price points), margins, volume."""
+
+    def _make_search_row(self, hotel_id=1, search_date="2026-03-20"):
+        return {
+            "hotel_id": hotel_id, "search_date": search_date,
+            "room_category": "standard", "room_board": "BB",
+            "avg_sell_price": 250.0, "avg_net_price": 200.0, "avg_bar_rate": 300.0,
+            "min_sell_price": 230.0, "max_sell_price": 270.0,
+            "min_net_price": 185.0, "max_net_price": 215.0,
+            "search_count": 15, "provider_count": 3, "avg_margin_pct": 20.0,
+        }
+
+    def test_save_search_daily(self, cache):
+        assert cache.save_search_daily([self._make_search_row()]) == 1
+
+    def test_save_empty(self, cache):
+        assert cache.save_search_daily([]) == 0
+
+    def test_get_search_daily(self, cache):
+        cache.save_search_daily([
+            self._make_search_row(search_date="2026-03-20"),
+            self._make_search_row(search_date="2026-03-21"),
+        ])
+        result = cache.get_search_daily(1, days_back=30)
+        assert len(result) == 2
+        assert result[0]["avg_sell_price"] == 250.0
+        assert result[0]["avg_net_price"] == 200.0
+
+    def test_search_daily_upsert(self, cache):
+        cache.save_search_daily([self._make_search_row()])
+        updated = self._make_search_row()
+        updated["avg_sell_price"] = 260.0
+        cache.save_search_daily([updated])
+        result = cache.get_search_daily(1)
+        assert len(result) == 1
+        assert result[0]["avg_sell_price"] == 260.0
+
+    def test_save_margin_spread(self, cache):
+        row = {"hotel_id": 1, "date": "2026-03-20", "avg_sell": 250.0,
+               "avg_net": 200.0, "avg_bar": 300.0, "avg_margin_usd": 50.0,
+               "avg_margin_pct": 20.0, "discount_from_bar_pct": 16.7, "search_count": 15}
+        assert cache.save_margin_spread([row]) == 1
+
+    def test_save_margin_spread_empty(self, cache):
+        assert cache.save_margin_spread([]) == 0
+
+    def test_save_search_volume(self, cache):
+        row = {"hotel_id": 1, "date": "2026-03-20", "search_count": 150,
+               "unique_rooms_searched": 8, "active_providers": 5}
+        assert cache.save_search_volume([row]) == 1
+
+    def test_save_search_volume_empty(self, cache):
+        assert cache.save_search_volume([]) == 0
+
+    def test_three_price_points_preserved(self, cache):
+        """Verify all 3 price points (sell/net/bar) are stored correctly."""
+        row = self._make_search_row()
+        cache.save_search_daily([row])
+        result = cache.get_search_daily(1)[0]
+        assert result["avg_sell_price"] == 250.0
+        assert result["avg_net_price"] == 200.0
+        assert result["avg_bar_rate"] == 300.0
+        margin = result["avg_sell_price"] - result["avg_net_price"]
+        assert margin == 50.0  # $50 margin
+
+
+# ── Trading Intelligence ─────────────────────────────────────────────
+
+
+class TestTradingIntelligence:
+    """Tests for rebuy signals and price overrides."""
+
+    def test_save_rebuy_signals(self, cache):
+        rows = [{"hotel_id": 1, "reason": "Cancelled By Last Price Update Job",
+                 "cancel_count": 12, "avg_sell_rate": 250.0, "avg_cost": 200.0}]
+        assert cache.save_rebuy_signals(rows) == 1
+
+    def test_save_rebuy_empty(self, cache):
+        assert cache.save_rebuy_signals([]) == 0
+
+    def test_rebuy_upsert(self, cache):
+        rows = [{"hotel_id": 1, "reason": "test", "cancel_count": 5}]
+        cache.save_rebuy_signals(rows)
+        rows[0]["cancel_count"] = 10
+        cache.save_rebuy_signals(rows)
+        result = cache.get_rebuy_activity(1)
+        assert len(result) == 1
+        assert result[0]["cancel_count"] == 10
+
+    def test_get_rebuy_all(self, cache):
+        cache.save_rebuy_signals([
+            {"hotel_id": 1, "reason": "r1", "cancel_count": 5},
+            {"hotel_id": 2, "reason": "r2", "cancel_count": 3},
+        ])
+        result = cache.get_rebuy_activity()
+        assert len(result) == 2
+
+    def test_save_price_overrides(self, cache):
+        rows = [{
+            "override_id": 1, "detail_id": 100, "hotel_id": 1,
+            "room_category": "standard", "room_board": "BB",
+            "date_from": "2026-05-15", "old_price": 200.0, "new_price": 220.0,
+            "change_amount": 20.0, "change_pct": 10.0,
+            "override_date": "2026-03-20", "user_id": "admin",
+        }]
+        assert cache.save_price_overrides(rows) == 1
+
+    def test_save_overrides_empty(self, cache):
+        assert cache.save_price_overrides([]) == 0
+
+    def test_get_price_override_signals(self, cache):
+        cache.save_price_overrides([{
+            "override_id": 1, "detail_id": 100, "hotel_id": 1,
+            "old_price": 200.0, "new_price": 220.0, "change_amount": 20.0,
+            "change_pct": 10.0, "override_date": "2026-03-20",
+        }])
+        result = cache.get_price_override_signals(1)
+        assert len(result) == 1
+        assert result[0]["change_pct"] == 10.0
+
+    def test_override_direction_signal(self, cache):
+        """Positive change_pct = human pushed price UP (bullish signal)."""
+        cache.save_price_overrides([
+            {"override_id": 1, "detail_id": 100, "hotel_id": 1,
+             "old_price": 200.0, "new_price": 220.0, "change_amount": 20.0,
+             "change_pct": 10.0, "override_date": "2026-03-20"},
+            {"override_id": 2, "detail_id": 101, "hotel_id": 1,
+             "old_price": 300.0, "new_price": 270.0, "change_amount": -30.0,
+             "change_pct": -10.0, "override_date": "2026-03-19"},
+        ])
+        overrides = cache.get_price_override_signals(1)
+        bullish = [o for o in overrides if o["change_pct"] > 0]
+        bearish = [o for o in overrides if o["change_pct"] < 0]
+        assert len(bullish) == 1
+        assert len(bearish) == 1

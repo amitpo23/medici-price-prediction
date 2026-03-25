@@ -561,6 +561,217 @@ class AnalyticalCache:
         finally:
             conn.close()
 
+    # ── Layer 2: Search Results Intelligence ────────────────────────
+
+    def save_search_daily(self, rows: list[dict]) -> int:
+        """Save aggregated search results (sell/net/bar prices per hotel+date+room)."""
+        if not rows:
+            return 0
+        conn = self._get_conn()
+        try:
+            count = 0
+            for r in rows:
+                conn.execute("""
+                    INSERT INTO agg_search_daily
+                        (hotel_id, search_date, room_category, room_board,
+                         avg_sell_price, avg_net_price, avg_bar_rate,
+                         min_sell_price, max_sell_price, min_net_price, max_net_price,
+                         search_count, provider_count, avg_margin_pct, computed_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(hotel_id, search_date, room_category, room_board) DO UPDATE SET
+                        avg_sell_price=excluded.avg_sell_price, avg_net_price=excluded.avg_net_price,
+                        avg_bar_rate=excluded.avg_bar_rate,
+                        min_sell_price=excluded.min_sell_price, max_sell_price=excluded.max_sell_price,
+                        min_net_price=excluded.min_net_price, max_net_price=excluded.max_net_price,
+                        search_count=excluded.search_count, provider_count=excluded.provider_count,
+                        avg_margin_pct=excluded.avg_margin_pct, computed_at=excluded.computed_at
+                """, (
+                    r["hotel_id"], r["search_date"], r.get("room_category", ""),
+                    r.get("room_board", ""),
+                    r.get("avg_sell_price", 0), r.get("avg_net_price", 0), r.get("avg_bar_rate", 0),
+                    r.get("min_sell_price", 0), r.get("max_sell_price", 0),
+                    r.get("min_net_price", 0), r.get("max_net_price", 0),
+                    r.get("search_count", 0), r.get("provider_count", 0),
+                    r.get("avg_margin_pct", 0),
+                    datetime.utcnow().isoformat(),
+                ))
+                count += 1
+            conn.commit()
+            logger.info("Saved %d search daily rows", count)
+            return count
+        finally:
+            conn.close()
+
+    def get_search_daily(self, hotel_id: int, days_back: int = 30) -> list[dict]:
+        """Get daily search results for a hotel."""
+        conn = self._get_conn()
+        try:
+            cutoff = (datetime.utcnow() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+            rows = conn.execute("""
+                SELECT * FROM agg_search_daily
+                WHERE hotel_id=? AND search_date >= ?
+                ORDER BY search_date
+            """, (hotel_id, cutoff)).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def save_margin_spread(self, rows: list[dict]) -> int:
+        """Save margin spread data (sell vs net vs bar)."""
+        if not rows:
+            return 0
+        conn = self._get_conn()
+        try:
+            count = 0
+            for r in rows:
+                conn.execute("""
+                    INSERT INTO agg_margin_spread
+                        (hotel_id, date, avg_sell, avg_net, avg_bar,
+                         avg_margin_usd, avg_margin_pct, discount_from_bar_pct,
+                         search_count, computed_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(hotel_id, date) DO UPDATE SET
+                        avg_sell=excluded.avg_sell, avg_net=excluded.avg_net, avg_bar=excluded.avg_bar,
+                        avg_margin_usd=excluded.avg_margin_usd, avg_margin_pct=excluded.avg_margin_pct,
+                        discount_from_bar_pct=excluded.discount_from_bar_pct,
+                        search_count=excluded.search_count, computed_at=excluded.computed_at
+                """, (
+                    r["hotel_id"], r["date"],
+                    r.get("avg_sell", 0), r.get("avg_net", 0), r.get("avg_bar", 0),
+                    r.get("avg_margin_usd", 0), r.get("avg_margin_pct", 0),
+                    r.get("discount_from_bar_pct", 0),
+                    r.get("search_count", 0), datetime.utcnow().isoformat(),
+                ))
+                count += 1
+            conn.commit()
+            return count
+        finally:
+            conn.close()
+
+    def save_search_volume(self, rows: list[dict]) -> int:
+        """Save search volume trends (demand indicator)."""
+        if not rows:
+            return 0
+        conn = self._get_conn()
+        try:
+            count = 0
+            for r in rows:
+                conn.execute("""
+                    INSERT INTO agg_search_volume
+                        (hotel_id, date, search_count, unique_rooms_searched,
+                         active_providers, computed_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(hotel_id, date) DO UPDATE SET
+                        search_count=excluded.search_count,
+                        unique_rooms_searched=excluded.unique_rooms_searched,
+                        active_providers=excluded.active_providers,
+                        computed_at=excluded.computed_at
+                """, (
+                    r["hotel_id"], r["date"], r.get("search_count", 0),
+                    r.get("unique_rooms_searched", 0), r.get("active_providers", 0),
+                    datetime.utcnow().isoformat(),
+                ))
+                count += 1
+            conn.commit()
+            return count
+        finally:
+            conn.close()
+
+    # ── Layer 2: Trading Intelligence ────────────────────────────────
+
+    def save_rebuy_signals(self, rows: list[dict]) -> int:
+        """Save rebuy signals from MED_CancelBook."""
+        if not rows:
+            return 0
+        conn = self._get_conn()
+        try:
+            count = 0
+            for r in rows:
+                conn.execute("""
+                    INSERT INTO rebuy_signals
+                        (hotel_id, reason, cancel_count, avg_sell_rate,
+                         avg_cost, computed_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(hotel_id, reason) DO UPDATE SET
+                        cancel_count=excluded.cancel_count,
+                        avg_sell_rate=excluded.avg_sell_rate,
+                        avg_cost=excluded.avg_cost,
+                        computed_at=excluded.computed_at
+                """, (
+                    r.get("hotel_id", 0), r.get("reason", ""),
+                    r.get("cancel_count", 0),
+                    r.get("avg_sell_rate", 0), r.get("avg_cost", 0),
+                    datetime.utcnow().isoformat(),
+                ))
+                count += 1
+            conn.commit()
+            return count
+        finally:
+            conn.close()
+
+    def save_price_overrides(self, rows: list[dict]) -> int:
+        """Save price override history (human pricing intelligence)."""
+        if not rows:
+            return 0
+        conn = self._get_conn()
+        try:
+            count = 0
+            for r in rows:
+                conn.execute("""
+                    INSERT INTO price_overrides
+                        (override_id, detail_id, hotel_id, room_category, room_board,
+                         date_from, old_price, new_price, change_amount, change_pct,
+                         override_date, user_id, computed_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(override_id) DO UPDATE SET
+                        new_price=excluded.new_price, change_amount=excluded.change_amount,
+                        change_pct=excluded.change_pct, computed_at=excluded.computed_at
+                """, (
+                    r.get("override_id", 0), r.get("detail_id", 0),
+                    r.get("hotel_id", 0), r.get("room_category", ""),
+                    r.get("room_board", ""), r.get("date_from", ""),
+                    r.get("old_price", 0), r.get("new_price", 0),
+                    r.get("change_amount", 0), r.get("change_pct", 0),
+                    r.get("override_date", ""), r.get("user_id", ""),
+                    datetime.utcnow().isoformat(),
+                ))
+                count += 1
+            conn.commit()
+            return count
+        finally:
+            conn.close()
+
+    def get_price_override_signals(self, hotel_id: int) -> list[dict]:
+        """Get human pricing signals — what direction did humans push prices?"""
+        conn = self._get_conn()
+        try:
+            rows = conn.execute("""
+                SELECT * FROM price_overrides
+                WHERE hotel_id=?
+                ORDER BY override_date DESC
+                LIMIT 50
+            """, (hotel_id,)).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def get_rebuy_activity(self, hotel_id: int = 0) -> list[dict]:
+        """Get rebuy signal activity."""
+        conn = self._get_conn()
+        try:
+            if hotel_id:
+                rows = conn.execute(
+                    "SELECT * FROM rebuy_signals WHERE hotel_id=? ORDER BY cancel_count DESC",
+                    (hotel_id,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM rebuy_signals ORDER BY cancel_count DESC"
+                ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
     # ── Metadata ─────────────────────────────────────────────────────
 
     def get_freshness(self) -> dict:
@@ -572,6 +783,11 @@ class AnalyticalCache:
                 "ref_hotels": "Layer 1: Hotels",
                 "agg_market_daily": "Layer 2: Market Daily",
                 "agg_competitor_matrix": "Layer 2: Competitors",
+                "agg_search_daily": "Layer 2: Search Results (3 prices)",
+                "agg_margin_spread": "Layer 2: Margin Spread",
+                "agg_search_volume": "Layer 2: Search Volume",
+                "rebuy_signals": "Layer 2: Rebuy Signals",
+                "price_overrides": "Layer 2: Price Overrides",
                 "daily_signals": "Layer 3: Daily Signals",
                 "demand_zones": "Layer 3: Demand Zones",
                 "trade_setups": "Layer 3: Trade Setups",
@@ -610,6 +826,11 @@ class AnalyticalCache:
             elif layer == 2:
                 conn.execute("DELETE FROM agg_market_daily")
                 conn.execute("DELETE FROM agg_competitor_matrix")
+                conn.execute("DELETE FROM agg_search_daily")
+                conn.execute("DELETE FROM agg_margin_spread")
+                conn.execute("DELETE FROM agg_search_volume")
+                conn.execute("DELETE FROM rebuy_signals")
+                conn.execute("DELETE FROM price_overrides")
             elif layer == 3:
                 conn.execute("DELETE FROM daily_signals")
                 conn.execute("DELETE FROM demand_zones")
@@ -776,4 +997,84 @@ CREATE TABLE IF NOT EXISTS trade_journal (
 );
 CREATE INDEX IF NOT EXISTS idx_tj_hotel ON trade_journal(hotel_id);
 CREATE INDEX IF NOT EXISTS idx_tj_date ON trade_journal(created_at);
+
+-- ══ Layer 2: Search Results Intelligence (SearchResultsSessionPollLog) ══
+
+CREATE TABLE IF NOT EXISTS agg_search_daily (
+    hotel_id        INTEGER NOT NULL,
+    search_date     TEXT NOT NULL,
+    room_category   TEXT DEFAULT '',
+    room_board      TEXT DEFAULT '',
+    avg_sell_price  REAL DEFAULT 0,
+    avg_net_price   REAL DEFAULT 0,
+    avg_bar_rate    REAL DEFAULT 0,
+    min_sell_price  REAL DEFAULT 0,
+    max_sell_price  REAL DEFAULT 0,
+    min_net_price   REAL DEFAULT 0,
+    max_net_price   REAL DEFAULT 0,
+    search_count    INTEGER DEFAULT 0,
+    provider_count  INTEGER DEFAULT 0,
+    avg_margin_pct  REAL DEFAULT 0,
+    computed_at     TEXT NOT NULL,
+    UNIQUE(hotel_id, search_date, room_category, room_board)
+);
+CREATE INDEX IF NOT EXISTS idx_asd_hotel_date ON agg_search_daily(hotel_id, search_date);
+
+CREATE TABLE IF NOT EXISTS agg_margin_spread (
+    hotel_id             INTEGER NOT NULL,
+    date                 TEXT NOT NULL,
+    avg_sell             REAL DEFAULT 0,
+    avg_net              REAL DEFAULT 0,
+    avg_bar              REAL DEFAULT 0,
+    avg_margin_usd       REAL DEFAULT 0,
+    avg_margin_pct       REAL DEFAULT 0,
+    discount_from_bar_pct REAL DEFAULT 0,
+    search_count         INTEGER DEFAULT 0,
+    computed_at          TEXT NOT NULL,
+    UNIQUE(hotel_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_ams_hotel ON agg_margin_spread(hotel_id, date);
+
+CREATE TABLE IF NOT EXISTS agg_search_volume (
+    hotel_id              INTEGER NOT NULL,
+    date                  TEXT NOT NULL,
+    search_count          INTEGER DEFAULT 0,
+    unique_rooms_searched INTEGER DEFAULT 0,
+    active_providers      INTEGER DEFAULT 0,
+    computed_at           TEXT NOT NULL,
+    UNIQUE(hotel_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_asv_hotel ON agg_search_volume(hotel_id, date);
+
+-- ══ Layer 2: Trading Intelligence (Rebuy + Overrides) ══
+
+CREATE TABLE IF NOT EXISTS rebuy_signals (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    hotel_id       INTEGER NOT NULL,
+    reason         TEXT DEFAULT '',
+    cancel_count   INTEGER DEFAULT 0,
+    avg_sell_rate  REAL DEFAULT 0,
+    avg_cost       REAL DEFAULT 0,
+    computed_at    TEXT NOT NULL,
+    UNIQUE(hotel_id, reason)
+);
+CREATE INDEX IF NOT EXISTS idx_rs_hotel ON rebuy_signals(hotel_id);
+
+CREATE TABLE IF NOT EXISTS price_overrides (
+    override_id    INTEGER PRIMARY KEY,
+    detail_id      INTEGER NOT NULL,
+    hotel_id       INTEGER NOT NULL,
+    room_category  TEXT DEFAULT '',
+    room_board     TEXT DEFAULT '',
+    date_from      TEXT DEFAULT '',
+    old_price      REAL DEFAULT 0,
+    new_price      REAL DEFAULT 0,
+    change_amount  REAL DEFAULT 0,
+    change_pct     REAL DEFAULT 0,
+    override_date  TEXT DEFAULT '',
+    user_id        TEXT DEFAULT '',
+    computed_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_po_hotel ON price_overrides(hotel_id);
+CREATE INDEX IF NOT EXISTS idx_po_date ON price_overrides(override_date);
 """
