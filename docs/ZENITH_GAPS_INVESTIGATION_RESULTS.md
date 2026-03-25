@@ -138,3 +138,61 @@ URL: https://hotel.tools/service/Medici%20new
 Username: APIMedici:Medici Live
 Password: 12345
 ```
+
+---
+
+## Update: Full 30-Hotel SOAP Test (2026-03-25, 12:30 UTC)
+
+Following the Innstant team response about "static update from Noovy", tested all 30 new hotels:
+
+### Results: 29/30 fail, 1 partial
+
+| Status | Count | Hotels |
+|--------|-------|--------|
+| ❌ All ITCs fail | 29 | All except Notebook |
+| ✅ Stnd only | 1 | Notebook (5102) — DLX/Suite/SPR fail |
+
+**Root cause confirmed**: These are new venues that haven't completed their Zenith static sync. The Innstant team reported they are running a "static update from Noovy" — this should resolve the SOAP 402 errors once complete.
+
+### Innstant Team Status per Hotel
+
+| Hotel | Venue | Innstant Status | SOAP |
+|-------|-------|----------------|------|
+| Cavalier | 5113 | connected | ❌ |
+| citizenM SB | 5119 | connected | ❌ |
+| Dorchester | 5266 | not flowing - MP open | ❌ |
+| DoubleTree | 5082 | connected | ❌ |
+| Fontainebleau | 5268 | not flowing - MP open | ❌ |
+| Gale Miami | 5278 | MP was closed → opened | ❌ |
+| Gale South Beach | 5267 | MP was closed → opened | ❌ |
+| Generator | 5274 | not flowing - MP open | ❌ |
+| Grand Beach | 5124 | connected | ❌ |
+| Hilton Cabana | 5115 | connected | ❌ |
+| Hilton Garden | 5279 | not flowing - MP open | ❌ |
+| Hilton Airport | 5083 | connected | ❌ |
+| Holiday Inn | 5130 | not flowing - MP open | ❌ |
+| Belleza | 5265 | not flowing - MP open | ❌ |
+| Chelsea | 5064 | connected | ❌ |
+| Croydon | 5131 | connected | ❌ |
+| Gaythering | 5132 | connected | ❌ |
+| InterContinental | 5276 | MP was closed → opened | ❌ |
+| Kimpton Anglers | 5136 | connected | ❌ |
+| Kimpton Palomar | 5116 | connected | ❌ |
+| Loews | 5073 | connected | ❌ |
+| Metropole | 5141 | connected | ❌ |
+| Miami Airport | 5275 | not flowing - MP open | ❌ |
+| **Notebook** | **5102** | **not flowing - MP open** | **✅ Stnd only** |
+| SERENA | 5139 | connected | ❌ |
+| Albion | 5117 | connected | ❌ |
+| Catalina | 5277 | connected | ❌ |
+| Gates | 5140 | connected | ❌ |
+| Landon | 5138 | connected | ❌ |
+| Villa Casa | 5075 | connected | ❌ |
+
+### Next Steps
+
+1. **Wait for Innstant static update to complete** — they said they'll notify
+2. **After update**: Re-run SOAP test for all 30 hotels
+3. **Set availability in Noovy** for test dates (all 30 hotels)
+4. **Verify in B2B Innstant** that Knowaa_Global_zenith results appear
+5. **Create SalesOffice Orders** for working hotels
