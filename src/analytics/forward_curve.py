@@ -36,6 +36,9 @@ from config.constants import (
     EVENT_TAPER_DAYS,
     DAILY_CHANGE_CAP,
     CI_Z_SCORE,
+    DEMAND_ZONE_IMPACT_MAX,
+    REBUY_SIGNAL_IMPACT_MAX,
+    SEARCH_VOLUME_IMPACT_MAX,
 )
 
 logger = logging.getLogger(__name__)
@@ -165,6 +168,10 @@ class ForwardPoint:
     momentum_adj_pct: float = 0.0
     weather_adj_pct: float = 0.0
     competitor_adj_pct: float = 0.0
+    # Phase 2 enrichments (NEW — defaults preserve backward compat)
+    demand_zone_adj_pct: float = 0.0
+    rebuy_signal_adj_pct: float = 0.0
+    search_volume_adj_pct: float = 0.0
 
 
 @dataclass
@@ -481,6 +488,10 @@ class Enrichments:
     price_velocity: float = 0.0                                        # 0-1 normalized update frequency
     cancellation_risk: float = 0.0                                     # 0-1 cancel rate for this hotel
     provider_pressure: float = 0.0                                     # -1.0 to +1.0 from search results
+    # Phase 2 enrichments (from analytical_cache — NEW, default=safe)
+    demand_zone_proximity: float = 0.0                                  # -1.0 (near resistance) to +1.0 (near support)
+    rebuy_signal_strength: float = 0.0                                  # 0-1 normalized rebuy activity
+    search_volume_trend: float = 0.0                                    # 0-1 normalized; 0.5 = neutral
 
     def get_event_daily_adj(self, date: datetime) -> float:
         """Event impact for a specific date, spread across event window."""
@@ -576,6 +587,36 @@ class Enrichments:
         """
         return self.provider_pressure * PROVIDER_IMPACT_MAX
 
+    # ── Phase 2 enrichments (from analytical_cache) ───────────────────
+
+    def get_demand_zone_daily_adj(self) -> float:
+        """Daily adjustment from demand zone proximity.
+
+        Positive proximity (+1.0) = price near strong support zone → upward pressure.
+        Negative proximity (-1.0) = price near resistance zone → downward pressure.
+        Scaled to ±0.10%/day maximum impact.
+        """
+        return self.demand_zone_proximity * DEMAND_ZONE_IMPACT_MAX
+
+    def get_rebuy_signal_daily_adj(self) -> float:
+        """Daily adjustment from rebuy signal activity.
+
+        Rebuy = cancellation due to price drop >10%, then rebook at lower price.
+        Always a CALL (upward) signal: price already dropped, likely to recover.
+        Scaled to +0.12%/day at max strength.
+        """
+        return self.rebuy_signal_strength * REBUY_SIGNAL_IMPACT_MAX
+
+    def get_search_volume_daily_adj(self) -> float:
+        """Daily adjustment from search volume trend.
+
+        0.5 = neutral (average volume).
+        >0.5 = above-average searches → more interest → upward pressure.
+        <0.5 = below-average → less demand → downward pressure.
+        Scaled to ±0.04%/day (centered at 0.5).
+        """
+        return (self.search_volume_trend - 0.5) * SEARCH_VOLUME_IMPACT_MAX
+
 
 # ── Forward Curve Prediction ─────────────────────────────────────────
 
@@ -650,11 +691,16 @@ def predict_forward_curve(
         velocity_adj = enrichments.get_velocity_daily_adj()
         cancel_adj = enrichments.get_cancel_risk_adj()
         provider_adj = enrichments.get_provider_pressure_adj()
+        # Phase 2 enrichments (from analytical_cache)
+        dz_adj = enrichments.get_demand_zone_daily_adj()
+        rebuy_adj = enrichments.get_rebuy_signal_daily_adj()
+        sv_adj = enrichments.get_search_volume_daily_adj()
 
         # Total daily change
         total_daily_pct = (base_pct + offset_pct + mom_adj + event_adj
                            + season_adj + demand_adj + weather_adj + comp_adj
-                           + velocity_adj + cancel_adj + provider_adj)
+                           + velocity_adj + cancel_adj + provider_adj
+                           + dz_adj + rebuy_adj + sv_adj)
 
         # Apply change (multiplicative)
         predicted_price *= (1.0 + total_daily_pct / 100.0)
@@ -682,6 +728,9 @@ def predict_forward_curve(
             momentum_adj_pct=round(mom_adj, 4),
             weather_adj_pct=round(weather_adj, 4),
             competitor_adj_pct=round(comp_adj, 4),
+            demand_zone_adj_pct=round(dz_adj, 4),
+            rebuy_signal_adj_pct=round(rebuy_adj, 4),
+            search_volume_adj_pct=round(sv_adj, 4),
         ))
 
     # Determine confidence quality from data density at current T

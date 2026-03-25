@@ -508,6 +508,47 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
         except (KeyError, ValueError, TypeError) as e:
             logger.warning("Failed to compute provider pressure for hotel %s: %s", hotel_id, e)
 
+    # ── Phase 2 enrichments from analytical_cache ────────────────────
+    demand_zone_proximity = 0.0
+    rebuy_signal_strength = 0.0
+    search_volume_trend = 0.0
+
+    if hotel_id and internal_enabled:
+        try:
+            from src.api.routers._shared_state import _get_analytical_cache
+            acache = _get_analytical_cache()
+            if acache is not None:
+                # Demand zone proximity: +1 near support, -1 near resistance
+                zones = acache.get_demand_zones(hotel_id)
+                if zones:
+                    support_count = sum(1 for z in zones if z.get("zone_type") == "SUPPORT")
+                    resist_count = sum(1 for z in zones if z.get("zone_type") == "RESISTANCE")
+                    total = support_count + resist_count
+                    if total > 0:
+                        # Net direction: more support zones → bullish, more resistance → bearish
+                        demand_zone_proximity = (support_count - resist_count) / total
+                        # Scale by avg strength
+                        avg_strength = sum(z.get("strength", 0.5) for z in zones) / len(zones)
+                        demand_zone_proximity *= avg_strength
+
+                # Rebuy signal strength: normalize cancel_count
+                rebuy = acache.get_rebuy_activity(hotel_id=hotel_id)
+                if rebuy:
+                    total_cancels = sum(r.get("cancel_count", 0) for r in rebuy)
+                    # 20+ cancellations = max signal, normalized 0-1
+                    rebuy_signal_strength = min(1.0, total_cancels / 20.0)
+
+                # Search volume trend: normalized 0-1 (0.5 = neutral)
+                vol_data = acache.get_search_daily(hotel_id, days_back=7)
+                if vol_data:
+                    recent_counts = [d.get("search_count", 0) for d in vol_data]
+                    if recent_counts:
+                        avg_recent = sum(recent_counts) / len(recent_counts)
+                        # Normalize: 100 searches/day = 1.0, 0 = 0.0
+                        search_volume_trend = min(1.0, avg_recent / 100.0)
+        except (ImportError, OSError, KeyError, TypeError, ValueError) as e:
+            logger.warning("Phase 2 enrichments failed for hotel %s: %s", hotel_id, e)
+
     return Enrichments(
         demand_indicator=_flight_demand_cache.get("indicator", "NO_DATA") if external_enabled else "NO_DATA",
         events=events_list if external_enabled else [],
@@ -517,6 +558,9 @@ def _build_enrichments(date_from, now: datetime, hotel_id: int | None = None,
         price_velocity=price_velocity,
         cancellation_risk=cancellation_risk,
         provider_pressure=provider_pressure,
+        demand_zone_proximity=demand_zone_proximity,
+        rebuy_signal_strength=rebuy_signal_strength,
+        search_volume_trend=search_volume_trend,
     )
 
 

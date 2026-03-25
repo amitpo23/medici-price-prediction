@@ -88,6 +88,15 @@ MOMENTUM_IMPACT_SCALE = 0.3   # Momentum impact multiplier
 EVENT_RAMP_DAYS = 3   # Days before event to ramp impact
 EVENT_TAPER_DAYS = 2  # Days after event to taper impact
 
+# Demand zone proximity (from analytical_cache)
+DEMAND_ZONE_IMPACT_MAX = 0.10  # ±0.10%/day when price near support/resistance
+
+# Rebuy signals (from MED_CancelBook → analytical_cache)
+REBUY_SIGNAL_IMPACT_MAX = 0.12  # +0.12%/day max CALL boost when rebuy detected
+
+# Search volume trend (from SearchResultsSessionPollLog → analytical_cache)
+SEARCH_VOLUME_IMPACT_MAX = 0.08  # ±0.04%/day centered at 0.5 normalized volume
+
 # ── Extreme Outlier Caps ──────────────────────────────────────────────
 
 # Daily % change caps for T-observations
