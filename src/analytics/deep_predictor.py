@@ -412,6 +412,9 @@ class DeepPredictor:
                 reasoning_parts.append(f"Lead-time ({bucket}): {lead_adj:+.1f}% typical")
                 break
 
+        # Cap lead-time adjustment to ±30% — prevents Historical from inflating predictions
+        # (e.g. 3%/day × 65 days = 195% is unrealistic for hotel rooms)
+        lead_adj = max(-30.0, min(30.0, lead_adj))
         predicted = base_price * (1 + lead_adj / 100)
 
         # Adjust by DOW pattern

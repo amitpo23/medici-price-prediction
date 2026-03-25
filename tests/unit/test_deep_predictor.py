@@ -51,12 +51,12 @@ class TestDefaultWeights:
 
     def test_forward_curve_is_dominant(self):
         w = DeepPredictor.DEFAULT_WEIGHTS
-        assert w["forward_curve"] == 0.50
+        assert w["forward_curve"] == 0.70
         assert w["forward_curve"] > w["historical_pattern"]
         assert w["forward_curve"] > w["ml_forecast"]
 
-    def test_historical_30_pct(self):
-        assert DeepPredictor.DEFAULT_WEIGHTS["historical_pattern"] == 0.30
+    def test_historical_10_pct(self):
+        assert DeepPredictor.DEFAULT_WEIGHTS["historical_pattern"] == 0.10
 
     def test_ml_20_pct(self):
         assert DeepPredictor.DEFAULT_WEIGHTS["ml_forecast"] == 0.20
@@ -122,9 +122,9 @@ class TestComputeWeights:
             {"source": "historical_pattern", "predicted_price": 110, "confidence": 0.6},
         ]
         weights = predictor._compute_weights(signals)
-        # Manual calculation
-        raw_fc = 0.50 * (0.5 + 0.5 * 0.8)  # 0.50 * 0.90 = 0.45
-        raw_hist = 0.30 * (0.5 + 0.5 * 0.6)  # 0.30 * 0.80 = 0.24
+        # Manual calculation (weights: FC=0.70, Hist=0.10)
+        raw_fc = 0.70 * (0.5 + 0.5 * 0.8)  # 0.70 * 0.90 = 0.63
+        raw_hist = 0.10 * (0.5 + 0.5 * 0.6)  # 0.10 * 0.80 = 0.08
         total = raw_fc + raw_hist
         expected_fc = raw_fc / total
         expected_hist = raw_hist / total

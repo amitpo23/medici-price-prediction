@@ -7,8 +7,10 @@ Change values here to tune the prediction engine without modifying code.
 # ── Prediction Engine ─────────────────────────────────────────────────
 
 # Ensemble weights — how the 3 signals combine (must sum to 1.0)
-ENSEMBLE_WEIGHT_FORWARD_CURVE = 0.50
-ENSEMBLE_WEIGHT_HISTORICAL = 0.30
+# Historical Pattern inflates predictions via aggressive lead-time adjustment (+240%)
+# Until lead-time formula is fixed, keep Historical at 10% to prevent all-CALL bias
+ENSEMBLE_WEIGHT_FORWARD_CURVE = 0.70
+ENSEMBLE_WEIGHT_HISTORICAL = 0.10
 ENSEMBLE_WEIGHT_ML = 0.20
 
 # Bayesian shrinkage prior strength (higher = more smoothing toward global mean)
