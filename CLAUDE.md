@@ -119,12 +119,12 @@ Price Scan (every 3h) → SQLite storage → Build Forward Curve (Bayesian smoot
 - **Sprint TD-1**: Jinja2 extraction for remaining HTML generators (`terminal_page.py`, `alerts_page.py`, `_options_html_gen.py`)
 - **Sprint TD-2**: Unit tests for all collectors (`weather`, `market`, `events`, `trading`, `cbs`, `brightdata`, `registry`)
 
-## Phase 3: Trading System Enhancements (Planned)
+## Phase 3: Trading System Enhancements (COMPLETE)
 
-- **Sprint 5.1**: Portfolio Greeks (Theta/Delta/Vega) + VaR/CVaR — `src/analytics/portfolio_greeks.py`
-- **Sprint 5.2**: Position Tracking & PnL (realized/unrealized) — `src/analytics/position_tracker.py`
-- **Sprint 5.3**: Attribution Analysis (factor decomposition) — `src/analytics/attribution.py`
-- **Sprint 5.4**: Execution Quality & Slippage — `src/analytics/execution_quality.py`
+- **Sprint 5.1**: Portfolio Greeks (Theta/Delta/Vega) + VaR/CVaR — `src/analytics/portfolio_greeks.py` ✅
+- **Sprint 5.2**: Position Tracking & PnL (realized/unrealized) — `src/analytics/position_tracker.py` ✅
+- **Sprint 5.3**: Attribution Analysis (factor decomposition) — `src/analytics/attribution.py` ✅
+- **Sprint 5.4**: Execution Quality & Slippage — `src/analytics/execution_quality.py` ✅
 
 ## Phase 4: Advanced Analytics (Planned)
 
