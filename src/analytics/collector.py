@@ -217,6 +217,10 @@ ORDER BY o.DestinationId, o.DateFrom, d.RoomCategory, d.DateCreated
 def load_historical_prices() -> pd.DataFrame:
     """Load ALL historical price records (incl soft-deleted) for active hotels.
 
+    Combines two sources:
+    1. SalesOffice history (recent ~36 days of scan data)
+    2. MED_SearchHotels (2020-2023, up to 500k rows for tracked hotels)
+
     Returns DataFrame with columns: order_id, hotel_id, hotel_name, date_from,
     date_to, room_category, room_board, room_price, scan_date.
     """
@@ -227,27 +231,69 @@ def load_historical_prices() -> pd.DataFrame:
         logger.error("Cannot connect to trading DB for historical data")
         return pd.DataFrame()
 
+    # --- Source 1: SalesOffice history ---
     logger.info("Loading historical price data from SalesOffice...")
-
+    so_df = pd.DataFrame()
     try:
-        df = pd.read_sql_query(HISTORY_QUERY, engine)
+        so_df = pd.read_sql_query(HISTORY_QUERY, engine)
     except (OSError, ConnectionError, TimeoutError, ValueError) as e:
-        logger.error("Failed to load historical prices: %s", e, exc_info=True)
+        logger.error("Failed to load SalesOffice history: %s", e, exc_info=True)
+
+    so_count = len(so_df)
+    logger.info("SalesOffice history: %d rows", so_count)
+
+    # --- Source 2: MED_SearchHotels (2020-2023) ---
+    search_df = pd.DataFrame()
+    try:
+        from config.hotel_segments import HOTEL_SEGMENTS
+        from src.data.trading_db import load_med_search_hotels
+
+        tracked_ids = list(HOTEL_SEGMENTS.keys())
+        raw = load_med_search_hotels(hotel_ids=tracked_ids, limit=500_000)
+
+        if not raw.empty:
+            # Map MED_SearchHotels columns to unified schema
+            search_df = pd.DataFrame({
+                "order_id": (
+                    raw["RequestTime"].astype(str) + "_" + raw["HotelId"].astype(str)
+                ).apply(lambda x: abs(hash(x)) % (10**10)),
+                "hotel_id": raw["HotelId"],
+                "hotel_name": None,  # not available in search data
+                "date_from": raw["DateFrom"],
+                "date_to": None,     # not reliably available
+                "room_category": raw["CategoryId"],
+                "room_board": raw["BoardId"],
+                "room_price": raw["Price"],
+                "scan_date": raw["RequestTime"],
+            })
+            # Drop rows with missing price or hotel
+            search_df = search_df.dropna(subset=["room_price", "hotel_id"])
+            logger.info(
+                "MED_SearchHotels: %d rows loaded for %d tracked hotels",
+                len(search_df),
+                search_df["hotel_id"].nunique(),
+            )
+    except (ImportError, OSError, ConnectionError, TimeoutError, ValueError) as e:
+        logger.warning("MED_SearchHotels load failed (fallback to SalesOffice only): %s", e)
+
+    # --- Combine both sources ---
+    frames = [f for f in (so_df, search_df) if not f.empty]
+    if not frames:
+        logger.warning("No historical data found from any source")
         return pd.DataFrame()
 
-    if df.empty:
-        logger.warning("No historical data found")
-        return df
+    df = pd.concat(frames, ignore_index=True)
 
     for col in ("date_from", "date_to"):
         if col in df.columns:
             df[col] = df[col].astype(str)
 
     logger.info(
-        "Loaded %d historical records across %d hotels, %d orders",
+        "Combined historical data: %d rows (%d SalesOffice + %d MED_SearchHotels), %d hotels",
         len(df),
+        so_count,
+        len(search_df),
         df["hotel_id"].nunique(),
-        df["order_id"].nunique(),
     )
     return df
 

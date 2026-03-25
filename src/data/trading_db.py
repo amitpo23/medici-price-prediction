@@ -550,10 +550,18 @@ def load_search_results_summary(hotel_ids: list[int] | None = None) -> pd.DataFr
 # MED_SearchHotels (7M rows — historical search data 2020-2023)
 # ---------------------------------------------------------------------------
 
-def load_med_search_hotels(hotel_ids: list[int] | None = None) -> pd.DataFrame:
+def load_med_search_hotels(
+    hotel_ids: list[int] | None = None,
+    limit: int = 500_000,
+) -> pd.DataFrame:
     """Load historical search results (2020-2023 era).
 
     133 hotels, 3 providers — valuable for long-term pattern analysis.
+    7M rows total; use *hotel_ids* filter and *limit* to control memory.
+
+    Args:
+        hotel_ids: Only load rows for these hotels. Recommended for large tables.
+        limit: Max rows to return (default 500k). Set 0 for unlimited.
     """
     query = """
         SELECT RequestTime, DateForm AS DateFrom, DateTo, NumberOfNights,
@@ -562,10 +570,15 @@ def load_med_search_hotels(hotel_ids: list[int] | None = None) -> pd.DataFrame:
                providerId, providerName, CancellationType, source
         FROM MED_SearchHotels
     """
+    conditions: list[str] = []
     if hotel_ids:
         placeholders = ",".join(str(int(h)) for h in hotel_ids)
-        query += f" WHERE HotelId IN ({placeholders})"
+        conditions.append(f"HotelId IN ({placeholders})")
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
     query += " ORDER BY RequestTime DESC"
+    if limit and limit > 0:
+        query = f"SELECT TOP {int(limit)} * FROM ({query}) AS sub"
     return run_trading_query(query)
 
 
