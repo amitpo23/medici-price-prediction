@@ -276,3 +276,63 @@ If 100% CALL or 100% PUT → something wrong with decay curve or clamps.
 | `src/services/circuit_breaker.py` | Failure detection |
 | `src/api/middleware.py` | Scheduler watchdog |
 | `docs/KNOWLEDGE_BASE.md` | Full system specification |
+
+---
+
+## Phase 1+2: Analytical Cache + Trading Layer
+
+### What Was Added (2026-03-25)
+
+8 new files, 1,167 tests passing:
+
+| File | What It Does |
+|------|-------------|
+| `src/analytics/analytical_cache.py` | 3-layer SQLite cache, 13 tables |
+| `src/analytics/daily_signals.py` | Per-day CALL/PUT/NEUTRAL from FC |
+| `src/analytics/demand_zones.py` | ICT/SMC support/resistance + BOS/CHOCH |
+| `src/analytics/trade_setup.py` | Stop-loss, take-profit, Kelly sizing, RR |
+| `src/analytics/cache_aggregator.py` | Azure SQL → SQLite pipeline (all tables) |
+| `src/api/routers/trading_router.py` | 12 API endpoints for trading intelligence |
+
+### 3-Layer Cache Architecture
+
+```
+Layer 1 — Reference (startup): ref_hotels, ref_categories, ref_boards
+Layer 2 — Market (nightly): market_daily, competitor_matrix, search_daily,
+          margin_spread, search_volume, rebuy_signals, price_overrides
+Layer 3 — Signals (every 3h): daily_signals, demand_zones, trade_setups,
+          structure_breaks, trade_journal
+```
+
+### New Trading API Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/trading/signals` | Daily CALL/PUT/NEUTRAL timeline |
+| `/trading/zones` | Support/resistance demand zones |
+| `/trading/breaks` | BOS/CHOCH structure breaks |
+| `/trading/setups` | Trade setups with entry/stop/target/RR |
+| `/trading/search-intel` | 3 price points (sell/net/bar) |
+| `/trading/rebuy` | Rebuy signals from cancellation book |
+| `/trading/overrides` | Human price override history |
+| `/trading/cache/freshness` | Cache layer status (13 tables) |
+| `/trading/cache/refresh` | Trigger manual refresh |
+| `/trading/hotel/{id}` | Combined hotel overview |
+
+### 3 New FC Enrichments
+
+| Enrichment | Max Impact | Source |
+|------------|-----------|--------|
+| demand_zone_proximity | ±0.10%/day | Analytical cache zones |
+| rebuy_signal_strength | +0.12%/day | MED_CancelBook rebuys |
+| search_volume_trend | ±0.08%/day | SearchResultsPollLog volume |
+
+### Query Budget
+
+| When | Azure SQL Queries | Rows Scanned |
+|------|-------------------|-------------|
+| Startup | 3 | ~100 |
+| Night (1am) | 5 | ~17M (once!) |
+| Every 3h | 1 | ~4K (existing) |
+| Signal generation | **0** | **0** — reads from SQLite |
+| **Total/day** | ~19 queries | ~17M compressed to ~80K cached |
