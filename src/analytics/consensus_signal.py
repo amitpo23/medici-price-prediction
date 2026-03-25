@@ -135,7 +135,7 @@ def _fc_field(pred: dict, field_name: str, default: float = 0.0) -> float:
 # ---------------------------------------------------------------------------
 
 def vote_forward_curve(pred: dict) -> SourceVote:
-    """Lagging — FC prices: drop >= 5% -> PUT, rise >= 30% -> CALL."""
+    """Lagging — FC prices: drop >= 5% -> PUT, rise >= 15% -> CALL."""
     fc = pred.get("forward_curve")
     if not fc or not isinstance(fc, list) or len(fc) == 0:
         return SourceVote("forward_curve", "NEUTRAL", "Lagging", "No FC data")
@@ -152,7 +152,7 @@ def vote_forward_curve(pred: dict) -> SourceVote:
 
     if change_pct <= -5.0:
         return SourceVote("forward_curve", "PUT", "Lagging", f"FC drop {change_pct:.1f}%")
-    elif change_pct >= 30.0:
+    elif change_pct >= 15.0:
         return SourceVote("forward_curve", "CALL", "Lagging", f"FC rise {change_pct:.1f}%")
     return SourceVote("forward_curve", "NEUTRAL", "Lagging", f"FC change {change_pct:.1f}% within range")
 

@@ -97,8 +97,34 @@ def setup_middleware(app: FastAPI) -> None:
     # CORS
     setup_cors(app)
 
+    # Scheduler watchdog — restart if dead (checked every request, max once/60s)
+    app.add_middleware(SchedulerWatchdogMiddleware)
+
     # Correlation ID (outermost = runs first)
     app.add_middleware(CorrelationIdMiddleware)
+
+
+class SchedulerWatchdogMiddleware(BaseHTTPMiddleware):
+    """Restart SalesOffice scheduler if it died. Checks at most once per 60 seconds."""
+
+    _last_check: float = 0.0
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        now = time.time()
+        if now - SchedulerWatchdogMiddleware._last_check > 60:
+            SchedulerWatchdogMiddleware._last_check = now
+            try:
+                from src.api.routers._shared_state import (
+                    _salesoffice_scheduler_allowed,
+                    _is_scheduler_running,
+                    start_salesoffice_scheduler,
+                )
+                if _salesoffice_scheduler_allowed() and not _is_scheduler_running():
+                    logger.warning("Watchdog: scheduler dead — restarting")
+                    start_salesoffice_scheduler()
+            except Exception:
+                pass  # Never block a request for watchdog issues
+        return await call_next(request)
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):

@@ -21,12 +21,14 @@ MIN_VOLATILITY = 0.5
 MAX_PREDICTION_HORIZON = 180
 
 # Hard clamp bounds on ensemble price (fraction of current price)
-PRICE_CLAMP_MIN = 0.40   # 40% of current price
-PRICE_CLAMP_MAX = 2.50   # 250% of current price
+# Hotel rooms don't jump 150% in weeks — max +50% is realistic for Miami market
+PRICE_CLAMP_MIN = 0.50   # 50% of current price (max -50% drop)
+PRICE_CLAMP_MAX = 1.50   # 150% of current price (max +50% rise)
 
 # Sanity check bounds — blend toward current price if exceeded
-SANITY_RATIO_HIGH = 2.0   # 2x current price
-SANITY_RATIO_LOW = 0.5    # 0.5x current price
+# Triggers earlier to prevent Historical Pattern from inflating ensemble
+SANITY_RATIO_HIGH = 1.40   # 1.4x current price → start blending
+SANITY_RATIO_LOW = 0.60    # 0.6x current price → start blending
 SANITY_PENALTY_FLOOR = 0.05  # Minimum penalty multiplier for outliers
 
 # Outlier taming blend (when prediction exceeds sanity bounds)
