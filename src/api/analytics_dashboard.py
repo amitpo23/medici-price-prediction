@@ -20,6 +20,7 @@ from src.api.routers.market_router import market_router
 from src.api.routers.dashboard_router import dashboard_router
 from src.api.routers.analytics_router import analytics_router
 from src.api.routers.monitor_router import monitor_router
+from src.api.routers.trading_router import trading_router
 
 logger = logging.getLogger(__name__)
 
@@ -32,3 +33,4 @@ router.include_router(export_router)
 router.include_router(ai_router)
 router.include_router(market_router)
 router.include_router(monitor_router)
+router.include_router(trading_router)

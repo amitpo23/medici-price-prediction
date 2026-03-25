@@ -197,6 +197,140 @@ def _is_scheduler_running() -> bool:
     return _scheduler_thread is not None and _scheduler_thread.is_alive()
 
 
+# ── Analytical Cache integration ──────────────────────────────────────
+
+_analytical_cache_instance = None
+_analytical_cache_lock = threading.Lock()
+
+
+def _get_analytical_cache():
+    """Lazy singleton for AnalyticalCache — avoids import at module load."""
+    global _analytical_cache_instance
+    if _analytical_cache_instance is None:
+        with _analytical_cache_lock:
+            if _analytical_cache_instance is None:
+                try:
+                    from src.analytics.analytical_cache import AnalyticalCache
+                    _analytical_cache_instance = AnalyticalCache()
+                    logger.info("Analytical cache initialized at %s", _analytical_cache_instance.db_path)
+                except (ImportError, OSError) as exc:
+                    logger.warning("Analytical cache init failed: %s", exc)
+    return _analytical_cache_instance
+
+
+def _get_cache_aggregator():
+    """Create a CacheAggregator instance with the shared cache."""
+    cache = _get_analytical_cache()
+    if cache is None:
+        return None
+    try:
+        from src.analytics.cache_aggregator import CacheAggregator
+        return CacheAggregator(cache=cache)
+    except (ImportError, OSError) as exc:
+        logger.warning("CacheAggregator init failed: %s", exc)
+        return None
+
+
+def _refresh_analytical_cache_daily() -> dict:
+    """Daily refresh: Layer 1 (reference) + Layer 2 (market + search + trading).
+
+    Called once per calendar day inside _run_collection_cycle.
+    Pulls ~19 queries from Azure SQL → aggregates into local SQLite.
+    """
+    aggregator = _get_cache_aggregator()
+    if aggregator is None:
+        return {}
+
+    try:
+        result = aggregator.full_refresh(days_back=90)
+        logger.info("Analytical cache daily refresh: %s", result)
+        return result
+    except (ConnectionError, OSError, ValueError, RuntimeError) as exc:
+        logger.warning("Analytical cache daily refresh failed: %s", exc)
+        return {}
+
+
+def _refresh_analytical_cache_signals(analysis: dict | None) -> dict:
+    """Every-cycle refresh: Layer 3 signals + demand zones.
+
+    Called every scheduler cycle (3h). Uses the analysis dict
+    to generate daily signals, then runs demand zone detection.
+    """
+    cache = _get_analytical_cache()
+    if cache is None:
+        return {}
+
+    result = {"daily_signals": 0, "demand_zones": 0, "trade_setups": 0}
+
+    # Generate daily signals from the analysis forward curve
+    if analysis and analysis.get("predictions"):
+        try:
+            from src.analytics.daily_signals import generate_daily_signals
+            predictions = analysis.get("predictions", {})
+            all_signals = []
+            for _detail_id, pred in predictions.items():
+                curve_points = pred.get("forward_curve_points", [])
+                if curve_points:
+                    signals = generate_daily_signals(curve_points, detail_id=int(_detail_id))
+                    all_signals.extend(signals)
+            if all_signals:
+                result["daily_signals"] = cache.save_daily_signals(all_signals)
+                logger.info("Saved %d daily signals to analytical cache", result["daily_signals"])
+        except (ImportError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Daily signals generation failed: %s", exc)
+
+    # Run demand zone analysis via aggregator (pulls price history from Azure SQL)
+    aggregator = _get_cache_aggregator()
+    if aggregator is not None:
+        try:
+            zone_result = aggregator.run_all_demand_zones(days_back=90)
+            result["demand_zones"] = zone_result.get("total_zones", 0)
+            logger.info(
+                "Demand zones refreshed: %d zones for %d hotels",
+                zone_result.get("total_zones", 0),
+                zone_result.get("hotels_analyzed", 0),
+            )
+        except (ConnectionError, OSError, ValueError, RuntimeError) as exc:
+            logger.warning("Demand zone refresh failed: %s", exc)
+
+    # Generate trade setups from signals + zones
+    if result["daily_signals"] > 0 or result["demand_zones"] > 0:
+        try:
+            from src.analytics.trade_setup import batch_compute_setups
+            hotels = cache.get_freshness().get("tables", {})
+            # Get all hotels that have signals
+            hotel_ids = set()
+            for table_info in hotels.values():
+                if isinstance(table_info, dict) and table_info.get("count", 0) > 0:
+                    pass  # We'll gather from signals instead
+
+            # Collect signals for trade setup computation
+            all_setups = []
+            if analysis and analysis.get("predictions"):
+                for _detail_id, pred in analysis["predictions"].items():
+                    hotel_id = pred.get("hotel_id", 0)
+                    if not hotel_id:
+                        continue
+                    signals = cache.get_daily_signals(int(_detail_id), days_forward=30)
+                    zones = cache.get_demand_zones(hotel_id)
+                    if signals:
+                        setups = batch_compute_setups(
+                            signals=signals,
+                            demand_zones=zones,
+                            hotel_id=hotel_id,
+                            detail_id=int(_detail_id),
+                        )
+                        all_setups.extend(setups)
+
+            if all_setups:
+                result["trade_setups"] = cache.save_trade_setups(all_setups)
+                logger.info("Saved %d trade setups to analytical cache", result["trade_setups"])
+        except (ImportError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Trade setup generation failed: %s", exc)
+
+    return result
+
+
 # ── Internal helpers ──────────────────────────────────────────────────
 
 def _run_collection_cycle() -> dict | None:
@@ -421,6 +555,15 @@ def _run_collection_cycle() -> dict | None:
                 logger.info("Makcorps historical prices refreshed: %d records", mc_total)
         except (ImportError, ConnectionError, TimeoutError, ValueError) as exc:
             logger.warning("Makcorps refresh failed: %s", exc)
+
+        # ── Analytical Cache: Layer 1 + 2 daily refresh ───────────────
+        # Pulls reference data, market aggregations, search intelligence,
+        # and trading signals from Azure SQL into local SQLite cache.
+        _refresh_analytical_cache_daily()
+
+    # ── Analytical Cache: Layer 3 every-cycle refresh ─────────────────
+    # Demand zones + daily signals refresh on every scheduler cycle (3h)
+    _refresh_analytical_cache_signals(analysis)
 
     return analysis
 

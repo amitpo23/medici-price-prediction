@@ -360,6 +360,24 @@ a{color:#42a5f5;text-decoration:none}
       </div>
     </div>
 
+    <!-- Trading Intelligence (Phase 2) -->
+    <div class="section" id="panel-trading-intel">
+      <div class="section-title">Trading Intelligence</div>
+      <div id="trading-intel-body" class="empty">Select an option to see trading signals</div>
+    </div>
+
+    <!-- Demand Zones (Phase 2) -->
+    <div class="section" id="panel-demand-zones">
+      <div class="section-title">Demand Zones</div>
+      <div id="demand-zones-body" class="empty">Select an option to see support/resistance zones</div>
+    </div>
+
+    <!-- Trade Setup (Phase 2) -->
+    <div class="section" id="panel-trade-setup">
+      <div class="section-title">Trade Setup</div>
+      <div id="trade-setup-body" class="empty">Select an option to see trade setup</div>
+    </div>
+
     <!-- Queue Sidebar -->
     <div class="section" id="panel-queue">
       <div class="section-title">Execution Queue</div>
@@ -617,6 +635,7 @@ async function selectOption(detailId){
   renderOverrideHistory(detailId);
   loadHistoricalT(detailId);
   if(S.activeChartTab==='term')renderTermChart(detailId);
+  loadTradingPanels(detailId, opt.hotel_id);
 
   // Background: load historical scan data (contract-data)
   const cdParams=new URLSearchParams({detail_id:String(detailId),hotel_id:String(opt.hotel_id||''),checkin_date:(opt.date_from||'').substring(0,10),category:opt.category||'',board:opt.board||''});
@@ -1308,6 +1327,125 @@ function renderConsensusBarChart(votes){
       y:{ticks:{color:'#8899aa',font:{size:8}},grid:{display:false}},
     },
   }});
+}
+
+/* ══════════ PHASE 2: TRADING INTELLIGENCE ══════════ */
+
+async function loadTradingIntel(detailId, hotelId){
+  // Trading signals summary
+  const sigData = await api(`/trading/signals/summary?detail_id=${detailId}&days_forward=30`);
+  const body = el('trading-intel-body');
+  if(!sigData||!sigData.summary){body.className='empty';body.innerHTML='No signals available';return}
+  const s = sigData.summary;
+  const dom = sigData.dominant_signal;
+  const avgC = sigData.avg_confidence||{};
+  body.className='';
+  body.innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <span class="badge ${sigCls(dom)}" style="font-size:13px;padding:3px 10px">${dom}</span>
+      <span style="color:var(--muted);font-size:11px">dominant (${s.total} days)</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px">
+      <div><span class="call">▲</span> CALL: ${s.CALL||0} <span style="color:var(--muted)">(${(avgC.CALL||0).toFixed(0)}%)</span></div>
+      <div><span class="put">▼</span> PUT: ${s.PUT||0} <span style="color:var(--muted)">(${(avgC.PUT||0).toFixed(0)}%)</span></div>
+      <div><span class="neutral">●</span> NEUT: ${s.NEUTRAL||0} <span style="color:var(--muted)">(${(avgC.NEUTRAL||0).toFixed(0)}%)</span></div>
+    </div>
+    <div style="margin-top:8px;height:6px;display:flex;border-radius:3px;overflow:hidden">
+      <div style="flex:${s.CALL||0};background:var(--call)"></div>
+      <div style="flex:${s.NEUTRAL||0};background:var(--none)"></div>
+      <div style="flex:${s.PUT||0};background:var(--put)"></div>
+    </div>
+  `;
+
+  // Rebuy signals
+  const rebuyData = await api(`/trading/rebuy?hotel_id=${hotelId}`);
+  if(rebuyData && rebuyData.count > 0){
+    const rs = rebuyData.signals;
+    const totalCancels = rs.reduce((a,r)=>a+(r.cancel_count||0),0);
+    body.innerHTML+=`
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Rebuy Signals</div>
+        <div style="font-size:12px"><span class="call">▲</span> ${totalCancels} rebuy cancellations — <strong>CALL confirmation</strong></div>
+      </div>
+    `;
+  }
+}
+
+async function loadDemandZones(hotelId){
+  const data = await api(`/trading/zones?hotel_id=${hotelId}`);
+  const body = el('demand-zones-body');
+  if(!data||!data.count){body.className='empty';body.innerHTML='No zones detected';return}
+  body.className='';
+  const zones = data.zones;
+  const support = zones.filter(z=>z.zone_type==='SUPPORT');
+  const resist = zones.filter(z=>z.zone_type==='RESISTANCE');
+  let html=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">${support.length} support, ${resist.length} resistance</div>`;
+  // Show top 3 zones by strength
+  const top = zones.slice(0,5);
+  html+='<div style="display:flex;flex-direction:column;gap:4px">';
+  for(const z of top){
+    const isSup=z.zone_type==='SUPPORT';
+    const color=isSup?'var(--call)':'var(--put)';
+    const label=isSup?'SUP':'RES';
+    const pctStr=(z.strength*100).toFixed(0);
+    html+=`<div style="display:flex;align-items:center;gap:6px;font-size:11px">
+      <span style="color:${color};font-weight:bold;min-width:28px">${label}</span>
+      <span>\$${z.price_lower?.toFixed(0)||'?'} – \$${z.price_upper?.toFixed(0)||'?'}</span>
+      <span style="color:var(--muted)">×${z.touch_count} (${pctStr}%)</span>
+    </div>`;
+  }
+  html+='</div>';
+
+  // Structure breaks
+  const breaks = await api(`/trading/breaks?hotel_id=${hotelId}&days_back=14`);
+  if(breaks && breaks.count>0){
+    html+=`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border);font-size:11px">`;
+    for(const b of breaks.breaks.slice(0,3)){
+      const icon=b.direction==='BULLISH'?'<span class="call">▲</span>':'<span class="put">▼</span>';
+      html+=`<div>${icon} ${b.break_type} @ \$${b.break_price?.toFixed(0)||'?'} (${b.break_date?.substring(5)||''})</div>`;
+    }
+    html+='</div>';
+  }
+  body.innerHTML=html;
+}
+
+async function loadTradeSetup(detailId, hotelId){
+  const data = await api(`/trading/setups?hotel_id=${hotelId}&limit=5`);
+  const body = el('trade-setup-body');
+  if(!data||!data.count){body.className='empty';body.innerHTML='No trade setups available';return}
+  // Find setup for this detail_id or first available
+  let setup = data.setups.find(s=>s.detail_id===detailId) || data.setups[0];
+  body.className='';
+  const sig=setup.signal||'NEUTRAL';
+  const rr=(setup.risk_reward_ratio||0).toFixed(2);
+  const quality=setup.setup_quality||'medium';
+  const qualColor=quality==='high'?'var(--call)':quality==='low'?'var(--put)':'var(--muted)';
+  body.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span class="badge ${sigCls(sig)}">${sig}</span>
+      <span style="font-size:11px;color:${qualColor}">Quality: ${quality.toUpperCase()}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+      <div><span style="color:var(--muted)">Entry:</span> ${fmt$(setup.entry_price)}</div>
+      <div><span style="color:var(--muted)">R:R:</span> <strong>${rr}</strong></div>
+      <div><span style="color:var(--call)">Stop:</span> ${fmt$(setup.stop_loss)} <span style="color:var(--muted);font-size:10px">${(setup.stop_distance_pct||0).toFixed(1)}%</span></div>
+      <div><span style="color:var(--put)">Target:</span> ${fmt$(setup.take_profit)} <span style="color:var(--muted);font-size:10px">${(setup.target_distance_pct||0).toFixed(1)}%</span></div>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted)">
+      Size: ${(setup.position_size||0).toFixed(1)}% · Risk: ${fmt$(setup.max_risk_usd||0)}
+    </div>
+  `;
+}
+
+/* Hook into selectOption — extend existing selection flow */
+const _origSelectOption = typeof selectOption==='function'?selectOption:null;
+async function loadTradingPanels(detailId, hotelId){
+  // Load all 3 trading panels in parallel
+  Promise.all([
+    loadTradingIntel(detailId, hotelId),
+    loadDemandZones(hotelId),
+    loadTradeSetup(detailId, hotelId),
+  ]).catch(e=>console.warn('Trading panels load error:',e));
 }
 
 /* ══════════ BOOT ══════════ */
