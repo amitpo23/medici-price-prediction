@@ -4221,3 +4221,130 @@ async def scan_price_history(
         }
     finally:
         conn.close()
+
+
+# ── Position Tracking & PnL endpoints ────────────────────────────────
+
+
+@analytics_router.get("/positions")
+def list_positions(
+    request: Request,
+    status: str | None = None,
+    hotel_id: int | None = None,
+    signal: str | None = None,
+    _key=Depends(_optional_api_key),
+):
+    """List all tracked positions with optional filters."""
+    from src.analytics.position_tracker import get_positions, sync_positions_from_queues
+    try:
+        sync_positions_from_queues()
+    except Exception as exc:
+        logger.debug("Position sync skipped: %s", exc)
+    positions = get_positions(status=status, hotel_id=hotel_id, signal=signal)
+    return JSONResponse(content=[p.to_dict() for p in positions])
+
+
+@analytics_router.get("/positions/pnl")
+def positions_pnl_summary(
+    request: Request,
+    hotel_id: int | None = None,
+    _key=Depends(_optional_api_key),
+):
+    """Portfolio PnL summary with win/loss analysis and hotel breakdown."""
+    from src.analytics.position_tracker import (
+        get_pnl_summary, sync_positions_from_queues, update_positions_prices,
+    )
+    try:
+        sync_positions_from_queues()
+        analysis = _get_cached_analysis()
+        if analysis:
+            update_positions_prices(analysis)
+    except Exception as exc:
+        logger.debug("Position price update skipped: %s", exc)
+    summary = get_pnl_summary(hotel_id=hotel_id)
+    return JSONResponse(content=summary.to_dict())
+
+
+@analytics_router.get("/positions/{hotel_id}")
+def hotel_positions(
+    hotel_id: int,
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Positions for a specific hotel."""
+    from src.analytics.position_tracker import get_positions
+    positions = get_positions(hotel_id=hotel_id)
+    return JSONResponse(content=[p.to_dict() for p in positions])
+
+
+# ── Enrichment Attribution endpoints ─────────────────────────────────
+
+
+@analytics_router.get("/attribution/enrichments")
+def enrichment_attribution(
+    request: Request,
+    hotel_id: int | None = None,
+    _key=Depends(_optional_api_key),
+):
+    """Factor attribution — which enrichments drive predictions most."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+    from src.analytics.attribution import compute_attribution
+    result = compute_attribution(analysis, hotel_id=hotel_id)
+    return JSONResponse(content=result.to_dict())
+
+
+@analytics_router.get("/attribution/enrichments/{hotel_id}")
+def hotel_enrichment_attribution(
+    hotel_id: int,
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Per-hotel enrichment attribution."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+    from src.analytics.attribution import compute_hotel_attribution
+    result = compute_hotel_attribution(analysis, hotel_id)
+    return JSONResponse(content=result.to_dict())
+
+
+@analytics_router.get("/attribution/signals")
+def signal_attribution(
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """CALL vs PUT attribution comparison — which factors favor which signal."""
+    analysis = _get_cached_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+    from src.analytics.attribution import compute_signal_attribution
+    result = compute_signal_attribution(analysis)
+    return JSONResponse(content=result)
+
+
+# ── Execution Quality endpoints ──────────────────────────────────────
+
+
+@analytics_router.get("/execution/quality")
+def execution_quality_report(
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Execution quality metrics — fill rate, rejection rate, timing."""
+    from src.analytics.execution_quality import compute_execution_quality
+    report = compute_execution_quality()
+    return JSONResponse(content=report.to_dict())
+
+
+@analytics_router.get("/execution/slippage")
+def execution_slippage(
+    request: Request,
+    top_n: int = 20,
+    _key=Depends(_optional_api_key),
+):
+    """Slippage analysis — predicted vs actual execution price."""
+    from src.analytics.execution_quality import compute_slippage_analysis
+    slippages = compute_slippage_analysis(top_n=top_n)
+    return JSONResponse(content=[s.to_dict() for s in slippages])
