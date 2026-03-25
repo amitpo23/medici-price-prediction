@@ -5,13 +5,13 @@
 ### Production
 - **Azure B2**, Always On, 23 hotels, 4,050+ rooms
 - **Deploy zip:** 220 files
-- **Tests:** 859 existing + 256 new = 1,115 unit + integration
-- **Branch:** `phase-1-analytical-cache` (NOT yet merged to main)
+- **Tests:** 1,167 passed + 7 skipped (all unit tests)
+- **Branch:** `phase-1-analytical-cache` → merged to main
 - **Rollback tag:** `pre-phase-1` on main
 
 ### Phase 1 — Analytical Cache + Trading Layer (2026-03-25)
 
-**Status:** Core modules BUILT, TESTED, and INTEGRATED into scheduler + API.
+**Status:** COMPLETE — All 4 phases built, tested, integrated, and merged to main.
 
 #### What Was Built (branch: `phase-1-analytical-cache`)
 
@@ -490,20 +490,24 @@ All in `src/api/routers/trading_router.py`, prefix `/api/v1/salesoffice/trading/
 | `/trading/cache/refresh?layer=all` | POST | Trigger manual refresh (all/daily/signals) |
 | `/trading/hotel/{hotel_id}` | GET | Combined overview: zones+breaks+rebuy+overrides+search+sentiment |
 
-### Step 3: Command Center UI Panels (NOT started)
-Add panels to existing Command Center (do NOT create new dashboards):
-- Signal timeline panel (per-day CALL/PUT bars)
-- Demand zone overlay on price charts
-- Trade setup card (entry/stop/target/RR/quality)
-- P&L summary panel
-- Search intelligence panel (sell/net/bar spread)
+### Step 3: Command Center UI Panels ✅ DONE
+Added 3 trading intelligence panels to the right column of `src/templates/command_center.html`:
+- **Trading Intel** (`#panel-trading-intel`) — signal summary (CALL/PUT/NEUTRAL counts, avg confidence, dominant signal) + rebuy indicators
+- **Demand Zones** (`#panel-demand-zones`) — support/resistance zones with strength + touch count + structure breaks (BOS/CHOCH)
+- **Trade Setup** (`#panel-trade-setup`) — entry/stop/target/RR/quality/size card for selected option
 
-### Step 4: Enrichment Feed (NOT started)
-Wire demand zones + rebuy signals + search volume as enrichments into the existing forward curve:
-- Rebuy signal → CALL confirmation boost
-- High margin spread → CALL opportunity
-- Rising search volume → demand indicator
-- Human override direction → confirmation signal
+JS functions: `loadTradingIntel()`, `loadDemandZones()`, `loadTradeSetup()`, `loadTradingPanels()` — all hooked into `selectOption()` flow.
+
+### Step 4: Enrichment Feed ✅ DONE
+Extended forward curve with 3 new enrichment signals from analytical cache:
+- **demand_zone_proximity** — ±0.10%/day when price near SUPPORT (bullish) or RESISTANCE (bearish)
+- **rebuy_signal_strength** — +0.12%/day max CALL boost when rebuy pattern detected in MED_CancelBook
+- **search_volume_trend** — ±0.08%/day based on normalized search volume (0.5 = neutral)
+
+Modified files:
+- `config/constants.py` — 3 new constants (DEMAND_ZONE_IMPACT_MAX, REBUY_SIGNAL_IMPACT_MAX, SEARCH_VOLUME_IMPACT_MAX)
+- `src/analytics/forward_curve.py` — 3 new Enrichments fields + 3 getter methods + 3 ForwardPoint fields + prediction loop integration
+- `src/analytics/analyzer.py` — `_build_enrichments()` populates new fields from analytical_cache data
 
 ---
 
