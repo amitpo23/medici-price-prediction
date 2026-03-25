@@ -5,17 +5,17 @@
 ### Production
 - **Azure B2**, Always On, 23 hotels, 4,050+ rooms
 - **Deploy zip:** 220 files
-- **Tests:** 859 existing + 217 new = 1,076 unit + integration
+- **Tests:** 859 existing + 256 new = 1,115 unit + integration
 - **Branch:** `phase-1-analytical-cache` (NOT yet merged to main)
 - **Rollback tag:** `pre-phase-1` on main
 
 ### Phase 1 — Analytical Cache + Trading Layer (2026-03-25)
 
-**Status:** Core modules BUILT and TESTED. Integration NOT started.
+**Status:** Core modules BUILT, TESTED, and INTEGRATED into scheduler + API.
 
 #### What Was Built (branch: `phase-1-analytical-cache`)
 
-6 new files, 217 new tests, ZERO existing files modified:
+8 new files, 256 new tests (Phase 1: 217 + Phase 2: 39):
 
 | File | Lines | Tests | What It Does |
 |------|-------|-------|-------------|
@@ -25,9 +25,17 @@
 | `src/analytics/trade_setup.py` | ~560 | 51 | Stop-loss, take-profit, Kelly sizing, RR |
 | `src/analytics/cache_aggregator.py` | ~800 | 39 | Azure SQL → SQLite pipeline (all tables) |
 | `docs/SAFETY_MAP.md` | ~150 | — | NO-TOUCH / EXTEND-ONLY / SAFE zones |
+| `src/api/routers/trading_router.py` | ~320 | 39 | 12 API endpoints: signals, zones, setups, search, rebuy, cache |
+| `tests/unit/test_trading_router.py` | ~400 | — | Tests for trading_router + scheduler integration |
+
+#### Modified Files (Phase 2 Integration)
+| File | What Changed |
+|------|-------------|
+| `src/api/routers/_shared_state.py` | Added `_get_analytical_cache()`, `_get_cache_aggregator()`, `_refresh_analytical_cache_daily()`, `_refresh_analytical_cache_signals()` — wired into scheduler cycle |
+| `src/api/analytics_dashboard.py` | Added `trading_router` import + `router.include_router(trading_router)` |
 
 #### Files to NEVER Delete
-All 6 files above are NEW and must be preserved. They do NOT modify any existing file.
+All 8 files above are NEW and must be preserved.
 
 ---
 
@@ -450,29 +458,39 @@ The `trade_journal` table accumulates trade outcomes over time. After 20+ trades
 
 ---
 
-## What's Next — Phase 2 Integration (NOT started)
+## Phase 2 Integration — COMPLETED (2026-03-25)
 
-### Step 1: Wire into Scheduler (`_shared_state.py`)
-Add to the existing 3-hour scheduler cycle:
+### Step 1: Scheduler Integration ✅ DONE
+Wired into `_shared_state.py._run_collection_cycle()`:
+- **Daily (once per calendar day):** `_refresh_analytical_cache_daily()` → calls `aggregator.full_refresh(90)` — refreshes Layer 1 (reference) + Layer 2 (market + search + trading)
+- **Every cycle (3h):** `_refresh_analytical_cache_signals(analysis)` → generates daily signals from forward curve, runs demand zone detection, computes trade setups
+
+Singleton helpers:
 ```python
-# After collect_prices():
-aggregator = CacheAggregator()
-aggregator.refresh_market_data()
-aggregator.refresh_search_intelligence()
-aggregator.refresh_trading_signals()
-aggregator.run_all_demand_zones()
+_get_analytical_cache()      # → AnalyticalCache singleton
+_get_cache_aggregator()      # → CacheAggregator with shared cache
+_refresh_analytical_cache_daily()    # → Layer 1+2 refresh from Azure SQL
+_refresh_analytical_cache_signals(analysis)  # → Layer 3 signals+zones+setups
 ```
 
-### Step 2: New API Endpoints (in new router or extend analytics_router.py)
-- `GET /api/v1/salesoffice/signals/daily/{detail_id}` — per-day CALL/PUT timeline
-- `GET /api/v1/salesoffice/zones/{hotel_id}` — demand zones
-- `GET /api/v1/salesoffice/trade-setup/{detail_id}` — entry/stop/target/RR
-- `GET /api/v1/salesoffice/trade-journal` — P&L history
-- `GET /api/v1/salesoffice/search-intel/{hotel_id}` — 3 price points + margin
-- `GET /api/v1/salesoffice/rebuy-signals` — cancellation rebuys
-- `GET /api/v1/salesoffice/cache/freshness` — cache layer status
+### Step 2: Trading API Endpoints ✅ DONE
+All in `src/api/routers/trading_router.py`, prefix `/api/v1/salesoffice/trading/`:
 
-### Step 3: Command Center UI Panels
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/trading/signals?detail_id=X` | GET | Daily CALL/PUT/NEUTRAL timeline |
+| `/trading/signals/summary?detail_id=X` | GET | Signal counts + avg confidence + dominant |
+| `/trading/zones?hotel_id=X` | GET | Demand (SUPPORT/RESISTANCE) zones |
+| `/trading/breaks?hotel_id=X` | GET | Structure breaks (BOS/CHOCH) |
+| `/trading/setups?hotel_id=X&signal=CALL&min_rr=1.5` | GET | Trade setups with entry/stop/target/RR |
+| `/trading/search-intel?hotel_id=X` | GET | 3 price points (sell/net/bar) per day |
+| `/trading/rebuy?hotel_id=X` | GET | Rebuy signals from cancellation book |
+| `/trading/overrides?hotel_id=X` | GET | Human price override history |
+| `/trading/cache/freshness` | GET | Cache layer status (13 tables) |
+| `/trading/cache/refresh?layer=all` | POST | Trigger manual refresh (all/daily/signals) |
+| `/trading/hotel/{hotel_id}` | GET | Combined overview: zones+breaks+rebuy+overrides+search+sentiment |
+
+### Step 3: Command Center UI Panels (NOT started)
 Add panels to existing Command Center (do NOT create new dashboards):
 - Signal timeline panel (per-day CALL/PUT bars)
 - Demand zone overlay on price charts
@@ -480,7 +498,7 @@ Add panels to existing Command Center (do NOT create new dashboards):
 - P&L summary panel
 - Search intelligence panel (sell/net/bar spread)
 
-### Step 4: Enrichment Feed
+### Step 4: Enrichment Feed (NOT started)
 Wire demand zones + rebuy signals + search volume as enrichments into the existing forward curve:
 - Rebuy signal → CALL confirmation boost
 - High margin spread → CALL opportunity
