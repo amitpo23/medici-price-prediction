@@ -1,294 +1,530 @@
-# Medici Knowledge Base — Complete Data Source Reference
+# Medici Knowledge Base — System Architecture, Algorithm & Self-Audit
 
-> This document serves as the single source of truth for all data sources,
-> tables, access patterns, and historical pricing capabilities available
-> to the Medici Price Prediction system.
+> Complete technical specification of the Medici Price Prediction engine.
+> Covers: data sources, prediction algorithm, 14-voter consensus, accuracy measurement,
+> self-correction mechanisms, known gaps, and improvement roadmap.
 >
-> Last updated: 2026-03-24
+> Last updated: 2026-03-25
 
 ---
 
-## 1. Azure SQL Tables (medici-db)
+## 1. System Overview
 
-### 1.1 Price Discovery & Scanning
+Medici treats hotel rooms as **financial derivatives**. Each room has:
+- **S(t)**: Current market price at time t
+- **T**: Days until check-in (expiry)
+- **Signal**: CALL (price will rise), PUT (price will drop), NEUTRAL
 
-#### SalesOffice.Orders
-- **Purpose**: Search requests sent to Innstant Switch
-- **Key columns**: Id, DateFrom, DateTo, DateInsert, IsActive, WebJobStatus, DestinationId
-- **Frequency**: Real-time (per booking request from OTAs)
-- **Retention**: All history
-- **Access**: `collector.py` QUERY, MCP `medici_query`
+The system **never executes trades** — it generates signals and recommendations.
+The operator (or rules engine) decides whether to act.
 
-#### SalesOffice.Details
-- **Purpose**: Room prices returned from Innstant API per search
-- **Key columns**: Id, SalesOfficeOrderId, HotelId, RoomCategory, RoomBoard, RoomPrice, RoomCode, DateCreated, IsDeleted
-- **Frequency**: Updated every 3h scan cycle
-- **Volume**: ~4,050 active rooms (IsDeleted=0)
-- **Access**: `collector.py` QUERY, `load_active_bookings()`
-- **Historical use**: LAG(RoomPrice) for velocity, DateCreated for timeline
-
-#### SalesOffice.Log
-- **Purpose**: Complete audit trail of every price change, API call, push event
-- **Key columns**: Id, DateCreated, ActionId, Message, SalesOfficeOrderId, SalesOfficeDetailId
-- **Volume**: 1.2M+ rows
-- **Retention**: All history
-- **Price pattern**: `DbRoomPrice: X -> API RoomPrice: Y` in Message field
-- **ActionId values**: 3=UpdateDetail, 5=PushAvailability, 6=UpdateRate
-- **Access**: MCP `medici_price_drops`, skill `salesoffice-price-drop`
-- **Value**: THE primary source for inter-scan price change detection
-
-#### RoomPriceUpdateLog
-- **Purpose**: Every price change event with exact timestamp
-- **Key columns**: Id, DateInsert, PreBookId, Price
-- **Volume**: 82K+ rows
-- **Access**: MCP `medici_price_change_log`, `load_price_updates()`
-- **Value**: Price momentum/acceleration tracking
-
-### 1.2 Market Intelligence
-
-#### AI_Search_HotelData
-- **Purpose**: Competitor pricing from OTA searches
-- **Volume**: 8.5M rows
-- **Key columns**: HotelId, PriceAmount, UpdatedAt, CityName, Stars, RoomType, Board
-- **Access**: MCP `medici_market_pressure`, `load_ai_search_data()`
-- **Value**: "Is our price above or below market?" per hotel/star/room type
-
-#### SearchResultsSessionPollLog
-- **Purpose**: Per-provider price granularity (129 OTA providers)
-- **Volume**: 8.3M rows
-- **Key columns**: HotelId, PriceAmount, NetPriceAmount, DateInsert, ProviderId, RoomCategory
-- **Access**: MCP `medici_provider_pressure`, `medici_provider_trends`
-- **Value**: Which provider is dropping prices fastest? Provider spread analysis.
-
-#### MED_SearchHotels (Archive)
-- **Purpose**: 3 years of historical hotel search data (2020-2023)
-- **Volume**: 7M rows
-- **Key columns**: HotelId, DateFrom, DateTo, Price, providerId, source
-- **Access**: MCP `medici_historical_patterns`, `load_med_search_hotels()`
-- **Value**: Seasonal baseline — "what was this room's price in March 2022?"
-
-### 1.3 Booking Pipeline
-
-#### MED_Book
-- **Purpose**: Purchased rooms — active inventory
-- **Volume**: 10.7K rows
-- **Key columns**: id, PreBookId, HotelId, price (BuyPrice), lastPrice (market), DateLastPrice, IsActive, IsSold, startDate, endDate
-- **Access**: `load_active_bookings()`, `load_med_book_for_prediction()`
-- **Value**: lastPrice vs price = market movement. Track margin erosion over time.
-
-#### MED_PreBook
-- **Purpose**: Pre-booked (tentative) rooms before purchase
-- **Volume**: 10.7K rows
-- **Key columns**: PreBookId, HotelId, DateFrom, DateTo, Price, ProviderName
-- **Access**: `load_prebooks()`
-
-#### MED_CancelBook
-- **Purpose**: Cancellation events — demand collapse signal
-- **Volume**: 4.7K rows
-- **Key columns**: Id, PreBookId, CancellationDate, CancellationReason, DateInsert
-- **Access**: MCP `medici_cancellation_spikes`, `load_cancellations()`
-- **Value**: Cancellation spikes (>2x avg) predict price drops
-
-#### BackOfficeOPT
-- **Purpose**: Opportunity headers — rooms we plan to buy
-- **Key columns**: id, HotelID, StartDate, EndDate, BuyPrice, PushPrice, Status
-- **Access**: `load_backoffice_opportunities()`, skill `insert-opp`
-
-#### MED_Opportunities
-- **Purpose**: Room-night detail records for selling
-- **Key columns**: OpportunityId, DateFrom, DateTo, Price, PushPrice, DestinationsId
-- **Access**: `load_opportunities()`
-
-### 1.4 Reference Data
-
-| Table | Purpose | Key Columns |
-|-------|---------|-------------|
-| Med_Hotels | Master hotel list (23+) | HotelId, InnstantId, ZenithId, name, isActive |
-| Med_Hotels_ratebycat | Zenith rate plan mappings | HotelId, BoardId, CategoryId, RatePlanCode, InvTypeCode |
-| MED_Board | Board types (7) | BoardId, BoardCode (RO, BB, HB, FB, AI, CB, BD) |
-| MED_RoomCategory | Room types (5) | CategoryId, Name (Standard, Superior, Deluxe, Suite, Dormitory) |
-| Med_Source | OTA providers (129) | Id, Name, IsActive |
-| Destinations | Cities/areas (40K+) | Id, Name, Latitude, Longitude |
-| tprice | Historical monthly baselines | price, month, HotelId |
-
-### 1.5 Execution Tables (WRITE access)
-
-| Table | Purpose | Who Writes |
-|-------|---------|-----------|
-| SalesOffice.PriceOverride | PUT signal execution — price reductions | prediction_reader (override system) |
-| BackOfficeOPT | CALL signal — opportunity headers | prediction_reader (opportunity system) |
-| MED_Opportunities | CALL signal — room-night details | prediction_reader (opportunity system) |
+**Scale**: 4,058 rooms, 23 hotels, 12 data sources, 14 consensus voters, scan every 3 hours.
 
 ---
 
-## 2. Local SQLite Databases
+## 2. Data Sources — Complete Inventory
 
-### salesoffice_prices.db
-- **Location**: `data/salesoffice_prices.db`
-- **Tables**: `price_snapshots`, `analysis_runs`
-- **Purpose**: Hourly price snapshots from every 3h scan cycle
-- **Schema**:
-  ```
-  price_snapshots: snapshot_ts, detail_id, order_id, hotel_id, hotel_name,
-                   room_category, room_board, room_price, room_code,
-                   date_from, date_to, UNIQUE(snapshot_ts, detail_id)
-  ```
-- **Access**: `price_store.py` — `load_all_snapshots()`, `load_price_history(detail_id)`
-- **Value**: Reconstruct exact price at any scan checkpoint
+### 2.1 Azure SQL (medici-db) — Primary
 
-### prediction_tracker.db
-- **Tables**: `prediction_log`
-- **Purpose**: Closed-loop accuracy — every prediction vs actual
-- **Schema**:
-  ```
-  prediction_log: room_id, hotel_id, prediction_ts, checkin_date, t_at_prediction,
-                  predicted_price, predicted_signal, actual_price, error_pct, signal_correct
-  ```
-- **Access**: `accuracy_tracker.py` — `load_prediction_logs()`
+| Table | Rows | Purpose | Scan Frequency |
+|-------|------|---------|----------------|
+| SalesOffice.Details | ~4,058 active | Current room prices per scan | Every 3h |
+| SalesOffice.Orders | ~100s active | Search requests, date ranges | Real-time |
+| SalesOffice.Log | 1.2M+ | **Price change audit trail** — `DbRoomPrice: X -> API RoomPrice: Y` | Every scan |
+| RoomPriceUpdateLog | 82K+ | Every price update event with timestamp | Continuous |
+| AI_Search_HotelData | 8.5M | Competitor OTA pricing (Booking, Expedia) | 60-day window |
+| SearchResultsPollLog | 8.3M, 129 providers | Per-provider per-room pricing | 7-day window |
+| MED_Book | 10.7K | Active purchased inventory (buy price, last market price) | Continuous |
+| MED_PreBook | 10.7K | Pre-booking pipeline | Continuous |
+| MED_CancelBook | 4.7K | Cancellation events — demand signal | Continuous |
+| MED_SearchHotels | 7M (2020-2023) | 3-year historical archive | Static |
+| Med_Hotels | 23+ | Hotel master data, ZenithId, zone/tier | Reference |
+| Med_Hotels_ratebycat | Variable | Zenith rate plan mappings | Reference |
 
-### override_queue.db / opportunity_queue.db
-- **Purpose**: Execution queue history (PUT/CALL signals acted upon)
-- **Value**: Track which signals led to action and their outcomes
+### 2.2 Local SQLite — Snapshots & Execution
 
-### fred_data.db
-- **Purpose**: FRED macroeconomic indicators (Hotel PPI, Employment, CPI)
-- **Access**: `FREDCollector.collect()` persists here
+| Database | Tables | Purpose |
+|----------|--------|---------|
+| salesoffice_prices.db | price_snapshots, analysis_runs | Hourly price snapshots (UNIQUE: snapshot_ts + detail_id) |
+| prediction_tracker.db | prediction_log | Every prediction vs actual — accuracy feedback loop |
+| override_queue.db | override_requests, override_rules | PUT signal execution queue |
+| opportunity_queue.db | opportunity_queue, opportunity_rules | CALL signal execution queue |
+| fred_data.db | fred_observations | FRED macroeconomic indicators |
 
----
+### 2.3 External APIs
 
-## 3. MCP Tools (medici-db server)
+| Source | Data | Freshness | Status |
+|--------|------|-----------|--------|
+| Open-Meteo | Weather forecast (rain, clear, hurricane) | Daily | ✅ Connected |
+| Ticketmaster/SeatGeek | Miami events (8 major + dynamic) | Weekly | ✅ Connected (hardcoded) |
+| GMCVB | Official ADR/RevPAR by zone | Weekly | ✅ Connected |
+| Kiwi.com Flights | Miami inbound demand | Daily | ⚠️ Collector not active (demand_adj = 0) |
+| FRED | Hotel PPI, Lodging CPI, Employment | Monthly | ❌ Missing API key |
+| BrightData | Live OTA scraping | On-demand | ✅ MCP configured |
 
-| Tool | Best For | Tables Used |
-|------|----------|-------------|
-| `medici_price_drops` | Find price drops by hotel, min %, time window | SalesOffice.Log + Details |
-| `medici_scan_velocity` | Inter-scan price momentum (velocity %) | SalesOffice.Details (LAG window) |
-| `medici_market_pressure` | Hotel vs competitor positioning | AI_Search_HotelData |
-| `medici_price_change_log` | Every price update event | RoomPriceUpdateLog |
-| `medici_provider_pressure` | Which providers are dropping prices | SearchResultsPollLog |
-| `medici_provider_trends` | Per-provider trend over 14 days | SearchResultsPollLog |
-| `medici_booking_intelligence` | Booking pipeline analysis | MED_Book + PreBook + CancelBook |
-| `medici_cancellation_spikes` | Anomaly detection in cancellations | MED_CancelBook |
-| `medici_historical_patterns` | 2020-2023 seasonal/weekly patterns | MED_SearchHotels |
-| `medici_combined_put_analysis` | Unified PUT score (all sources) | All of above |
-| `medici_mapping_status` | Hotel configuration status | Med_Hotels + Orders |
-| `medici_query` | Custom read-only SQL | Any table (SELECT only) |
+### 2.4 Data Freshness Monitoring
 
----
+Each source has an expected interval. Freshness score = `exp(-age / expected_interval)`:
 
-## 4. Skills (medici-price-prediction/skills/)
+| Source | Expected Interval | Protected | Notes |
+|--------|------------------|-----------|-------|
+| salesoffice | 1 hour | ✅ Yes | Weight never reduced |
+| ai_search_hotel_data | 4 hours | No | Auto weight reduction if stale |
+| search_results_poll_log | 4 hours | No | |
+| room_price_update_log | 4 hours | No | |
+| med_prebook | 24 hours | No | |
+| cancellation_data | 24 hours | No | |
+| kiwi_flights | 24 hours | No | Currently stale (collector off) |
+| open_meteo | 24 hours | No | |
+| fred | 720 hours (monthly) | No | No API key |
 
-| Skill | Purpose | Data Sources |
-|-------|---------|-------------|
-| **next-scan-drop** | Predict ≥5% drop in next 3h scan | Details + Log + RoomPriceUpdateLog + AI_Search |
-| **salesoffice-price-drop** | Analyze Log for drop statistics | SalesOffice.Log (regex parsing) |
-| **hotel-data-explorer** | Full DB exploration (--prices, --scans, --logs, --sql) | All tables |
-| **price-prediction** | Time-series forecasting (ARIMA/ETS/Prophet) | price_snapshots |
-| **price-visualization** | Advanced charts (candlestick, heatmap, waterfall) | Any DataFrame |
-| **insert-opp** | Execute CALL signals (buy rooms) | BackOfficeOPT + MED_Opportunities |
-| **price-override** | Execute PUT signals (push lower price) | SalesOffice.PriceOverride + Zenith SOAP |
+**Auto-degradation**: If `freshness < 0.5` and source NOT protected → weight_override = freshness value.
 
 ---
 
-## 5. External Data Sources
+## 3. Prediction Algorithm — Mathematical Specification
 
-| Source | Data | Volume | Frequency | Access |
-|--------|------|--------|-----------|--------|
-| Kiwi.com Flights | Miami flight demand/prices | Variable | Daily | API (flights.db cache) |
-| Ticketmaster/SeatGeek | Miami events + attendance | 8 major + dynamic | Weekly | API (events.db cache) |
-| Open-Meteo | Weather history + 14-day forecast | Daily | Daily | API (weather_cache.db) |
-| GMCVB | Official Miami ADR/RevPAR by zone | Weekly | Weekly | Manual/scraper |
-| FRED St. Louis Fed | Hotel PPI, Lodging CPI, Employment | Monthly | Monthly | API (fred_data.db) |
-| Statista | Miami ADR benchmarks | Annual | Annual | Manual |
-| BrightData | Live OTA prices (Booking/Expedia) | On demand | On demand | MCP scraper |
-
----
-
-## 6. How to Answer Historical Price Questions
-
-### "What was the price for hotel X, room Y, on check-in Z at T days before check-in?"
-
-1. **SQLite snapshots** (fastest): `price_store.load_price_history(detail_id)` → find snapshot_ts ≈ checkin - T days
-2. **Azure SQL Log** (most complete): MCP `medici_price_drops(hotel_id, hours_back)` → parse DbRoomPrice changes
-3. **RoomPriceUpdateLog** (every change): MCP `medici_price_change_log(hotel_id)` → exact timestamps
-4. **Historical archive** (2020-2023): MCP `medici_historical_patterns(hotel_id, group_by="month")`
-
-### "How fast is the price dropping?"
-
-1. **Scan velocity**: MCP `medici_scan_velocity(hotel_id, direction="DROP")` → % change per 3h scan
-2. **Acceleration**: `next-scan-drop` skill → velocity_3h, acceleration, drop_frequency features
-3. **Provider trends**: MCP `medici_provider_trends(hotel_id)` → which OTAs are cutting fastest
-
-### "Is this a good price vs market?"
-
-1. **Competitor comparison**: MCP `medici_market_pressure(hotel_id)` → vs AI_Search 8.5M rows
-2. **Provider spread**: MCP `medici_provider_pressure(hotel_id)` → 129 provider prices
-3. **Official benchmark**: GMCVB ADR by zone → `vote_official_benchmark()` voter
-4. **Historical baseline**: MCP `medici_historical_patterns(hotel_id)` → 2020-2023 seasonal avg
-
-### "Is demand collapsing?"
-
-1. **Cancellations**: MCP `medici_cancellation_spikes(hotel_id)` → anomaly detection
-2. **Booking intelligence**: MCP `medici_booking_intelligence(hotel_id)` → conversion rates
-3. **Flight demand**: Kiwi.com flights → `vote_flight_demand()` voter
-4. **Events**: `MIAMI_MAJOR_EVENTS` → `vote_events()` voter (upcoming = demand boost)
-
----
-
-## 7. Database Connection
-
-| Property | Value |
-|----------|-------|
-| Server | medici-sql-server.database.windows.net |
-| Database | medici-db |
-| Read user | prediction_reader |
-| Write tables | PriceOverride, BackOfficeOPT, MED_Opportunities only |
-| Enforcement | SQLAlchemy event listener blocks all other writes |
-| MCP transport | stdio (stdin/stdout) |
-
----
-
-## 8. Consensus Signal Engine — 14 Voters
-
-| # | Voter | Category | Data Source | Connected |
-|---|-------|----------|-------------|-----------|
-| 1 | Forward Curve | Lagging | FC change_pct | Yes |
-| 2 | Scan Velocity | Coincident | momentum.velocity_24h | Yes |
-| 3 | Competitors | Coincident | Zone avg price (same tier) | Yes |
-| 4 | Events | Leading | MIAMI_MAJOR_EVENTS (v2.6.0) | Yes |
-| 5 | Seasonality | Leading | FC season_adj_pct | Yes |
-| 6 | Flight Demand | Leading | FC demand_adj_pct | Yes |
-| 7 | Weather | Leading | FC weather_adj_pct | Yes |
-| 8 | Peers | Coincident | Peer hotel directions (v2.6.0) | Yes |
-| 9 | Booking Momentum | Lagging | FC cancellation_adj_pct | Yes |
-| 10 | Historical | Lagging | probability.up/down | Yes |
-| 11 | Official Benchmark | Lagging | GMCVB ADR by zone | Yes |
-| 12 | Scan Drop Risk | Coincident | scan_history (SalesOffice.Details scans) | Yes |
-| 13 | Provider Spread | Coincident | SearchResultsPollLog (8.3M, 129 providers) | Yes |
-| 14 | Margin Erosion | Lagging | MED_Book buy prices (10.7K active bookings) | Yes |
-
-**Rules**: Equal weight, probability = agreeing/voting × 100%, ≥66% = signal, MIN_VOTING=4
-
----
-
-## 9. Prediction Pipeline
+### 3.1 Overview: Three-Signal Ensemble
 
 ```
-Price Scan (every 3h)
-  → SalesOffice.Details query → SQLite snapshot
-  → Build Forward Curve (Bayesian smoothed, 9 enrichments)
-  → Combine: FC 50% + Historical 30% + ML 20%
-  → 11-voter Consensus Signal (CALL/PUT/NEUTRAL)
-  → Rule Matcher → Override Queue / Opportunity Queue
-  → Zenith Push (if enabled) / BuyRoom (if approved)
+Final Price = FC_Price × 0.50 + Historical_Price × 0.30 + ML_Price × 0.20
+(weights adjusted dynamically by confidence)
 ```
 
-### Enrichments (applied to Forward Curve)
-1. Events: +0.03% to +0.40%
-2. Seasonality: ×3.0 multiplier, Feb peak +9.9%, Sep trough -15.5%
-3. Demand (flights): HIGH +0.15%, LOW -0.15%
-4. Weather: rain -0.05%, clear +0.02%, hurricane -0.15%
-5. Competitor pressure: ±0.20%
-6. Cancellation risk: -0.25% max
-7. Market benchmark: from AI_Search_HotelData
-8. Price velocity: from RoomPriceUpdateLog
-9. Booking momentum: from MED_Book pipeline
+### 3.2 Signal 1: Forward Curve (50% weight)
+
+#### Step 1: Decay Curve Construction
+
+**Input**: All historical SalesOffice.Details scans (including IsDeleted=1).
+
+**Process**:
+1. Group by (order_id, hotel_id, room_category, room_board)
+2. For consecutive scan pairs, compute daily price change:
+   ```
+   daily_pct = (price_new - price_old) / price_old × 100 / gap_days
+   Cap: max(-10%, min(+10%, daily_pct))
+   ```
+3. Assign to T-bucket at scan midpoint: `T = max(1, (checkin_date - midpoint_date).days)`
+4. Weight by scan proximity: `weight = 1.0 / (1.0 + 0.1 × gap_days)`
+
+**Binning** (overlapping to prevent data loss):
+```
+T = 1-30:   bin_width=5,  step=1
+T = 31-60:  bin_width=7,  step=2
+T = 61-90:  bin_width=10, step=3
+T = 91-180: bin_width=14, step=7
+```
+
+**Bayesian Smoothing** per bin:
+```
+shrunk_mean = (N × sample_mean + K × global_mean) / (N + K)
+K = 5 (prior strength)
+```
+When N is small (few observations), the estimate pulls toward the global mean.
+When N is large, it trusts the local data.
+
+**Probability Distribution** per T:
+```
+P(up)    = count(daily_pct > +0.1%) / total × 100
+P(down)  = count(daily_pct < -0.1%) / total × 100
+P(stable) = 100 - P(up) - P(down)
+```
+
+#### Step 2: Price Walk (Forward Projection)
+
+Starting from `current_price`, walk each day from T down to 1:
+
+```
+For each day i (T → 1):
+    base_change = decay_curve.get_daily_change(t)     # Core T-dependent drift
+
+    # 9 Enrichment Adjustments (daily %):
+    event_adj     = impact_multiplier × 100 / impact_days  # Ramp 3d before, taper 2d after
+    season_adj    = (month_index - 1.0) × 3.0              # Feb peak +9.9%, Sep trough -15.5%
+    demand_adj    = ±0.15%                                  # HIGH/LOW flight demand
+    weather_adj   = per-date forecast signal                # Rain -0.05%, hurricane -0.15%
+    competitor_adj = pressure × 0.20                        # AI_Search benchmark (-1 to +1)
+    cancel_adj    = -cancel_risk × 0.25                     # Max -0.25%/day
+    provider_adj  = pressure × 0.20                         # SearchResultsPollLog (-1 to +1)
+    momentum_adj  = momentum_vs_expected × exp(-0.15 × i) × 0.3  # ~5-day half-life
+    offset_adj    = category_offset + board_offset          # Room type premium/discount
+
+    total_daily_pct = sum(all adjustments above)
+    predicted_price *= (1.0 + total_daily_pct / 100.0)
+
+    # Confidence interval (95%):
+    cumulative_variance += (volatility_at_t / 100 × predicted_price)²
+    lower = predicted_price - 1.96 × sqrt(cumulative_variance)
+    upper = predicted_price + 1.96 × sqrt(cumulative_variance)
+```
+
+**Output**: 65+ daily price points with bounds, enrichment decomposition per day.
+
+### 3.3 Signal 2: Historical Patterns (30% weight)
+
+1. Look up same calendar month from prior year: `same_period[month].avg_price`
+2. Adjust by lead-time bucket:
+   ```
+   Buckets: 0-7d, 8-14d, 15-30d, 31-60d, 60+d
+   predicted = base_price × (1 + bucket.avg_daily_change × T / 100)
+   ```
+3. Adjust by day-of-week pattern: `predicted *= (1 + dow_index / 100)`
+4. **Sanity clamp**: If ratio > 2.0× or < 0.5× current:
+   ```
+   predicted = predicted × 0.20 + current × 0.80
+   confidence *= 0.30
+   ```
+
+### 3.4 Signal 3: ML Forecast (20% weight)
+
+LightGBM direct prediction model:
+- **Features**: day_of_week, month, is_weekend, price lags (1,3,7,14,28 days), rolling stats, velocity, cancel rate
+- **Sanity clamp**: `[current × 0.50, current × 2.00]`
+- **Fallback**: If model not trained, weight redistributed to FC (66%) + Historical (34%)
+
+### 3.5 Ensemble Combination
+
+**Dynamic Weight Scaling**:
+```
+effective_weight = base_weight × (0.5 + 0.5 × confidence)
+```
+High confidence (1.0) → full weight. Low confidence (0.0) → half weight.
+
+**Per-Signal Sanity Check** (before combining):
+```
+ratio = predicted / current
+if ratio > 2.0 or ratio < 0.5:
+    penalty = max(0.05, 1.0 / (1.0 + |log₂(ratio)|))
+    confidence *= penalty
+```
+Example: ratio 3.0× → penalty 0.37, ratio 4.0× → penalty 0.29
+
+**Final Price**:
+```
+ensemble = Σ(signal_price × normalized_weight)
+Hard clamp: [current × 0.40, current × 2.50]
+```
+
+### 3.6 Data Density → Confidence Mapping
+
+| Observations | Density | Confidence |
+|-------------|---------|------------|
+| ≥15 | High | 0.80 |
+| ≥7 | Medium | 0.60 |
+| <7 | Low | 0.40 |
+| Extrapolated | — | 0.20 |
+
+---
+
+## 4. Momentum Engine
+
+**Input**: Price snapshots from 3-hour scan cycles.
+
+**Velocity** (normalized to 3-hour rates):
+```
+hourly_rates = scan_pct_changes / time_diff_hours × 3
+velocity_3h  = latest rate
+velocity_24h = mean(rates in last 24h) × 8  (daily)
+velocity_72h = mean(rates in last 72h) × 8  (daily)
+```
+
+**Acceleration**: `velocity_24h - velocity_72h` (positive = speeding up)
+
+**Momentum vs Expected**: `observed_daily_rate - decay_curve_rate_at_T`
+
+**Signal Classification**:
+- `|momentum_vs_expected| > 2 × volatility` → ACCELERATING_UP/DOWN (strength up to 1.0)
+- `|acceleration| > volatility` → ACCELERATING/DECELERATING (strength up to 0.5)
+- Otherwise → NORMAL
+
+**Integration into FC**: Momentum decays exponentially in the price walk:
+```
+contribution = momentum × exp(-0.15 × day_index) × 0.3
+Half-life ≈ ln(2) / 0.15 ≈ 4.6 days
+```
+
+---
+
+## 5. Consensus Signal Engine — 14 Voters
+
+### 5.1 Voting Rules
+
+```
+NEUTRAL votes excluded from count
+voting_count = CALL_votes + PUT_votes
+Minimum voters: 4 non-NEUTRAL required
+Agreement threshold: ≥66% for signal
+Otherwise: NEUTRAL
+```
+
+### 5.2 Voter Specifications
+
+| # | Voter | Category | CALL Threshold | PUT Threshold | Data Source |
+|---|-------|----------|---------------|--------------|-------------|
+| 1 | Forward Curve | Lagging | change ≥ +30% | change ≤ -5% | FC[0].change_pct |
+| 2 | Scan Velocity | Coincident | velocity > +3% | velocity < -3% | momentum.velocity_24h |
+| 3 | Competitors | Coincident | ≤ -15% vs zone | ≥ +10% vs zone | Zone avg (same tier) |
+| 4 | Events | Leading | "upcoming" event | "past" event | MIAMI_MAJOR_EVENTS |
+| 5 | Seasonality | Leading | adj > +5% | adj < -5% | FC season_adj_pct |
+| 6 | Flight Demand | Leading | adj > +3% | adj < -3% | FC demand_adj_pct |
+| 7 | Weather | Leading | adj > +3% | adj < -5% | FC weather_adj_pct |
+| 8 | Peers | Coincident | ≥66% peers up | ≥66% peers down | Same zone+tier directions |
+| 9 | Booking Momentum | Lagging | — | cancel_adj < -2% | FC cancellation_adj_pct |
+| 10 | Historical | Lagging | P(up) ≥ 65% | P(down) ≥ 65% | probability.up/down |
+| 11 | Official Benchmark | Lagging | ≤ -20% vs ADR | ≥ +15% vs ADR | GMCVB zone ADR |
+| 12 | Scan Drop Risk | Coincident | score ≤ -10 | score ≥ 50 | scan_history patterns |
+| 13 | Provider Spread | Coincident | pressure ≥ +0.1 | pressure ≤ -0.1 | SearchResultsPollLog |
+| 14 | Margin Erosion | Lagging | margin ≥ +15% | margin ≤ -3% | MED_Book buy prices |
+
+### 5.3 Voter Categories
+
+- **Leading (Predict)**: Events, Seasonality, Flights, Weather — predict future demand
+- **Coincident (Now)**: Velocity, Competitors, Peers, Scan Drop Risk, Provider Spread — current state
+- **Lagging (History)**: FC, Booking Momentum, Historical, Benchmark, Margin Erosion — confirmed patterns
+
+### 5.4 Scan Drop Risk Scoring Model
+
+Based on `next-scan-drop` skill predictor:
+```
+score += 30 if drop_frequency > 60%
+score += 15 if drop_frequency > 40%
+score += 25 if trend == "down"
+score -= 15 if trend == "up"
+score += 20 if max_single_drop > $20
+score += 10 if max_single_drop > $10
+score += 15 if all_drops_no_rises
+score += 10 if drops > 2× rises
+
+PUT if score ≥ 50
+CALL if score ≤ -10
+```
+
+---
+
+## 6. Accuracy Measurement & Self-Correction
+
+### 6.1 Prediction Logging
+
+Every prediction stored at generation time:
+```
+prediction_log: room_id, hotel_id, prediction_ts, checkin_date,
+                t_at_prediction, predicted_price, predicted_signal,
+                predicted_confidence, actual_price, error_pct,
+                signal_correct, scored_at
+```
+
+### 6.2 Scoring (retroactive)
+
+When checkin_date passes, system looks up actual price from price_snapshots:
+```
+error_pct = (actual - predicted) / predicted × 100
+signal_correct = 1 if actual direction matches predicted signal
+```
+
+### 6.3 Metrics
+
+| Metric | Formula | Target |
+|--------|---------|--------|
+| MAE | mean(\|actual - predicted\|) | < $30 |
+| MAPE | mean(\|error_pct\|) | < 10% |
+| Directional Accuracy | correct_signals / total | > 65% |
+| Within 5% | \|error\| ≤ 5% / total | > 50% |
+| Within 10% | \|error\| ≤ 10% / total | > 75% |
+| Bias | mean(error_pct) | Near 0 |
+
+### 6.4 Breakdown Dimensions
+
+- **By T-bucket**: 1-7d, 8-14d, 15-30d, 31-60d, 61+d
+- **By signal**: CALL precision/recall, PUT precision/recall
+- **By hotel**: Per-hotel MAPE and directional accuracy
+- **By trend**: Rolling 7-day and 30-day windows
+
+### 6.5 Self-Correction Mechanisms
+
+| Mechanism | Trigger | Action |
+|-----------|---------|--------|
+| Data Quality Auto-Degrade | freshness < 0.5 | Reduce source weight to freshness value |
+| Circuit Breaker | 3 consecutive failures | Block source, alert, probe after 5 min |
+| Sanity Clamp | prediction > 2.5× or < 0.4× current | Hard clamp to bounds |
+| Outlier Blend | ratio > 2.0× or < 0.5× | Blend 20% prediction + 80% current |
+| Confidence Penalty | outlier detection | confidence *= penalty (min 0.05) |
+| Voter Calibration | NEUTRAL > 95% or CALL+PUT > 30% | Adjust voter thresholds |
+
+### 6.6 Circuit Breaker Detail
+
+```
+States: CLOSED → OPEN (after 3 failures) → HALF_OPEN (after 5 min) → CLOSED (probe OK)
+                                            → OPEN (probe fails)
+```
+
+Per-source tracking: `circuit_state` table (source_id, state, failure_count, timestamps).
+Events audit log: `circuit_events` table.
+
+---
+
+## 7. Known Gaps & Honest Assessment
+
+### 7.1 Data Gaps (as of 2026-03-25)
+
+| Issue | Impact | Fix |
+|-------|--------|-----|
+| **Flight demand always 0** | demand_adj never contributes to FC | Enable Kiwi collector |
+| **FRED not connected** | No macro context (PPI, CPI) | Set FRED_API_KEY env var |
+| **Cancellation adj always 0** | Voter #9 always NEUTRAL | Wire cancel data into enrichment |
+| **Scan Drop Risk — few scans** | Most rooms have 1 snapshot | Will resolve with more scan cycles |
+| **Margin Erosion — sparse** | Only 93 MED_Book rooms have future stays | Inherent limitation |
+| **Scheduler dies** | Stops collecting after a few cycles | Need watchdog/recovery |
+| **ML model not trained** | 20% weight slot unused | Train on accumulated snapshots |
+
+### 7.2 Algorithm Limitations
+
+| Limitation | Impact | Severity |
+|------------|--------|----------|
+| Bayesian K=5 fixed | Same smoothing regardless of data quality | Low |
+| Category offsets need ≥10 obs | New room types get no offset | Medium |
+| Event windows fixed (3d before, 2d after) | No per-event customization | Low |
+| Seasonality is global (all hotels) | Zone differences ignored | Medium |
+| Momentum half-life ~5 days | May be too short for slow-moving rooms | Low |
+| FC change_pct threshold 30% for CALL | Very high — few rooms trigger | Medium |
+| No cross-hotel correlation | Hotels in same zone may move together | Medium |
+
+### 7.3 Voter Connectivity Audit (2026-03-25)
+
+| # | Voter | Real Data? | Issue |
+|---|-------|-----------|-------|
+| 1 | Forward Curve | ✅ 65 FC points | Working |
+| 2 | Scan Velocity | ✅ velocity_24h=28.2 | Working |
+| 3 | Competitors | ✅ zone_avg=$302 | Working |
+| 4 | Events | ✅ Miami Swim Week detected | Working |
+| 5 | Seasonality | ✅ season_adj=4.2% | Working |
+| 6 | Flight Demand | ⚠️ demand_adj=0.0 always | **Kiwi collector off** |
+| 7 | Weather | ✅ weather_adj=0.02 | Working (light data) |
+| 8 | Peers | ✅ 464/505 peers | Working |
+| 9 | Booking Momentum | ⚠️ cancel_adj=0.0 always | **Cancel data not flowing to enrichment** |
+| 10 | Historical | ✅ up=32% down=43% | Working |
+| 11 | Official Benchmark | ✅ -13.7% vs ADR | Working |
+| 12 | Scan Drop Risk | ⚠️ "Only 1 scans" | **Needs more cycles** |
+| 13 | Provider Spread | ✅ pressure=-1.0 | Working |
+| 14 | Margin Erosion | ⚠️ only for MED_Book rooms | Working (93 rooms) |
+
+**Effective voters with real data: 10 of 14** (71%)
+
+---
+
+## 8. Improvement Roadmap
+
+### 8.1 Critical Fixes (Now)
+
+| Fix | Impact | Effort |
+|-----|--------|--------|
+| Fix scheduler watchdog | Continuous scanning | 1 hour |
+| Wire cancellation data into FC enrichment | Voter #9 activated | 2 hours |
+| Enable Kiwi flights collector | Voter #6 activated | 1 hour (config) |
+| Set FRED_API_KEY | Macro context | 5 min (env var) |
+
+### 8.2 Algorithm Improvements (Short-term)
+
+| Improvement | Current | Proposed | Impact |
+|-------------|---------|----------|--------|
+| **Adaptive Bayesian K** | K=5 fixed | K = max(2, 10 - data_density) | Better smoothing for sparse data |
+| **Per-zone seasonality** | Global monthly | Zone-specific (SB vs Airport vs Downtown) | More accurate seasonal signal |
+| **Lower FC CALL threshold** | 30% | 15% (or adaptive by T) | More CALL signals for long-T rooms |
+| **Cross-hotel correlation** | Independent | Correlation matrix within zone+tier | Catch zone-wide movements |
+| **Momentum half-life by tier** | 5 days for all | Budget 3d, Mid 5d, Premium 7d | Better momentum decay |
+| **Event-specific windows** | 3d before, 2d after | Art Basel 7d/5d, F1 5d/3d | More accurate event impact |
+
+### 8.3 New Data Sources (Medium-term)
+
+| Source | Value | Effort |
+|--------|-------|--------|
+| **MED_Book lastPrice tracking** | Real-time market price for owned rooms | Medium |
+| **SalesOffice.Log parsed timeline** | Full price history per room (already in endpoint) | Done |
+| **Provider velocity** (not just pressure) | Which OTAs are dropping fastest | Medium |
+| **AirDNA/CoStar** | Airbnb/VRBO competitive data | Paid API |
+| **Google Trends** | Miami hotel search interest | Free API |
+
+### 8.4 Self-Validation Enhancements
+
+| Enhancement | Purpose |
+|-------------|---------|
+| **Backtesting framework** | Run predictions on historical data, measure accuracy before deploy |
+| **A/B testing** | Compare old vs new algorithm on same data |
+| **Voter accuracy tracking** | Which voters are most accurate? Weight them accordingly |
+| **Anomaly detection on predictions** | Flag predictions that are statistical outliers |
+| **Confidence calibration** | Are 80% confidence predictions actually right 80% of the time? |
+
+---
+
+## 9. How to Validate the System
+
+### 9.1 Quick Health Check
+
+```bash
+# Status
+curl https://medici-prediction-api.azurewebsites.net/api/v1/salesoffice/status
+
+# Key fields to verify:
+# - scheduler_running: true
+# - analysis_warming: false
+# - snapshots_collected: increasing
+# - collection_runtime.last_state: success
+```
+
+### 9.2 Voter Verification
+
+```bash
+# Check all 14 voters for a specific room
+curl https://medici-prediction-api.azurewebsites.net/api/v1/salesoffice/signal/consensus/{detail_id}
+
+# Each vote should have a reason — if reason starts with "No " → data missing
+```
+
+### 9.3 Scan History Verification
+
+```bash
+# Check that Log-based scan history works
+curl https://medici-prediction-api.azurewebsites.net/api/v1/salesoffice/scan-history/{detail_id}?days_back=60
+
+# Should return price_history array with old_price → new_price per scan
+```
+
+### 9.4 Accuracy Check
+
+```bash
+# Check prediction accuracy
+curl https://medici-prediction-api.azurewebsites.net/api/v1/salesoffice/accuracy/summary
+
+# Check per-hotel accuracy
+curl https://medici-prediction-api.azurewebsites.net/api/v1/salesoffice/accuracy/by-hotel
+```
+
+### 9.5 Data Quality Check
+
+```bash
+# Check all source freshness
+curl https://medici-prediction-api.azurewebsites.net/api/v1/salesoffice/data-quality
+
+# Each source should have freshness > 0.5
+# Protected: salesoffice (weight never reduced)
+```
+
+---
+
+## 10. Glossary
+
+| Term | Definition |
+|------|-----------|
+| **T** | Days until check-in (expiry). T=1 means tomorrow. |
+| **S(t)** | Room price at time t. |
+| **Forward Curve (FC)** | Bayesian-smoothed predicted price path from now to check-in. |
+| **Decay Curve** | Historical average daily % change at each T-value. |
+| **Enrichment** | External factor adjustment applied to FC (events, weather, etc.) |
+| **Ensemble** | Weighted combination of FC + Historical + ML predictions. |
+| **Momentum** | Rate of price change relative to expected (from decay curve). |
+| **Regime** | Market state: NORMAL, TRENDING_UP, TRENDING_DOWN, VOLATILE, STALE. |
+| **Consensus** | 14-voter majority vote (≥66% agreement required). |
+| **Circuit Breaker** | Safety mechanism that blocks a failing data source. |
+| **Override** | Price pushed to Zenith below SalesOffice price (PUT action). |
+| **Opportunity** | Room purchased at market price for resale (CALL action). |
+| **Scan** | One collection cycle — pulls all 4,058 prices from SalesOffice DB. |
+| **Snapshot** | One frozen copy of all prices at a point in time. |
