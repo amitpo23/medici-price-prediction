@@ -28,7 +28,7 @@ a:hover{text-decoration:underline}
 .hdr .home{color:var(--muted);font-size:12px}
 
 /* 3-column grid */
-.grid{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:10px;padding:10px 16px;height:calc(100vh - 56px);overflow:hidden}
+.grid{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:10px;padding:10px 16px;height:calc(100vh - 56px);overflow:hidden}
 @media(max-width:1024px){.grid{grid-template-columns:1fr;height:auto;overflow:auto}}
 .col{display:flex;flex-direction:column;gap:8px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 
@@ -41,19 +41,36 @@ a:hover{text-decoration:underline}
 .sig.call{background:var(--call);color:#000}.sig.put{background:var(--put);color:#fff}.sig.neutral{background:var(--neutral);color:#fff}
 
 /* Tables */
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid var(--border);cursor:pointer}
-td{padding:4px 6px;border-bottom:1px solid rgba(255,255,255,0.04)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;color:var(--muted);font-size:9px;text-transform:uppercase;padding:3px 4px;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+th:hover{color:var(--text)}
+th.sorted{color:var(--info)}
+td{padding:3px 4px;border-bottom:1px solid rgba(255,255,255,0.04);white-space:nowrap}
 tr:hover{background:rgba(255,255,255,0.03)}
 tr.selected{background:rgba(66,165,245,0.15)}
+tr{cursor:pointer}
 
 /* Scrollable table body */
-.tbl-wrap{max-height:400px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.tbl-wrap{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 
 /* Metric card */
 .metric{display:flex;justify-content:space-between;padding:4px 0;font-size:12px}
 .metric .lbl{color:var(--muted)}.metric .val{font-family:monospace;font-weight:600}
 .metric .val.up{color:var(--call)}.metric .val.down{color:var(--put)}
+
+/* Mini bar for path range */
+.path-bar{display:inline-block;height:8px;border-radius:2px;min-width:4px;vertical-align:middle}
+
+/* Detail panel */
+.detail-panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:6px;display:none}
+.detail-panel.show{display:block}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.detail-section{font-size:11px}
+.detail-section h4{font-size:10px;color:var(--info);text-transform:uppercase;margin-bottom:4px;letter-spacing:.5px}
+.source-row{display:flex;justify-content:space-between;padding:2px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.source-row .src-name{color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.source-row .src-price{font-family:monospace;font-weight:600}
+.source-row .src-conf{font-size:9px;color:var(--muted)}
 
 /* Alert feed */
 .alert-item{padding:5px 8px;margin-bottom:4px;border-radius:4px;font-size:11px;border-left:3px solid}
@@ -82,8 +99,19 @@ tr.selected{background:rgba(66,165,245,0.15)}
 .bt-badge.ok{background:rgba(255,167,38,0.2);color:var(--warn)}
 .bt-badge.bad{background:rgba(255,23,68,0.2);color:var(--put)}
 
+/* Market summary cards */
+.mkt-cards{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.mkt-card{background:var(--panel);border-radius:4px;padding:6px 8px;text-align:center}
+.mkt-card .mkt-val{font-size:16px;font-weight:700;font-family:monospace}
+.mkt-card .mkt-lbl{font-size:9px;color:var(--muted);text-transform:uppercase}
+
 /* Loading */
 .loading{color:var(--muted);font-size:11px;padding:8px;text-align:center}
+
+/* Filters */
+.filters{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.filters select,.filters input{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:11px}
+.filters select:focus,.filters input:focus{outline:none;border-color:var(--info)}
 </style>
 </head>
 <body>
@@ -97,6 +125,8 @@ tr.selected{background:rgba(66,165,245,0.15)}
   <div class="stat"><div class="val neutral" id="h-neutral">-</div><div class="lbl">Neutral</div></div>
   <div class="stat"><div class="val" id="h-pnl">-</div><div class="lbl">PnL</div></div>
   <div class="stat"><div class="val" id="h-hotels">-</div><div class="lbl">Hotels</div></div>
+  <div class="stat"><div class="val" id="h-sources">-</div><div class="lbl">Sources</div></div>
+  <div class="stat"><div class="val" id="h-avg-conf">-</div><div class="lbl">Avg Conf</div></div>
   <div class="ts" id="h-ts"></div>
   <a class="home" href="/api/v1/salesoffice/dashboard/command-center">&larr; Command Center</a>
 </div>
@@ -104,16 +134,21 @@ tr.selected{background:rgba(66,165,245,0.15)}
 <!-- 3-COLUMN GRID -->
 <div class="grid">
 
-  <!-- LEFT: Market Overview -->
+  <!-- LEFT: Market Overview + Analytics -->
   <div class="col">
     <div class="panel">
       <div class="panel-title">Portfolio Summary</div>
       <div id="portfolio-body"><div class="loading">Loading...</div></div>
     </div>
     <div class="panel">
-      <div class="panel-title">Cross-Hotel Correlation</div>
+      <div class="panel-title">Market Intelligence</div>
+      <div id="market-body"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Cross-Hotel Correlation <span id="corr-count" style="float:right;color:var(--text)"></span></div>
       <canvas id="corr-canvas"></canvas>
       <div id="corr-note" class="loading"></div>
+      <div id="corr-pairs" style="margin-top:6px"></div>
     </div>
     <div class="panel">
       <div class="panel-title">Meta-Learner Consensus</div>
@@ -121,49 +156,81 @@ tr.selected{background:rgba(66,165,245,0.15)}
     </div>
   </div>
 
-  <!-- CENTER: Active Signals -->
+  <!-- CENTER: Active Signals with full analytics -->
   <div class="col">
     <div class="panel" style="flex:1;display:flex;flex-direction:column">
       <div class="panel-title">Active Signals <span id="sig-count" style="float:right;color:var(--text)"></span></div>
+      <div class="filters">
+        <select id="f-signal"><option value="">All Signals</option><option value="CALL">CALL</option><option value="PUT">PUT</option><option value="NEUTRAL">NEUTRAL</option></select>
+        <select id="f-hotel"><option value="">All Hotels</option></select>
+        <select id="f-zone"><option value="">All Zones</option></select>
+        <input type="number" id="f-t-min" placeholder="T min" style="width:60px">
+        <input type="number" id="f-t-max" placeholder="T max" style="width:60px">
+      </div>
       <div class="tbl-wrap" style="flex:1">
         <table>
           <thead><tr>
             <th data-sort="hotel">Hotel</th>
             <th data-sort="T">T</th>
-            <th data-sort="price">$</th>
+            <th data-sort="price">Price</th>
             <th data-sort="signal">Sig</th>
-            <th data-sort="conf">Conf</th>
-            <th data-sort="scans">Scans</th>
-            <th data-sort="drops">↓</th>
-            <th data-sort="rises">↑</th>
-            <th data-sort="chg">Δ%</th>
-            <th data-sort="trend">Trend</th>
-            <th>BT</th>
+            <th data-sort="conf">Conf%</th>
+            <th data-sort="predicted">Target</th>
+            <th data-sort="trade">Trade%</th>
+            <th data-sort="drops">Drops</th>
+            <th data-sort="rises">Rises</th>
+            <th data-sort="range">Path Range</th>
+            <th data-sort="sources">Srcs</th>
           </tr></thead>
           <tbody id="sig-tbody"><tr><td colspan="11" class="loading">Loading signals...</td></tr></tbody>
         </table>
       </div>
     </div>
+    <div class="detail-panel" id="detail-panel">
+      <div class="panel-title">Detail: <span id="detail-name"></span></div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Price Path Analysis</h4>
+          <div id="detail-path"></div>
+        </div>
+        <div class="detail-section">
+          <h4>Source Predictions (22 sources)</h4>
+          <div id="detail-sources" style="max-height:200px;overflow-y:auto"></div>
+        </div>
+        <div class="detail-section">
+          <h4>PUT Analysis</h4>
+          <div id="detail-put"></div>
+        </div>
+        <div class="detail-section">
+          <h4>Quality & Scan History</h4>
+          <div id="detail-quality"></div>
+        </div>
+      </div>
+    </div>
     <div class="panel">
       <div class="panel-title">Signal Attribution (Enrichments)</div>
-      <canvas id="attr-canvas" height="100"></canvas>
+      <canvas id="attr-canvas" height="120"></canvas>
       <div id="attr-note" class="loading"></div>
     </div>
   </div>
 
   <!-- RIGHT: Monitoring -->
   <div class="col">
-    <div class="panel" style="flex:1">
+    <div class="panel">
       <div class="panel-title">Streaming Alerts <span id="alert-count" style="float:right;color:var(--text)"></span></div>
-      <div id="alerts-body" style="max-height:250px;overflow-y:auto"><div class="loading">Loading alerts...</div></div>
+      <div id="alerts-body" style="max-height:220px;overflow-y:auto"><div class="loading">Loading alerts...</div></div>
     </div>
     <div class="panel">
       <div class="panel-title">Audit Trail (Recent)</div>
-      <div id="audit-body" style="max-height:200px;overflow-y:auto"><div class="loading">Loading...</div></div>
+      <div id="audit-body" style="max-height:180px;overflow-y:auto"><div class="loading">Loading...</div></div>
     </div>
     <div class="panel">
       <div class="panel-title">Execution Quality</div>
       <div id="exec-body"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Signal Distribution</div>
+      <canvas id="dist-canvas" height="100"></canvas>
     </div>
   </div>
 
@@ -176,62 +243,205 @@ function $(id){return document.getElementById(id)}
 function fmt$(v){return v!=null?'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0}):'—'}
 function fmtPct(v){return v!=null?(v>=0?'+':'')+Number(v).toFixed(1)+'%':'—'}
 
-let sortCol='conf',sortAsc=false,signalRows=[];
+let sortCol='conf',sortAsc=false,allRows=[],selectedRow=null;
+
+// ── Load ALL options (paginated) ──
+async function loadAllOptions(){
+  let all=[],offset=0;
+  const limit=500;
+  while(true){
+    const d=await api(`/options?limit=${limit}&offset=${offset}&profile=lite`);
+    if(!d||!d.rows||!d.rows.length)break;
+    all=all.concat(d.rows);
+    if(!d.has_more)break;
+    offset+=limit;
+    if(all.length>=5000)break;
+  }
+  return all;
+}
 
 // ── Header + Options ──
 async function loadHeader(){
-  const d=await api('/options?limit=500&profile=lite');
-  if(!d||!d.rows)return;
-  const rows=d.rows;
+  const rows=await loadAllOptions();
+  if(!rows.length)return;
+  allRows=rows;
   const calls=rows.filter(r=>r.option_signal==='CALL').length;
   const puts=rows.filter(r=>r.option_signal==='PUT').length;
   const neutrals=rows.length-calls-puts;
   const hotels=new Set(rows.map(r=>r.hotel_id)).size;
+  const avgConf=rows.reduce((s,r)=>s+Math.abs(r.expected_change_pct||0),0)/rows.length;
+  const srcCount=rows[0]?.source_predictions?Object.keys(rows[0].source_predictions).length:0;
   $('h-rooms').textContent=rows.length;
   $('h-call').textContent=calls;
   $('h-put').textContent=puts;
   $('h-neutral').textContent=neutrals;
   $('h-hotels').textContent=hotels;
+  $('h-sources').textContent=srcCount;
+  $('h-avg-conf').textContent=avgConf.toFixed(1)+'%';
   $('h-ts').textContent=new Date().toLocaleTimeString();
-  signalRows=rows;
+  // Populate filter dropdowns
+  const hotelSet=new Set(),zoneSet=new Set();
+  rows.forEach(r=>{if(r.hotel_name)hotelSet.add(r.hotel_name);if(r.zone)zoneSet.add(r.zone)});
+  const hSel=$('f-hotel');
+  [...hotelSet].sort().forEach(h=>{const o=document.createElement('option');o.value=h;o.textContent=h;hSel.appendChild(o)});
+  const zSel=$('f-zone');
+  [...zoneSet].sort().forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent=z;zSel.appendChild(o)});
   renderSignalTable();
+  renderDistribution();
+  renderMarketIntel();
 }
+
+// ── Filters ──
+function getFiltered(){
+  let rows=[...allRows];
+  const sig=$('f-signal').value;
+  const hotel=$('f-hotel').value;
+  const zone=$('f-zone').value;
+  const tMin=parseInt($('f-t-min').value);
+  const tMax=parseInt($('f-t-max').value);
+  if(sig)rows=rows.filter(r=>r.option_signal===sig);
+  if(hotel)rows=rows.filter(r=>r.hotel_name===hotel);
+  if(zone)rows=rows.filter(r=>r.zone===zone);
+  if(!isNaN(tMin))rows=rows.filter(r=>(r.days_to_checkin||0)>=tMin);
+  if(!isNaN(tMax))rows=rows.filter(r=>(r.days_to_checkin||0)<=tMax);
+  return rows;
+}
+
+['f-signal','f-hotel','f-zone','f-t-min','f-t-max'].forEach(id=>{
+  $(id).addEventListener('change',()=>{renderSignalTable();renderDistribution()});
+  $(id).addEventListener('input',()=>{renderSignalTable();renderDistribution()});
+});
 
 // ── Signal Table ──
 function renderSignalTable(){
   const tbody=$('sig-tbody');
-  if(!signalRows.length){tbody.innerHTML='<tr><td colspan="11" class="loading">No data</td></tr>';return}
-  let sorted=[...signalRows];
-  const keyMap={hotel:'hotel_name',T:'days_to_checkin',price:'current_price',signal:'option_signal',conf:'expected_change_pct',
-    scans:'_scans',drops:'_drops',rises:'_rises',chg:'_chg',trend:'_trend'};
+  const filtered=getFiltered();
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="11" class="loading">No data</td></tr>';$('sig-count').textContent='0';return}
+  let sorted=[...filtered];
+  const keyMap={hotel:'hotel_name',T:'days_to_checkin',price:'current_price',signal:'option_signal',
+    conf:'expected_change_pct',predicted:'predicted_checkin_price',trade:'path_best_trade_pct',
+    drops:'put_decline_count',rises:'expected_future_rises',range:'_range',sources:'_srcCount'};
   const key=keyMap[sortCol]||'expected_change_pct';
   sorted.sort((a,b)=>{
     let va,vb;
-    if(key.startsWith('_')){const sh=k=>k.scan_history||{};va=sh(a)[key.slice(1)]||0;vb=sh(b)[key.slice(1)]||0;}
-    else{va=a[key]||0;vb=b[key]||0;}
+    if(key==='_range'){va=(a.expected_max_price||0)-(a.expected_min_price||0);vb=(b.expected_max_price||0)-(b.expected_min_price||0)}
+    else if(key==='_srcCount'){va=a.source_predictions?Object.keys(a.source_predictions).length:0;vb=b.source_predictions?Object.keys(b.source_predictions).length:0}
+    else{va=a[key]||0;vb=b[key]||0}
     if(typeof va==='string')return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
     return sortAsc?va-vb:vb-va;
   });
-  const top=sorted.slice(0,200);
-  $('sig-count').textContent=signalRows.length+' rooms';
-  tbody.innerHTML=top.map(r=>{
+  const top=sorted.slice(0,300);
+  $('sig-count').textContent=filtered.length+'/'+allRows.length+' rooms';
+  tbody.innerHTML=top.map((r,i)=>{
     const sig=(r.option_signal||'NEUTRAL').toUpperCase();
     const cls=sig.toLowerCase();
-    const h=(r.hotel_name||'').substring(0,20);
-    const t=r.days_to_checkin||r.t_horizon_days||0;
+    const h=(r.hotel_name||'').substring(0,18);
+    const t=r.days_to_checkin||0;
     const p=r.current_price||0;
     const conf=Math.abs(r.expected_change_pct||0);
-    const sh=r.scan_history||{};
-    const scans=sh.scan_snapshots||0;
-    const drops=sh.scan_actual_drops||0;
-    const rises=sh.scan_actual_rises||0;
-    const chg=sh.scan_price_change_pct;
-    const trend=sh.scan_trend||'';
-    const chgCls=chg!=null?(chg<0?'put':'call'):'';
-    const trendIcon=trend==='down'?'↓':trend==='up'?'↑':'→';
-    const trendCls=trend==='down'?'put':trend==='up'?'call':'neutral';
-    return `<tr><td>${h}</td><td>${t}</td><td>${fmt$(p)}</td><td><span class="sig ${cls}">${sig}</span></td><td>${conf.toFixed(1)}%</td><td>${scans}</td><td style="color:var(--put)">${drops||''}</td><td style="color:var(--call)">${rises||''}</td><td style="color:var(--${chgCls})">${chg!=null?chg.toFixed(1)+'%':'—'}</td><td style="color:var(--${trendCls})">${trendIcon}</td><td id="bt-${r.hotel_id}"></td></tr>`;
+    const pred=r.predicted_checkin_price||0;
+    const predCls=pred>p?'call':pred<p?'put':'neutral';
+    const trade=r.path_best_trade_pct||0;
+    const tradeCls=trade>10?'call':trade<-5?'put':'neutral';
+    const drops=r.put_decline_count||r.expected_future_drops||0;
+    const rises=r.expected_future_rises||0;
+    const minP=r.expected_min_price||p;
+    const maxP=r.expected_max_price||p;
+    const range=maxP-minP;
+    const pctInRange=range>0?((p-minP)/range*100):50;
+    const srcN=r.source_predictions?Object.keys(r.source_predictions).length:0;
+    return `<tr data-idx="${i}" onclick="showDetail(${i})">
+      <td title="${r.hotel_name} — ${r.zone||''} ${r.tier||''}">${h}</td>
+      <td>${t}</td>
+      <td>${fmt$(p)}</td>
+      <td><span class="sig ${cls}">${sig}</span></td>
+      <td>${conf.toFixed(1)}%</td>
+      <td style="color:var(--${predCls})">${fmt$(pred)}</td>
+      <td style="color:var(--${tradeCls})">${trade.toFixed(1)}%</td>
+      <td style="color:var(--put)">${Math.round(drops)}</td>
+      <td style="color:var(--call)">${Math.round(rises)}</td>
+      <td title="${fmt$(minP)} — ${fmt$(maxP)}"><span class="path-bar" style="width:${Math.min(80,range/3)}px;background:linear-gradient(90deg,var(--put),var(--neutral),var(--call))"></span> <span style="font-size:10px;color:var(--muted)">${fmt$(range)}</span></td>
+      <td>${srcN}</td>
+    </tr>`;
   }).join('');
+}
+
+// ── Detail Panel (click row) ──
+function showDetail(idx){
+  const filtered=getFiltered();
+  let sorted=[...filtered];
+  const keyMap={hotel:'hotel_name',T:'days_to_checkin',price:'current_price',signal:'option_signal',
+    conf:'expected_change_pct',predicted:'predicted_checkin_price',trade:'path_best_trade_pct',
+    drops:'put_decline_count',rises:'expected_future_rises',range:'_range',sources:'_srcCount'};
+  const key=keyMap[sortCol]||'expected_change_pct';
+  sorted.sort((a,b)=>{
+    let va,vb;
+    if(key==='_range'){va=(a.expected_max_price||0)-(a.expected_min_price||0);vb=(b.expected_max_price||0)-(b.expected_min_price||0)}
+    else if(key==='_srcCount'){va=a.source_predictions?Object.keys(a.source_predictions).length:0;vb=b.source_predictions?Object.keys(b.source_predictions).length:0}
+    else{va=a[key]||0;vb=b[key]||0}
+    if(typeof va==='string')return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
+    return sortAsc?va-vb:vb-va;
+  });
+  const r=sorted[idx];
+  if(!r)return;
+  selectedRow=r;
+  const dp=$('detail-panel');
+  dp.classList.add('show');
+  $('detail-name').textContent=`${r.hotel_name} | ${r.category}/${r.board} | T=${r.days_to_checkin}`;
+
+  // Path Analysis
+  $('detail-path').innerHTML=`
+    <div class="metric"><span class="lbl">Current Price</span><span class="val">${fmt$(r.current_price)}</span></div>
+    <div class="metric"><span class="lbl">Predicted Check-in</span><span class="val" style="color:var(--${r.predicted_checkin_price>r.current_price?'call':'put'})">${fmt$(r.predicted_checkin_price)}</span></div>
+    <div class="metric"><span class="lbl">Expected Range</span><span class="val">${fmt$(r.expected_min_price)} — ${fmt$(r.expected_max_price)}</span></div>
+    <div class="metric"><span class="lbl">Best Trade %</span><span class="val" style="color:var(--${(r.path_best_trade_pct||0)>0?'call':'put'})">${fmtPct(r.path_best_trade_pct)}</span></div>
+    <div class="metric"><span class="lbl">Path Max @ T</span><span class="val">${fmt$(r.path_max_price)} @ T=${r.path_max_t||'?'}</span></div>
+    <div class="metric"><span class="lbl">Path Min @ T</span><span class="val">${fmt$(r.path_min_price)} @ T=${r.path_min_t||'?'}</span></div>
+    <div class="metric"><span class="lbl">Max Upside from Now</span><span class="val up">${fmt$(r.expected_max_delta_from_now)}</span></div>
+    <div class="metric"><span class="lbl">Reversals</span><span class="val">${r.path_num_reversals||0}</span></div>
+    <div class="metric"><span class="lbl">Source Consensus</span><span class="val">${r.source_consensus||'—'}</span></div>
+  `;
+
+  // Source Predictions
+  const sp=r.source_predictions||{};
+  $('detail-sources').innerHTML=Object.entries(sp).sort((a,b)=>(b[1].confidence||0)-(a[1].confidence||0)).map(([name,s])=>{
+    const pCls=(s.predicted_price||0)>r.current_price?'call':'put';
+    return `<div class="source-row">
+      <span class="src-name" title="${name}">${name.replace(/_/g,' ')}</span>
+      <span class="src-price" style="color:var(--${pCls})">${fmt$(s.predicted_price)}</span>
+      <span class="src-conf">${((s.confidence||0)*100).toFixed(0)}% ${s.reliability||''}</span>
+    </div>`;
+  }).join('');
+
+  // PUT Analysis
+  $('detail-put').innerHTML=`
+    <div class="metric"><span class="lbl">Decline Events</span><span class="val" style="color:var(--put)">${r.put_decline_count||0}</span></div>
+    <div class="metric"><span class="lbl">Total Decline $</span><span class="val down">${fmt$(r.put_total_decline_amount)}</span></div>
+    <div class="metric"><span class="lbl">Largest Single Drop</span><span class="val down">${fmt$(r.put_largest_single_decline)}</span></div>
+    <div class="metric"><span class="lbl">First Decline Date</span><span class="val">${r.put_first_decline_date||'—'}</span></div>
+    <div class="metric"><span class="lbl">Downside Now→Min</span><span class="val down">${fmt$(r.put_downside_from_now_to_t_min)}</span></div>
+    <div class="metric"><span class="lbl">Rebound Min→Checkin</span><span class="val up">${fmt$(r.put_rebound_from_t_min_to_checkin)}</span></div>
+    <div class="metric"><span class="lbl">Expected Drops</span><span class="val">${(r.expected_future_drops||0).toFixed(1)}</span></div>
+    <div class="metric"><span class="lbl">Expected Rises</span><span class="val">${(r.expected_future_rises||0).toFixed(1)}</span></div>
+  `;
+
+  // Quality + Scan
+  const q=r.quality||{};
+  const sh=r.scan_history||{};
+  $('detail-quality').innerHTML=`
+    <div class="metric"><span class="lbl">Data Quality</span><span class="val">${q.overall_quality||q.score||'—'}</span></div>
+    <div class="metric"><span class="lbl">Freshness</span><span class="val">${q.freshness||'—'}</span></div>
+    <div class="metric"><span class="lbl">Reliability</span><span class="val">${q.reliability||'—'}</span></div>
+    <div class="metric"><span class="lbl">Zone / Tier</span><span class="val">${r.zone||'—'} / ${r.tier||'—'}</span></div>
+    <hr style="border-color:var(--border);margin:6px 0">
+    <div class="metric"><span class="lbl">Scan Snapshots</span><span class="val">${sh.scan_snapshots||0}</span></div>
+    <div class="metric"><span class="lbl">First Scan</span><span class="val">${sh.first_scan_date?(new Date(sh.first_scan_date)).toLocaleDateString():'—'}</span></div>
+    <div class="metric"><span class="lbl">First Scan Price</span><span class="val">${fmt$(sh.first_scan_price)}</span></div>
+    <div class="metric"><span class="lbl">Latest Scan Price</span><span class="val">${fmt$(sh.latest_scan_price)}</span></div>
+    <div class="metric"><span class="lbl">Scan Price Change</span><span class="val ${(sh.scan_price_change_pct||0)<0?'down':'up'}">${fmtPct(sh.scan_price_change_pct)}</span></div>
+    <div class="metric"><span class="lbl">Scan Drops / Rises</span><span class="val"><span style="color:var(--put)">${sh.scan_actual_drops||0}↓</span> / <span style="color:var(--call)">${sh.scan_actual_rises||0}↑</span></span></div>
+    <div class="metric"><span class="lbl">Scan Trend</span><span class="val">${sh.scan_trend||'—'}</span></div>
+  `;
 }
 
 // Sort handlers
@@ -239,9 +449,67 @@ document.querySelectorAll('th[data-sort]').forEach(th=>{
   th.addEventListener('click',()=>{
     const col=th.dataset.sort;
     if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false}
+    document.querySelectorAll('th').forEach(t=>t.classList.remove('sorted'));
+    th.classList.add('sorted');
     renderSignalTable();
   });
 });
+
+// ── Market Intelligence (computed from all rows) ──
+function renderMarketIntel(){
+  const el=$('market-body');
+  if(!allRows.length){el.innerHTML='<div class="loading">No data</div>';return}
+  const avgPrice=allRows.reduce((s,r)=>s+(r.current_price||0),0)/allRows.length;
+  const avgPred=allRows.reduce((s,r)=>s+(r.predicted_checkin_price||0),0)/allRows.length;
+  const avgTrade=allRows.reduce((s,r)=>s+(r.path_best_trade_pct||0),0)/allRows.length;
+  const putCount=allRows.filter(r=>r.option_signal==='PUT').length;
+  const callCount=allRows.filter(r=>r.option_signal==='CALL').length;
+  const avgDrops=allRows.reduce((s,r)=>s+(r.put_decline_count||r.expected_future_drops||0),0)/allRows.length;
+  const strongCalls=allRows.filter(r=>r.option_signal==='CALL'&&Math.abs(r.expected_change_pct||0)>20).length;
+  const strongPuts=allRows.filter(r=>r.option_signal==='PUT'&&Math.abs(r.expected_change_pct||0)>20).length;
+  const mktSentiment=callCount>putCount*2?'BULLISH':putCount>callCount*2?'BEARISH':'MIXED';
+  const sentCls=mktSentiment==='BULLISH'?'call':mktSentiment==='BEARISH'?'put':'neutral';
+  el.innerHTML=`
+    <div class="mkt-cards">
+      <div class="mkt-card"><div class="mkt-val" style="color:var(--${sentCls})">${mktSentiment}</div><div class="mkt-lbl">Market Sentiment</div></div>
+      <div class="mkt-card"><div class="mkt-val">${fmt$(avgPrice)}</div><div class="mkt-lbl">Avg Price</div></div>
+      <div class="mkt-card"><div class="mkt-val" style="color:var(--${avgPred>avgPrice?'call':'put'})">${fmt$(avgPred)}</div><div class="mkt-lbl">Avg Predicted</div></div>
+      <div class="mkt-card"><div class="mkt-val" style="color:var(--${avgTrade>0?'call':'put'})">${avgTrade.toFixed(1)}%</div><div class="mkt-lbl">Avg Best Trade</div></div>
+    </div>
+    <div style="margin-top:8px">
+      <div class="metric"><span class="lbl">Strong Calls (>20%)</span><span class="val up">${strongCalls}</span></div>
+      <div class="metric"><span class="lbl">Strong Puts (>20%)</span><span class="val down">${strongPuts}</span></div>
+      <div class="metric"><span class="lbl">Avg Expected Drops/Room</span><span class="val">${avgDrops.toFixed(1)}</span></div>
+      <div class="metric"><span class="lbl">Rooms with Disagreement</span><span class="val">${allRows.filter(r=>r.source_disagreement).length}</span></div>
+    </div>
+  `;
+}
+
+// ── Signal Distribution Chart ──
+let distChart=null;
+function renderDistribution(){
+  const rows=getFiltered();
+  const bins={};
+  rows.forEach(r=>{
+    const hotel=r.hotel_name||'Unknown';
+    if(!bins[hotel])bins[hotel]={call:0,put:0,neutral:0};
+    const sig=(r.option_signal||'NEUTRAL').toLowerCase();
+    bins[hotel][sig]=(bins[hotel][sig]||0)+1;
+  });
+  const labels=Object.keys(bins).sort().map(h=>h.substring(0,15));
+  if(distChart)distChart.destroy();
+  distChart=new Chart($('dist-canvas'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'CALL',data:Object.keys(bins).sort().map(h=>bins[h].call),backgroundColor:'rgba(0,200,83,0.7)'},
+      {label:'PUT',data:Object.keys(bins).sort().map(h=>bins[h].put),backgroundColor:'rgba(255,23,68,0.7)'},
+      {label:'NEUTRAL',data:Object.keys(bins).sort().map(h=>bins[h].neutral),backgroundColor:'rgba(117,117,117,0.5)'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8899aa',font:{size:9}}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#8899aa',font:{size:8},maxRotation:45}},
+              y:{stacked:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8899aa',font:{size:9}}}}}
+  });
+}
 
 // ── Portfolio / PnL ──
 async function loadPortfolio(){
@@ -262,66 +530,66 @@ async function loadPortfolio(){
 }
 
 // ── Correlation Heatmap ──
-let corrChart=null;
 async function loadCorrelation(){
   const d=await api('/correlation');
   if(!d||!d.matrix){$('corr-note').textContent='No correlation data';return}
-  const labels=d.hotels||d.hotel_names||Object.keys(d.matrix);
+  const labels=d.hotel_names||Object.keys(d.matrix);
   const matrix=d.matrix;
-  const data=[];
-  labels.forEach((h1,i)=>{
-    const row=matrix[h1]||matrix[i]||{};
-    labels.forEach((h2,j)=>{
-      data.push({x:j,y:i,v:row[h2]||row[j]||0});
-    });
-  });
-  if(corrChart)corrChart.destroy();
-  $('corr-note').textContent=labels.length+' hotels';
-  // Simple colored table since Chart.js doesn't have native heatmap
+  // Handle matrix as array of arrays
+  $('corr-count').textContent=labels.length+' hotels';
+  $('corr-note').textContent='';
   const canvas=$('corr-canvas');
   const ctx=canvas.getContext('2d');
   canvas.width=canvas.offsetWidth;canvas.height=200;
-  const cellW=canvas.width/labels.length;
-  const cellH=canvas.height/labels.length;
-  data.forEach(d=>{
-    const v=d.v;
-    const r=v>0?0:Math.min(255,Math.abs(v)*500);
-    const g=v>0?Math.min(255,v*500):0;
-    ctx.fillStyle=`rgba(${r},${g},100,0.7)`;
-    ctx.fillRect(d.x*cellW,d.y*cellH,cellW-1,cellH-1);
-  });
+  const n=labels.length;
+  const cellW=canvas.width/n;
+  const cellH=canvas.height/n;
+  for(let i=0;i<n;i++){
+    const row=Array.isArray(matrix)?matrix[i]:(matrix[labels[i]]||{});
+    for(let j=0;j<n;j++){
+      const v=Array.isArray(row)?row[j]:(row[labels[j]]||0);
+      const intensity=Math.abs(v);
+      const r=v<0.95?Math.min(255,((1-intensity)*500)):0;
+      const g=v>=0.95?Math.min(255,(intensity*300)):80;
+      ctx.fillStyle=`rgba(${r},${g},100,0.8)`;
+      ctx.fillRect(j*cellW,i*cellH,cellW-1,cellH-1);
+    }
+  }
+  // Show strongest pairs
+  if(d.strongest_positive&&d.strongest_positive.length){
+    const pairs=d.strongest_positive.slice(0,3);
+    $('corr-pairs').innerHTML='<div style="font-size:10px;color:var(--muted)">Strongest pairs:</div>'+
+      pairs.map(p=>`<div style="font-size:10px"><span style="color:var(--call)">${(p.hotel_a_name||'').substring(0,15)}</span> ↔ <span style="color:var(--call)">${(p.hotel_b_name||'').substring(0,15)}</span> <span style="color:var(--muted)">${(p.correlation||0).toFixed(3)}</span></div>`).join('');
+  }
 }
 
 // ── Meta-Learner ──
 async function loadMetaLearner(){
   const d=await api('/meta-learner/consensus');
   const el=$('meta-body');
-  if(!d){el.innerHTML='<div class="loading">No meta-learner data</div>';return}
-  const signal=d.consensus_signal||d.signal||'NEUTRAL';
-  const conf=(d.consensus_confidence||d.confidence||0)*100;
-  const cls=signal.toLowerCase();
+  if(!d||!Array.isArray(d)){
+    // Try single object
+    if(d&&d.consensus_signal){
+      const signal=d.consensus_signal||'NEUTRAL';
+      const conf=(d.consensus_confidence||0)*100;
+      const cls=signal.toLowerCase();
+      el.innerHTML=`<div class="gauge-wrap"><div class="gauge-val" style="color:var(--${cls})">${signal}</div><div class="gauge-label">Confidence: ${conf.toFixed(0)}%</div></div>`;
+      return;
+    }
+    el.innerHTML='<div class="loading">No meta-learner data</div>';return;
+  }
+  // Array of consensus scores
+  const unanimous=d.filter(s=>s.unanimous).length;
+  const total=d.length;
+  const agreePct=d.reduce((s,r)=>s+(r.agreement_pct||0),0)/total*100;
   el.innerHTML=`
     <div class="gauge-wrap">
-      <div class="gauge-val" style="color:var(--${cls})">${signal}</div>
-      <div class="gauge-label">Confidence: ${conf.toFixed(0)}%</div>
+      <div class="gauge-val" style="color:var(--info)">${agreePct.toFixed(0)}%</div>
+      <div class="gauge-label">Average Agreement</div>
     </div>
-    <div class="metric"><span class="lbl">Adaptive Weights</span><span class="val">${d.weights_version||'v1'}</span></div>
-    <div class="metric"><span class="lbl">Sources Active</span><span class="val">${d.active_sources||'—'}</span></div>
+    <div class="metric"><span class="lbl">Unanimous Signals</span><span class="val">${unanimous}/${total}</span></div>
+    <div class="metric"><span class="lbl">FC/Hist/ML Sources</span><span class="val">3 tracks</span></div>
   `;
-}
-
-// ── Backtest Badges ──
-async function loadBacktest(){
-  const d=await api('/backtest');
-  if(!d||!d.hotel_results)return;
-  const results=d.hotel_results||{};
-  for(const[hid,r]of Object.entries(results)){
-    const els=document.querySelectorAll('#bt-'+hid);
-    if(!els.length)continue;
-    const wr=(r.win_rate||0)*100;
-    const cls=wr>=60?'good':wr>=45?'ok':'bad';
-    els.forEach(el=>{el.innerHTML=`<span class="bt-badge ${cls}">${wr.toFixed(0)}%</span>`});
-  }
 }
 
 // ── Attribution Chart ──
@@ -355,9 +623,11 @@ async function loadAttribution(){
 async function loadAlerts(){
   const d=await api('/streaming-alerts?limit=30');
   const el=$('alerts-body');
-  if(!d||!d.alerts||!d.alerts.length){el.innerHTML='<div class="loading">No active alerts</div>';return}
-  $('alert-count').textContent=d.alerts.length;
-  el.innerHTML=d.alerts.map(a=>{
+  if(!d||(!d.alerts&&!Array.isArray(d))){el.innerHTML='<div class="loading">No active alerts</div>';return}
+  const alerts=d.alerts||d;
+  if(!alerts.length){el.innerHTML='<div class="loading">No active alerts</div>';return}
+  $('alert-count').textContent=alerts.length;
+  el.innerHTML=alerts.map(a=>{
     const sev=a.severity||'info';
     const ts=a.timestamp?(new Date(a.timestamp)).toLocaleTimeString():'';
     return `<div class="alert-item ${sev}"><span class="alert-time">${ts}</span> <b>${a.rule_id||a.type||''}</b><div class="alert-msg">${a.message||''}</div></div>`;
@@ -368,8 +638,9 @@ async function loadAlerts(){
 async function loadAudit(){
   const d=await api('/audit?limit=20');
   const el=$('audit-body');
-  if(!d||!d.events||!d.events.length){el.innerHTML='<div class="loading">No audit events</div>';return}
-  el.innerHTML=d.events.map(e=>{
+  const events=d?.events||d;
+  if(!events||!Array.isArray(events)||!events.length){el.innerHTML='<div class="loading">No audit events</div>';return}
+  el.innerHTML=events.map(e=>{
     const ts=e.timestamp?(new Date(e.timestamp)).toLocaleTimeString():'';
     return `<div class="audit-row"><span class="audit-type">${e.event_type||''}</span><span class="audit-ts">${ts}</span><div>${e.description||e.detail||''}</div></div>`;
   }).join('');
@@ -392,12 +663,11 @@ async function loadExecution(){
 async function loadAll(){
   await loadHeader();
   loadPortfolio();loadCorrelation();loadMetaLearner();
-  loadBacktest();loadAttribution();
+  loadAttribution();
   loadAlerts();loadAudit();loadExecution();
 }
 loadAll();
 setInterval(loadAll,60000);
-// Alerts refresh faster
 setInterval(loadAlerts,30000);
 </script>
 </body>

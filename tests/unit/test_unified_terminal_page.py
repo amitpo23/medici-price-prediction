@@ -109,17 +109,100 @@ class TestUnifiedTerminalPage:
         html = generate_unified_terminal_html()
         assert "command-center" in html
 
-    def test_scan_history_columns(self):
-        html = generate_unified_terminal_html()
-        assert 'data-sort="scans"' in html
-        assert 'data-sort="drops"' in html
-        assert 'data-sort="rises"' in html
-        assert 'data-sort="chg"' in html
-        assert 'data-sort="trend"' in html
+    # ── New: enriched table columns ──
 
-    def test_scan_history_rendering(self):
+    def test_table_has_target_column(self):
         html = generate_unified_terminal_html()
+        assert 'data-sort="predicted"' in html
+        assert "predicted_checkin_price" in html
+
+    def test_table_has_trade_column(self):
+        html = generate_unified_terminal_html()
+        assert 'data-sort="trade"' in html
+        assert "path_best_trade_pct" in html
+
+    def test_table_has_drops_column(self):
+        html = generate_unified_terminal_html()
+        assert 'data-sort="drops"' in html
+        assert "put_decline_count" in html
+
+    def test_table_has_path_range(self):
+        html = generate_unified_terminal_html()
+        assert 'data-sort="range"' in html
+        assert "expected_min_price" in html
+        assert "expected_max_price" in html
+
+    def test_table_has_sources_column(self):
+        html = generate_unified_terminal_html()
+        assert 'data-sort="sources"' in html
+        assert "source_predictions" in html
+
+    # ── Detail panel ──
+
+    def test_detail_panel_exists(self):
+        html = generate_unified_terminal_html()
+        assert "detail-panel" in html
+        assert "showDetail" in html
+
+    def test_detail_has_path_analysis(self):
+        html = generate_unified_terminal_html()
+        assert "Price Path Analysis" in html
+        assert "path_best_trade_pct" in html
+        assert "path_max_price" in html
+
+    def test_detail_has_source_predictions(self):
+        html = generate_unified_terminal_html()
+        assert "Source Predictions" in html
+        assert "source-row" in html
+
+    def test_detail_has_put_analysis(self):
+        html = generate_unified_terminal_html()
+        assert "PUT Analysis" in html
+        assert "put_total_decline_amount" in html
+        assert "put_largest_single_decline" in html
+
+    def test_detail_has_quality_and_scan(self):
+        html = generate_unified_terminal_html()
+        assert "Quality" in html
         assert "scan_history" in html
         assert "scan_snapshots" in html
-        assert "scan_actual_drops" in html
         assert "scan_trend" in html
+
+    # ── Market Intelligence ──
+
+    def test_market_intelligence_panel(self):
+        html = generate_unified_terminal_html()
+        assert "Market Intelligence" in html
+        assert "market-body" in html
+        assert "Market Sentiment" in html
+
+    # ── Filters ──
+
+    def test_signal_filters(self):
+        html = generate_unified_terminal_html()
+        assert "f-signal" in html
+        assert "f-hotel" in html
+        assert "f-zone" in html
+        assert "f-t-min" in html
+
+    # ── Distribution chart ──
+
+    def test_distribution_chart(self):
+        html = generate_unified_terminal_html()
+        assert "Signal Distribution" in html
+        assert "dist-canvas" in html
+
+    # ── Pagination / all options ──
+
+    def test_loads_all_options_paginated(self):
+        html = generate_unified_terminal_html()
+        assert "loadAllOptions" in html
+        assert "has_more" in html
+        assert "offset" in html
+
+    # ── Correlation pairs ──
+
+    def test_correlation_strongest_pairs(self):
+        html = generate_unified_terminal_html()
+        assert "strongest_positive" in html
+        assert "corr-pairs" in html
