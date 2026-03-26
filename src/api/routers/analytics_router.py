@@ -1377,12 +1377,21 @@ def salesoffice_charts_contract_data(
 @analytics_router.get("/status")
 async def salesoffice_status():
     """Quick status — snapshot count, last run, rooms, hotels."""
-    from src.analytics.price_store import get_snapshot_count, load_latest_snapshot, init_db
     from src.analytics.collector import get_collection_runtime_status
 
-    init_db()
-    snapshot_count = get_snapshot_count()
-    latest = load_latest_snapshot()
+    snapshot_count = 0
+    total_rooms = 0
+    total_hotels = 0
+    try:
+        from src.analytics.price_store import get_snapshot_count, load_latest_snapshot, init_db
+        init_db()
+        snapshot_count = get_snapshot_count()
+        latest = load_latest_snapshot()
+        if not latest.empty:
+            total_rooms = len(latest)
+            total_hotels = latest["hotel_id"].nunique()
+    except (OSError, ConnectionError, ValueError) as exc:
+        logger.warning("Status: price_store unavailable: %s", exc)
 
     cached_analysis = _get_cached_analysis() or {}
     collection_runtime = get_collection_runtime_status()
@@ -1391,8 +1400,8 @@ async def salesoffice_status():
         "status": "ok",
         "data_source": "cache",
         "snapshots_collected": snapshot_count,
-        "total_rooms": len(latest) if not latest.empty else 0,
-        "total_hotels": latest["hotel_id"].nunique() if not latest.empty else 0,
+        "total_rooms": total_rooms,
+        "total_hotels": total_hotels,
         "last_analysis": cached_analysis.get("run_ts"),
         "cache_ready": bool(cached_analysis),
         "analysis_warming": _analysis_warming.is_set(),
