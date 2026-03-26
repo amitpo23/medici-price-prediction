@@ -1390,7 +1390,7 @@ async def salesoffice_status():
         if not latest.empty:
             total_rooms = len(latest)
             total_hotels = latest["hotel_id"].nunique()
-    except (OSError, ConnectionError, ValueError) as exc:
+    except Exception as exc:
         logger.warning("Status: price_store unavailable: %s", exc)
 
     cached_analysis = _get_cached_analysis() or {}

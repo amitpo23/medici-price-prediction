@@ -48,10 +48,14 @@ async def salesoffice_home():
             "snapshots_collected": get_snapshot_count(),
             "scheduler_running": _is_scheduler_running(),
         }
-    except (OSError, ConnectionError, ValueError) as exc:
+    except Exception as exc:
         logger.warning("Landing page status data unavailable: %s", exc)
 
-    html = generate_landing_html(status_data)
+    try:
+        html = generate_landing_html(status_data)
+    except Exception as exc:
+        logger.error("Landing page generation failed: %s", exc)
+        html = "<h1>Medici Price Prediction</h1><p>Landing page loading...</p><p><a href='/api/v1/salesoffice/dashboard/command-center'>Command Center</a></p>"
     return HTMLResponse(content=html)
 
 
