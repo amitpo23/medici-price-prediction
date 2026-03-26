@@ -442,7 +442,12 @@ async def dashboard_unified_terminal():
 async def dashboard_trading_analysis():
     """Interactive Trading Analysis — forward curve charts, CALL/PUT signals, entry/exit points."""
     from pathlib import Path
-    html_path = Path(__file__).resolve().parent.parent.parent.parent / "trading_analysis.html"
-    if html_path.exists():
-        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    # Try templates directory first (works on Azure), then project root (local dev)
+    candidates = [
+        Path(__file__).resolve().parent.parent.parent / "templates" / "trading_analysis.html",
+        Path(__file__).resolve().parent.parent.parent.parent / "trading_analysis.html",
+    ]
+    for html_path in candidates:
+        if html_path.exists():
+            return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Trading Analysis dashboard not found</h1>", status_code=404)

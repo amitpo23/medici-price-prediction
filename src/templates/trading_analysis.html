@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medici Trading Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #0a0a1a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #00d4aa;
+            text-shadow: 0 2px 10px rgba(0, 212, 170, 0.3);
+        }
+
+        .subtitle {
+            color: #a0a0c0;
+            font-size: 0.95rem;
+        }
+
+        section {
+            margin-bottom: 30px;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        section h2 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #00d4aa;
+            border-bottom: 2px solid #00d4aa;
+            padding-bottom: 10px;
+        }
+
+        /* KPI Bar */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .kpi-card {
+            background: #0f0f1d;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            border-color: #00d4aa;
+            box-shadow: 0 0 15px rgba(0, 212, 170, 0.2);
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            color: #a0a0c0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+
+        .kpi-value.call {
+            color: #00d4aa;
+        }
+
+        .kpi-value.put {
+            color: #ff4757;
+        }
+
+        .kpi-value.neutral {
+            color: #ffa502;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        thead {
+            background: #0f0f1d;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #00d4aa;
+            border-bottom: 2px solid #2a2a4e;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        th:hover {
+            background: #1a1a2e;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #2a2a4e;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background: #151530;
+            cursor: pointer;
+        }
+
+        tbody tr.selected {
+            background: #1a2a3e;
+            border-left: 3px solid #00d4aa;
+        }
+
+        /* Badges and signals */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            min-width: 70px;
+        }
+
+        .badge.call {
+            background: rgba(0, 212, 170, 0.2);
+            color: #00d4aa;
+            border: 1px solid #00d4aa;
+        }
+
+        .badge.put {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+            border: 1px solid #ff4757;
+        }
+
+        .badge.neutral {
+            background: rgba(255, 165, 2, 0.2);
+            color: #ffa502;
+            border: 1px solid #ffa502;
+        }
+
+        .badge.buy {
+            background: rgba(0, 212, 170, 0.2);
+            color: #00d4aa;
+        }
+
+        .badge.watch {
+            background: rgba(255, 165, 2, 0.2);
+            color: #ffa502;
+        }
+
+        .badge.reduce {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+
+        /* Filters */
+        .filter-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #0f0f1d;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: #a0a0c0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        select, input {
+            padding: 8px 12px;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 0.95rem;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #00d4aa;
+            box-shadow: 0 0 8px rgba(0, 212, 170, 0.2);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            background: #0f0f1d;
+            border: 1px solid #2a2a4e;
+            border-radius: 4px;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover, .pagination button.active {
+            background: #00d4aa;
+            color: #0a0a1a;
+            border-color: #00d4aa;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 20px;
+            background: #0f0f1d;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #2a2a4e;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .chart-mini {
+            position: relative;
+            height: 300px;
+            background: #0f0f1d;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #2a2a4e;
+        }
+
+        /* Recommendation box */
+        .recommendation-box {
+            background: #0f0f1d;
+            border-left: 4px solid #00d4aa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+
+        .recommendation-box.call {
+            border-left-color: #00d4aa;
+        }
+
+        .recommendation-box.put {
+            border-left-color: #ff4757;
+        }
+
+        .recommendation-box strong {
+            color: #00d4aa;
+            font-size: 1.15rem;
+        }
+
+        .recommendation-box.put strong {
+            color: #ff4757;
+        }
+
+        /* Loading spinner */
+        .loader {
+            border: 4px solid #2a2a4e;
+            border-top: 4px solid #00d4aa;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-container {
+            text-align: center;
+            padding: 40px;
+        }
+
+        /* Error message */
+        .error-message {
+            background: rgba(255, 71, 87, 0.2);
+            border: 1px solid #ff4757;
+            border-radius: 6px;
+            padding: 15px;
+            color: #ff4757;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .error-message button {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .error-message button:hover {
+            background: #ff5a6b;
+        }
+
+        /* Utility */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-20 {
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            color: #a0a0c0;
+        }
+
+        .percentage {
+            font-weight: 600;
+        }
+
+        .percentage.positive {
+            color: #00d4aa;
+        }
+
+        .percentage.negative {
+            color: #ff4757;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+
+            .filter-group {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        /* RTL Support */
+        [dir="rtl"] {
+            direction: rtl;
+            text-align: right;
+        }
+
+        [dir="rtl"] th, [dir="rtl"] td {
+            text-align: right;
+        }
+
+        [dir="rtl"] .badge {
+            margin-left: 5px;
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .status-indicator.live {
+            background: #00d4aa;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="status-indicator live"></span>Medici Trading Dashboard</h1>
+            <p class="subtitle">Real-time hotel room pricing analysis and trading signals • Miami Market</p>
+        </header>
+
+        <div id="errorContainer"></div>
+
+        <!-- Section 1: KPI Bar -->
+        <section id="kpiSection">
+            <h2>Market Overview</h2>
+            <div id="kpiContent" class="loading-container">
+                <div class="loader"></div>
+            </div>
+        </section>
+
+        <!-- Section 2: Hotel Recommendations -->
+        <section id="hotelSection" class="hidden">
+            <h2>Hotel Recommendations</h2>
+            <div class="table-wrapper">
+                <table id="hotelTable">
+                    <thead>
+                        <tr>
+                            <th data-sort="hotel_name">Hotel</th>
+                            <th data-sort="zone">Zone</th>
+                            <th data-sort="total_rooms">Total Rooms</th>
+                            <th data-sort="call_count">CALL</th>
+                            <th data-sort="put_count">PUT</th>
+                            <th data-sort="put_percentage">PUT %</th>
+                            <th data-sort="avg_change">Avg Change %</th>
+                            <th data-sort="action">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hotelTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 3: Room-Level Trading Signals -->
+        <section id="roomSection" class="hidden">
+            <h2>Room-Level Trading Signals</h2>
+            <div class="filter-group">
+                <div class="filter-item">
+                    <label for="hotelFilter">Hotel</label>
+                    <select id="hotelFilter">
+                        <option value="">All Hotels</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="signalFilter">Signal</label>
+                    <select id="signalFilter">
+                        <option value="">All Signals</option>
+                        <option value="CALL">CALL (Buy)</option>
+                        <option value="PUT">PUT (Sell)</option>
+                        <option value="NEUTRAL">NEUTRAL</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="minTFilter">Min T (days)</label>
+                    <input type="number" id="minTFilter" min="0" max="365" value="">
+                </div>
+                <div class="filter-item">
+                    <label for="maxTFilter">Max T (days)</label>
+                    <input type="number" id="maxTFilter" min="0" max="365" value="">
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="roomTable">
+                    <thead>
+                        <tr>
+                            <th data-sort="hotel_name">Hotel</th>
+                            <th data-sort="detail_id">Room ID</th>
+                            <th data-sort="category">Category</th>
+                            <th data-sort="t_horizon_days">T (days)</th>
+                            <th data-sort="current_price">Current $</th>
+                            <th data-sort="predicted_checkin_price">Target $</th>
+                            <th data-sort="expected_change_pct">Change %</th>
+                            <th data-sort="option_signal">Signal</th>
+                            <th data-sort="quality_score">Quality</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="roomTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="roomPagination">
+            </div>
+        </section>
+
+        <!-- Section 4: Interactive Forward Curve Chart -->
+        <section id="chartSection" class="hidden">
+            <h2>Forward Curve Analysis</h2>
+            <div id="chartContent">
+                <div class="chart-container">
+                    <canvas id="forwardCurveChart"></canvas>
+                </div>
+                <div id="recommendationContent"></div>
+            </div>
+        </section>
+
+        <!-- Section 5: Signal Distribution -->
+        <section id="distributionSection" class="hidden">
+            <h2>Signal Distribution & Analysis</h2>
+            <div class="charts-grid">
+                <div class="chart-mini">
+                    <canvas id="signalChart"></canvas>
+                </div>
+                <div class="chart-mini">
+                    <canvas id="changeChart"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // ============================================================================
+        // STATE MANAGEMENT
+        // ============================================================================
+        const state = {
+            allRows: [],
+            filteredRooms: [],
+            selectedRoom: null,
+            currentPage: 1,
+            rowsPerPage: 50,
+            sortColumn: null,
+            sortDirection: 'asc',
+            hotelData: {},
+            signalCounts: { CALL: 0, PUT: 0, NEUTRAL: 0 },
+            charts: {
+                forwardCurve: null,
+                signal: null,
+                change: null
+            }
+        };
+
+        // ============================================================================
+        // ERROR HANDLING
+        // ============================================================================
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            const errorEl = document.createElement('div');
+            errorEl.className = 'error-message';
+            errorEl.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">Dismiss</button>
+            `;
+            container.appendChild(errorEl);
+        }
+
+        // ============================================================================
+        // DATA FETCHING
+        // ============================================================================
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/v1/salesoffice/options?limit=500&all=true');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                return data.rows || [];
+            } catch (error) {
+                showError(`Failed to fetch data: ${error.message}. Please check that the API server is running.`);
+                return [];
+            }
+        }
+
+        // ============================================================================
+        // DATA AGGREGATION
+        // ============================================================================
+        function aggregateHotelData(rows) {
+            const hotels = {};
+
+            rows.forEach(row => {
+                const key = row.hotel_name || 'Unknown';
+                if (!hotels[key]) {
+                    hotels[key] = {
+                        hotel_name: key,
+                        zone: row.zone || 'N/A',
+                        rooms: [],
+                        call_count: 0,
+                        put_count: 0,
+                        neutral_count: 0,
+                        total_change: 0
+                    };
+                }
+
+                hotels[key].rooms.push(row);
+                if (row.option_signal === 'CALL') hotels[key].call_count++;
+                else if (row.option_signal === 'PUT') hotels[key].put_count++;
+                else hotels[key].neutral_count++;
+
+                hotels[key].total_change += (row.expected_change_pct || 0);
+            });
+
+            return hotels;
+        }
+
+        // ============================================================================
+        // KPI SECTION
+        // ============================================================================
+        function renderKPIs(rows) {
+            if (rows.length === 0) {
+                document.getElementById('kpiContent').innerHTML = '<p class="no-data">No data available</p>';
+                return;
+            }
+
+            const callCount = rows.filter(r => r.option_signal === 'CALL').length;
+            const putCount = rows.filter(r => r.option_signal === 'PUT').length;
+            const neutralCount = rows.filter(r => r.option_signal === 'NEUTRAL').length;
+            const avgChange = (rows.reduce((sum, r) => sum + (r.expected_change_pct || 0), 0) / rows.length).toFixed(2);
+            const avgQuality = (rows.reduce((sum, r) => sum + (r.quality?.score || 0), 0) / rows.length).toFixed(2);
+
+            state.signalCounts = { CALL: callCount, PUT: putCount, NEUTRAL: neutralCount };
+
+            const html = `
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total Rooms</div>
+                        <div class="kpi-value">${rows.length.toLocaleString()}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">CALL (Buy)</div>
+                        <div class="kpi-value call">${callCount.toLocaleString()}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">PUT (Sell)</div>
+                        <div class="kpi-value put">${putCount.toLocaleString()}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">NEUTRAL</div>
+                        <div class="kpi-value neutral">${neutralCount.toLocaleString()}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Avg Change %</div>
+                        <div class="kpi-value ${avgChange >= 0 ? 'positive' : 'negative'}">${avgChange}%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Avg Quality</div>
+                        <div class="kpi-value">${(avgQuality * 100).toFixed(0)}%</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('kpiContent').innerHTML = html;
+        }
+
+        // ============================================================================
+        // HOTEL RECOMMENDATIONS TABLE
+        // ============================================================================
+        function renderHotelTable(rows) {
+            state.hotelData = aggregateHotelData(rows);
+            const hotels = Object.values(state.hotelData).sort((a, b) => {
+                const aVal = a[state.sortColumn] || 0;
+                const bVal = b[state.sortColumn] || 0;
+                return state.sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            });
+
+            const tbody = document.getElementById('hotelTableBody');
+            tbody.innerHTML = '';
+
+            hotels.forEach(hotel => {
+                const totalRooms = hotel.rooms.length;
+                const putPct = ((hotel.put_count / totalRooms) * 100).toFixed(1);
+                const avgChange = (hotel.total_change / totalRooms).toFixed(2);
+
+                let actionBadge = 'WATCH';
+                let actionClass = 'watch';
+                if (avgChange > 15) {
+                    actionBadge = 'BUY';
+                    actionClass = 'buy';
+                } else if (avgChange < 5) {
+                    actionBadge = 'REDUCE';
+                    actionClass = 'reduce';
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${hotel.hotel_name}</strong></td>
+                    <td>${hotel.zone}</td>
+                    <td>${totalRooms}</td>
+                    <td><span class="badge call">${hotel.call_count}</span></td>
+                    <td><span class="badge put">${hotel.put_count}</span></td>
+                    <td>${putPct}%</td>
+                    <td><span class="percentage ${avgChange >= 0 ? 'positive' : 'negative'}">${avgChange}%</span></td>
+                    <td><span class="badge ${actionClass}">${actionBadge}</span></td>
+                `;
+                tr.addEventListener('click', () => filterByHotel(hotel.hotel_name));
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('hotelSection').classList.remove('hidden');
+        }
+
+        // ============================================================================
+        // ROOM-LEVEL TABLE & FILTERING
+        // ============================================================================
+        function filterByHotel(hotelName) {
+            document.getElementById('hotelFilter').value = hotelName;
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const hotel = document.getElementById('hotelFilter').value;
+            const signal = document.getElementById('signalFilter').value;
+            const minT = parseInt(document.getElementById('minTFilter').value) || 0;
+            const maxT = parseInt(document.getElementById('maxTFilter').value) || 999;
+
+            state.filteredRooms = state.allRows.filter(row => {
+                const matchHotel = !hotel || row.hotel_name === hotel;
+                const matchSignal = !signal || row.option_signal === signal;
+                const t = row.t_horizon_days || 0;
+                const matchT = t >= minT && t <= maxT;
+                return matchHotel && matchSignal && matchT;
+            });
+
+            state.currentPage = 1;
+            renderRoomTable();
+        }
+
+        function renderRoomTable() {
+            const start = (state.currentPage - 1) * state.rowsPerPage;
+            const end = start + state.rowsPerPage;
+            const pageRows = state.filteredRooms.slice(start, end);
+
+            const tbody = document.getElementById('roomTableBody');
+            tbody.innerHTML = '';
+
+            if (pageRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="no-data">No rooms match filters</td></tr>';
+            }
+
+            pageRows.forEach(row => {
+                const tr = document.createElement('tr');
+                if (state.selectedRoom && state.selectedRoom.detail_id === row.detail_id) {
+                    tr.classList.add('selected');
+                }
+
+                const signalClass = row.option_signal === 'CALL' ? 'call' : row.option_signal === 'PUT' ? 'put' : 'neutral';
+                const changeClass = row.expected_change_pct >= 0 ? 'positive' : 'negative';
+
+                tr.innerHTML = `
+                    <td>${row.hotel_name}</td>
+                    <td>${row.detail_id}</td>
+                    <td>${row.category}</td>
+                    <td>${row.t_horizon_days}</td>
+                    <td>$${row.current_price?.toFixed(2)}</td>
+                    <td>$${row.predicted_checkin_price?.toFixed(2)}</td>
+                    <td><span class="percentage ${changeClass}">${row.expected_change_pct?.toFixed(2)}%</span></td>
+                    <td><span class="badge ${signalClass}">${row.option_signal}</span></td>
+                    <td>${((row.quality?.score || 0) * 100).toFixed(0)}%</td>
+                    <td><span class="badge ${signalClass}">${row.option_signal === 'CALL' ? 'BUY' : 'SELL'}</span></td>
+                `;
+
+                tr.addEventListener('click', () => selectRoom(row));
+                tbody.appendChild(tr);
+            });
+
+            renderRoomPagination();
+            document.getElementById('roomSection').classList.remove('hidden');
+        }
+
+        function renderRoomPagination() {
+            const totalPages = Math.ceil(state.filteredRooms.length / state.rowsPerPage);
+            const pagination = document.getElementById('roomPagination');
+            pagination.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const createBtn = (text, page, disabled) => {
+                const btn = document.createElement('button');
+                btn.textContent = text;
+                btn.disabled = disabled;
+                if (page === state.currentPage) btn.classList.add('active');
+                btn.addEventListener('click', () => {
+                    state.currentPage = page;
+                    renderRoomTable();
+                    window.scrollTo(0, document.getElementById('roomSection').offsetTop - 100);
+                });
+                return btn;
+            };
+
+            pagination.appendChild(createBtn('← Prev', state.currentPage - 1, state.currentPage === 1));
+
+            for (let i = Math.max(1, state.currentPage - 2); i <= Math.min(totalPages, state.currentPage + 2); i++) {
+                pagination.appendChild(createBtn(i, i, false));
+            }
+
+            pagination.appendChild(createBtn('Next →', state.currentPage + 1, state.currentPage === totalPages));
+
+            const info = document.createElement('span');
+            info.style.alignSelf = 'center';
+            info.textContent = `Page ${state.currentPage} of ${totalPages}`;
+            pagination.appendChild(info);
+        }
+
+        // ============================================================================
+        // CHART RENDERING
+        // ============================================================================
+        function selectRoom(room) {
+            state.selectedRoom = room;
+            renderRoomTable();
+            renderForwardCurveChart(room);
+            document.getElementById('chartSection').classList.remove('hidden');
+            window.scrollTo(0, document.getElementById('chartSection').offsetTop - 100);
+        }
+
+        function renderForwardCurveChart(room) {
+            const ctx = document.getElementById('forwardCurveChart').getContext('2d');
+
+            if (state.charts.forwardCurve) {
+                state.charts.forwardCurve.destroy();
+            }
+
+            const labels = room.chart?.labels || [];
+            const predicted = room.chart?.series?.predicted_price || [];
+            const upper = room.chart?.series?.upper_bound || [];
+            const lower = room.chart?.series?.lower_bound || [];
+            const currentPrice = room.current_price;
+            const tMinDate = room.t_min_price_date;
+            const tMaxDate = room.t_max_price_date;
+
+            const currentIndex = 0;
+            const minIndex = tMinDate ? labels.indexOf(tMinDate) : -1;
+            const maxIndex = tMaxDate ? labels.indexOf(tMaxDate) : -1;
+
+            state.charts.forwardCurve = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Predicted Price',
+                            data: predicted,
+                            borderColor: '#00d4aa',
+                            backgroundColor: 'rgba(0, 212, 170, 0.05)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Upper Bound',
+                            data: upper,
+                            borderColor: '#00d4aa',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Lower Bound',
+                            data: lower,
+                            borderColor: '#ff4757',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e0e0e0', font: { size: 12 } },
+                            position: 'top'
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(10, 10, 26, 0.9)',
+                            titleColor: '#00d4aa',
+                            bodyColor: '#e0e0e0',
+                            borderColor: '#2a2a4e',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { color: '#a0a0c0' },
+                            grid: { color: 'rgba(42, 42, 78, 0.2)' },
+                            title: { display: true, text: 'Price ($)', color: '#a0a0c0' }
+                        },
+                        x: {
+                            ticks: { color: '#a0a0c0' },
+                            grid: { color: 'rgba(42, 42, 78, 0.2)' },
+                            title: { display: true, text: 'Date', color: '#a0a0c0' }
+                        }
+                    }
+                }
+            });
+
+            renderRecommendation(room);
+        }
+
+        function renderRecommendation(room) {
+            const signal = room.option_signal;
+            const currentPrice = room.current_price?.toFixed(2);
+            const targetPrice = room.predicted_checkin_price?.toFixed(2);
+            const change = room.expected_change_pct?.toFixed(2);
+            const targetDate = room.t_max_price_date || room.chart?.labels?.[room.chart.labels.length - 1] || 'N/A';
+            const t = room.t_horizon_days || 0;
+
+            let html = '';
+            if (signal === 'CALL') {
+                html = `
+                    <div class="recommendation-box call">
+                        <strong>✓ BUY RECOMMENDATION</strong><br>
+                        Entry: $${currentPrice} | Target: $${targetPrice}<br>
+                        Expected: <span style="color: #00d4aa;">+${change}%</span> by ${targetDate}<br>
+                        Time Horizon: ${t} days | Quality: ${((room.quality?.score || 0) * 100).toFixed(0)}%
+                    </div>
+                `;
+            } else if (signal === 'PUT') {
+                html = `
+                    <div class="recommendation-box put">
+                        <strong>✗ SELL RECOMMENDATION</strong><br>
+                        Current: $${currentPrice} | Expected Low: $${targetPrice}<br>
+                        Expected: <span style="color: #ff4757;">${change}%</span> by ${targetDate}<br>
+                        Time Horizon: ${t} days | Quality: ${((room.quality?.score || 0) * 100).toFixed(0)}%
+                    </div>
+                `;
+            } else {
+                html = `
+                    <div class="recommendation-box" style="border-left-color: #ffa502;">
+                        <strong>◆ HOLD/WATCH</strong><br>
+                        Current: $${currentPrice} | Expected: $${targetPrice}<br>
+                        Expected: <span style="color: #ffa502;">${change}%</span> by ${targetDate}<br>
+                        Time Horizon: ${t} days | Quality: ${((room.quality?.score || 0) * 100).toFixed(0)}%
+                    </div>
+                `;
+            }
+
+            document.getElementById('recommendationContent').innerHTML = html;
+        }
+
+        // ============================================================================
+        // SIGNAL DISTRIBUTION CHARTS
+        // ============================================================================
+        function renderDistributionCharts(rows) {
+            if (rows.length === 0) return;
+
+            // Signal doughnut
+            const signalCtx = document.getElementById('signalChart').getContext('2d');
+            if (state.charts.signal) state.charts.signal.destroy();
+
+            state.charts.signal = new Chart(signalCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['CALL (Buy)', 'PUT (Sell)', 'NEUTRAL (Hold)'],
+                    datasets: [{
+                        data: [
+                            state.signalCounts.CALL,
+                            state.signalCounts.PUT,
+                            state.signalCounts.NEUTRAL
+                        ],
+                        backgroundColor: ['#00d4aa', '#ff4757', '#ffa502'],
+                        borderColor: '#1a1a2e',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e0e0e0', font: { size: 12 }, padding: 15 },
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Change by hotel bar
+            const changeCtx = document.getElementById('changeChart').getContext('2d');
+            if (state.charts.change) state.charts.change.destroy();
+
+            const hotelStats = Object.values(state.hotelData)
+                .map(h => ({
+                    name: h.hotel_name,
+                    avgChange: (h.total_change / h.rooms.length)
+                }))
+                .sort((a, b) => b.avgChange - a.avgChange)
+                .slice(0, 10);
+
+            state.charts.change = new Chart(changeCtx, {
+                type: 'bar',
+                data: {
+                    labels: hotelStats.map(h => h.name),
+                    datasets: [{
+                        label: 'Avg Expected Change %',
+                        data: hotelStats.map(h => h.avgChange),
+                        backgroundColor: hotelStats.map(h => h.avgChange >= 0 ? '#00d4aa' : '#ff4757'),
+                        borderColor: '#2a2a4e',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0' } }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#a0a0c0' },
+                            grid: { color: 'rgba(42, 42, 78, 0.2)' }
+                        },
+                        y: {
+                            ticks: { color: '#a0a0c0' }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('distributionSection').classList.remove('hidden');
+        }
+
+        // ============================================================================
+        // TABLE SORTING
+        // ============================================================================
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'TH' && e.target.dataset.sort) {
+                const column = e.target.dataset.sort;
+                if (state.sortColumn === column) {
+                    state.sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    state.sortColumn = column;
+                    state.sortDirection = 'asc';
+                }
+                renderHotelTable(state.allRows);
+            }
+        });
+
+        // ============================================================================
+        // FILTER EVENT LISTENERS
+        // ============================================================================
+        document.getElementById('hotelFilter').addEventListener('change', applyFilters);
+        document.getElementById('signalFilter').addEventListener('change', applyFilters);
+        document.getElementById('minTFilter').addEventListener('change', applyFilters);
+        document.getElementById('maxTFilter').addEventListener('change', applyFilters);
+
+        // Populate hotel filter
+        function populateHotelFilter(rows) {
+            const hotels = [...new Set(rows.map(r => r.hotel_name))].sort();
+            const select = document.getElementById('hotelFilter');
+            const current = select.value;
+            select.innerHTML = '<option value="">All Hotels</option>';
+            hotels.forEach(h => {
+                const opt = document.createElement('option');
+                opt.value = h;
+                opt.textContent = h;
+                select.appendChild(opt);
+            });
+            select.value = current;
+        }
+
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+        async function init() {
+            const rows = await fetchData();
+            if (rows.length === 0) {
+                showError('No data returned from API.');
+                return;
+            }
+
+            state.allRows = rows;
+            state.filteredRooms = rows;
+
+            renderKPIs(rows);
+            renderHotelTable(rows);
+            populateHotelFilter(rows);
+            renderRoomTable();
+            renderDistributionCharts(rows);
+        }
+
+        // Run on page load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
