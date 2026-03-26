@@ -249,7 +249,10 @@ def load_historical_prices() -> pd.DataFrame:
         from src.data.trading_db import load_med_search_hotels
 
         tracked_ids = list(HOTEL_SEGMENTS.keys())
-        raw = load_med_search_hotels(hotel_ids=tracked_ids, limit=50_000)
+        # Disabled: MED_SearchHotels loading moved to nightly cache refresh
+        # to avoid heavy Azure SQL query during startup/analysis cycle.
+        # raw = load_med_search_hotels(hotel_ids=tracked_ids, limit=50_000)
+        raw = pd.DataFrame()  # Empty — will be populated by cache_aggregator nightly
 
         if not raw.empty:
             # Map MED_SearchHotels columns to unified schema
