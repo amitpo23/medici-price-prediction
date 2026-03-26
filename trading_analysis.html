@@ -638,7 +638,8 @@
         // ============================================================================
         async function fetchData() {
             try {
-                const response = await fetch('/api/v1/salesoffice/options?limit=500&all=true');
+                // Use profile=lite to skip heavy chart data — loads 10x faster
+                const response = await fetch('/api/v1/salesoffice/options?all=true&profile=lite&include_chart=false');
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
@@ -647,6 +648,19 @@
             } catch (error) {
                 showError(`Failed to fetch data: ${error.message}. Please check that the API server is running.`);
                 return [];
+            }
+        }
+
+        async function fetchRoomForwardCurve(detailId) {
+            try {
+                const response = await fetch(`/api/v1/salesoffice/forward-curve/${detailId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                showError(`Failed to fetch forward curve for room ${detailId}: ${error.message}`);
+                return null;
             }
         }
 
@@ -882,12 +896,32 @@
         // ============================================================================
         // CHART RENDERING
         // ============================================================================
-        function selectRoom(room) {
+        async function selectRoom(room) {
             state.selectedRoom = room;
             renderRoomTable();
-            renderForwardCurveChart(room);
+
+            // Show chart section with loading state
             document.getElementById('chartSection').classList.remove('hidden');
+            document.getElementById('chartContent').innerHTML = '<div class="loading-container"><div class="loader"></div><p style="color:#a0a0c0;margin-top:10px;">Loading forward curve...</p></div>';
             window.scrollTo(0, document.getElementById('chartSection').offsetTop - 100);
+
+            // Lazy-load chart data for this specific room
+            const fcData = await fetchRoomForwardCurve(room.detail_id);
+            if (fcData) {
+                // Build chart labels/series from forward_curve array
+                const fc = fcData.forward_curve || [];
+                const labels = fc.map((p, i) => p.date || `T+${i+1}`);
+                const predicted = fc.map(p => p.predicted_price || p.price || 0);
+                const upper = fc.map(p => p.upper_bound || p.predicted_price || 0);
+                const lower = fc.map(p => p.lower_bound || p.predicted_price || 0);
+
+                // Merge FC data into room object for chart rendering
+                room._fcData = { labels, predicted, upper, lower, raw: fcData };
+                document.getElementById('chartContent').innerHTML = '<div class="chart-container"><canvas id="forwardCurveChart"></canvas></div><div id="recommendationContent"></div>';
+                renderForwardCurveChart(room);
+            } else {
+                document.getElementById('chartContent').innerHTML = '<p class="no-data">Could not load forward curve data for this room.</p>';
+            }
         }
 
         function renderForwardCurveChart(room) {
@@ -897,18 +931,39 @@
                 state.charts.forwardCurve.destroy();
             }
 
-            const labels = room.chart?.labels || [];
-            const predicted = room.chart?.series?.predicted_price || [];
-            const upper = room.chart?.series?.upper_bound || [];
-            const lower = room.chart?.series?.lower_bound || [];
+            // Use lazy-loaded FC data, or fall back to embedded chart data
+            const fcD = room._fcData;
+            const labels = fcD?.labels || room.chart?.labels || [];
+            const predicted = fcD?.predicted || room.chart?.series?.predicted_price || [];
+            const upper = fcD?.upper || room.chart?.series?.upper_bound || [];
+            const lower = fcD?.lower || room.chart?.series?.lower_bound || [];
             const currentPrice = room.current_price;
-            const tMinDate = room.t_min_price_date;
-            const tMaxDate = room.t_max_price_date;
 
-            const currentIndex = 0;
-            const minIndex = tMinDate ? labels.indexOf(tMinDate) : -1;
-            const maxIndex = tMaxDate ? labels.indexOf(tMaxDate) : -1;
+            // Find entry/exit points
+            const minPrice = Math.min(...predicted.filter(p => p > 0));
+            const maxPrice = Math.max(...predicted.filter(p => p > 0));
+            const minIdx = predicted.indexOf(minPrice);
+            const maxIdx = predicted.indexOf(maxPrice);
 
+            // Build point markers for entry/exit
+            const pointRadii = predicted.map((_, i) => (i === minIdx || i === maxIdx || i === 0) ? 8 : 0);
+            const pointColors = predicted.map((_, i) => {
+                if (i === 0) return '#ffa502';       // Current price (orange)
+                if (i === minIdx) return '#ff4757';   // Low point (red)
+                if (i === maxIdx) return '#00d4aa';   // High point (green)
+                return 'transparent';
+            });
+            const pointStyles = predicted.map((_, i) => {
+                if (i === 0) return 'circle';
+                if (i === minIdx) return 'triangle';
+                if (i === maxIdx) return 'triangle';
+                return 'circle';
+            });
+
+            // Current price reference line (horizontal)
+            const currentPriceLine = new Array(labels.length).fill(currentPrice);
+
+            // Confidence band fill (between upper and lower)
             state.charts.forwardCurve = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -922,28 +977,43 @@
                             borderWidth: 3,
                             fill: false,
                             tension: 0.4,
-                            pointRadius: 0,
-                            pointHoverRadius: 6
+                            pointRadius: pointRadii,
+                            pointBackgroundColor: pointColors,
+                            pointBorderColor: pointColors,
+                            pointHoverRadius: 8,
+                            pointStyle: pointStyles
                         },
                         {
                             label: 'Upper Bound',
                             data: upper,
-                            borderColor: '#00d4aa',
+                            borderColor: 'rgba(0, 212, 170, 0.4)',
+                            backgroundColor: 'rgba(0, 212, 170, 0.05)',
                             borderWidth: 1,
                             borderDash: [5, 5],
-                            fill: false,
+                            fill: '+1',
                             pointRadius: 0,
                             tension: 0.4
                         },
                         {
                             label: 'Lower Bound',
                             data: lower,
-                            borderColor: '#ff4757',
+                            borderColor: 'rgba(255, 71, 87, 0.4)',
+                            backgroundColor: 'rgba(255, 71, 87, 0.05)',
                             borderWidth: 1,
                             borderDash: [5, 5],
                             fill: false,
                             pointRadius: 0,
                             tension: 0.4
+                        },
+                        {
+                            label: `Current Price ($${currentPrice?.toFixed(0)})`,
+                            data: currentPriceLine,
+                            borderColor: '#ffa502',
+                            borderWidth: 2,
+                            borderDash: [10, 5],
+                            fill: false,
+                            pointRadius: 0,
+                            tension: 0
                         }
                     ]
                 },
@@ -957,22 +1027,33 @@
                             position: 'top'
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(10, 10, 26, 0.9)',
+                            backgroundColor: 'rgba(10, 10, 26, 0.95)',
                             titleColor: '#00d4aa',
                             bodyColor: '#e0e0e0',
                             borderColor: '#2a2a4e',
-                            borderWidth: 1
-                        }
+                            borderWidth: 1,
+                            callbacks: {
+                                afterLabel: function(ctx) {
+                                    const i = ctx.dataIndex;
+                                    if (ctx.datasetIndex !== 0) return '';
+                                    if (i === 0) return '● Entry Point (Current)';
+                                    if (i === minIdx) return '▼ Lowest Expected Price';
+                                    if (i === maxIdx) return '▲ Highest Expected Price';
+                                    return '';
+                                }
+                            }
+                        },
+                        annotation: undefined
                     },
                     scales: {
                         y: {
-                            ticks: { color: '#a0a0c0' },
-                            grid: { color: 'rgba(42, 42, 78, 0.2)' },
+                            ticks: { color: '#a0a0c0', callback: v => '$' + v.toFixed(0) },
+                            grid: { color: 'rgba(42, 42, 78, 0.3)' },
                             title: { display: true, text: 'Price ($)', color: '#a0a0c0' }
                         },
                         x: {
-                            ticks: { color: '#a0a0c0' },
-                            grid: { color: 'rgba(42, 42, 78, 0.2)' },
+                            ticks: { color: '#a0a0c0', maxRotation: 45 },
+                            grid: { color: 'rgba(42, 42, 78, 0.15)' },
                             title: { display: true, text: 'Date', color: '#a0a0c0' }
                         }
                     }
@@ -987,35 +1068,52 @@
             const currentPrice = room.current_price?.toFixed(2);
             const targetPrice = room.predicted_checkin_price?.toFixed(2);
             const change = room.expected_change_pct?.toFixed(2);
-            const targetDate = room.t_max_price_date || room.chart?.labels?.[room.chart.labels.length - 1] || 'N/A';
             const t = room.t_horizon_days || 0;
+            const quality = ((room.quality?.score || 0) * 100).toFixed(0);
+
+            // Extract entry/exit info from FC data
+            const fcD = room._fcData;
+            const predicted = fcD?.predicted || [];
+            const labels = fcD?.labels || [];
+            const minPrice = predicted.length ? Math.min(...predicted.filter(p => p > 0)) : 0;
+            const maxPrice = predicted.length ? Math.max(...predicted.filter(p => p > 0)) : 0;
+            const minIdx = predicted.indexOf(minPrice);
+            const maxIdx = predicted.indexOf(maxPrice);
+            const minDate = labels[minIdx] || 'N/A';
+            const maxDate = labels[maxIdx] || 'N/A';
+            const endDate = labels[labels.length - 1] || 'N/A';
 
             let html = '';
             if (signal === 'CALL') {
                 html = `
                     <div class="recommendation-box call">
-                        <strong>✓ BUY RECOMMENDATION</strong><br>
-                        Entry: $${currentPrice} | Target: $${targetPrice}<br>
-                        Expected: <span style="color: #00d4aa;">+${change}%</span> by ${targetDate}<br>
-                        Time Horizon: ${t} days | Quality: ${((room.quality?.score || 0) * 100).toFixed(0)}%
+                        <strong>✓ BUY RECOMMENDATION — ${room.hotel_name} #${room.detail_id}</strong><br>
+                        <span style="color:#ffa502;">● Entry Now:</span> $${currentPrice} &nbsp;|&nbsp;
+                        <span style="color:#00d4aa;">▲ Peak:</span> $${maxPrice.toFixed(2)} on ${maxDate}<br>
+                        Expected: <span style="color: #00d4aa;">+${change}%</span> over ${t} days &nbsp;|&nbsp;
+                        <span style="color:#ff4757;">▼ Floor:</span> $${minPrice.toFixed(2)} on ${minDate}<br>
+                        Quality: ${quality}% &nbsp;|&nbsp; Forward Curve ends: ${endDate}
                     </div>
                 `;
             } else if (signal === 'PUT') {
                 html = `
                     <div class="recommendation-box put">
-                        <strong>✗ SELL RECOMMENDATION</strong><br>
-                        Current: $${currentPrice} | Expected Low: $${targetPrice}<br>
-                        Expected: <span style="color: #ff4757;">${change}%</span> by ${targetDate}<br>
-                        Time Horizon: ${t} days | Quality: ${((room.quality?.score || 0) * 100).toFixed(0)}%
+                        <strong>✗ SELL RECOMMENDATION — ${room.hotel_name} #${room.detail_id}</strong><br>
+                        <span style="color:#ffa502;">● Current:</span> $${currentPrice} &nbsp;|&nbsp;
+                        <span style="color:#ff4757;">▼ Expected Low:</span> $${minPrice.toFixed(2)} on ${minDate}<br>
+                        Expected: <span style="color: #ff4757;">${change}%</span> over ${t} days &nbsp;|&nbsp;
+                        <span style="color:#00d4aa;">▲ Ceiling:</span> $${maxPrice.toFixed(2)} on ${maxDate}<br>
+                        Quality: ${quality}% &nbsp;|&nbsp; Forward Curve ends: ${endDate}
                     </div>
                 `;
             } else {
                 html = `
                     <div class="recommendation-box" style="border-left-color: #ffa502;">
-                        <strong>◆ HOLD/WATCH</strong><br>
-                        Current: $${currentPrice} | Expected: $${targetPrice}<br>
-                        Expected: <span style="color: #ffa502;">${change}%</span> by ${targetDate}<br>
-                        Time Horizon: ${t} days | Quality: ${((room.quality?.score || 0) * 100).toFixed(0)}%
+                        <strong>◆ HOLD/WATCH — ${room.hotel_name} #${room.detail_id}</strong><br>
+                        <span style="color:#ffa502;">● Current:</span> $${currentPrice} &nbsp;|&nbsp;
+                        Range: $${minPrice.toFixed(2)} – $${maxPrice.toFixed(2)}<br>
+                        Expected: <span style="color: #ffa502;">${change}%</span> over ${t} days &nbsp;|&nbsp;
+                        Quality: ${quality}%
                     </div>
                 `;
             }
