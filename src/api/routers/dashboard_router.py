@@ -423,6 +423,7 @@ async def dashboard_streaming_alerts():
     return HTMLResponse(content=generate_streaming_alerts_html())
 
 
+@dashboard_router.get("/dashboard/audit-trail", response_class=HTMLResponse)
 @dashboard_router.get("/dashboard/audit", response_class=HTMLResponse)
 async def dashboard_audit_trail():
     """Audit Trail Viewer — event log with filters and expandable payloads."""

@@ -108,3 +108,18 @@ class TestUnifiedTerminalPage:
     def test_command_center_link(self):
         html = generate_unified_terminal_html()
         assert "command-center" in html
+
+    def test_scan_history_columns(self):
+        html = generate_unified_terminal_html()
+        assert 'data-sort="scans"' in html
+        assert 'data-sort="drops"' in html
+        assert 'data-sort="rises"' in html
+        assert 'data-sort="chg"' in html
+        assert 'data-sort="trend"' in html
+
+    def test_scan_history_rendering(self):
+        html = generate_unified_terminal_html()
+        assert "scan_history" in html
+        assert "scan_snapshots" in html
+        assert "scan_actual_drops" in html
+        assert "scan_trend" in html

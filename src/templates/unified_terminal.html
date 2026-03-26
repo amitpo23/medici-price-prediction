@@ -133,9 +133,14 @@ tr.selected{background:rgba(66,165,245,0.15)}
             <th data-sort="price">$</th>
             <th data-sort="signal">Sig</th>
             <th data-sort="conf">Conf</th>
+            <th data-sort="scans">Scans</th>
+            <th data-sort="drops">↓</th>
+            <th data-sort="rises">↑</th>
+            <th data-sort="chg">Δ%</th>
+            <th data-sort="trend">Trend</th>
             <th>BT</th>
           </tr></thead>
-          <tbody id="sig-tbody"><tr><td colspan="6" class="loading">Loading signals...</td></tr></tbody>
+          <tbody id="sig-tbody"><tr><td colspan="11" class="loading">Loading signals...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -195,11 +200,15 @@ async function loadHeader(){
 // ── Signal Table ──
 function renderSignalTable(){
   const tbody=$('sig-tbody');
-  if(!signalRows.length){tbody.innerHTML='<tr><td colspan="6" class="loading">No data</td></tr>';return}
+  if(!signalRows.length){tbody.innerHTML='<tr><td colspan="11" class="loading">No data</td></tr>';return}
   let sorted=[...signalRows];
-  const key={hotel:'hotel_name',T:'days_to_checkin',price:'current_price',signal:'option_signal',conf:'expected_change_pct'}[sortCol]||'expected_change_pct';
+  const keyMap={hotel:'hotel_name',T:'days_to_checkin',price:'current_price',signal:'option_signal',conf:'expected_change_pct',
+    scans:'_scans',drops:'_drops',rises:'_rises',chg:'_chg',trend:'_trend'};
+  const key=keyMap[sortCol]||'expected_change_pct';
   sorted.sort((a,b)=>{
-    let va=a[key]||0,vb=b[key]||0;
+    let va,vb;
+    if(key.startsWith('_')){const sh=k=>k.scan_history||{};va=sh(a)[key.slice(1)]||0;vb=sh(b)[key.slice(1)]||0;}
+    else{va=a[key]||0;vb=b[key]||0;}
     if(typeof va==='string')return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
     return sortAsc?va-vb:vb-va;
   });
@@ -212,7 +221,16 @@ function renderSignalTable(){
     const t=r.days_to_checkin||r.t_horizon_days||0;
     const p=r.current_price||0;
     const conf=Math.abs(r.expected_change_pct||0);
-    return `<tr><td>${h}</td><td>${t}</td><td>${fmt$(p)}</td><td><span class="sig ${cls}">${sig}</span></td><td>${conf.toFixed(1)}%</td><td id="bt-${r.hotel_id}"></td></tr>`;
+    const sh=r.scan_history||{};
+    const scans=sh.scan_snapshots||0;
+    const drops=sh.scan_actual_drops||0;
+    const rises=sh.scan_actual_rises||0;
+    const chg=sh.scan_price_change_pct;
+    const trend=sh.scan_trend||'';
+    const chgCls=chg!=null?(chg<0?'put':'call'):'';
+    const trendIcon=trend==='down'?'↓':trend==='up'?'↑':'→';
+    const trendCls=trend==='down'?'put':trend==='up'?'call':'neutral';
+    return `<tr><td>${h}</td><td>${t}</td><td>${fmt$(p)}</td><td><span class="sig ${cls}">${sig}</span></td><td>${conf.toFixed(1)}%</td><td>${scans}</td><td style="color:var(--put)">${drops||''}</td><td style="color:var(--call)">${rises||''}</td><td style="color:var(--${chgCls})">${chg!=null?chg.toFixed(1)+'%':'—'}</td><td style="color:var(--${trendCls})">${trendIcon}</td><td id="bt-${r.hotel_id}"></td></tr>`;
   }).join('');
 }
 

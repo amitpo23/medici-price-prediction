@@ -4369,7 +4369,7 @@ def correlation_matrix(
     _key=Depends(_optional_api_key),
 ):
     """Cross-hotel price correlation matrix from forward curve data."""
-    analysis = _get_latest_analysis()
+    analysis = _get_cached_analysis()
     if analysis is None:
         raise HTTPException(503, "Analysis cache not ready")
     from src.analytics.correlation import compute_correlation_matrix
@@ -4386,7 +4386,7 @@ def meta_learner_report(
     _key=Depends(_optional_api_key),
 ):
     """Meta-learner report — adaptive weights, consensus scoring, recommendations."""
-    analysis = _get_latest_analysis()
+    analysis = _get_cached_analysis()
     if analysis is None:
         raise HTTPException(503, "Analysis cache not ready")
     from src.analytics.meta_learner import compute_meta_learner_report
@@ -4400,7 +4400,7 @@ def consensus_scores(
     _key=Depends(_optional_api_key),
 ):
     """Consensus scores — how many sub-signals agree per room."""
-    analysis = _get_latest_analysis()
+    analysis = _get_cached_analysis()
     if analysis is None:
         raise HTTPException(503, "Analysis cache not ready")
     from src.analytics.meta_learner import compute_consensus
@@ -4449,7 +4449,7 @@ def generate_streaming_alerts(
     _key=Depends(_optional_api_key),
 ):
     """Generate alerts from current analysis (triggered manually or by scheduler)."""
-    analysis = _get_latest_analysis()
+    analysis = _get_cached_analysis()
     if analysis is None:
         raise HTTPException(503, "Analysis cache not ready")
     from src.analytics.streaming_alerts import generate_alerts
