@@ -249,7 +249,7 @@ def load_historical_prices() -> pd.DataFrame:
         from src.data.trading_db import load_med_search_hotels
 
         tracked_ids = list(HOTEL_SEGMENTS.keys())
-        raw = load_med_search_hotels(hotel_ids=tracked_ids, limit=500_000)
+        raw = load_med_search_hotels(hotel_ids=tracked_ids, limit=50_000)
 
         if not raw.empty:
             # Map MED_SearchHotels columns to unified schema
