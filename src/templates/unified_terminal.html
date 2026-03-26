@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unified Trading Terminal — Medici</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#1a1a2e;--surface:#16213e;--panel:#0f3460;
+  --border:#1f4068;--text:#eee;--muted:#8899aa;
+  --call:#00c853;--put:#ff1744;--neutral:#757575;
+  --warn:#ffa726;--crit:#ff1744;--info:#42a5f5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px}
+a{color:#42a5f5;text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Header */
+.hdr{display:flex;align-items:center;gap:16px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.hdr h1{font-size:16px;font-weight:700;white-space:nowrap}
+.hdr .stat{text-align:center}
+.hdr .stat .val{font-size:18px;font-weight:700;font-family:monospace}
+.hdr .stat .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.hdr .val.call{color:var(--call)}.hdr .val.put{color:var(--put)}.hdr .val.neutral{color:var(--neutral)}
+.hdr .ts{margin-left:auto;font-size:11px;color:var(--muted);font-family:monospace}
+.hdr .home{color:var(--muted);font-size:12px}
+
+/* 3-column grid */
+.grid{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:10px;padding:10px 16px;height:calc(100vh - 56px);overflow:hidden}
+@media(max-width:1024px){.grid{grid-template-columns:1fr;height:auto;overflow:auto}}
+.col{display:flex;flex-direction:column;gap:8px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+/* Panels */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;flex-shrink:0}
+.panel-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px}
+
+/* Signal badges */
+.sig{display:inline-block;padding:2px 8px;border-radius:3px;font-weight:700;font-size:11px;letter-spacing:.5px}
+.sig.call{background:var(--call);color:#000}.sig.put{background:var(--put);color:#fff}.sig.neutral{background:var(--neutral);color:#fff}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid var(--border);cursor:pointer}
+td{padding:4px 6px;border-bottom:1px solid rgba(255,255,255,0.04)}
+tr:hover{background:rgba(255,255,255,0.03)}
+tr.selected{background:rgba(66,165,245,0.15)}
+
+/* Scrollable table body */
+.tbl-wrap{max-height:400px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+/* Metric card */
+.metric{display:flex;justify-content:space-between;padding:4px 0;font-size:12px}
+.metric .lbl{color:var(--muted)}.metric .val{font-family:monospace;font-weight:600}
+.metric .val.up{color:var(--call)}.metric .val.down{color:var(--put)}
+
+/* Alert feed */
+.alert-item{padding:5px 8px;margin-bottom:4px;border-radius:4px;font-size:11px;border-left:3px solid}
+.alert-item.critical{background:rgba(255,23,68,0.12);border-color:var(--crit)}
+.alert-item.warning{background:rgba(255,167,38,0.12);border-color:var(--warn)}
+.alert-item.info{background:rgba(66,165,245,0.08);border-color:var(--info)}
+.alert-item .alert-time{color:var(--muted);font-size:10px;font-family:monospace}
+.alert-item .alert-msg{margin-top:2px}
+
+/* Audit row */
+.audit-row{padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px}
+.audit-row .audit-type{font-weight:600;color:var(--info);font-size:10px;text-transform:uppercase}
+.audit-row .audit-ts{color:var(--muted);font-size:10px;font-family:monospace;float:right}
+
+/* Correlation heatmap */
+#corr-canvas{width:100%;height:200px}
+
+/* Gauge */
+.gauge-wrap{text-align:center;padding:10px 0}
+.gauge-val{font-size:28px;font-weight:700;font-family:monospace}
+.gauge-label{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Backtest badge */
+.bt-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700}
+.bt-badge.good{background:rgba(0,200,83,0.2);color:var(--call)}
+.bt-badge.ok{background:rgba(255,167,38,0.2);color:var(--warn)}
+.bt-badge.bad{background:rgba(255,23,68,0.2);color:var(--put)}
+
+/* Loading */
+.loading{color:var(--muted);font-size:11px;padding:8px;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <h1>Unified Terminal</h1>
+  <div class="stat"><div class="val" id="h-rooms">-</div><div class="lbl">Rooms</div></div>
+  <div class="stat"><div class="val call" id="h-call">-</div><div class="lbl">Call</div></div>
+  <div class="stat"><div class="val put" id="h-put">-</div><div class="lbl">Put</div></div>
+  <div class="stat"><div class="val neutral" id="h-neutral">-</div><div class="lbl">Neutral</div></div>
+  <div class="stat"><div class="val" id="h-pnl">-</div><div class="lbl">PnL</div></div>
+  <div class="stat"><div class="val" id="h-hotels">-</div><div class="lbl">Hotels</div></div>
+  <div class="ts" id="h-ts"></div>
+  <a class="home" href="/api/v1/salesoffice/dashboard/command-center">&larr; Command Center</a>
+</div>
+
+<!-- 3-COLUMN GRID -->
+<div class="grid">
+
+  <!-- LEFT: Market Overview -->
+  <div class="col">
+    <div class="panel">
+      <div class="panel-title">Portfolio Summary</div>
+      <div id="portfolio-body"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Cross-Hotel Correlation</div>
+      <canvas id="corr-canvas"></canvas>
+      <div id="corr-note" class="loading"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Meta-Learner Consensus</div>
+      <div id="meta-body"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- CENTER: Active Signals -->
+  <div class="col">
+    <div class="panel" style="flex:1;display:flex;flex-direction:column">
+      <div class="panel-title">Active Signals <span id="sig-count" style="float:right;color:var(--text)"></span></div>
+      <div class="tbl-wrap" style="flex:1">
+        <table>
+          <thead><tr>
+            <th data-sort="hotel">Hotel</th>
+            <th data-sort="T">T</th>
+            <th data-sort="price">$</th>
+            <th data-sort="signal">Sig</th>
+            <th data-sort="conf">Conf</th>
+            <th>BT</th>
+          </tr></thead>
+          <tbody id="sig-tbody"><tr><td colspan="6" class="loading">Loading signals...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Signal Attribution (Enrichments)</div>
+      <canvas id="attr-canvas" height="100"></canvas>
+      <div id="attr-note" class="loading"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Monitoring -->
+  <div class="col">
+    <div class="panel" style="flex:1">
+      <div class="panel-title">Streaming Alerts <span id="alert-count" style="float:right;color:var(--text)"></span></div>
+      <div id="alerts-body" style="max-height:250px;overflow-y:auto"><div class="loading">Loading alerts...</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Audit Trail (Recent)</div>
+      <div id="audit-body" style="max-height:200px;overflow-y:auto"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Execution Quality</div>
+      <div id="exec-body"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BASE='/api/v1/salesoffice';
+function api(path){return fetch(BASE+path).then(r=>r.ok?r.json():null).catch(()=>null)}
+function $(id){return document.getElementById(id)}
+function fmt$(v){return v!=null?'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0}):'—'}
+function fmtPct(v){return v!=null?(v>=0?'+':'')+Number(v).toFixed(1)+'%':'—'}
+
+let sortCol='conf',sortAsc=false,signalRows=[];
+
+// ── Header + Options ──
+async function loadHeader(){
+  const d=await api('/options?limit=5000&all=true&profile=lite');
+  if(!d||!d.rows)return;
+  const rows=d.rows;
+  const calls=rows.filter(r=>r.option_signal==='CALL').length;
+  const puts=rows.filter(r=>r.option_signal==='PUT').length;
+  const neutrals=rows.length-calls-puts;
+  const hotels=new Set(rows.map(r=>r.hotel_id)).size;
+  $('h-rooms').textContent=rows.length;
+  $('h-call').textContent=calls;
+  $('h-put').textContent=puts;
+  $('h-neutral').textContent=neutrals;
+  $('h-hotels').textContent=hotels;
+  $('h-ts').textContent=new Date().toLocaleTimeString();
+  signalRows=rows;
+  renderSignalTable();
+}
+
+// ── Signal Table ──
+function renderSignalTable(){
+  const tbody=$('sig-tbody');
+  if(!signalRows.length){tbody.innerHTML='<tr><td colspan="6" class="loading">No data</td></tr>';return}
+  let sorted=[...signalRows];
+  const key={hotel:'hotel_name',T:'days_to_checkin',price:'current_price',signal:'option_signal',conf:'expected_change_pct'}[sortCol]||'expected_change_pct';
+  sorted.sort((a,b)=>{
+    let va=a[key]||0,vb=b[key]||0;
+    if(typeof va==='string')return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
+    return sortAsc?va-vb:vb-va;
+  });
+  const top=sorted.slice(0,200);
+  $('sig-count').textContent=signalRows.length+' rooms';
+  tbody.innerHTML=top.map(r=>{
+    const sig=(r.option_signal||'NEUTRAL').toUpperCase();
+    const cls=sig.toLowerCase();
+    const h=(r.hotel_name||'').substring(0,20);
+    const t=r.days_to_checkin||r.t_horizon_days||0;
+    const p=r.current_price||0;
+    const conf=Math.abs(r.expected_change_pct||0);
+    return `<tr><td>${h}</td><td>${t}</td><td>${fmt$(p)}</td><td><span class="sig ${cls}">${sig}</span></td><td>${conf.toFixed(1)}%</td><td id="bt-${r.hotel_id}"></td></tr>`;
+  }).join('');
+}
+
+// Sort handlers
+document.querySelectorAll('th[data-sort]').forEach(th=>{
+  th.addEventListener('click',()=>{
+    const col=th.dataset.sort;
+    if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false}
+    renderSignalTable();
+  });
+});
+
+// ── Portfolio / PnL ──
+async function loadPortfolio(){
+  const d=await api('/positions/pnl');
+  const el=$('portfolio-body');
+  if(!d){el.innerHTML='<div class="metric"><span class="lbl">Portfolio</span><span class="val">No data</span></div>';return}
+  const positions=d.positions||[];
+  const total_pnl=positions.reduce((s,p)=>s+(p.unrealized_pnl||0),0);
+  const open=positions.filter(p=>p.status==='open').length;
+  const pnlCls=total_pnl>=0?'up':'down';
+  $('h-pnl').textContent=(total_pnl>=0?'+':'')+fmt$(total_pnl);
+  $('h-pnl').className='val '+(total_pnl>=0?'call':'put');
+  el.innerHTML=`
+    <div class="metric"><span class="lbl">Open Positions</span><span class="val">${open}</span></div>
+    <div class="metric"><span class="lbl">Total PnL</span><span class="val ${pnlCls}">${fmt$(total_pnl)}</span></div>
+    <div class="metric"><span class="lbl">Total Positions</span><span class="val">${positions.length}</span></div>
+  `;
+}
+
+// ── Correlation Heatmap ──
+let corrChart=null;
+async function loadCorrelation(){
+  const d=await api('/correlation');
+  if(!d||!d.matrix){$('corr-note').textContent='No correlation data';return}
+  const labels=d.hotels||d.hotel_names||Object.keys(d.matrix);
+  const matrix=d.matrix;
+  const data=[];
+  labels.forEach((h1,i)=>{
+    const row=matrix[h1]||matrix[i]||{};
+    labels.forEach((h2,j)=>{
+      data.push({x:j,y:i,v:row[h2]||row[j]||0});
+    });
+  });
+  if(corrChart)corrChart.destroy();
+  $('corr-note').textContent=labels.length+' hotels';
+  // Simple colored table since Chart.js doesn't have native heatmap
+  const canvas=$('corr-canvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth;canvas.height=200;
+  const cellW=canvas.width/labels.length;
+  const cellH=canvas.height/labels.length;
+  data.forEach(d=>{
+    const v=d.v;
+    const r=v>0?0:Math.min(255,Math.abs(v)*500);
+    const g=v>0?Math.min(255,v*500):0;
+    ctx.fillStyle=`rgba(${r},${g},100,0.7)`;
+    ctx.fillRect(d.x*cellW,d.y*cellH,cellW-1,cellH-1);
+  });
+}
+
+// ── Meta-Learner ──
+async function loadMetaLearner(){
+  const d=await api('/meta-learner/consensus');
+  const el=$('meta-body');
+  if(!d){el.innerHTML='<div class="loading">No meta-learner data</div>';return}
+  const signal=d.consensus_signal||d.signal||'NEUTRAL';
+  const conf=(d.consensus_confidence||d.confidence||0)*100;
+  const cls=signal.toLowerCase();
+  el.innerHTML=`
+    <div class="gauge-wrap">
+      <div class="gauge-val" style="color:var(--${cls})">${signal}</div>
+      <div class="gauge-label">Confidence: ${conf.toFixed(0)}%</div>
+    </div>
+    <div class="metric"><span class="lbl">Adaptive Weights</span><span class="val">${d.weights_version||'v1'}</span></div>
+    <div class="metric"><span class="lbl">Sources Active</span><span class="val">${d.active_sources||'—'}</span></div>
+  `;
+}
+
+// ── Backtest Badges ──
+async function loadBacktest(){
+  const d=await api('/backtest');
+  if(!d||!d.hotel_results)return;
+  const results=d.hotel_results||{};
+  for(const[hid,r]of Object.entries(results)){
+    const els=document.querySelectorAll('#bt-'+hid);
+    if(!els.length)continue;
+    const wr=(r.win_rate||0)*100;
+    const cls=wr>=60?'good':wr>=45?'ok':'bad';
+    els.forEach(el=>{el.innerHTML=`<span class="bt-badge ${cls}">${wr.toFixed(0)}%</span>`});
+  }
+}
+
+// ── Attribution Chart ──
+let attrChart=null;
+async function loadAttribution(){
+  const d=await api('/attribution/enrichments');
+  if(!d||!d.enrichments){$('attr-note').textContent='No attribution data';return}
+  const enrichments=d.enrichments;
+  const labels=Object.keys(enrichments);
+  const values=Object.values(enrichments).map(v=>typeof v==='number'?v:(v.avg_impact||0));
+  const colors=labels.map(l=>{
+    if(l.includes('event'))return'#ef5350';if(l.includes('season'))return'#ffa726';
+    if(l.includes('demand'))return'#42a5f5';if(l.includes('momentum'))return'#ab47bc';
+    if(l.includes('weather'))return'#26c6da';if(l.includes('compet'))return'#66bb6a';
+    return'#78909c';
+  });
+  if(attrChart)attrChart.destroy();
+  attrChart=new Chart($('attr-canvas'),{
+    type:'bar',
+    data:{labels:labels.map(l=>l.replace(/_adj_pct|_adj/g,'').replace(/_/g,' ')),
+          datasets:[{data:values,backgroundColor:colors,borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8899aa',font:{size:10}}},
+              y:{grid:{display:false},ticks:{color:'#eee',font:{size:10}}}}}
+  });
+  $('attr-note').textContent='';
+}
+
+// ── Streaming Alerts ──
+async function loadAlerts(){
+  const d=await api('/streaming-alerts?limit=30');
+  const el=$('alerts-body');
+  if(!d||!d.alerts||!d.alerts.length){el.innerHTML='<div class="loading">No active alerts</div>';return}
+  $('alert-count').textContent=d.alerts.length;
+  el.innerHTML=d.alerts.map(a=>{
+    const sev=a.severity||'info';
+    const ts=a.timestamp?(new Date(a.timestamp)).toLocaleTimeString():'';
+    return `<div class="alert-item ${sev}"><span class="alert-time">${ts}</span> <b>${a.rule_id||a.type||''}</b><div class="alert-msg">${a.message||''}</div></div>`;
+  }).join('');
+}
+
+// ── Audit Trail ──
+async function loadAudit(){
+  const d=await api('/audit?limit=20');
+  const el=$('audit-body');
+  if(!d||!d.events||!d.events.length){el.innerHTML='<div class="loading">No audit events</div>';return}
+  el.innerHTML=d.events.map(e=>{
+    const ts=e.timestamp?(new Date(e.timestamp)).toLocaleTimeString():'';
+    return `<div class="audit-row"><span class="audit-type">${e.event_type||''}</span><span class="audit-ts">${ts}</span><div>${e.description||e.detail||''}</div></div>`;
+  }).join('');
+}
+
+// ── Execution Quality ──
+async function loadExecution(){
+  const d=await api('/execution/quality');
+  const el=$('exec-body');
+  if(!d){el.innerHTML='<div class="loading">No execution data</div>';return}
+  el.innerHTML=`
+    <div class="metric"><span class="lbl">Fill Rate</span><span class="val">${fmtPct(d.fill_rate_pct||d.fill_rate)}</span></div>
+    <div class="metric"><span class="lbl">Avg Slippage</span><span class="val ${(d.avg_slippage_pct||0)<0?'down':'up'}">${fmtPct(d.avg_slippage_pct||d.avg_slippage)}</span></div>
+    <div class="metric"><span class="lbl">Total Executions</span><span class="val">${d.total_executions||d.total||0}</span></div>
+    <div class="metric"><span class="lbl">Success Rate</span><span class="val">${fmtPct(d.success_rate_pct||d.success_rate)}</span></div>
+  `;
+}
+
+// ── Init + Auto-refresh ──
+async function loadAll(){
+  await loadHeader();
+  loadPortfolio();loadCorrelation();loadMetaLearner();
+  loadBacktest();loadAttribution();
+  loadAlerts();loadAudit();loadExecution();
+}
+loadAll();
+setInterval(loadAll,60000);
+// Alerts refresh faster
+setInterval(loadAlerts,30000);
+</script>
+</body>
+</html>

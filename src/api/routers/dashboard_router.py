@@ -428,3 +428,10 @@ async def dashboard_audit_trail():
     """Audit Trail Viewer — event log with filters and expandable payloads."""
     from src.analytics.audit_trail_page import generate_audit_trail_html
     return HTMLResponse(content=generate_audit_trail_html())
+
+
+@dashboard_router.get("/dashboard/unified-terminal", response_class=HTMLResponse)
+async def dashboard_unified_terminal():
+    """Unified Trading Terminal — mission control consolidating ALL analytics."""
+    from src.analytics.unified_terminal_page import generate_unified_terminal_html
+    return HTMLResponse(content=generate_unified_terminal_html())
