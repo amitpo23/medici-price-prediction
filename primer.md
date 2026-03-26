@@ -10,12 +10,20 @@
 - **Branch:** main (Phase 1-4 + TD-1 + TD-2 complete)
 - **Latest commit:** `de16f9d`
 
-### Session 2026-03-26 — Production Stabilization
+### Session 2026-03-26 — Production Stabilization + Innstant Onboarding
 - Fixed `/status` and `/home` 500 errors (SQLite path not writable on Azure)
 - Sprint TD-1: removed 3,503 lines dead legacy HTML from `_options_html_gen.py`
 - Sprint TD-2: enabled 76 collector tests (kaggle OSError fix)
 - Pushed Phase 4 Advanced Analytics to GitHub
 - Updated SKILL.md with Phase 1+2 documentation
+- **Innstant Hotel Onboarding Response** — Responding to Innstant letter about 30 hotels:
+  - Set pricing (Fixed $1000, Aug 1-10) for ALL room types × ALL rate plans on 13/28 hotels
+  - Checked each hotel's room types via Bulk Update (Select All rooms + Select All rate plans)
+  - Found Fontainebleau has 5 room types, most others have only Standard
+  - Rate plan variations: bb, Bed and Breakfast, bed and brekfast, ro, room only, Refundable
+  - 15 hotels remaining: Belleza, Chelsea, Croydon, Gaythering, InterContinental, Kimpton Anglers, Kimpton Palomar, Loews, Metropole, Miami Airport, Notebook, SERENA, Albion, Catalina, Gates, Landon, Villa Casa
+  - Availability NOT set (per user instruction)
+  - Innstant static sync still pending
 
 ### Phase 1 — Analytical Cache + Trading Layer (2026-03-25)
 

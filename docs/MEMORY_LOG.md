@@ -140,6 +140,36 @@ If you want, this file can be appended automatically after every major run (comp
 - Diagnostics: attempted=27, success2xx=0, failed4xx5xx=27, exceptions=0
 - Innstant validation: hotels=54, passed=3, failed=51
 
+## Run Snapshot — 2026-03-26T15:30:00Z — Innstant Hotel Onboarding Response
+- Snapshot-Key: noovy_bulk_pricing_28hotels|innstant_letter_response|all_rooms_all_rateplans
+- Context: Innstant sent letter listing 30 hotels — 19 connected, 11 not flowing from Noovy, 3 MP were closed (now opened by Innstant). They asked us to verify rooms and dates are properly inserted in Noovy.
+- Action taken: Bulk Update pricing via Noovy PMS for all 28 new hotels:
+  - Rate: Fixed $1000
+  - Date range: 01/08/26 – 10/08/26
+  - Rooms: Select All (every room type per hotel)
+  - Rate Plans: Select All (every rate plan per hotel — BB, RO, Refundable where applicable)
+- Hotels completed (13/28 at session pause):
+  1. Cavalier 5113 — Standard × (BB + Refundable)
+  2. citizenM 5119 — Standard × (BB + Refundable + RO)
+  3. Dorchester 5266 — Standard Room (Double/Twin) × (BB + Room Only)
+  4. DoubleTree 5082 — Standard × (BB + Refundable)
+  5. Fontainebleau 5268 — **5 room types** (Deluxe Bayview 2Q, Deluxe Bayview King, Oceanview 2Q, Oceanview King, Standard RO) × (BB + Room Only)
+  6. Gale Miami 5278 — Standard × (BB + RO)
+  7. Gale South Beach 5267 — Standard Room × (BB + RO)
+  8. Generator 5274 — Standard × (BB + Room Only)
+  9. Grand Beach 5124 — Standard × (BB + Refundable + RO)
+  10. Hilton Cabana 5115 — Standard × (BB + Refundable + RO)
+  11. Hilton Garden 5279 — Standard × (BB + Room Only)
+  12. Hilton Airport 5083 — Standard × (BB + Room Only)
+  13. Holiday Inn 5130 — Standard × (BB + Refundable + RO)
+- Hotels remaining (15): Belleza 5265, Chelsea 5064, Croydon 5131, Gaythering 5132, InterContinental 5276, Kimpton Anglers 5136, Kimpton Palomar 5116, Loews 5073, Metropole 5141, Miami Airport 5275, Notebook 5102, SERENA 5139, Albion 5117, Catalina 5277, Gates 5140, Landon 5138, Villa Casa 5075
+- Previous session (same day): Standard-only pricing was set for all 28 hotels (BB + RO separately). This session adds ALL room types and ALL rate plans.
+- Key finding: Fontainebleau has 5 room types (most of any hotel). Most hotels have only Standard.
+- Rate plan variations found: "bed and breakfast / bb", "Bed and Breakfast", "bed and brekfast" (typo), "room only / ro", "room only", "Refundable", "Standard_ro"
+- Availability: NOT set (user explicitly requested no availability changes)
+- Innstant static update: Pending — Innstant said they'll notify when complete
+- Next steps after completing all 28: Wait for Innstant static sync, then re-test SOAP for all 30 hotels
+
 ## Run Snapshot — 2026-03-22T00:00:00Z
 - Snapshot-Key: remediation_baseline_2.0.1|queue_request_models|override_history_window_fix
 - App version: 2.0.1
