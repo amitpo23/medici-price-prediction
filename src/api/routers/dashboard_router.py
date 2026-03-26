@@ -436,3 +436,13 @@ async def dashboard_unified_terminal():
     """Unified Trading Terminal — mission control consolidating ALL analytics."""
     from src.analytics.unified_terminal_page import generate_unified_terminal_html
     return HTMLResponse(content=generate_unified_terminal_html())
+
+
+@dashboard_router.get("/dashboard/trading-analysis", response_class=HTMLResponse)
+async def dashboard_trading_analysis():
+    """Interactive Trading Analysis — forward curve charts, CALL/PUT signals, entry/exit points."""
+    from pathlib import Path
+    html_path = Path(__file__).resolve().parent.parent.parent.parent / "trading_analysis.html"
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Trading Analysis dashboard not found</h1>", status_code=404)
