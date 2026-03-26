@@ -4494,3 +4494,204 @@ def audit_summary(
     from src.analytics.audit_trail import get_audit_summary
     summary = get_audit_summary(days_back=days_back)
     return JSONResponse(content=summary.to_dict())
+
+
+# ── Alert Bridge endpoints ───────────────────────────────────────────────
+
+
+@analytics_router.post("/streaming-alerts/dispatch")
+@limiter.limit(RATE_LIMIT_DATA)
+def dispatch_streaming_alerts(
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Generate streaming alerts and dispatch them through configured channels.
+
+    POST body: empty (uses current cached analysis)
+
+    Returns:
+        {
+            "total_alerts": int,
+            "dispatched": int,
+            "suppressed": int,
+            "by_type": dict,
+            "by_severity": dict,
+            "dispatch_results": dict,
+            "timestamp": str,
+            "error": str (optional)
+        }
+    """
+    try:
+        from src.analytics.alert_bridge import dispatch_streaming_alerts as dispatch_alerts
+
+        # Get current and previous analysis for flip detection
+        current = _get_cached_analysis()
+        if current is None:
+            # Optionally run analysis if not cached
+            current = _get_or_run_analysis()
+            if current is None:
+                raise HTTPException(503, "Analysis not available")
+
+        # Try to get previous analysis (best effort for flip detection)
+        previous = None
+        try:
+            cached_data = _cm.get("analysis", "current_predictions")
+            if cached_data and isinstance(cached_data, dict):
+                previous = cached_data
+        except Exception:
+            pass
+
+        # Dispatch alerts
+        result = dispatch_alerts(current, previous)
+        return JSONResponse(content=result)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Alert dispatch failed: %s", e, exc_info=True)
+        raise HTTPException(500, f"Alert dispatch error: {str(e)}")
+
+
+@analytics_router.get("/streaming-alerts/dispatch-log")
+@limiter.limit(RATE_LIMIT_DATA)
+def get_dispatch_log(
+    request: Request,
+    hours_back: int = Query(24, ge=1, le=720),
+    alert_type: str | None = None,
+    severity: str | None = None,
+    _key=Depends(_optional_api_key),
+):
+    """Query recent dispatched alerts from the alert_dispatcher log.
+
+    Query params:
+        hours_back: How far back to look (1-720, default 24)
+        alert_type: Filter by alert type (e.g., BAND_BREACH, SIGNAL_FLIP)
+        severity: Filter by severity (critical, warning, info)
+
+    Returns:
+        List of dispatch log entries.
+    """
+    try:
+        from src.analytics.alert_bridge import get_recent_dispatch_log
+
+        log = get_recent_dispatch_log(
+            hours_back=hours_back,
+            alert_type=alert_type,
+            severity=severity,
+        )
+        return JSONResponse(content=log)
+
+    except Exception as e:
+        logger.error("Failed to query dispatch log: %s", e, exc_info=True)
+        raise HTTPException(500, f"Dispatch log query error: {str(e)}")
+
+
+@analytics_router.get("/streaming-alerts/dispatch-stats")
+@limiter.limit(RATE_LIMIT_DATA)
+def get_dispatch_stats(
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Get alert dispatch statistics (volume, channels, top rules).
+
+    Returns:
+        {
+            "total_alerts": int,
+            "last_24h": int,
+            "top_rules": [{rule_id, count}],
+            "by_channel": {channel: count}
+        }
+    """
+    try:
+        from src.analytics.alert_bridge import get_dispatch_stats
+
+        stats = get_dispatch_stats()
+        return JSONResponse(content=stats)
+
+    except Exception as e:
+        logger.error("Failed to query dispatch stats: %s", e, exc_info=True)
+        raise HTTPException(500, f"Dispatch stats error: {str(e)}")
+
+
+# ── Backtest Engine endpoints ────────────────────────────────────────────
+
+
+@analytics_router.get("/backtest")
+@limiter.limit(RATE_LIMIT_DATA)
+def backtest_full(
+    request: Request,
+    days_back: int = Query(90, ge=7, le=730),
+    _key=Depends(_optional_api_key),
+):
+    """Run full backtest on historical signals with detailed trade list.
+
+    Query params:
+        days_back: Number of days to backtest (7-730, default 90)
+
+    Returns:
+        BacktestReport (large, includes all trades):
+        {
+            "period": str,
+            "total_trades": int,
+            "winning_trades": int,
+            "losing_trades": int,
+            "win_rate": float,
+            "total_pnl": float,
+            "avg_pnl_per_trade": float,
+            "sharpe_ratio": float,
+            "max_drawdown": float,
+            "avg_holding_days": float,
+            "by_signal": dict,
+            "by_hotel": dict,
+            "trades": [BacktestTrade]
+        }
+    """
+    try:
+        from src.analytics.backtest_engine import run_backtest
+
+        report = run_backtest(days_back=days_back)
+        return JSONResponse(content=report.to_dict())
+
+    except Exception as e:
+        logger.error("Backtest failed: %s", e, exc_info=True)
+        raise HTTPException(500, f"Backtest error: {str(e)}")
+
+
+@analytics_router.get("/backtest/summary")
+@limiter.limit(RATE_LIMIT_DATA)
+def backtest_summary(
+    request: Request,
+    days_back: int = Query(90, ge=7, le=730),
+    _key=Depends(_optional_api_key),
+):
+    """Run backtest and return summary (fast, no trade list).
+
+    Query params:
+        days_back: Number of days to backtest (7-730, default 90)
+
+    Returns:
+        Metrics only (no detailed trades):
+        {
+            "period": str,
+            "total_trades": int,
+            "winning_trades": int,
+            "losing_trades": int,
+            "win_rate": float,
+            "total_pnl": float,
+            "avg_pnl_per_trade": float,
+            "sharpe_ratio": float,
+            "max_drawdown": float,
+            "avg_holding_days": float,
+            "by_signal": dict,
+            "by_hotel": dict
+        }
+    """
+    try:
+        from src.analytics.backtest_engine import get_backtest_summary
+
+        summary = get_backtest_summary(days_back=days_back)
+        return JSONResponse(content=summary)
+
+    except Exception as e:
+        logger.error("Backtest summary failed: %s", e, exc_info=True)
+        raise HTTPException(500, f"Backtest summary error: {str(e)}")

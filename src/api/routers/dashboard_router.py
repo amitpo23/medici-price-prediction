@@ -407,3 +407,24 @@ async def dashboard_opportunity_queue():
     """Opportunity Queue — CALL signal buy opportunities."""
     from src.analytics.opportunity_queue_page import generate_opportunity_queue_html
     return HTMLResponse(content=generate_opportunity_queue_html())
+
+
+@dashboard_router.get("/dashboard/correlation", response_class=HTMLResponse)
+async def dashboard_correlation():
+    """Correlation Heat Map — inter-hotel price correlation visualization."""
+    from src.analytics.correlation_page import generate_correlation_html
+    return HTMLResponse(content=generate_correlation_html())
+
+
+@dashboard_router.get("/dashboard/streaming-alerts", response_class=HTMLResponse)
+async def dashboard_streaming_alerts():
+    """Streaming Alerts Panel — real-time alert monitoring with severity filtering."""
+    from src.analytics.streaming_alerts_page import generate_streaming_alerts_html
+    return HTMLResponse(content=generate_streaming_alerts_html())
+
+
+@dashboard_router.get("/dashboard/audit", response_class=HTMLResponse)
+async def dashboard_audit_trail():
+    """Audit Trail Viewer — event log with filters and expandable payloads."""
+    from src.analytics.audit_trail_page import generate_audit_trail_html
+    return HTMLResponse(content=generate_audit_trail_html())
