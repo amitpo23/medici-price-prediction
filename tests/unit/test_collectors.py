@@ -29,7 +29,7 @@ except ImportError:
 try:
     import kaggle
     HAS_KAGGLE = True
-except ImportError:
+except (ImportError, OSError):
     HAS_KAGGLE = False
 
 from src.collectors.base import BaseCollector
@@ -371,7 +371,8 @@ class TestMarketCollector:
     @patch.dict("os.environ", {"SERPAPI_KEY": "test_key"})
     def test_is_available_with_api_key(self):
         """Test is_available returns True with valid API key."""
-        with patch("config.settings.SERPAPI_KEY", "test_key"):
+        with patch("config.settings.SERPAPI_KEY", "test_key"), \
+             patch("src.collectors.market_collector.SERPAPI_KEY", "test_key"):
             with patch("serpapi.GoogleSearch") as mock_search_class:
                 mock_search = Mock()
                 mock_search.get_dict.return_value = {"properties": []}
