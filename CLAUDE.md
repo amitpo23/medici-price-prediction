@@ -126,12 +126,12 @@ Price Scan (every 3h) → SQLite storage → Build Forward Curve (Bayesian smoot
 - **Sprint 5.3**: Attribution Analysis (factor decomposition) — `src/analytics/attribution.py` ✅
 - **Sprint 5.4**: Execution Quality & Slippage — `src/analytics/execution_quality.py` ✅
 
-## Phase 4: Advanced Analytics (Planned)
+## Phase 4: Advanced Analytics (COMPLETE)
 
-- **Sprint 6.1**: Cross-Hotel Correlation Matrix — `src/analytics/correlation.py`
-- **Sprint 6.2**: Adaptive Signal Weighting (meta-learner) — `src/analytics/meta_learner.py`
-- **Sprint 6.3**: Real-Time Streaming Alerts — `src/analytics/streaming_alerts.py`
-- **Sprint 6.4**: Audit Trail & Compliance — `src/analytics/audit_trail.py`
+- **Sprint 6.1**: Cross-Hotel Correlation Matrix — `src/analytics/correlation.py` ✅
+- **Sprint 6.2**: Adaptive Signal Weighting (meta-learner) — `src/analytics/meta_learner.py` ✅
+- **Sprint 6.3**: Real-Time Streaming Alerts — `src/analytics/streaming_alerts.py` ✅
+- **Sprint 6.4**: Audit Trail & Compliance — `src/analytics/audit_trail.py` ✅
 
 **Full details:** See `docs/ROADMAP_V2.md` for complete definitions, API endpoints, and preserved CALL/PUT signal specifications.
 

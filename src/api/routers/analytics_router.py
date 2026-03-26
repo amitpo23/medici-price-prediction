@@ -4348,3 +4348,140 @@ def execution_slippage(
     from src.analytics.execution_quality import compute_slippage_analysis
     slippages = compute_slippage_analysis(top_n=top_n)
     return JSONResponse(content=[s.to_dict() for s in slippages])
+
+
+# ── Cross-Hotel Correlation endpoints ────────────────────────────────
+
+
+@analytics_router.get("/correlation")
+def correlation_matrix(
+    request: Request,
+    window_days: int = 30,
+    _key=Depends(_optional_api_key),
+):
+    """Cross-hotel price correlation matrix from forward curve data."""
+    analysis = _get_latest_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+    from src.analytics.correlation import compute_correlation_matrix
+    result = compute_correlation_matrix(analysis, window_days=window_days)
+    return JSONResponse(content=result.to_dict())
+
+
+# ── Meta-Learner / Consensus endpoints ───────────────────────────────
+
+
+@analytics_router.get("/meta-learner")
+def meta_learner_report(
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Meta-learner report — adaptive weights, consensus scoring, recommendations."""
+    analysis = _get_latest_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+    from src.analytics.meta_learner import compute_meta_learner_report
+    report = compute_meta_learner_report(analysis)
+    return JSONResponse(content=report.to_dict())
+
+
+@analytics_router.get("/meta-learner/consensus")
+def consensus_scores(
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Consensus scores — how many sub-signals agree per room."""
+    analysis = _get_latest_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+    from src.analytics.meta_learner import compute_consensus
+    scores = compute_consensus(analysis)
+    return JSONResponse(content=[s.to_dict() for s in scores])
+
+
+@analytics_router.get("/meta-learner/weights")
+def context_weights(
+    request: Request,
+    regime: str = "NORMAL",
+    t_value: int = 14,
+    season: str | None = None,
+    _key=Depends(_optional_api_key),
+):
+    """Get adjusted ensemble weights for a specific context."""
+    from src.analytics.meta_learner import get_weight_for_context
+    adjustment = get_weight_for_context(regime=regime, t_value=t_value, season=season)
+    return JSONResponse(content=adjustment.to_dict())
+
+
+# ── Streaming Alerts endpoints ───────────────────────────────────────
+
+
+@analytics_router.get("/streaming-alerts")
+def streaming_alerts(
+    request: Request,
+    hours_back: int = 24,
+    alert_type: str | None = None,
+    severity: str | None = None,
+    _key=Depends(_optional_api_key),
+):
+    """Recent streaming alerts — band breach, regime change, signal flip, etc."""
+    from src.analytics.streaming_alerts import get_recent_alerts
+    alerts = get_recent_alerts(
+        hours_back=hours_back,
+        alert_type=alert_type,
+        severity=severity,
+    )
+    return JSONResponse(content=[a.to_dict() for a in alerts])
+
+
+@analytics_router.get("/streaming-alerts/generate")
+def generate_streaming_alerts(
+    request: Request,
+    _key=Depends(_optional_api_key),
+):
+    """Generate alerts from current analysis (triggered manually or by scheduler)."""
+    analysis = _get_latest_analysis()
+    if analysis is None:
+        raise HTTPException(503, "Analysis cache not ready")
+    from src.analytics.streaming_alerts import generate_alerts
+    summary = generate_alerts(analysis)
+    return JSONResponse(content=summary.to_dict())
+
+
+# ── Audit Trail endpoints ────────────────────────────────────────────
+
+
+@analytics_router.get("/audit")
+def audit_events(
+    request: Request,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    hotel_id: int | None = None,
+    event_type: str | None = None,
+    detail_id: int | None = None,
+    limit: int = 100,
+    _key=Depends(_optional_api_key),
+):
+    """Query audit trail events with filters."""
+    from src.analytics.audit_trail import get_audit_events
+    events = get_audit_events(
+        from_date=from_date,
+        to_date=to_date,
+        hotel_id=hotel_id,
+        event_type=event_type,
+        detail_id=detail_id,
+        limit=limit,
+    )
+    return JSONResponse(content=[e.to_dict() for e in events])
+
+
+@analytics_router.get("/audit/summary")
+def audit_summary(
+    request: Request,
+    days_back: int = 7,
+    _key=Depends(_optional_api_key),
+):
+    """Audit trail summary — event counts by type and hotel."""
+    from src.analytics.audit_trail import get_audit_summary
+    summary = get_audit_summary(days_back=days_back)
+    return JSONResponse(content=summary.to_dict())
