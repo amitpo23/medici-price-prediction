@@ -175,7 +175,7 @@ let sortCol='conf',sortAsc=false,signalRows=[];
 
 // ── Header + Options ──
 async function loadHeader(){
-  const d=await api('/options?limit=5000&all=true&profile=lite');
+  const d=await api('/options?limit=500&profile=lite');
   if(!d||!d.rows)return;
   const rows=d.rows;
   const calls=rows.filter(r=>r.option_signal==='CALL').length;
