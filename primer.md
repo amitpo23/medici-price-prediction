@@ -1,13 +1,21 @@
 # Medici Price Prediction — Session Primer
 
-## Current State (2026-03-25)
+## Current State (2026-03-26)
 
 ### Production
-- **Azure B2**, Always On, 23 hotels, 4,050+ rooms
-- **Deploy zip:** 220 files
-- **Tests:** 1,167 passed + 7 skipped (all unit tests)
-- **Branch:** `phase-1-analytical-cache` → merged to main
-- **Rollback tag:** `pre-phase-1` on main
+- **Azure B2**, Always On, 22 hotels, ~4,000 rooms
+- **Deploy zip:** 623 files (2.5MB)
+- **Tests:** 1,387 passed + 2 skipped, 44.5% coverage
+- **All endpoints 200** — status, home, options, dashboard, trading, consensus, health
+- **Branch:** main (Phase 1-4 + TD-1 + TD-2 complete)
+- **Latest commit:** `de16f9d`
+
+### Session 2026-03-26 — Production Stabilization
+- Fixed `/status` and `/home` 500 errors (SQLite path not writable on Azure)
+- Sprint TD-1: removed 3,503 lines dead legacy HTML from `_options_html_gen.py`
+- Sprint TD-2: enabled 76 collector tests (kaggle OSError fix)
+- Pushed Phase 4 Advanced Analytics to GitHub
+- Updated SKILL.md with Phase 1+2 documentation
 
 ### Phase 1 — Analytical Cache + Trading Layer (2026-03-25)
 
