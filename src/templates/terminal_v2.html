@@ -321,7 +321,7 @@ async function init() {
 
 async function loadAll() {
   const [options, summary, alerts, overrides, opps, oRules, cRules] = await Promise.all([
-    fetchJSON(`${API}/options?limit=200&profile=full`),
+    fetchJSON(`${API}/options?limit=1000&profile=full`),
     fetchJSON(`${API}/macro/summary`).catch(() => null),
     fetchJSON(`${API}/streaming-alerts?limit=10`).catch(() => ({alerts:[]})),
     fetchJSON(`${API}/override/queue`).catch(() => ({pending:[]})),
@@ -350,16 +350,21 @@ async function fetchJSON(url) {
 }
 
 // ===== HEADER STATS =====
-function renderHeaderStats(summary) {
-  const s = summary;
-  const calls = s.total_calls || 0, puts = s.total_puts || 0, neut = s.total_neutral || 0;
-  const total = calls + puts + neut;
+function renderHeaderStats(data) {
+  // API returns {summary: {total_options, calls, puts, neutrals, ...}, heatmap: ...}
+  const s = data?.summary || data || {};
+  const calls = s.calls || s.total_calls || 0;
+  const puts = s.puts || s.total_puts || 0;
+  const neut = s.neutrals || s.total_neutral || 0;
+  const total = s.total_options || (calls + puts + neut);
+  const hotels = s.total_hotels || '';
   document.getElementById('header-stats').innerHTML =
     `<span class="up">CALL:${calls}</span><span class="sep">│</span>` +
     `<span class="down">PUT:${puts}</span><span class="sep">│</span>` +
     `<span class="flat">NEUT:${neut}</span><span class="sep">│</span>` +
-    `<span class="bright">${total} rooms</span>`;
-  if (s.last_scan) document.getElementById('last-scan').textContent = `Last: ${new Date(s.last_scan).toLocaleTimeString()}`;
+    `<span class="bright">${total} rooms</span>` +
+    (hotels ? `<span class="sep">│</span><span class="muted">${hotels} hotels</span>` : '');
+  document.getElementById('last-scan').textContent = `Last: ${new Date().toLocaleTimeString()}`;
 }
 
 // ===== FILTERS =====
@@ -548,7 +553,8 @@ function buildSparkline(sh, series) {
     return sampled.map(p => blocks[Math.min(7, Math.floor((p - min) / range * 7))]).join('');
   }
   // Fallback: approximate from scan_history metrics
-  if (!sh || !sh.scan_snapshots || sh.scan_snapshots < 2) return '—';
+  if (!sh || !sh.scan_snapshots) return '—';
+  if (sh.scan_snapshots === 1) return '▄';
   const blocks = '▁▂▃▄▅▆▇█';
   const first = sh.first_scan_price || 0, last = sh.latest_scan_price || 0;
   if (!first) return '—';
@@ -611,16 +617,17 @@ function updateActionButtons(row) {
 // ===== CHARTS =====
 async function loadCharts(detailId) {
   try {
-    const [fc, scan, path, consensus] = await Promise.all([
+    // Use embedded scan_price_series first; only call scan-history API if we don't have it
+    const row = S.options.find(r => r.detail_id === detailId);
+    const series = row?.scan_history?.scan_price_series;
+    const embeddedScan = series && series.length ? { price_history: series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null;
+
+    const [fc, path, consensus] = await Promise.all([
       fetchJSON(`${API}/forward-curve/${detailId}?raw=true`).catch(() => null),
-      fetchJSON(`${API}/scan-history/${detailId}`).catch(() => null),
       fetchJSON(`${API}/path-forecast/${detailId}`).catch(() => null),
       fetchJSON(`${API}/signal/consensus/${detailId}`).catch(() => null),
     ]);
-    // Fallback: use scan_price_series from options row if scan-history API failed
-    const row = S.options.find(r => r.detail_id === detailId);
-    const series = row?.scan_history?.scan_price_series;
-    const scanData = scan || (series && series.length ? { price_history: series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null);
+    const scanData = embeddedScan;
     renderPriceChart(fc, scanData, path);
     renderVelocityChart(scanData);
     renderVoterTimeline(consensus, fc);
@@ -958,7 +965,10 @@ function renderOppQueue(data) {
 // ===== SIDEBAR: RULES =====
 function renderRules(oRules, cRules) {
   const feed = document.getElementById('rules-feed');
-  const all = [...(oRules?.rules || []), ...(cRules?.rules || [])];
+  const combined = [...(oRules?.rules || []), ...(cRules?.rules || [])];
+  // Deduplicate by rule name
+  const seen = new Set();
+  const all = combined.filter(r => { const key = r.rule_name || r.name || r.id; if (seen.has(key)) return false; seen.add(key); return true; });
   feed.innerHTML = all.slice(0, 5).map(r => `
     <div style="padding:4px 0;border-bottom:1px solid #111827;">
       <div class="bright" style="font-size:10px;">${r.rule_name || r.name || 'Rule'}</div>
@@ -1025,7 +1035,7 @@ function startAutoRefresh() {
   S.refreshTimer = setInterval(async () => {
     try {
       const [options, summary] = await Promise.all([
-        fetchJSON(`${API}/options?limit=200&profile=full`),
+        fetchJSON(`${API}/options?limit=1000&profile=full`),
         fetchJSON(`${API}/macro/summary`).catch(() => null),
       ]);
       if (options?.rows) { S.options = options.rows; applyFilters(); }
