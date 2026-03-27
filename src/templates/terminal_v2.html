@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Medici Terminal</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
 <style>
 /* ===== RESET & BASE ===== */
@@ -365,8 +366,8 @@ function renderHeaderStats(summary) {
 function populateFilterDropdowns(options) {
   const hotels = [...new Set(options.map(o => o.hotel_name).filter(Boolean))].sort();
   const zones = [...new Set(options.map(o => o.zone).filter(Boolean))].sort();
-  const cats = [...new Set(options.map(o => o.room_category).filter(Boolean))].sort();
-  const boards = [...new Set(options.map(o => o.room_board).filter(Boolean))].sort();
+  const cats = [...new Set(options.map(o => o.category).filter(Boolean))].sort();
+  const boards = [...new Set(options.map(o => o.board).filter(Boolean))].sort();
   fillSelect('f-hotel', hotels, 'Hotel');
   fillSelect('f-zone', zones, 'Zone');
   fillSelect('f-cat', cats, 'Category');
@@ -399,12 +400,12 @@ function applyFilters() {
   if (sig !== 'all') rows = rows.filter(r => (r.option_signal || '').toUpperCase() === sig);
   if (hotel) rows = rows.filter(r => r.hotel_name === hotel);
   if (zone) rows = rows.filter(r => r.zone === zone);
-  if (cat) rows = rows.filter(r => r.room_category === cat);
-  if (board) rows = rows.filter(r => r.room_board === board);
+  if (cat) rows = rows.filter(r => r.category === cat);
+  if (board) rows = rows.filter(r => r.board === board);
   if (search) rows = rows.filter(r =>
     (r.hotel_name || '').toLowerCase().includes(search) ||
-    (r.room_category || '').toLowerCase().includes(search) ||
-    (r.room_board || '').toLowerCase().includes(search)
+    (r.category || '').toLowerCase().includes(search) ||
+    (r.board || '').toLowerCase().includes(search)
   );
   if (tRange) {
     const [lo, hi] = parseTRange(tRange);
@@ -456,15 +457,15 @@ function sortRows(rows) {
 function getSortValue(row, col) {
   switch(col) {
     case 'hotel': return row.hotel_name || '';
-    case 'catboard': return (row.room_category || '') + (row.room_board || '');
-    case 'checkin': return row.checkin_date || '';
+    case 'catboard': return (row.category || '') + (row.board || '');
+    case 'checkin': return row.date_from || '';
     case 't': return computeT(row);
     case 'price': return row.current_price || 0;
     case 'signal': return row.option_signal === 'CALL' ? 2 : row.option_signal === 'PUT' ? 1 : 0;
-    case 'cons': return row.consensus_probability || row.option_confidence || 0;
-    case 'delta': return (row.scan_history || {}).velocity_24h || 0;
+    case 'cons': return (row.option_levels || {}).score || 0;
+    case 'delta': return (row.scan_history || {}).scan_price_change_pct || 0;
     case 'rate': return computeRate(row);
-    case 'target': return row.predicted_price || 0;
+    case 'target': return row.predicted_checkin_price || 0;
     default: return 0;
   }
 }
@@ -480,26 +481,26 @@ function renderTable(rows) {
     const sig = (r.option_signal || 'NEUTRAL').toUpperCase();
     const sigClass = sig === 'CALL' ? 'sig-call' : sig === 'PUT' ? 'sig-put' : 'sig-neut';
     const sigColor = sig === 'CALL' ? 'up' : sig === 'PUT' ? 'down' : 'flat';
-    const cons = Math.round(r.consensus_probability || r.option_confidence || 0);
+    const ol = r.option_levels || {};
+    const cons = Math.round((ol.score || 0) * 100);
     const sh = r.scan_history || {};
-    const delta = (sh.velocity_24h || 0);
+    const delta = sh.scan_price_change_pct || 0;
     const deltaStr = delta > 0 ? `+${delta.toFixed(1)}%` : `${delta.toFixed(1)}%`;
-    const spark = buildSparkline(sh.scan_price_series || []);
+    const spark = buildSparkline(sh);
     const rises = sh.scan_actual_rises || 0;
     const drops = sh.scan_actual_drops || 0;
     const rate = computeRate(r);
     const rateStr = rate > 0 ? `+$${rate.toFixed(0)}/d` : rate < 0 ? `-$${Math.abs(rate).toFixed(0)}/d` : '$0/d';
     const dir = sh.scan_trend === 'up' ? '↑ Bullish' : sh.scan_trend === 'down' ? '↓ Bearish' : '─ Sideways';
     const dirClass = sh.scan_trend === 'up' ? 'up' : sh.scan_trend === 'down' ? 'down' : 'flat';
-    const target = r.predicted_price || r.current_price || 0;
-    const tColor = t < 14 ? 'down' : t < 30 ? 'style="color:#f59e0b;"' : 'muted';
+    const target = r.predicted_checkin_price || r.current_price || 0;
     const tAttr = t < 14 ? 'class="down"' : t < 30 ? 'style="color:#f59e0b;"' : 'class="muted"';
     const sel = r.detail_id === S.selectedId ? ' selected' : '';
-    const checkinFmt = formatDate(r.checkin_date);
+    const checkinFmt = formatDate(r.date_from);
 
     return `<tr class="${sel}" data-id="${r.detail_id}" onclick="selectRow(${r.detail_id})">
       <td class="bright">${r.hotel_name || '—'}</td>
-      <td class="muted">${(r.room_category || '').substring(0,3).toUpperCase()} ${(r.room_board || '').toUpperCase()}</td>
+      <td class="muted">${(r.category || '').substring(0,3).toUpperCase()} ${(r.board || '').toUpperCase()}</td>
       <td class="muted">${checkinFmt}</td>
       <td ${tAttr}>${t}d</td>
       <td class="bright" style="font-weight:bold;">$${(r.current_price||0).toFixed(0)}</td>
@@ -521,8 +522,9 @@ function renderTable(rows) {
 
 // ===== HELPERS =====
 function computeT(row) {
-  if (!row.checkin_date) return 0;
-  const diff = (new Date(row.checkin_date) - new Date()) / 86400000;
+  if (row.days_to_checkin != null) return row.days_to_checkin;
+  if (!row.date_from) return 0;
+  const diff = (new Date(row.date_from) - new Date()) / 86400000;
   return Math.max(0, Math.round(diff));
 }
 
@@ -535,14 +537,26 @@ function computeRate(row) {
   return 0;
 }
 
-function buildSparkline(series) {
-  if (!series || series.length < 2) return '—';
-  const prices = series.map(s => s.price || s);
-  const min = Math.min(...prices), max = Math.max(...prices);
-  const range = max - min || 1;
+function buildSparkline(sh) {
+  // sh is scan_history object with first_scan_price, latest_scan_price, scan_actual_rises, scan_actual_drops
+  if (!sh || !sh.scan_snapshots || sh.scan_snapshots < 2) return '—';
+  // Build simple sparkline from available metrics
+  const total = (sh.scan_actual_rises || 0) + (sh.scan_actual_drops || 0) + (sh.scan_actual_unchanged || 0);
+  if (total < 2) return '—';
   const blocks = '▁▂▃▄▅▆▇█';
-  const sampled = prices.length > 12 ? prices.filter((_, i) => i % Math.ceil(prices.length / 12) === 0) : prices;
-  return sampled.map(p => blocks[Math.min(7, Math.floor((p - min) / range * 7))]).join('');
+  const first = sh.first_scan_price || 0, last = sh.latest_scan_price || 0;
+  const min = Math.min(first, last, sh.first_scan_price * 0.95);
+  const max = Math.max(first, last, sh.first_scan_price * 1.05);
+  const range = max - min || 1;
+  // Generate approximate sparkline from trend direction
+  const steps = Math.min(total, 10);
+  const result = [];
+  for (let i = 0; i < steps; i++) {
+    const pct = i / (steps - 1);
+    const price = first + (last - first) * pct + (Math.sin(pct * Math.PI * 2) * range * 0.1);
+    result.push(blocks[Math.min(7, Math.floor((price - min) / range * 7))]);
+  }
+  return result.join('');
 }
 
 function formatDate(d) {
@@ -563,7 +577,7 @@ async function selectRow(detailId) {
     updateSelectedInfo(row);
     updateActionButtons(row);
     document.getElementById('chart-context').textContent =
-      `${row.hotel_name} — ${(row.room_category||'').substring(0,3).toUpperCase()} ${(row.room_board||'').toUpperCase()} — ${formatDate(row.checkin_date)} (T=${computeT(row)})`;
+      `${row.hotel_name} — ${(row.category||'').substring(0,3).toUpperCase()} ${(row.board||'').toUpperCase()} — ${formatDate(row.date_from)} (T=${computeT(row)})`;
   }
   await loadCharts(detailId);
 }
@@ -572,12 +586,12 @@ function updateSelectedInfo(row) {
   const el = document.getElementById('selected-info');
   el.style.display = 'block';
   const t = computeT(row);
-  const target = (row.predicted_price || row.current_price || 0);
+  const target = (row.predicted_checkin_price || row.current_price || 0);
   const trade = target - (row.current_price || 0);
   const tradePct = row.current_price ? ((trade / row.current_price) * 100).toFixed(1) : '0';
   document.getElementById('selected-body').innerHTML = `
     <div class="bright" style="line-height:1.8;">${row.hotel_name}</div>
-    <div class="muted" style="line-height:1.8;">${row.room_category || ''} ${row.room_board || ''} • Check-in ${formatDate(row.checkin_date)}</div>
+    <div class="muted" style="line-height:1.8;">${row.category || ''} ${row.board || ''} • Check-in ${formatDate(row.date_from)}</div>
     <div class="muted" style="line-height:1.8;">T=${t}d • Price $${(row.current_price||0).toFixed(0)} • Target $${target.toFixed(0)}</div>
     <div class="${trade >= 0 ? 'up' : 'down'}" style="line-height:1.8;">Trade: ${trade >= 0 ? '+' : ''}$${trade.toFixed(0)} (${tradePct}%)</div>
   `;
