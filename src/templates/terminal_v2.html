@@ -1007,31 +1007,46 @@ function renderRules(oRules, cRules) {
 async function queueOverride() {
   if (!S.selectedId) return;
   try {
-    await fetch(`${API}/override/new`, {
+    const resp = await fetch(`${API}/override/request`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ detail_id: S.selectedId, discount_usd: 1, signal: 'PUT' })
+      body: JSON.stringify({ detail_id: S.selectedId, discount_usd: 1 })
     });
-    const q = await fetchJSON(`${API}/override/queue`);
-    renderOverrideQueue(q);
-  } catch (e) { console.error('Override error:', e); }
+    const result = await resp.json();
+    if (resp.ok) {
+      showToast(`Override queued: ${result.hotel_name || S.selectedId} -$1`);
+      const q = await fetchJSON(`${API}/override/queue`);
+      renderOverrideQueue(q);
+    } else {
+      showToast(`Override failed: ${result.detail || result.message || resp.status}`);
+    }
+  } catch (e) { console.error('Override error:', e); showToast('Override failed'); }
 }
 
 async function queueOpportunity() {
   if (!S.selectedId) return;
   try {
-    await fetch(`${API}/opportunity/new`, {
+    const resp = await fetch(`${API}/opportunity/request`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ detail_id: S.selectedId, max_rooms: 1, signal: 'CALL' })
+      body: JSON.stringify({ detail_id: S.selectedId, max_rooms: 1 })
     });
-    const q = await fetchJSON(`${API}/opportunity/queue`);
-    renderOppQueue(q);
-  } catch (e) { console.error('Opportunity error:', e); }
+    const result = await resp.json();
+    if (resp.ok) {
+      showToast(`Opportunity queued: ${result.hotel_name || S.selectedId} buy $${result.buy_price || '?'}`);
+      const q = await fetchJSON(`${API}/opportunity/queue`);
+      renderOppQueue(q);
+    } else {
+      showToast(`Opportunity failed: ${result.detail || result.message || resp.status}`);
+    }
+  } catch (e) { console.error('Opportunity error:', e); showToast('Opportunity failed'); }
 }
 
 async function triggerRules() {
   try {
-    await fetch(`${API}/rules/trigger`, { method: 'POST' });
-    showToast('Rules triggered');
+    const [or, cr] = await Promise.all([
+      fetch(`${API}/override/rules/trigger`, { method: 'POST' }).catch(() => null),
+      fetch(`${API}/opportunity/rules/trigger`, { method: 'POST' }).catch(() => null),
+    ]);
+    showToast('Override + Opportunity rules triggered');
   } catch (e) { console.error('Rules trigger error:', e); }
 }
 
