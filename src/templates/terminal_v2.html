@@ -321,7 +321,7 @@ async function init() {
 
 async function loadAll() {
   const [options, summary, alerts, overrides, opps, oRules, cRules] = await Promise.all([
-    fetchJSON(`${API}/options?limit=500&profile=lite`),
+    fetchJSON(`${API}/options?limit=200&profile=full`),
     fetchJSON(`${API}/macro/summary`).catch(() => null),
     fetchJSON(`${API}/streaming-alerts?limit=10`).catch(() => ({alerts:[]})),
     fetchJSON(`${API}/override/queue`).catch(() => ({pending:[]})),
@@ -486,7 +486,7 @@ function renderTable(rows) {
     const sh = r.scan_history || {};
     const delta = sh.scan_price_change_pct || 0;
     const deltaStr = delta > 0 ? `+${delta.toFixed(1)}%` : `${delta.toFixed(1)}%`;
-    const spark = buildSparkline(sh);
+    const spark = buildSparkline(sh, sh.scan_price_series);
     const rises = sh.scan_actual_rises || 0;
     const drops = sh.scan_actual_drops || 0;
     const rate = computeRate(r);
@@ -537,23 +537,28 @@ function computeRate(row) {
   return 0;
 }
 
-function buildSparkline(sh) {
-  // sh is scan_history object with first_scan_price, latest_scan_price, scan_actual_rises, scan_actual_drops
+function buildSparkline(sh, series) {
+  // Use real scan_price_series if available (full profile)
+  if (series && series.length >= 2) {
+    const prices = series.map(s => s.price || s);
+    const min = Math.min(...prices), max = Math.max(...prices);
+    const range = max - min || 1;
+    const blocks = '▁▂▃▄▅▆▇█';
+    const sampled = prices.length > 12 ? prices.filter((_, i) => i % Math.ceil(prices.length / 12) === 0) : prices;
+    return sampled.map(p => blocks[Math.min(7, Math.floor((p - min) / range * 7))]).join('');
+  }
+  // Fallback: approximate from scan_history metrics
   if (!sh || !sh.scan_snapshots || sh.scan_snapshots < 2) return '—';
-  // Build simple sparkline from available metrics
-  const total = (sh.scan_actual_rises || 0) + (sh.scan_actual_drops || 0) + (sh.scan_actual_unchanged || 0);
-  if (total < 2) return '—';
   const blocks = '▁▂▃▄▅▆▇█';
   const first = sh.first_scan_price || 0, last = sh.latest_scan_price || 0;
-  const min = Math.min(first, last, sh.first_scan_price * 0.95);
-  const max = Math.max(first, last, sh.first_scan_price * 1.05);
+  if (!first) return '—';
+  const min = Math.min(first, last) * 0.98, max = Math.max(first, last) * 1.02;
   const range = max - min || 1;
-  // Generate approximate sparkline from trend direction
-  const steps = Math.min(total, 10);
+  const steps = Math.min(sh.scan_snapshots, 10);
   const result = [];
   for (let i = 0; i < steps; i++) {
     const pct = i / (steps - 1);
-    const price = first + (last - first) * pct + (Math.sin(pct * Math.PI * 2) * range * 0.1);
+    const price = first + (last - first) * pct;
     result.push(blocks[Math.min(7, Math.floor((price - min) / range * 7))]);
   }
   return result.join('');
@@ -614,7 +619,8 @@ async function loadCharts(detailId) {
     ]);
     // Fallback: use scan_price_series from options row if scan-history API failed
     const row = S.options.find(r => r.detail_id === detailId);
-    const scanData = scan || (row?.scan_history?.scan_price_series ? { price_history: row.scan_history.scan_price_series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null);
+    const series = row?.scan_history?.scan_price_series;
+    const scanData = scan || (series && series.length ? { price_history: series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null);
     renderPriceChart(fc, scanData, path);
     renderVelocityChart(scanData);
     renderVoterTimeline(consensus, fc);
@@ -1019,7 +1025,7 @@ function startAutoRefresh() {
   S.refreshTimer = setInterval(async () => {
     try {
       const [options, summary] = await Promise.all([
-        fetchJSON(`${API}/options?limit=500&profile=lite`),
+        fetchJSON(`${API}/options?limit=200&profile=full`),
         fetchJSON(`${API}/macro/summary`).catch(() => null),
       ]);
       if (options?.rows) { S.options = options.rows; applyFilters(); }
