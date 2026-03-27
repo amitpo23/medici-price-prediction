@@ -1007,7 +1007,7 @@ function startAutoRefresh() {
     try {
       const alerts = await fetchJSON(`${API}/streaming-alerts?limit=10`);
       renderAlerts(alerts);
-    } catch (e) {}
+    } catch (e) { console.error('Alert refresh error:', e); }
   }, 30000);
 }
 
