@@ -156,7 +156,7 @@ body {
     <select class="fbtn" id="f-zone" onchange="applyFilters()"><option value="">Zone ▼</option></select>
     <select class="fbtn" id="f-t" onchange="applyFilters()">
       <option value="">T: All</option>
-      <option value="0-7">0-7d</option><option value="8-14">8-14d</option>
+      <option value="0-14">0-14d</option>
       <option value="15-30">15-30d</option><option value="31-60">31-60d</option>
       <option value="61-90">61-90d</option><option value="91+">91+d</option>
     </select>
@@ -364,9 +364,11 @@ function renderHeaderStats(summary) {
 // ===== FILTERS =====
 function populateFilterDropdowns(options) {
   const hotels = [...new Set(options.map(o => o.hotel_name).filter(Boolean))].sort();
+  const zones = [...new Set(options.map(o => o.zone).filter(Boolean))].sort();
   const cats = [...new Set(options.map(o => o.room_category).filter(Boolean))].sort();
   const boards = [...new Set(options.map(o => o.room_board).filter(Boolean))].sort();
   fillSelect('f-hotel', hotels, 'Hotel');
+  fillSelect('f-zone', zones, 'Zone');
   fillSelect('f-cat', cats, 'Category');
   fillSelect('f-board', boards, 'Board');
 }
@@ -396,6 +398,7 @@ function applyFilters() {
 
   if (sig !== 'all') rows = rows.filter(r => (r.option_signal || '').toUpperCase() === sig);
   if (hotel) rows = rows.filter(r => r.hotel_name === hotel);
+  if (zone) rows = rows.filter(r => r.zone === zone);
   if (cat) rows = rows.filter(r => r.room_category === cat);
   if (board) rows = rows.filter(r => r.room_board === board);
   if (search) rows = rows.filter(r =>
