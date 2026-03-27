@@ -243,13 +243,19 @@ body {
       <div class="sb-section">
         <div class="sb-header"><span>OVERRIDE QUEUE</span><span class="muted" id="override-count">0</span></div>
         <div class="sb-body" id="override-feed"></div>
-        <div class="sb-body"><button class="sb-btn override" id="btn-override" disabled onclick="queueOverride()">Queue Override for Selected</button></div>
+        <div class="sb-body">
+          <button class="sb-btn override" id="btn-override" disabled onclick="queueOverride()">Override Selected</button>
+          <button class="sb-btn override" style="margin-top:2px;font-size:9px;" onclick="bulkOverride()">Override All PUTs in View</button>
+        </div>
       </div>
       <!-- Opportunity Queue -->
       <div class="sb-section">
         <div class="sb-header"><span>OPPORTUNITY QUEUE</span><span class="muted" id="opp-count">0</span></div>
         <div class="sb-body" id="opp-feed"></div>
-        <div class="sb-body"><button class="sb-btn buy" id="btn-buy" disabled onclick="queueOpportunity()">Queue Buy for Selected</button></div>
+        <div class="sb-body">
+          <button class="sb-btn buy" id="btn-buy" disabled onclick="queueOpportunity()">Buy Selected</button>
+          <button class="sb-btn buy" style="margin-top:2px;font-size:9px;" onclick="bulkOpportunity()">Buy All CALLs in View</button>
+        </div>
       </div>
       <!-- Rules -->
       <div class="sb-section">
@@ -684,9 +690,9 @@ function renderPriceChart(fc, scan, path) {
 
   // Forward curve (predicted — right side)
   if (fc && fc.forward_curve && fc.forward_curve.length) {
-    const now = new Date();
+    // FC returns {date:"2026-03-27", t:62, predicted_price, lower_bound, upper_bound}
     const pts = fc.forward_curve.map(p => ({
-      x: new Date(now.getTime() + (p.t_value || 0) * 86400000),
+      x: new Date(p.date),
       y: p.predicted_price
     })).filter(p => p.y);
     datasets.push({
@@ -700,17 +706,17 @@ function renderPriceChart(fc, scan, path) {
       borderDash: [6, 3],
       tension: 0.2,
     });
-    // Confidence band
-    if (fc.forward_curve[0] && fc.forward_curve[0].confidence_upper) {
+    // Confidence band (upper_bound / lower_bound)
+    if (fc.forward_curve[0] && (fc.forward_curve[0].upper_bound || fc.forward_curve[0].confidence_upper)) {
       datasets.push({
         label: 'Upper Band',
-        data: fc.forward_curve.map(p => ({ x: new Date(now.getTime() + (p.t_value||0)*86400000), y: p.confidence_upper })),
+        data: fc.forward_curve.map(p => ({ x: new Date(p.date), y: p.upper_bound || p.confidence_upper })),
         borderColor: 'transparent', backgroundColor: 'rgba(59,130,246,0.08)',
         fill: '+1', pointRadius: 0, borderWidth: 0,
       });
       datasets.push({
         label: 'Lower Band',
-        data: fc.forward_curve.map(p => ({ x: new Date(now.getTime() + (p.t_value||0)*86400000), y: p.confidence_lower })),
+        data: fc.forward_curve.map(p => ({ x: new Date(p.date), y: p.lower_bound || p.confidence_lower })),
         borderColor: 'transparent', backgroundColor: 'rgba(59,130,246,0.08)',
         fill: false, pointRadius: 0, borderWidth: 0,
       });
@@ -1025,8 +1031,62 @@ async function queueOpportunity() {
 async function triggerRules() {
   try {
     await fetch(`${API}/rules/trigger`, { method: 'POST' });
-    alert('Rules triggered');
+    showToast('Rules triggered');
   } catch (e) { console.error('Rules trigger error:', e); }
+}
+
+async function bulkOverride() {
+  const puts = S.filtered.filter(r => r.option_signal === 'PUT');
+  if (!puts.length) { showToast('No PUT signals in current view'); return; }
+  if (!confirm(`Override ${puts.length} PUT rooms with -$1 discount?`)) return;
+  try {
+    // Build filter from current view
+    const params = new URLSearchParams({ signal: 'PUT', discount_usd: '1' });
+    const hotel = document.getElementById('f-hotel').value;
+    const cat = document.getElementById('f-cat').value;
+    const board = document.getElementById('f-board').value;
+    if (hotel) params.set('hotel_ids', [...new Set(puts.map(r => r.hotel_id))].join(','));
+    if (cat) params.set('category', cat);
+    if (board) params.set('board', board);
+    const resp = await fetch(`${API}/group/override?${params}`, { method: 'POST' });
+    const result = await resp.json();
+    showToast(`Queued ${result.total_queued || 0} overrides (${result.total_skipped || 0} skipped)`);
+    const q = await fetchJSON(`${API}/override/queue`);
+    renderOverrideQueue(q);
+  } catch (e) { console.error('Bulk override error:', e); showToast('Bulk override failed'); }
+}
+
+async function bulkOpportunity() {
+  const calls = S.filtered.filter(r => r.option_signal === 'CALL');
+  if (!calls.length) { showToast('No CALL signals in current view'); return; }
+  if (!confirm(`Buy ${calls.length} CALL rooms?`)) return;
+  try {
+    const params = new URLSearchParams({ signal: 'CALL' });
+    const hotel = document.getElementById('f-hotel').value;
+    const cat = document.getElementById('f-cat').value;
+    const board = document.getElementById('f-board').value;
+    if (hotel) params.set('hotel_ids', [...new Set(calls.map(r => r.hotel_id))].join(','));
+    if (cat) params.set('category', cat);
+    if (board) params.set('board', board);
+    const resp = await fetch(`${API}/group/opportunity?${params}`, { method: 'POST' });
+    const result = await resp.json();
+    showToast(`Queued ${result.total_queued || 0} opportunities (${result.total_skipped || 0} skipped)`);
+    const q = await fetchJSON(`${API}/opportunity/queue`);
+    renderOppQueue(q);
+  } catch (e) { console.error('Bulk opportunity error:', e); showToast('Bulk opportunity failed'); }
+}
+
+function showToast(msg) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:8px 20px;border-radius:4px;border:1px solid #3b82f6;font-size:11px;z-index:9999;transition:opacity 0.3s;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 3000);
 }
 
 // ===== RESIZE HANDLE =====
