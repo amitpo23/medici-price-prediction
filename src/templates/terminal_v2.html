@@ -612,8 +612,11 @@ async function loadCharts(detailId) {
       fetchJSON(`${API}/path-forecast/${detailId}`).catch(() => null),
       fetchJSON(`${API}/signal/consensus/${detailId}`).catch(() => null),
     ]);
-    renderPriceChart(fc, scan, path);
-    renderVelocityChart(scan);
+    // Fallback: use scan_price_series from options row if scan-history API failed
+    const row = S.options.find(r => r.detail_id === detailId);
+    const scanData = scan || (row?.scan_history?.scan_price_series ? { price_history: row.scan_history.scan_price_series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null);
+    renderPriceChart(fc, scanData, path);
+    renderVelocityChart(scanData);
     renderVoterTimeline(consensus, fc);
     renderConsensusBar(consensus);
   } catch (e) {
@@ -760,16 +763,22 @@ function renderVoterTimeline(consensus, fc) {
   if (S.votersChart) S.votersChart.destroy();
 
   // Build voter status from consensus data
+  // API returns votes as array: [{source:"forward_curve", vote:"CALL", category:"Lagging", reason:"..."}]
   const voterData = [];
-  if (consensus && consensus.voters) {
+  const votesArr = consensus && (Array.isArray(consensus.votes) ? consensus.votes : Object.values(consensus.votes || {}));
+  if (votesArr && votesArr.length) {
     VOTERS.forEach(v => {
-      const vote = consensus.voters[v.id] || consensus.voters[v.name.toLowerCase()] || {};
+      const match = votesArr.find(vt => vt.source === v.id || vt.source === v.name.toLowerCase() ||
+        vt.source?.replace(/_/g, '') === v.id.replace(/_/g, ''));
       voterData.push({
         name: v.name,
-        signal: (vote.signal || vote.vote || 'NEUTRAL').toUpperCase(),
+        signal: (match?.vote || 'NEUTRAL').toUpperCase(),
+        reason: match?.reason || '',
         color: v.color,
       });
     });
+  } else {
+    VOTERS.forEach(v => voterData.push({ name: v.name, signal: 'NEUTRAL', reason: '', color: v.color }));
   }
 
   // Simple matrix chart using Chart.js scatter
@@ -809,7 +818,7 @@ function renderConsensusBar(consensus) {
   const agree = consensus.sources_agree || 0;
   const voting = consensus.sources_voting || 1;
   const sig = (consensus.signal || 'NEUTRAL').toUpperCase();
-  const pct = Math.round((agree / voting) * 100);
+  const pct = Math.round(consensus.probability || (agree / voting) * 100);
   const callW = sig === 'CALL' ? pct : 0;
   const putW = sig === 'PUT' ? pct : 0;
   const neutW = 100 - callW - putW;
