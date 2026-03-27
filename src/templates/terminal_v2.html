@@ -321,7 +321,7 @@ async function init() {
 
 async function loadAll() {
   const [options, summary, alerts, overrides, opps, oRules, cRules] = await Promise.all([
-    fetchJSON(`${API}/options?limit=1000&profile=full`),
+    fetchJSON(`${API}/options?limit=500&profile=full`),
     fetchJSON(`${API}/macro/summary`).catch(() => null),
     fetchJSON(`${API}/streaming-alerts?limit=10`).catch(() => ({alerts:[]})),
     fetchJSON(`${API}/override/queue`).catch(() => ({pending:[]})),
@@ -1035,7 +1035,7 @@ function startAutoRefresh() {
   S.refreshTimer = setInterval(async () => {
     try {
       const [options, summary] = await Promise.all([
-        fetchJSON(`${API}/options?limit=1000&profile=full`),
+        fetchJSON(`${API}/options?limit=500&profile=full`),
         fetchJSON(`${API}/macro/summary`).catch(() => null),
       ]);
       if (options?.rows) { S.options = options.rows; applyFilters(); }
