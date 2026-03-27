@@ -966,9 +966,12 @@ function renderAlerts(data) {
 // ===== SIDEBAR: QUEUES =====
 function renderOverrideQueue(data) {
   const feed = document.getElementById('override-feed');
-  const pending = data?.pending || [];
-  document.getElementById('override-count').textContent = `${pending.length} pending`;
-  feed.innerHTML = pending.slice(0, 5).map(q => `
+  // API returns {requests: [...], total, stats: {pending, done, ...}}
+  const items = data?.requests || data?.pending || [];
+  const stats = data?.stats || {};
+  const pendingCount = stats.pending || items.filter(r => r.status === 'pending').length;
+  document.getElementById('override-count').textContent = `${pendingCount} pending`;
+  feed.innerHTML = items.slice(0, 5).map(q => `
     <div class="queue-item">
       <span class="muted">${q.hotel_name || q.detail_id} -$${q.discount_usd || 1}</span>
       <span><span class="status-dot status-${q.status || 'pending'}"></span> ${q.status || 'pending'}</span>
@@ -978,9 +981,11 @@ function renderOverrideQueue(data) {
 
 function renderOppQueue(data) {
   const feed = document.getElementById('opp-feed');
-  const pending = data?.pending || [];
-  document.getElementById('opp-count').textContent = `${pending.length} pending`;
-  feed.innerHTML = pending.slice(0, 5).map(q => `
+  const items = data?.requests || data?.pending || [];
+  const stats = data?.stats || {};
+  const pendingCount = stats.pending || items.filter(r => r.status === 'pending').length;
+  document.getElementById('opp-count').textContent = `${pendingCount} pending`;
+  feed.innerHTML = items.slice(0, 5).map(q => `
     <div class="queue-item">
       <span class="muted">${q.hotel_name || q.detail_id} +$${q.profit_usd || 50}</span>
       <span><span class="status-dot status-${q.status || 'pending'}"></span> ${q.status || 'pending'}</span>
