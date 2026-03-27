@@ -321,7 +321,7 @@ async function init() {
 
 async function loadAll() {
   const [options, summary, alerts, overrides, opps, oRules, cRules] = await Promise.all([
-    fetchJSON(`${API}/options?limit=500&profile=full`),
+    fetchJSON(`${API}/options?limit=500&profile=lite`),
     fetchJSON(`${API}/macro/summary`).catch(() => null),
     fetchJSON(`${API}/streaming-alerts?limit=10`).catch(() => ({alerts:[]})),
     fetchJSON(`${API}/override/queue`).catch(() => ({pending:[]})),
@@ -617,17 +617,16 @@ function updateActionButtons(row) {
 // ===== CHARTS =====
 async function loadCharts(detailId) {
   try {
-    // Use embedded scan_price_series first; only call scan-history API if we don't have it
-    const row = S.options.find(r => r.detail_id === detailId);
-    const series = row?.scan_history?.scan_price_series;
-    const embeddedScan = series && series.length ? { price_history: series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null;
-
-    const [fc, path, consensus] = await Promise.all([
+    // Fetch detail (includes scan_price_series), FC, path, consensus in parallel
+    const [fc, detail, path, consensus] = await Promise.all([
       fetchJSON(`${API}/forward-curve/${detailId}?raw=true`).catch(() => null),
+      fetchJSON(`${API}/options/detail/${detailId}`).catch(() => null),
       fetchJSON(`${API}/path-forecast/${detailId}`).catch(() => null),
       fetchJSON(`${API}/signal/consensus/${detailId}`).catch(() => null),
     ]);
-    const scanData = embeddedScan;
+    // Build scan data from detail response or embedded data
+    const series = detail?.scan_history?.scan_price_series || S.options.find(r => r.detail_id === detailId)?.scan_history?.scan_price_series;
+    const scanData = series && series.length ? { price_history: series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null;
     renderPriceChart(fc, scanData, path);
     renderVelocityChart(scanData);
     renderVoterTimeline(consensus, fc);
@@ -1035,7 +1034,7 @@ function startAutoRefresh() {
   S.refreshTimer = setInterval(async () => {
     try {
       const [options, summary] = await Promise.all([
-        fetchJSON(`${API}/options?limit=500&profile=full`),
+        fetchJSON(`${API}/options?limit=500&profile=lite`),
         fetchJSON(`${API}/macro/summary`).catch(() => null),
       ]);
       if (options?.rows) { S.options = options.rows; applyFilters(); }
