@@ -334,12 +334,33 @@ async function loadAll() {
     populateFilterDropdowns(S.options);
     applyFilters();
     if (S.filtered.length > 0) selectRow(S.filtered[0].detail_id);
+    // Background: load full profile to get scan_price_series for sparklines & charts
+    loadFullProfileInBackground();
   }
   if (summary) renderHeaderStats(summary);
   renderAlerts(alerts);
   renderOverrideQueue(overrides);
   renderOppQueue(opps);
   renderRules(oRules, cRules);
+}
+
+async function loadFullProfileInBackground() {
+  try {
+    const full = await fetchJSON(`${API}/options?limit=500&profile=full`);
+    if (full && full.rows) {
+      // Merge scan_price_series into existing options
+      const fullMap = {};
+      full.rows.forEach(r => { fullMap[r.detail_id] = r; });
+      S.options.forEach(opt => {
+        const f = fullMap[opt.detail_id];
+        if (f && f.scan_history && f.scan_history.scan_price_series) {
+          opt.scan_history = { ...opt.scan_history, scan_price_series: f.scan_history.scan_price_series };
+        }
+      });
+      // Re-render table to update sparklines
+      applyFilters();
+    }
+  } catch (e) { console.log('Full profile background load skipped:', e.message); }
 }
 
 // ===== API HELPER =====
