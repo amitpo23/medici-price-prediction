@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medici Terminal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
+<style>
+/* ===== RESET & BASE ===== */
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body {
+  background:#080c14; color:#e2e8f0;
+  font-family:'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;
+  font-size:11px;
+}
+
+/* ===== LAYOUT GRID ===== */
+.terminal { display:flex; flex-direction:column; height:100vh; }
+.header { display:flex; justify-content:space-between; align-items:center; padding:6px 16px; background:#0a0f1a; border-bottom:1px solid #1e293b; height:36px; flex-shrink:0; }
+.filter-strip { display:flex; align-items:center; gap:6px; padding:5px 16px; background:#0b1120; border-bottom:1px solid #1e293b; height:32px; flex-shrink:0; }
+.main-layout { display:flex; flex:1; overflow:hidden; }
+.center-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.right-sidebar { width:240px; background:#0a0f1a; border-left:1px solid #1e293b; display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0; }
+
+/* ===== TABLE AREA ===== */
+.table-area { flex:0 0 45%; overflow:auto; }
+.resize-handle { height:4px; background:#1e293b; cursor:ns-resize; flex-shrink:0; }
+.resize-handle:hover { background:#3b82f6; }
+
+/* ===== CHART AREA ===== */
+.chart-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.chart-tabs { display:flex; gap:2px; padding:4px 12px; background:#0b1120; border-bottom:1px solid #1e293b; flex-shrink:0; }
+.chart-panels { flex:1; display:flex; flex-direction:column; padding:4px 8px; gap:4px; overflow:hidden; }
+.chart-panel { flex:1; background:#0f172a; border:1px solid #1e293b; position:relative; overflow:hidden; min-height:0; }
+.voter-toggles { display:flex; flex-wrap:wrap; gap:3px; padding:4px 12px; background:#080c14; border-top:1px solid #1e293b; flex-shrink:0; }
+
+/* ===== SIGNAL TABLE ===== */
+#signal-table { width:100%; border-collapse:collapse; }
+#signal-table th {
+  position:sticky; top:0; background:#0f172a; color:#64748b;
+  text-align:left; padding:6px 6px; font-size:10px; font-weight:600;
+  text-transform:uppercase; letter-spacing:0.5px;
+  border-bottom:1px solid #1e293b; cursor:pointer; white-space:nowrap;
+  user-select:none;
+}
+#signal-table th:hover { color:#e2e8f0; }
+#signal-table th.sorted-asc::after { content:' ▲'; color:#3b82f6; }
+#signal-table th.sorted-desc::after { content:' ▼'; color:#3b82f6; }
+#signal-table td { padding:5px 6px; border-bottom:1px solid #111827; white-space:nowrap; }
+#signal-table tr { cursor:pointer; }
+#signal-table tr:hover { background:rgba(59,130,246,0.05); }
+#signal-table tr.selected { background:rgba(59,130,246,0.1); border-left:2px solid #3b82f6; }
+
+/* ===== SIGNAL BADGES ===== */
+.sig { padding:1px 6px; border-radius:3px; font-size:9px; font-weight:bold; color:#fff; }
+.sig-call { background:#059669; }
+.sig-put { background:#dc2626; }
+.sig-neut { background:#4b5563; }
+
+/* ===== COLORS ===== */
+.up { color:#10b981; }
+.down { color:#ef4444; }
+.flat { color:#6b7280; }
+.accent { color:#3b82f6; }
+.muted { color:#64748b; }
+.bright { color:#e2e8f0; }
+
+/* ===== HEADER ===== */
+.header .logo { color:#3b82f6; font-weight:bold; font-size:14px; letter-spacing:1px; }
+.header .live { color:#10b981; font-size:10px; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+.header-stats { display:flex; gap:8px; font-size:11px; }
+.header-stats span.sep { color:#333; }
+
+/* ===== FILTER STRIP ===== */
+.fbtn { padding:3px 10px; background:#1e293b; color:#94a3b8; border:1px solid #334155; border-radius:4px; font-size:10px; cursor:pointer; font-family:inherit; }
+.fbtn:hover { border-color:#3b82f6; color:#e2e8f0; }
+.fbtn.active { border-color:#3b82f6; color:#3b82f6; background:rgba(59,130,246,0.1); }
+.fsearch { flex:1; padding:3px 10px; background:#1e293b; color:#e2e8f0; border:1px solid #334155; border-radius:4px; font-size:10px; font-family:inherit; }
+.freset { padding:3px 10px; background:#7c3aed; color:#fff; border:none; border-radius:4px; font-size:10px; cursor:pointer; font-family:inherit; }
+
+/* ===== CHART TABS ===== */
+.ctab { padding:4px 12px; color:#64748b; border-radius:4px; font-size:10px; cursor:pointer; }
+.ctab.active { background:#1e293b; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); }
+.chart-label { position:absolute; top:4px; left:8px; color:#475569; font-size:9px; font-weight:600; text-transform:uppercase; z-index:1; }
+
+/* ===== VOTER TOGGLES ===== */
+.vtog { padding:2px 6px; border:1px solid #1e293b; border-radius:3px; font-size:9px; color:#64748b; cursor:pointer; display:flex; align-items:center; gap:3px; }
+.vtog.on { border-color:#3b82f6; color:#e2e8f0; }
+.vdot { width:6px; height:6px; border-radius:50%; display:inline-block; }
+.consensus-bar { display:flex; height:4px; border-radius:2px; overflow:hidden; flex:1; max-width:100px; }
+
+/* ===== SIDEBAR ===== */
+.sb-section { border-bottom:1px solid #1e293b; }
+.sb-header { padding:8px 12px; color:#94a3b8; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; background:#0b1120; }
+.sb-body { padding:8px 12px; }
+.sb-badge { background:#ef4444; color:#fff; padding:0 6px; border-radius:8px; font-size:9px; }
+.alert-item { display:flex; gap:8px; padding:5px 0; border-bottom:1px solid #111827; }
+.alert-sev { width:3px; border-radius:2px; flex-shrink:0; }
+.alert-sev.critical { background:#ef4444; }
+.alert-sev.warning { background:#f59e0b; }
+.alert-sev.info { background:#3b82f6; }
+.alert-text { font-size:10px; color:#cbd5e1; line-height:1.4; }
+.alert-time { font-size:9px; color:#475569; }
+.queue-item { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #111827; font-size:10px; }
+.status-dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
+.status-pending { background:#f59e0b; }
+.status-done { background:#10b981; }
+.status-failed { background:#ef4444; }
+.sb-btn { width:100%; padding:6px; border:1px solid #334155; background:#1e293b; color:#e2e8f0; border-radius:4px; font-size:10px; cursor:pointer; margin-top:4px; text-align:center; font-family:inherit; }
+.sb-btn.override { border-color:#7c3aed; color:#a78bfa; }
+.sb-btn.override:hover { background:#7c3aed; color:#fff; }
+.sb-btn.buy { border-color:#059669; color:#34d399; }
+.sb-btn.buy:hover { background:#059669; color:#fff; }
+.sb-btn.rules { border-color:#3b82f6; color:#60a5fa; }
+.sb-btn.rules:hover { background:#3b82f6; color:#fff; }
+
+/* ===== HEATMAP ===== */
+.heatmap { display:none; padding:8px; overflow:auto; flex:1; }
+.heatmap.active { display:block; }
+.heatmap table { width:100%; border-collapse:collapse; }
+.heatmap th { background:#0f172a; color:#64748b; padding:6px; font-size:10px; border:1px solid #1e293b; }
+.heatmap td { padding:8px; text-align:center; font-size:11px; font-weight:bold; border:1px solid #1e293b; cursor:pointer; }
+
+/* ===== SPARKLINE ===== */
+.spark { letter-spacing:-1px; font-size:13px; }
+
+/* ===== LOADING ===== */
+.loading { display:flex; align-items:center; justify-content:center; height:100%; color:#475569; }
+</style>
+</head>
+<body>
+<div class="terminal">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="logo">MEDICI TERMINAL</span>
+      <span class="live">● LIVE</span>
+      <span class="muted" id="last-scan">—</span>
+    </div>
+    <div class="header-stats" id="header-stats">
+      <span class="muted">Loading...</span>
+    </div>
+  </div>
+
+  <!-- FILTER STRIP -->
+  <div class="filter-strip">
+    <button class="fbtn active" onclick="setSignalFilter('all')">All</button>
+    <button class="fbtn" onclick="setSignalFilter('CALL')">CALL</button>
+    <button class="fbtn" onclick="setSignalFilter('PUT')">PUT</button>
+    <span class="sep" style="color:#333;">│</span>
+    <select class="fbtn" id="f-hotel" onchange="applyFilters()"><option value="">Hotel ▼</option></select>
+    <select class="fbtn" id="f-zone" onchange="applyFilters()"><option value="">Zone ▼</option></select>
+    <select class="fbtn" id="f-t" onchange="applyFilters()">
+      <option value="">T: All</option>
+      <option value="0-7">0-7d</option><option value="8-14">8-14d</option>
+      <option value="15-30">15-30d</option><option value="31-60">31-60d</option>
+      <option value="61-90">61-90d</option><option value="91+">91+d</option>
+    </select>
+    <select class="fbtn" id="f-cat" onchange="applyFilters()"><option value="">Category ▼</option></select>
+    <select class="fbtn" id="f-board" onchange="applyFilters()"><option value="">Board ▼</option></select>
+    <input class="fsearch" id="f-search" placeholder="Search hotel, room, date..." oninput="applyFilters()">
+    <button class="freset" onclick="resetFilters()">Reset</button>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main-layout">
+    <div class="center-area">
+      <!-- TABLE -->
+      <div class="table-area" id="table-area">
+        <table id="signal-table">
+          <thead><tr>
+            <th data-col="hotel">Hotel</th>
+            <th data-col="catboard">Cat/Board</th>
+            <th data-col="checkin">Check-in</th>
+            <th data-col="t">T</th>
+            <th data-col="price">Price</th>
+            <th data-col="signal">Signal</th>
+            <th data-col="cons">Cons%</th>
+            <th data-col="delta">Δ24h</th>
+            <th data-col="spark">Sparkline</th>
+            <th data-col="updown">↑/↓</th>
+            <th data-col="rate">Rate/d</th>
+            <th data-col="dir">Direction</th>
+            <th data-col="target">Target</th>
+          </tr></thead>
+          <tbody id="table-body">
+            <tr><td colspan="13" class="loading">Loading options...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- RESIZE HANDLE -->
+      <div class="resize-handle" id="resize-handle"></div>
+
+      <!-- CHART AREA -->
+      <div class="chart-area" id="chart-area">
+        <div class="chart-tabs">
+          <span class="ctab active" id="tab-chart" onclick="setChartMode('chart')">Chart</span>
+          <span class="ctab" id="tab-heatmap" onclick="setChartMode('heatmap')">HeatMap</span>
+          <span style="flex:1;"></span>
+          <span class="muted" id="chart-context">Select a room to view chart</span>
+        </div>
+
+        <!-- 3 SYNCED CHART PANELS -->
+        <div class="chart-panels" id="chart-panels">
+          <div class="chart-panel" style="flex:3;" id="panel-price">
+            <div class="chart-label">PRICE — Scan History ← Today → Forward Curve</div>
+            <canvas id="price-canvas"></canvas>
+          </div>
+          <div class="chart-panel" style="flex:1;" id="panel-velocity">
+            <div class="chart-label">VELOCITY — Rate of Change</div>
+            <canvas id="velocity-canvas"></canvas>
+          </div>
+          <div class="chart-panel" style="flex:1.2;" id="panel-voters">
+            <div class="chart-label">VOTERS — 14 Agent Timeline</div>
+            <canvas id="voters-canvas"></canvas>
+          </div>
+        </div>
+
+        <!-- HEATMAP (hidden by default) -->
+        <div class="heatmap" id="heatmap-area">
+          <div class="loading">Loading heatmap...</div>
+        </div>
+
+        <!-- VOTER TOGGLE BAR -->
+        <div class="voter-toggles" id="voter-toggles"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="right-sidebar" id="right-sidebar">
+      <!-- Alerts -->
+      <div class="sb-section">
+        <div class="sb-header"><span>ALERTS</span><span class="sb-badge" id="alert-count">0</span></div>
+        <div class="sb-body" id="alerts-feed"><div class="muted">Loading alerts...</div></div>
+      </div>
+      <!-- Override Queue -->
+      <div class="sb-section">
+        <div class="sb-header"><span>OVERRIDE QUEUE</span><span class="muted" id="override-count">0</span></div>
+        <div class="sb-body" id="override-feed"></div>
+        <div class="sb-body"><button class="sb-btn override" id="btn-override" disabled onclick="queueOverride()">Queue Override for Selected</button></div>
+      </div>
+      <!-- Opportunity Queue -->
+      <div class="sb-section">
+        <div class="sb-header"><span>OPPORTUNITY QUEUE</span><span class="muted" id="opp-count">0</span></div>
+        <div class="sb-body" id="opp-feed"></div>
+        <div class="sb-body"><button class="sb-btn buy" id="btn-buy" disabled onclick="queueOpportunity()">Queue Buy for Selected</button></div>
+      </div>
+      <!-- Rules -->
+      <div class="sb-section">
+        <div class="sb-header"><span>RULES</span><span class="accent" style="cursor:pointer;font-size:9px;">+ Add</span></div>
+        <div class="sb-body" id="rules-feed"></div>
+        <div class="sb-body"><button class="sb-btn rules" onclick="triggerRules()">Trigger Rules Now</button></div>
+      </div>
+      <!-- Selected Info -->
+      <div class="sb-section" id="selected-info" style="display:none;">
+        <div class="sb-header"><span>SELECTED</span></div>
+        <div class="sb-body" id="selected-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================================================================
+// MEDICI TERMINAL V2 — Client-Side Application
+// ========================================================================
+
+const API = '/api/v1/salesoffice';
+
+// ===== STATE =====
+const S = {
+  options: [],          // all loaded options
+  filtered: [],         // after filters applied
+  selectedId: null,     // currently selected detail_id
+  sortCol: 'cons',      // current sort column
+  sortAsc: false,       // sort direction
+  signalFilter: 'all',  // all | CALL | PUT
+  chartMode: 'chart',   // chart | heatmap
+  voters: {},           // voter toggle states
+  priceChart: null,     // Chart.js instance
+  velocityChart: null,
+  votersChart: null,
+  refreshTimer: null,
+  alertsTimer: null,
+};
+
+// ===== VOTER DEFINITIONS =====
+const VOTERS = [
+  { id:'fc', name:'FC', color:'#10b981', icon:'📈' },
+  { id:'velocity', name:'Velocity', color:'#3b82f6', icon:'⚡' },
+  { id:'events', name:'Events', color:'#f59e0b', icon:'★' },
+  { id:'competitors', name:'Competitors', color:'#ec4899', icon:'🏨' },
+  { id:'seasonality', name:'Seasonality', color:'#8b5cf6', icon:'📅' },
+  { id:'flights', name:'Flights', color:'#06b6d4', icon:'✈' },
+  { id:'weather', name:'Weather', color:'#84cc16', icon:'☁' },
+  { id:'peers', name:'Peers', color:'#f97316', icon:'👥' },
+  { id:'bookings', name:'Bookings', color:'#14b8a6', icon:'📊' },
+  { id:'historical', name:'Historical', color:'#e11d48', icon:'📜' },
+  { id:'benchmark', name:'Benchmark', color:'#a855f7', icon:'📏' },
+  { id:'scan_drop', name:'ScanDrop', color:'#64748b', icon:'⚠' },
+  { id:'provider', name:'Provider', color:'#0ea5e9', icon:'🔗' },
+  { id:'margin', name:'Margin', color:'#d946ef', icon:'💰' },
+];
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+  initVoterToggles();
+  initResizeHandle();
+  initTableSort();
+  await loadAll();
+  startAutoRefresh();
+}
+
+async function loadAll() {
+  const [options, summary, alerts, overrides, opps, oRules, cRules] = await Promise.all([
+    fetchJSON(`${API}/options?limit=5000&profile=lite`),
+    fetchJSON(`${API}/macro/summary`).catch(() => null),
+    fetchJSON(`${API}/streaming-alerts?limit=10`).catch(() => ({alerts:[]})),
+    fetchJSON(`${API}/override/queue`).catch(() => ({pending:[]})),
+    fetchJSON(`${API}/opportunity/queue`).catch(() => ({pending:[]})),
+    fetchJSON(`${API}/override/rules`).catch(() => ({rules:[]})),
+    fetchJSON(`${API}/opportunity/rules`).catch(() => ({rules:[]})),
+  ]);
+  if (options && options.rows) {
+    S.options = options.rows;
+    populateFilterDropdowns(S.options);
+    applyFilters();
+    if (S.filtered.length > 0) selectRow(S.filtered[0].detail_id);
+  }
+  if (summary) renderHeaderStats(summary);
+  renderAlerts(alerts);
+  renderOverrideQueue(overrides);
+  renderOppQueue(opps);
+  renderRules(oRules, cRules);
+}
+
+// ===== API HELPER =====
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${r.status} ${url}`);
+  return r.json();
+}
+
+// ===== HEADER STATS =====
+function renderHeaderStats(summary) {
+  const s = summary;
+  const calls = s.total_calls || 0, puts = s.total_puts || 0, neut = s.total_neutral || 0;
+  const total = calls + puts + neut;
+  document.getElementById('header-stats').innerHTML =
+    `<span class="up">CALL:${calls}</span><span class="sep">│</span>` +
+    `<span class="down">PUT:${puts}</span><span class="sep">│</span>` +
+    `<span class="flat">NEUT:${neut}</span><span class="sep">│</span>` +
+    `<span class="bright">${total} rooms</span>`;
+  if (s.last_scan) document.getElementById('last-scan').textContent = `Last: ${new Date(s.last_scan).toLocaleTimeString()}`;
+}
+
+// ===== FILTERS =====
+function populateFilterDropdowns(options) {
+  const hotels = [...new Set(options.map(o => o.hotel_name).filter(Boolean))].sort();
+  const cats = [...new Set(options.map(o => o.room_category).filter(Boolean))].sort();
+  const boards = [...new Set(options.map(o => o.room_board).filter(Boolean))].sort();
+  fillSelect('f-hotel', hotels, 'Hotel');
+  fillSelect('f-cat', cats, 'Category');
+  fillSelect('f-board', boards, 'Board');
+}
+
+function fillSelect(id, values, label) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<option value="">${label} ▼</option>` + values.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+
+function setSignalFilter(val) {
+  S.signalFilter = val;
+  document.querySelectorAll('.filter-strip .fbtn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === (val === 'all' ? 'All' : val));
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  let rows = S.options;
+  const sig = S.signalFilter;
+  const hotel = document.getElementById('f-hotel').value;
+  const zone = document.getElementById('f-zone').value;
+  const tRange = document.getElementById('f-t').value;
+  const cat = document.getElementById('f-cat').value;
+  const board = document.getElementById('f-board').value;
+  const search = document.getElementById('f-search').value.toLowerCase();
+
+  if (sig !== 'all') rows = rows.filter(r => (r.option_signal || '').toUpperCase() === sig);
+  if (hotel) rows = rows.filter(r => r.hotel_name === hotel);
+  if (cat) rows = rows.filter(r => r.room_category === cat);
+  if (board) rows = rows.filter(r => r.room_board === board);
+  if (search) rows = rows.filter(r =>
+    (r.hotel_name || '').toLowerCase().includes(search) ||
+    (r.room_category || '').toLowerCase().includes(search) ||
+    (r.room_board || '').toLowerCase().includes(search)
+  );
+  if (tRange) {
+    const [lo, hi] = parseTRange(tRange);
+    rows = rows.filter(r => { const t = computeT(r); return t >= lo && t <= hi; });
+  }
+
+  S.filtered = sortRows(rows);
+  renderTable(S.filtered);
+}
+
+function parseTRange(val) {
+  if (val === '91+') return [91, 9999];
+  const [a, b] = val.split('-').map(Number);
+  return [a, b];
+}
+
+function resetFilters() {
+  S.signalFilter = 'all';
+  document.querySelectorAll('.filter-strip .fbtn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  ['f-hotel','f-zone','f-t','f-cat','f-board'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-search').value = '';
+  applyFilters();
+}
+
+// ===== SORT =====
+function initTableSort() {
+  document.querySelectorAll('#signal-table th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (S.sortCol === col) S.sortAsc = !S.sortAsc;
+      else { S.sortCol = col; S.sortAsc = false; }
+      document.querySelectorAll('#signal-table th').forEach(h => h.classList.remove('sorted-asc','sorted-desc'));
+      th.classList.add(S.sortAsc ? 'sorted-asc' : 'sorted-desc');
+      applyFilters();
+    });
+  });
+}
+
+function sortRows(rows) {
+  const col = S.sortCol;
+  const dir = S.sortAsc ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    let va = getSortValue(a, col), vb = getSortValue(b, col);
+    if (typeof va === 'string') return dir * va.localeCompare(vb);
+    return dir * (va - vb);
+  });
+}
+
+function getSortValue(row, col) {
+  switch(col) {
+    case 'hotel': return row.hotel_name || '';
+    case 'catboard': return (row.room_category || '') + (row.room_board || '');
+    case 'checkin': return row.checkin_date || '';
+    case 't': return computeT(row);
+    case 'price': return row.current_price || 0;
+    case 'signal': return row.option_signal === 'CALL' ? 2 : row.option_signal === 'PUT' ? 1 : 0;
+    case 'cons': return row.consensus_probability || row.option_confidence || 0;
+    case 'delta': return (row.scan_history || {}).velocity_24h || 0;
+    case 'rate': return computeRate(row);
+    case 'target': return row.predicted_price || 0;
+    default: return 0;
+  }
+}
+
+// ===== TABLE RENDERING =====
+function renderTable(rows) {
+  const tbody = document.getElementById('table-body');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13" class="loading">No options match filters</td></tr>'; return; }
+  // Virtual scroll: render only visible rows for performance
+  const visibleCount = Math.min(rows.length, 200);
+  const html = rows.slice(0, visibleCount).map(r => {
+    const t = computeT(r);
+    const sig = (r.option_signal || 'NEUTRAL').toUpperCase();
+    const sigClass = sig === 'CALL' ? 'sig-call' : sig === 'PUT' ? 'sig-put' : 'sig-neut';
+    const sigColor = sig === 'CALL' ? 'up' : sig === 'PUT' ? 'down' : 'flat';
+    const cons = Math.round(r.consensus_probability || r.option_confidence || 0);
+    const sh = r.scan_history || {};
+    const delta = (sh.velocity_24h || 0);
+    const deltaStr = delta > 0 ? `+${delta.toFixed(1)}%` : `${delta.toFixed(1)}%`;
+    const spark = buildSparkline(sh.scan_price_series || []);
+    const rises = sh.scan_actual_rises || 0;
+    const drops = sh.scan_actual_drops || 0;
+    const rate = computeRate(r);
+    const rateStr = rate > 0 ? `+$${rate.toFixed(0)}/d` : rate < 0 ? `-$${Math.abs(rate).toFixed(0)}/d` : '$0/d';
+    const dir = sh.scan_trend === 'up' ? '↑ Bullish' : sh.scan_trend === 'down' ? '↓ Bearish' : '─ Sideways';
+    const dirClass = sh.scan_trend === 'up' ? 'up' : sh.scan_trend === 'down' ? 'down' : 'flat';
+    const target = r.predicted_price || r.current_price || 0;
+    const tColor = t < 14 ? 'down' : t < 30 ? 'style="color:#f59e0b;"' : 'muted';
+    const tAttr = t < 14 ? 'class="down"' : t < 30 ? 'style="color:#f59e0b;"' : 'class="muted"';
+    const sel = r.detail_id === S.selectedId ? ' selected' : '';
+    const checkinFmt = formatDate(r.checkin_date);
+
+    return `<tr class="${sel}" data-id="${r.detail_id}" onclick="selectRow(${r.detail_id})">
+      <td class="bright">${r.hotel_name || '—'}</td>
+      <td class="muted">${(r.room_category || '').substring(0,3).toUpperCase()} ${(r.room_board || '').toUpperCase()}</td>
+      <td class="muted">${checkinFmt}</td>
+      <td ${tAttr}>${t}d</td>
+      <td class="bright" style="font-weight:bold;">$${(r.current_price||0).toFixed(0)}</td>
+      <td><span class="sig ${sigClass}">${sig}</span></td>
+      <td class="${sigColor}">${cons}%</td>
+      <td class="${delta >= 0 ? 'up' : 'down'}">${deltaStr}</td>
+      <td class="spark ${sigColor}">${spark}</td>
+      <td><span class="up">${rises}</span>/<span class="down">${drops}</span></td>
+      <td class="${rate >= 0 ? 'up' : 'down'}">${rateStr}</td>
+      <td class="${dirClass}">${dir}</td>
+      <td class="${target > (r.current_price||0) ? 'up' : 'down'}">$${target.toFixed(0)}</td>
+    </tr>`;
+  }).join('');
+  tbody.innerHTML = html;
+  if (rows.length > visibleCount) {
+    tbody.innerHTML += `<tr><td colspan="13" class="muted" style="text-align:center;padding:8px;">Showing ${visibleCount} of ${rows.length} — use filters to narrow</td></tr>`;
+  }
+}
+
+// ===== HELPERS =====
+function computeT(row) {
+  if (!row.checkin_date) return 0;
+  const diff = (new Date(row.checkin_date) - new Date()) / 86400000;
+  return Math.max(0, Math.round(diff));
+}
+
+function computeRate(row) {
+  const sh = row.scan_history || {};
+  if (sh.scan_snapshots && sh.scan_snapshots > 1 && sh.scan_price_change !== undefined) {
+    const days = Math.max(1, (new Date(sh.latest_scan_date) - new Date(sh.first_scan_date)) / 86400000);
+    return sh.scan_price_change / days;
+  }
+  return 0;
+}
+
+function buildSparkline(series) {
+  if (!series || series.length < 2) return '—';
+  const prices = series.map(s => s.price || s);
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const range = max - min || 1;
+  const blocks = '▁▂▃▄▅▆▇█';
+  const sampled = prices.length > 12 ? prices.filter((_, i) => i % Math.ceil(prices.length / 12) === 0) : prices;
+  return sampled.map(p => blocks[Math.min(7, Math.floor((p - min) / range * 7))]).join('');
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[dt.getMonth()]} ${dt.getDate()}`;
+}
+
+// ===== ROW SELECTION =====
+async function selectRow(detailId) {
+  S.selectedId = detailId;
+  document.querySelectorAll('#signal-table tr').forEach(tr => {
+    tr.classList.toggle('selected', tr.dataset.id == detailId);
+  });
+  const row = S.options.find(r => r.detail_id === detailId);
+  if (row) {
+    updateSelectedInfo(row);
+    updateActionButtons(row);
+    document.getElementById('chart-context').textContent =
+      `${row.hotel_name} — ${(row.room_category||'').substring(0,3).toUpperCase()} ${(row.room_board||'').toUpperCase()} — ${formatDate(row.checkin_date)} (T=${computeT(row)})`;
+  }
+  await loadCharts(detailId);
+}
+
+function updateSelectedInfo(row) {
+  const el = document.getElementById('selected-info');
+  el.style.display = 'block';
+  const t = computeT(row);
+  const target = (row.predicted_price || row.current_price || 0);
+  const trade = target - (row.current_price || 0);
+  const tradePct = row.current_price ? ((trade / row.current_price) * 100).toFixed(1) : '0';
+  document.getElementById('selected-body').innerHTML = `
+    <div class="bright" style="line-height:1.8;">${row.hotel_name}</div>
+    <div class="muted" style="line-height:1.8;">${row.room_category || ''} ${row.room_board || ''} • Check-in ${formatDate(row.checkin_date)}</div>
+    <div class="muted" style="line-height:1.8;">T=${t}d • Price $${(row.current_price||0).toFixed(0)} • Target $${target.toFixed(0)}</div>
+    <div class="${trade >= 0 ? 'up' : 'down'}" style="line-height:1.8;">Trade: ${trade >= 0 ? '+' : ''}$${trade.toFixed(0)} (${tradePct}%)</div>
+  `;
+}
+
+function updateActionButtons(row) {
+  const sig = (row.option_signal || '').toUpperCase();
+  document.getElementById('btn-override').disabled = sig !== 'PUT';
+  document.getElementById('btn-buy').disabled = sig !== 'CALL';
+}
+
+// ===== CHARTS =====
+async function loadCharts(detailId) {
+  try {
+    const [fc, scan, path, consensus] = await Promise.all([
+      fetchJSON(`${API}/forward-curve/${detailId}?raw=true`).catch(() => null),
+      fetchJSON(`${API}/scan-history/${detailId}`).catch(() => null),
+      fetchJSON(`${API}/path-forecast/${detailId}`).catch(() => null),
+      fetchJSON(`${API}/signal/consensus/${detailId}`).catch(() => null),
+    ]);
+    renderPriceChart(fc, scan, path);
+    renderVelocityChart(scan);
+    renderVoterTimeline(consensus, fc);
+    renderConsensusBar(consensus);
+  } catch (e) {
+    console.error('Chart load error:', e);
+  }
+}
+
+function renderPriceChart(fc, scan, path) {
+  const ctx = document.getElementById('price-canvas');
+  if (S.priceChart) S.priceChart.destroy();
+
+  const datasets = [];
+  const annotations = {};
+
+  // Scan history (actual prices — left side)
+  if (scan && scan.price_history && scan.price_history.length) {
+    const pts = scan.price_history.map(p => ({
+      x: new Date(p.timestamp || p.scan_date || p.date),
+      y: p.new_price || p.price || p.room_price
+    })).filter(p => p.y);
+    datasets.push({
+      label: 'Scan History',
+      data: pts,
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16,185,129,0.1)',
+      fill: true,
+      pointRadius: 2,
+      borderWidth: 2,
+      tension: 0.1,
+    });
+  }
+
+  // Forward curve (predicted — right side)
+  if (fc && fc.forward_curve && fc.forward_curve.length) {
+    const now = new Date();
+    const pts = fc.forward_curve.map(p => ({
+      x: new Date(now.getTime() + (p.t_value || 0) * 86400000),
+      y: p.predicted_price
+    })).filter(p => p.y);
+    datasets.push({
+      label: 'Forward Curve',
+      data: pts,
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59,130,246,0.05)',
+      fill: true,
+      pointRadius: 0,
+      borderWidth: 2,
+      borderDash: [6, 3],
+      tension: 0.2,
+    });
+    // Confidence band
+    if (fc.forward_curve[0] && fc.forward_curve[0].confidence_upper) {
+      datasets.push({
+        label: 'Upper Band',
+        data: fc.forward_curve.map(p => ({ x: new Date(now.getTime() + (p.t_value||0)*86400000), y: p.confidence_upper })),
+        borderColor: 'transparent', backgroundColor: 'rgba(59,130,246,0.08)',
+        fill: '+1', pointRadius: 0, borderWidth: 0,
+      });
+      datasets.push({
+        label: 'Lower Band',
+        data: fc.forward_curve.map(p => ({ x: new Date(now.getTime() + (p.t_value||0)*86400000), y: p.confidence_lower })),
+        borderColor: 'transparent', backgroundColor: 'rgba(59,130,246,0.08)',
+        fill: false, pointRadius: 0, borderWidth: 0,
+      });
+    }
+  }
+
+  // Buy/Sell markers from path forecast
+  if (path && path.best_trade) {
+    if (path.best_trade.buy_price) {
+      annotations.buyLine = {
+        type: 'line', yMin: path.best_trade.buy_price, yMax: path.best_trade.buy_price,
+        borderColor: '#10b981', borderWidth: 1, borderDash: [4, 4],
+        label: { display: true, content: `BUY $${path.best_trade.buy_price.toFixed(0)}`, position: 'start', backgroundColor: '#059669', font: { size: 9 } }
+      };
+    }
+    if (path.best_trade.sell_price) {
+      annotations.sellLine = {
+        type: 'line', yMin: path.best_trade.sell_price, yMax: path.best_trade.sell_price,
+        borderColor: '#f59e0b', borderWidth: 1, borderDash: [4, 4],
+        label: { display: true, content: `SELL $${path.best_trade.sell_price.toFixed(0)}`, position: 'end', backgroundColor: '#d97706', font: { size: 9 } }
+      };
+    }
+  }
+
+  // Today line
+  annotations.todayLine = {
+    type: 'line', xMin: new Date(), xMax: new Date(),
+    borderColor: '#3b82f6', borderWidth: 1, borderDash: [4, 4],
+    label: { display: true, content: 'TODAY', position: 'start', backgroundColor: '#1e293b', color: '#3b82f6', font: { size: 8 } }
+  };
+
+  S.priceChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        annotation: { annotations },
+      },
+      scales: {
+        x: { type: 'time', grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 9 } } },
+        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 9 }, callback: v => '$' + v } },
+      },
+    },
+  });
+}
+
+function renderVelocityChart(scan) {
+  const ctx = document.getElementById('velocity-canvas');
+  if (S.velocityChart) S.velocityChart.destroy();
+
+  let labels = [], data = [], colors = [];
+  if (scan && scan.price_history && scan.price_history.length > 1) {
+    const hist = scan.price_history;
+    for (let i = 1; i < hist.length; i++) {
+      const prev = hist[i-1].new_price || hist[i-1].price || 0;
+      const curr = hist[i].new_price || hist[i].price || 0;
+      const pct = prev ? ((curr - prev) / prev * 100) : 0;
+      labels.push(new Date(hist[i].timestamp || hist[i].scan_date || hist[i].date));
+      data.push(pct);
+      colors.push(pct >= 0 ? '#10b981' : '#ef4444');
+    }
+  }
+
+  S.velocityChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { type: 'time', grid: { color: '#1e293b' }, ticks: { display: false } },
+        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 9 }, callback: v => v.toFixed(1) + '%' } },
+      },
+    },
+  });
+}
+
+function renderVoterTimeline(consensus, fc) {
+  const ctx = document.getElementById('voters-canvas');
+  if (S.votersChart) S.votersChart.destroy();
+
+  // Build voter status from consensus data
+  const voterData = [];
+  if (consensus && consensus.voters) {
+    VOTERS.forEach(v => {
+      const vote = consensus.voters[v.id] || consensus.voters[v.name.toLowerCase()] || {};
+      voterData.push({
+        name: v.name,
+        signal: (vote.signal || vote.vote || 'NEUTRAL').toUpperCase(),
+        color: v.color,
+      });
+    });
+  }
+
+  // Simple matrix chart using Chart.js scatter
+  const datasets = voterData.map((vd, i) => ({
+    label: vd.name,
+    data: [{ x: 0, y: VOTERS.length - 1 - i }],
+    backgroundColor: vd.signal === 'CALL' ? '#059669' : vd.signal === 'PUT' ? '#dc2626' : '#334155',
+    pointRadius: 6,
+    pointStyle: 'rectRounded',
+  }));
+
+  S.votersChart = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false, min: -1, max: 2 },
+        y: {
+          grid: { color: '#111827' },
+          ticks: {
+            color: '#64748b', font: { size: 8 },
+            callback: (v) => VOTERS[VOTERS.length - 1 - v]?.name || '',
+            stepSize: 1
+          },
+          min: -0.5, max: VOTERS.length - 0.5,
+        },
+      },
+    },
+  });
+}
+
+function renderConsensusBar(consensus) {
+  const bar = document.getElementById('voter-toggles');
+  if (!consensus) return;
+  const agree = consensus.sources_agree || 0;
+  const voting = consensus.sources_voting || 1;
+  const sig = (consensus.signal || 'NEUTRAL').toUpperCase();
+  const pct = Math.round((agree / voting) * 100);
+  const callW = sig === 'CALL' ? pct : 0;
+  const putW = sig === 'PUT' ? pct : 0;
+  const neutW = 100 - callW - putW;
+
+  // Update consensus display in voter toggle bar
+  const consEl = document.getElementById('consensus-display');
+  if (consEl) {
+    consEl.innerHTML = `
+      <span class="muted" style="font-size:9px;">Consensus:</span>
+      <div class="consensus-bar">
+        <div style="width:${callW}%;background:#10b981;"></div>
+        <div style="width:${putW}%;background:#ef4444;"></div>
+        <div style="width:${neutW}%;background:#334155;"></div>
+      </div>
+      <span class="${sig === 'CALL' ? 'up' : sig === 'PUT' ? 'down' : 'flat'}" style="font-size:10px;font-weight:bold;">${pct}% ${sig} (${agree}/${voting})</span>
+    `;
+  }
+}
+
+// ===== VOTER TOGGLES =====
+function initVoterToggles() {
+  const bar = document.getElementById('voter-toggles');
+  VOTERS.forEach(v => { S.voters[v.id] = ['fc','velocity','events','competitors','seasonality'].includes(v.id); });
+  bar.innerHTML = `<span class="muted" style="font-size:9px;margin-right:4px;">LAYERS:</span>` +
+    VOTERS.map(v =>
+      `<span class="vtog ${S.voters[v.id] ? 'on' : ''}" onclick="toggleVoter('${v.id}', this)">` +
+      `<span class="vdot" style="background:${v.color};"></span>${v.name}</span>`
+    ).join('') +
+    `<span style="flex:1;"></span><span id="consensus-display" style="display:flex;align-items:center;gap:6px;"></span>`;
+}
+
+function toggleVoter(id, el) {
+  S.voters[id] = !S.voters[id];
+  el.classList.toggle('on', S.voters[id]);
+  // Re-render charts with updated layers
+}
+
+// ===== HEATMAP =====
+function setChartMode(mode) {
+  S.chartMode = mode;
+  document.getElementById('tab-chart').classList.toggle('active', mode === 'chart');
+  document.getElementById('tab-heatmap').classList.toggle('active', mode === 'heatmap');
+  document.getElementById('chart-panels').style.display = mode === 'chart' ? 'flex' : 'none';
+  document.getElementById('heatmap-area').classList.toggle('active', mode === 'heatmap');
+  document.getElementById('voter-toggles').style.display = mode === 'chart' ? 'flex' : 'none';
+  if (mode === 'heatmap') renderHeatmap();
+}
+
+function renderHeatmap() {
+  const area = document.getElementById('heatmap-area');
+  const buckets = ['0-14d', '15-30d', '31-60d', '61-90d', '91+d'];
+  const hotels = {};
+  S.options.forEach(r => {
+    if (!hotels[r.hotel_name]) hotels[r.hotel_name] = {};
+    const t = computeT(r);
+    const bucket = t <= 14 ? '0-14d' : t <= 30 ? '15-30d' : t <= 60 ? '31-60d' : t <= 90 ? '61-90d' : '91+d';
+    if (!hotels[r.hotel_name][bucket]) hotels[r.hotel_name][bucket] = { call: 0, put: 0, neut: 0, total: 0 };
+    const sig = (r.option_signal || 'NEUTRAL').toUpperCase();
+    if (sig === 'CALL') hotels[r.hotel_name][bucket].call++;
+    else if (sig === 'PUT') hotels[r.hotel_name][bucket].put++;
+    else hotels[r.hotel_name][bucket].neut++;
+    hotels[r.hotel_name][bucket].total++;
+  });
+
+  let html = '<table><thead><tr><th>Hotel</th>' + buckets.map(b => `<th>${b}</th>`).join('') + '</tr></thead><tbody>';
+  Object.keys(hotels).sort().forEach(name => {
+    html += `<tr><td style="text-align:left;color:#e2e8f0;">${name}</td>`;
+    buckets.forEach(b => {
+      const cell = hotels[name][b] || { call:0, put:0, neut:0, total:0 };
+      let bg = '#1e293b', color = '#64748b';
+      if (cell.call > cell.put && cell.call > cell.neut) { bg = `rgba(16,185,129,${0.1 + cell.call/cell.total*0.4})`; color = '#10b981'; }
+      else if (cell.put > cell.call && cell.put > cell.neut) { bg = `rgba(239,68,68,${0.1 + cell.put/cell.total*0.4})`; color = '#ef4444'; }
+      html += `<td style="background:${bg};color:${color};" onclick="filterFromHeatmap('${name}','${b}')">${cell.total || ''}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  area.innerHTML = html;
+}
+
+function filterFromHeatmap(hotel, bucket) {
+  document.getElementById('f-hotel').value = hotel;
+  const tMap = {'0-14d':'0-14','15-30d':'15-30','31-60d':'31-60','61-90d':'61-90','91+d':'91+'};
+  document.getElementById('f-t').value = tMap[bucket] || '';
+  setChartMode('chart');
+  applyFilters();
+}
+
+// ===== SIDEBAR: ALERTS =====
+function renderAlerts(data) {
+  const feed = document.getElementById('alerts-feed');
+  const alerts = data?.alerts || [];
+  document.getElementById('alert-count').textContent = alerts.length;
+  if (!alerts.length) { feed.innerHTML = '<div class="muted">No active alerts</div>'; return; }
+  feed.innerHTML = alerts.slice(0, 10).map(a => `
+    <div class="alert-item" style="cursor:pointer;" onclick="selectRow(${a.detail_id || 0})">
+      <div class="alert-sev ${a.severity || 'info'}"></div>
+      <div>
+        <div class="alert-text">${a.message || a.alert_type || '—'}</div>
+        <div class="alert-time">${timeAgo(a.timestamp || a.created_at)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== SIDEBAR: QUEUES =====
+function renderOverrideQueue(data) {
+  const feed = document.getElementById('override-feed');
+  const pending = data?.pending || [];
+  document.getElementById('override-count').textContent = `${pending.length} pending`;
+  feed.innerHTML = pending.slice(0, 5).map(q => `
+    <div class="queue-item">
+      <span class="muted">${q.hotel_name || q.detail_id} -$${q.discount_usd || 1}</span>
+      <span><span class="status-dot status-${q.status || 'pending'}"></span> ${q.status || 'pending'}</span>
+    </div>
+  `).join('') || '<div class="muted">Empty</div>';
+}
+
+function renderOppQueue(data) {
+  const feed = document.getElementById('opp-feed');
+  const pending = data?.pending || [];
+  document.getElementById('opp-count').textContent = `${pending.length} pending`;
+  feed.innerHTML = pending.slice(0, 5).map(q => `
+    <div class="queue-item">
+      <span class="muted">${q.hotel_name || q.detail_id} +$${q.profit_usd || 50}</span>
+      <span><span class="status-dot status-${q.status || 'pending'}"></span> ${q.status || 'pending'}</span>
+    </div>
+  `).join('') || '<div class="muted">Empty</div>';
+}
+
+// ===== SIDEBAR: RULES =====
+function renderRules(oRules, cRules) {
+  const feed = document.getElementById('rules-feed');
+  const all = [...(oRules?.rules || []), ...(cRules?.rules || [])];
+  feed.innerHTML = all.slice(0, 5).map(r => `
+    <div style="padding:4px 0;border-bottom:1px solid #111827;">
+      <div class="bright" style="font-size:10px;">${r.rule_name || r.name || 'Rule'}</div>
+      <div class="muted" style="font-size:9px;">${r.rule_type || ''} • ${r.is_active ? 'Active' : 'Inactive'}</div>
+    </div>
+  `).join('') || '<div class="muted">No rules configured</div>';
+}
+
+// ===== EXECUTION ACTIONS =====
+async function queueOverride() {
+  if (!S.selectedId) return;
+  try {
+    await fetch(`${API}/override/new`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ detail_id: S.selectedId, discount_usd: 1, signal: 'PUT' })
+    });
+    const q = await fetchJSON(`${API}/override/queue`);
+    renderOverrideQueue(q);
+  } catch (e) { console.error('Override error:', e); }
+}
+
+async function queueOpportunity() {
+  if (!S.selectedId) return;
+  try {
+    await fetch(`${API}/opportunity/new`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ detail_id: S.selectedId, max_rooms: 1, signal: 'CALL' })
+    });
+    const q = await fetchJSON(`${API}/opportunity/queue`);
+    renderOppQueue(q);
+  } catch (e) { console.error('Opportunity error:', e); }
+}
+
+async function triggerRules() {
+  try {
+    await fetch(`${API}/rules/trigger`, { method: 'POST' });
+    alert('Rules triggered');
+  } catch (e) { console.error('Rules trigger error:', e); }
+}
+
+// ===== RESIZE HANDLE =====
+function initResizeHandle() {
+  const handle = document.getElementById('resize-handle');
+  const tableArea = document.getElementById('table-area');
+  let startY, startH;
+  handle.addEventListener('mousedown', e => {
+    startY = e.clientY;
+    startH = tableArea.offsetHeight;
+    const onMove = e2 => { tableArea.style.flex = `0 0 ${startH + (e2.clientY - startY)}px`; };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      localStorage.setItem('tv2-table-h', tableArea.style.flex);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  const saved = localStorage.getItem('tv2-table-h');
+  if (saved) tableArea.style.flex = saved;
+}
+
+// ===== AUTO REFRESH =====
+function startAutoRefresh() {
+  S.refreshTimer = setInterval(async () => {
+    try {
+      const [options, summary] = await Promise.all([
+        fetchJSON(`${API}/options?limit=5000&profile=lite`),
+        fetchJSON(`${API}/macro/summary`).catch(() => null),
+      ]);
+      if (options?.rows) { S.options = options.rows; applyFilters(); }
+      if (summary) renderHeaderStats(summary);
+    } catch (e) { console.error('Refresh error:', e); }
+  }, 60000);
+  S.alertsTimer = setInterval(async () => {
+    try {
+      const alerts = await fetchJSON(`${API}/streaming-alerts?limit=10`);
+      renderAlerts(alerts);
+    } catch (e) {}
+  }, 30000);
+}
+
+// ===== UTILS =====
+function timeAgo(ts) {
+  if (!ts) return '';
+  const diff = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+// ===== KEYBOARD NAVIGATION =====
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const rows = S.filtered;
+  if (!rows.length) return;
+  const idx = rows.findIndex(r => r.detail_id === S.selectedId);
+  if (e.key === 'ArrowDown' && idx < rows.length - 1) { e.preventDefault(); selectRow(rows[idx + 1].detail_id); }
+  if (e.key === 'ArrowUp' && idx > 0) { e.preventDefault(); selectRow(rows[idx - 1].detail_id); }
+});
+</script>
+</body>
+</html>

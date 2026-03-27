@@ -451,3 +451,10 @@ async def dashboard_trading_analysis():
         if html_path.exists():
             return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Trading Analysis dashboard not found</h1>", status_code=404)
+
+
+@dashboard_router.get("/dashboard/terminal-v2", response_class=HTMLResponse)
+async def dashboard_terminal_v2():
+    """Terminal V2 — unified Bloomberg-style trading terminal."""
+    from src.analytics.terminal_v2_page import generate_terminal_v2_html
+    return HTMLResponse(content=generate_terminal_v2_html())
