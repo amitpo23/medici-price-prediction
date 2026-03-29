@@ -174,7 +174,7 @@ def start_salesoffice_scheduler() -> None:
             _analysis_warming.set()
             try:
                 _run_collection_cycle()
-            except (OSError, ConnectionError, ValueError) as e:
+            except Exception as e:
                 logger.error("SalesOffice collection cycle failed: %s", e, exc_info=True)
             finally:
                 _analysis_warming.clear()

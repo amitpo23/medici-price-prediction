@@ -4289,8 +4289,8 @@ def hotel_positions(
 # ── Enrichment Attribution endpoints ─────────────────────────────────
 
 
-@analytics_router.get("/attribution/enrichments")
-def enrichment_attribution(
+@analytics_router.get("/attribution/factor")
+def factor_attribution(
     request: Request,
     hotel_id: int | None = None,
     _key=Depends(_optional_api_key),

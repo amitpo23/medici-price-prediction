@@ -122,8 +122,8 @@ class SchedulerWatchdogMiddleware(BaseHTTPMiddleware):
                 if _salesoffice_scheduler_allowed() and not _is_scheduler_running():
                     logger.warning("Watchdog: scheduler dead — restarting")
                     start_salesoffice_scheduler()
-            except Exception:
-                pass  # Never block a request for watchdog issues
+            except Exception as exc:
+                logger.warning("Watchdog: scheduler restart failed: %s", exc)
         return await call_next(request)
 
 
