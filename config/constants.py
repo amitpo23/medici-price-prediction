@@ -61,6 +61,9 @@ WEIGHT_SCALE_CONF = 0.5
 SIGNAL_THRESHOLD_HIGH = 0.70   # High-confidence CALL/PUT threshold
 SIGNAL_THRESHOLD_MEDIUM = 0.60  # Medium-confidence threshold
 
+# Consensus engine — minimum non-neutral voters needed for a signal
+MIN_VOTING_SOURCES = 4
+
 # ── Enrichment Caps (daily % impact on forward curve) ──────────────────
 # Note: All enrichments are also subject to a cumulative ±0.5%/day cap
 # in forward_curve.py predict_forward_curve() to prevent enrichment stacking

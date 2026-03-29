@@ -71,7 +71,7 @@ def calculate_consensus(votes: List[SourceVote]) -> dict:
 
         probability = round(agreeing / n_voting * 100, 1)
 
-        MIN_VOTING_SOURCES = 4  # Need at least 4 non-neutral voters for a signal
+        from config.constants import MIN_VOTING_SOURCES
         if n_voting < MIN_VOTING_SOURCES:
             signal = "NEUTRAL"  # Too few voters = insufficient data
         elif probability >= 66.0:
