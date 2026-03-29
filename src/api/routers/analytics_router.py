@@ -2616,57 +2616,27 @@ async def override_execute_direct(
             logger.error("Override DB write failed: %s", exc)
 
         # Step 3: Push to Zenith
-        import requests as req_lib
-        from datetime import datetime as dt
-
-        soap = f'''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
-  <SOAP-ENV:Header>
-    <wsse:Security soap:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-      <wsse:UsernameToken>
-        <wsse:Username>APIMedici:Medici Live</wsse:Username>
-        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">12345</wsse:Password>
-      </wsse:UsernameToken>
-    </wsse:Security>
-  </SOAP-ENV:Header>
-  <SOAP-ENV:Body>
-    <OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="{dt.now().strftime("%Y-%m-%dT%H:%M:%S")}" Version="1.0" EchoToken="override-test">
-      <RateAmountMessages HotelCode="{zenith_id}">
-        <RateAmountMessage>
-          <StatusApplicationControl InvTypeCode="{itc}" RatePlanCode="{rpc}" Start="{date_from}" End="{date_from}"/>
-          <Rates>
-            <Rate>
-              <BaseByGuestAmts>
-                <BaseByGuestAmt AgeQualifyingCode="10" AmountAfterTax="{target_price}"/>
-                <BaseByGuestAmt AgeQualifyingCode="8" AmountAfterTax="{target_price}"/>
-              </BaseByGuestAmts>
-            </Rate>
-          </Rates>
-        </RateAmountMessage>
-      </RateAmountMessages>
-    </OTA_HotelRateAmountNotifRQ>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>'''
+        from src.utils.zenith_push import build_soap_envelope, push_rate_to_zenith
 
         zenith_result = {"status": "not_pushed", "detail": "Waiting for confirmation"}
         # *** SAFETY: Only push if explicitly enabled ***
         push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
         if push_enabled:
-            try:
-                resp = req_lib.post(
-                    "https://hotel.tools/service/Medici%20new",
-                    data=soap,
-                    headers={"Content-Type": "text/xml"},
-                    timeout=10,
-                )
-                zenith_success = resp.status_code == 200 and "Error" not in resp.text
-                zenith_result = {
-                    "status": "success" if zenith_success else "error",
-                    "http_code": resp.status_code,
-                    "response_preview": resp.text[:200],
-                }
-            except Exception as exc:
-                zenith_result = {"status": "error", "detail": str(exc)[:200]}
+            success, response_preview = push_rate_to_zenith(
+                hotel_code=zenith_id, inv_type_code=itc, rate_plan_code=rpc,
+                start=date_from, end=date_from, amount=target_price,
+                echo_token="override-single",
+            )
+            zenith_result = {
+                "status": "success" if success else "error",
+                "response_preview": response_preview,
+            }
         else:
+            soap = build_soap_envelope(
+                hotel_code=zenith_id, inv_type_code=itc, rate_plan_code=rpc,
+                start=date_from, end=date_from, amount=target_price,
+                echo_token="override-single",
+            )
             zenith_result = {
                 "status": "dry_run",
                 "detail": "OVERRIDE_PUSH_ENABLED=false — Zenith push skipped. Set to true to enable.",
@@ -3216,8 +3186,6 @@ async def override_execute_bulk(
     import pyodbc
     import os
     import time as _time
-    import requests as req_lib
-    from datetime import datetime as dt
     from urllib.parse import urlparse, parse_qs, unquote
 
     push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
@@ -3378,28 +3346,15 @@ async def override_execute_bulk(
 
             # Push to Zenith
             if push_enabled:
-                soap = f'''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
-  <SOAP-ENV:Header><wsse:Security soap:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-    <wsse:UsernameToken><wsse:Username>APIMedici:Medici Live</wsse:Username>
-      <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">12345</wsse:Password>
-    </wsse:UsernameToken></wsse:Security></SOAP-ENV:Header>
-  <SOAP-ENV:Body><OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="{dt.now().strftime("%Y-%m-%dT%H:%M:%S")}" Version="1.0" EchoToken="bulk-override">
-    <RateAmountMessages HotelCode="{zenith_id}"><RateAmountMessage>
-      <StatusApplicationControl InvTypeCode="{itc}" RatePlanCode="{rpc}" Start="{date_from}" End="{date_from}"/>
-      <Rates><Rate><BaseByGuestAmts>
-        <BaseByGuestAmt AgeQualifyingCode="10" AmountAfterTax="{target_price}"/>
-        <BaseByGuestAmt AgeQualifyingCode="8" AmountAfterTax="{target_price}"/>
-      </BaseByGuestAmts></Rate></Rates>
-    </RateAmountMessage></RateAmountMessages>
-  </OTA_HotelRateAmountNotifRQ></SOAP-ENV:Body></SOAP-ENV:Envelope>'''
-
+                from src.utils.zenith_push import push_rate_to_zenith
                 try:
                     _time.sleep(0.2)  # 200ms delay between pushes
-                    resp = req_lib.post(
-                        "https://hotel.tools/service/Medici%20new",
-                        data=soap, headers={"Content-Type": "text/xml"}, timeout=10,
+                    success, response_preview = push_rate_to_zenith(
+                        hotel_code=zenith_id, inv_type_code=itc, rate_plan_code=rpc,
+                        start=date_from, end=date_from, amount=target_price,
+                        echo_token="bulk-override",
                     )
-                    if resp.status_code == 200 and "Error" not in resp.text:
+                    if success:
                         results["success"] += 1
                         results["details"].append({
                             "detail_id": detail_id, "hotel": item["hotel_name"],
@@ -3408,7 +3363,7 @@ async def override_execute_bulk(
                         })
                     else:
                         results["failed"] += 1
-                        results["errors"].append(f"{detail_id}: Zenith error {resp.status_code}")
+                        results["errors"].append(f"{detail_id}: Zenith error - {response_preview[:80]}")
                 except Exception as exc:
                     results["failed"] += 1
                     results["errors"].append(f"{detail_id}: push error - {str(exc)[:80]}")
@@ -3954,8 +3909,8 @@ async def signal_consensus_detail(
         from src.collectors.gmcvb_collector import get_official_adr
         if seg:
             official_adr = get_official_adr(seg["zone"])
-    except ImportError:
-        pass
+    except ImportError as exc:
+        logger.debug("GMCVB collector not available for consensus: %s", exc)
 
     # Build events list for consensus voter
     events_for_voter = []
@@ -3977,8 +3932,8 @@ async def signal_consensus_detail(
                     events_for_voter.append({"name": ev["name"], "status": "upcoming"})
                 elif ev_end < checkin <= ev_end + timedelta(days=7):
                     events_for_voter.append({"name": ev["name"], "status": "past"})
-    except (ImportError, ValueError, TypeError):
-        pass
+    except (ImportError, ValueError, TypeError) as exc:
+        logger.debug("Events lookup for consensus voter failed: %s", exc)
 
     # MED_Book buy price for margin erosion voter
     _buy_price = 0.0
@@ -3990,8 +3945,8 @@ async def signal_consensus_detail(
             _hotel_rows = _mb[_mb["HotelId"] == _hid]
             if not _hotel_rows.empty:
                 _buy_price = float(_hotel_rows["BuyPrice"].mean())
-    except (ImportError, OSError, ConnectionError, ValueError):
-        pass
+    except (ImportError, OSError, ConnectionError, ValueError) as exc:
+        logger.debug("MED_Book buy price lookup failed: %s", exc)
 
     result = compute_consensus_signal(
         pred, zone_avg=zone_avg, official_adr=official_adr,
@@ -4105,8 +4060,8 @@ async def signal_arbitrage_detail(
         from src.collectors.gmcvb_collector import get_official_adr
         if seg:
             official_adr = get_official_adr(seg["zone"])
-    except ImportError:
-        pass
+    except ImportError as exc:
+        logger.debug("GMCVB collector not available for arbitrage: %s", exc)
 
     result = compute_arbitrage_timeline(pred, zone_avg=zone_avg, official_adr=official_adr)
     result["segment"] = seg
@@ -4538,8 +4493,8 @@ def dispatch_streaming_alerts(
             cached_data = _cm.get("analysis", "current_predictions")
             if cached_data and isinstance(cached_data, dict):
                 previous = cached_data
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Previous analysis lookup for alert flip detection failed: %s", exc)
 
         # Dispatch alerts
         result = dispatch_alerts(current, previous)
