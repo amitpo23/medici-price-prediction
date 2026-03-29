@@ -280,12 +280,14 @@ def vote_peers(pred: dict, peer_prices: Optional[List[dict]] = None) -> SourceVo
 
 
 def vote_booking_momentum(pred: dict) -> SourceVote:
-    """Lagging — cancellation_adj_pct from FC: < -2% -> PUT."""
+    """Lagging — cancellation_adj_pct from FC: < -2% -> PUT, > +1% -> CALL (low cancellations = demand)."""
     adj = _fc_field(pred, "cancellation_adj_pct", 0.0)
     adj_pct = adj * 100
 
     if adj_pct < -2.0:
         return SourceVote("booking_momentum", "PUT", "Lagging", f"Cancellation drag {adj_pct:.1f}%")
+    if adj_pct > 1.0:
+        return SourceVote("booking_momentum", "CALL", "Lagging", f"Low cancellations {adj_pct:.1f}% — demand confirmed")
     return SourceVote("booking_momentum", "NEUTRAL", "Lagging", f"Cancellations {adj_pct:.1f}%")
 
 
