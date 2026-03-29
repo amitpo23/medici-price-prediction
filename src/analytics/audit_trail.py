@@ -374,8 +374,8 @@ def _row_to_event(row: dict) -> AuditEvent:
     payload = {}
     try:
         payload = json.loads(row.get("payload_json", "{}") or "{}")
-    except (json.JSONDecodeError, TypeError):
-        pass
+    except (json.JSONDecodeError, TypeError) as exc:
+        logger.debug("Audit trail payload_json parse failed: %s", exc)
 
     return AuditEvent(
         event_id=row.get("event_id"),

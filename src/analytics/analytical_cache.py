@@ -809,8 +809,8 @@ class AnalyticalCache:
                 row = conn.execute("SELECT COUNT(*) as cnt, MAX(created_at) as latest FROM trade_journal").fetchone()
                 result["trade_journal"]["count"] = row["cnt"] if row else 0
                 result["trade_journal"]["latest"] = row["latest"] if row else None
-            except sqlite3.OperationalError:
-                pass
+            except sqlite3.OperationalError as exc:
+                logger.debug("Trade journal stats query failed: %s", exc)
             return result
         finally:
             conn.close()

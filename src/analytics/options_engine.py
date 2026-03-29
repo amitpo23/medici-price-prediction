@@ -113,7 +113,7 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 max_drop_pct = ((current_price - fc_min) / current_price) * 100
                 max_rise_pct = ((fc_max - current_price) / current_price) * 100
 
-            # --- Consensus signal from 11 independent voters ---
+            # --- Consensus signal from 14 independent voters ---
             # Get zone context for competitor/benchmark voting
             zone_avg = 0.0
             official_adr = 0.0
@@ -144,16 +144,16 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                                 peer_directions.append({"direction": "down"})
                     if zone_prices:
                         zone_avg = sum(zone_prices) / len(zone_prices)
-            except (ImportError, ValueError, TypeError):
-                pass  # hotel_segments is optional
+            except (ImportError, ValueError, TypeError) as exc:
+                logger.debug("Hotel segments lookup failed: %s", exc)
 
             # Get official ADR for this zone from GMCVB benchmarks
             try:
                 from src.collectors.gmcvb_collector import get_official_adr
                 if seg:
                     official_adr = get_official_adr(seg["zone"])
-            except ImportError:
-                pass
+            except ImportError as exc:
+                logger.debug("GMCVB collector not available: %s", exc)
 
             # Build events list for consensus voter
             events_for_voter = []
@@ -175,8 +175,8 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                             events_for_voter.append({"name": ev["name"], "status": "upcoming"})
                         elif ev_end < checkin <= ev_end + timedelta(days=7):
                             events_for_voter.append({"name": ev["name"], "status": "past"})
-            except (ImportError, ValueError, TypeError):
-                pass
+            except (ImportError, ValueError, TypeError) as exc:
+                logger.debug("Events lookup for consensus voter failed: %s", exc)
 
             # MED_Book buy price for margin erosion voter
             buy_price = med_book_prices.get(int(hotel_id_val), 0.0) if hotel_id_val else 0.0

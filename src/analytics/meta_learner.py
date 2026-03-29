@@ -468,8 +468,8 @@ def _group_accuracy_by_season(predictions: dict) -> dict[str, dict[str, int]]:
             try:
                 month = int(checkin[5:7])
                 season = MONTH_TO_SEASON.get(month, "unknown")
-            except (ValueError, IndexError):
-                pass
+            except (ValueError, IndexError) as exc:
+                logger.debug("Meta-learner season parse failed for %s: %s", checkin, exc)
 
         signal = pred.get("option_signal", "NONE") or "NONE"
         groups[season]["total"] += 1

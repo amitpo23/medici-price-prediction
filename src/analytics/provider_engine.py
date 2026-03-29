@@ -118,8 +118,8 @@ def _parse_provider(providers_val) -> str:
         if isinstance(parsed, dict):
             return parsed.get("name", parsed.get("Name", str(parsed)))
         return str(parsed).strip()
-    except (json.JSONDecodeError, TypeError):
-        pass
+    except (json.JSONDecodeError, TypeError) as exc:
+        logger.debug("Provider name JSON parse failed: %s", exc)
 
     # Comma-separated
     if "," in s:
