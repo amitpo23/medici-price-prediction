@@ -12,11 +12,19 @@ from pathlib import Path
 
 import pandas as pd
 
-from config.settings import DATA_DIR
+from config.settings import DATA_DIR, IS_PRODUCTION
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = DATA_DIR / "salesoffice_prices.db"
+# On Azure, /home/site/wwwroot/data/ gets overwritten on deploy and may have
+# permission issues. Use /home/data/ for persistent writable SQLite storage.
+if IS_PRODUCTION and Path("/home/data").exists():
+    _SQLITE_DIR = Path("/home/data")
+else:
+    _SQLITE_DIR = DATA_DIR
+
+_SQLITE_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = _SQLITE_DIR / "salesoffice_prices.db"
 
 
 def _get_conn() -> sqlite3.Connection:
