@@ -27,13 +27,16 @@ def _get_conn() -> sqlite3.Connection:
 
 def init_db() -> None:
     """Create tables if they don't exist. Recreates DB if corrupted."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     try:
         conn = _get_conn()
     except sqlite3.DatabaseError:
         logger.warning("SQLite DB corrupted at %s — recreating", DB_PATH)
-        DB_PATH.unlink(missing_ok=True)
-        for suffix in (".db-wal", ".db-shm"):
-            Path(str(DB_PATH) + suffix.replace(".db", "")).unlink(missing_ok=True)
+        for p in (DB_PATH, Path(str(DB_PATH) + "-wal"), Path(str(DB_PATH) + "-shm")):
+            try:
+                p.unlink(missing_ok=True)
+            except OSError:
+                pass
         conn = _get_conn()
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS price_snapshots (
