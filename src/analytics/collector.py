@@ -142,6 +142,21 @@ def collect_prices() -> pd.DataFrame:
         _finish_collection(state="empty", successful_query=True)
         return df
 
+    # Filter out extreme price outliers (runaway override protection)
+    MAX_SANE_PRICE = 10_000.0
+    if "room_price" in df.columns:
+        outliers = df[df["room_price"] > MAX_SANE_PRICE]
+        if len(outliers) > 0:
+            logger.warning(
+                "Filtered %d outlier prices (>$%s): %s",
+                len(outliers), f"{MAX_SANE_PRICE:,.0f}",
+                ", ".join(
+                    f"{r.get('hotel_name', '?')} ${r['room_price']:,.0f}"
+                    for _, r in outliers.head(5).iterrows()
+                ),
+            )
+            df = df[df["room_price"] <= MAX_SANE_PRICE]
+
     # Convert dates to string for storage
     for col in ("date_from", "date_to"):
         if col in df.columns:

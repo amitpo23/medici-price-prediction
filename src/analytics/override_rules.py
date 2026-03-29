@@ -484,6 +484,16 @@ def execute_matched_overrides(matches: list[dict]) -> dict:
             hotel_id = match.get("hotel_id", 0)
             hotel_name = match.get("hotel_name", "")
 
+            # Runaway override protection — reject absurd prices
+            if target_price > 10_000 or original_price > 10_000:
+                logger.warning(
+                    "Override BLOCKED — price out of sane range: detail=%d "
+                    "original=$%.2f target=$%.2f hotel=%s",
+                    detail_id, original_price, target_price, hotel_name,
+                )
+                summary["skipped"] += 1
+                continue
+
             db_write_ok = False
             zenith_push_ok = False
 
