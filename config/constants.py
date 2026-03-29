@@ -7,10 +7,9 @@ Change values here to tune the prediction engine without modifying code.
 # ── Prediction Engine ─────────────────────────────────────────────────
 
 # Ensemble weights — how the 3 signals combine (must sum to 1.0)
-# Historical Pattern inflates predictions via aggressive lead-time adjustment (+240%)
-# Until lead-time formula is fixed, keep Historical at 10% to prevent all-CALL bias
-ENSEMBLE_WEIGHT_FORWARD_CURVE = 0.70
-ENSEMBLE_WEIGHT_HISTORICAL = 0.10
+# Historical uses compounding + horizon decay (no longer linear inflate)
+ENSEMBLE_WEIGHT_FORWARD_CURVE = 0.55
+ENSEMBLE_WEIGHT_HISTORICAL = 0.25
 ENSEMBLE_WEIGHT_ML = 0.20
 
 # Bayesian shrinkage prior strength (higher = more smoothing toward global mean)
@@ -63,6 +62,8 @@ SIGNAL_THRESHOLD_HIGH = 0.70   # High-confidence CALL/PUT threshold
 SIGNAL_THRESHOLD_MEDIUM = 0.60  # Medium-confidence threshold
 
 # ── Enrichment Caps (daily % impact on forward curve) ──────────────────
+# Note: All enrichments are also subject to a cumulative ±0.5%/day cap
+# in forward_curve.py predict_forward_curve() to prevent enrichment stacking
 
 # Demand (flights)
 DEMAND_IMPACT_HIGH = 0.15    # HIGH demand → +0.15%/day
