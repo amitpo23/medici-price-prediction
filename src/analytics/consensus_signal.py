@@ -135,7 +135,7 @@ def _fc_field(pred: dict, field_name: str, default: float = 0.0) -> float:
 # ---------------------------------------------------------------------------
 
 def vote_forward_curve(pred: dict) -> SourceVote:
-    """Lagging — FC prices: drop >= 5% -> PUT, rise >= 15% -> CALL."""
+    """Lagging — FC prices: drop >= 5% -> PUT, rise >= 8% -> CALL."""
     fc = pred.get("forward_curve")
     if not fc or not isinstance(fc, list) or len(fc) == 0:
         return SourceVote("forward_curve", "NEUTRAL", "Lagging", "No FC data")
@@ -152,7 +152,7 @@ def vote_forward_curve(pred: dict) -> SourceVote:
 
     if change_pct <= -5.0:
         return SourceVote("forward_curve", "PUT", "Lagging", f"FC drop {change_pct:.1f}%")
-    elif change_pct >= 15.0:
+    elif change_pct >= 8.0:
         return SourceVote("forward_curve", "CALL", "Lagging", f"FC rise {change_pct:.1f}%")
     return SourceVote("forward_curve", "NEUTRAL", "Lagging", f"FC change {change_pct:.1f}% within range")
 
@@ -180,7 +180,7 @@ def vote_scan_velocity(pred: dict) -> SourceVote:
 
 
 def vote_competitors(pred: dict, zone_avg: float = 0.0) -> SourceVote:
-    """Coincident — price vs zone avg: <= -15% -> CALL (underpriced), >= +10% -> PUT (overpriced)."""
+    """Coincident — price vs zone avg: <= -10% -> CALL (underpriced), >= +10% -> PUT (overpriced)."""
     if zone_avg <= 0:
         return SourceVote("competitors", "NEUTRAL", "Coincident", "No zone average")
 
@@ -195,7 +195,7 @@ def vote_competitors(pred: dict, zone_avg: float = 0.0) -> SourceVote:
 
     diff_pct = ((price - zone_avg) / zone_avg) * 100
 
-    if diff_pct <= -15.0:
+    if diff_pct <= -10.0:
         return SourceVote("competitors", "CALL", "Coincident", f"Price {diff_pct:.1f}% below zone avg")
     elif diff_pct >= 10.0:
         return SourceVote("competitors", "PUT", "Coincident", f"Price {diff_pct:.1f}% above zone avg")
