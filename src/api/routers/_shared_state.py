@@ -456,6 +456,12 @@ def _run_collection_cycle() -> dict | None:
     except Exception as exc:
         logger.warning("Opportunity rules execution failed (non-fatal): %s", exc)
 
+    # ── Post-execution verification ─────────────────────────────
+    try:
+        _verify_recent_executions()
+    except Exception as exc:
+        logger.warning("Post-execution verification failed (non-fatal): %s", exc)
+
     logger.info(
         "SalesOffice: analysis complete — %d rooms, %d hotels",
         analysis.get("statistics", {}).get("total_rooms", 0),
@@ -1331,3 +1337,36 @@ def _detect_brightdata_ota_outputs() -> dict:
     except (FileNotFoundError, OSError, KeyError, ValueError) as exc:
         logger.warning("BrightData OTA output detection failed: %s", exc)
         return result
+
+
+def _verify_recent_executions() -> None:
+    """Check if recent override pushes and opportunity inserts took effect."""
+    from datetime import timedelta
+
+    # Check recent BackOfficeOPT entries (CALL opportunities)
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection
+        conn = get_pyodbc_connection()
+        cursor = conn.cursor()
+
+        # Check opportunities created in last 6 hours
+        cutoff = (datetime.utcnow() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("""
+            SELECT TOP 10 id, HotelID, BuyPrice, PushPrice, Status, DateInsert
+            FROM BackOfficeOPT
+            WHERE DateInsert >= ?
+            ORDER BY DateInsert DESC
+        """, cutoff)
+
+        recent_opps = cursor.fetchall()
+        if recent_opps:
+            active = sum(1 for r in recent_opps if r.Status)
+            filled = sum(1 for r in recent_opps if not r.Status)
+            logger.info(
+                "Execution verification: %d recent opportunities — %d active, %d filled/cancelled",
+                len(recent_opps), active, filled,
+            )
+
+        conn.close()
+    except Exception as exc:
+        logger.debug("Execution verification DB check failed: %s", exc)
