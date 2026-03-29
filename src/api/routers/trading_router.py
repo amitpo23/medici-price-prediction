@@ -29,6 +29,7 @@ from src.api.routers._shared_state import (
     _refresh_analytical_cache_daily,
     _refresh_analytical_cache_signals,
     _get_cached_analysis,
+    _get_cached_signals,
 )
 
 logger = logging.getLogger(__name__)
@@ -358,4 +359,146 @@ async def get_hotel_trading_overview(
             "bearish_signals": bearish_signals,
             "bias": "BULLISH" if bullish_signals > bearish_signals else "BEARISH" if bearish_signals > bullish_signals else "NEUTRAL",
         },
+    }
+
+
+# ── Daily Trading Summary ───────────────────────────────────────────
+
+
+@trading_router.get("/daily-summary")
+async def get_daily_trading_summary(
+    request=None,
+    top_n: int = Query(5, ge=1, le=20, description="Number of top CALL/PUT items"),
+    _key: str = Depends(_optional_api_key),
+):
+    """Morning brief: signal distribution, top movers, rules status, accuracy snapshot.
+
+    Aggregates from cached signals and analysis — no new DB queries.
+    """
+    from datetime import date
+
+    signals = _get_cached_signals()
+    if not signals:
+        return JSONResponse(
+            {"error": "Signals not available yet — cache warming up"},
+            status_code=503,
+        )
+
+    today = date.today().isoformat()
+
+    # --- Signal distribution ---
+    dist: dict[str, int] = {"CALL": 0, "PUT": 0, "NEUTRAL": 0}
+    hotels_seen: set[int] = set()
+    confidences: list[float] = []
+    t_values: list[int] = []
+    prices: list[float] = []
+    calls: list[dict] = []
+    puts: list[dict] = []
+
+    for sig in signals:
+        rec = sig.get("recommendation", "NONE")
+        # Map NONE to NEUTRAL for the summary
+        mapped = "NEUTRAL" if rec == "NONE" else rec
+        dist[mapped] = dist.get(mapped, 0) + 1
+
+        hotel_id = sig.get("hotel_id")
+        if hotel_id is not None:
+            hotels_seen.add(int(hotel_id))
+
+        conf_pct = float(sig.get("consensus_probability", 0) or 0)
+        confidences.append(conf_pct)
+
+        t_val = sig.get("T")
+        if t_val is not None:
+            t_values.append(int(t_val))
+
+        price = float(sig.get("S_t", 0) or 0)
+        if price > 0:
+            prices.append(price)
+
+        exp_return = float(sig.get("expected_return_1d", 0) or 0)
+        item = {
+            "hotel": sig.get("hotel_name", ""),
+            "category": sig.get("category", ""),
+            "price": round(price, 2),
+            "predicted": round(price * (1 + exp_return / 100), 2) if price > 0 else 0,
+            "change_pct": round(exp_return, 1),
+        }
+
+        if rec == "CALL":
+            calls.append(item)
+        elif rec == "PUT":
+            puts.append(item)
+
+    # Sort by magnitude of expected change
+    calls.sort(key=lambda x: x["change_pct"], reverse=True)
+    puts.sort(key=lambda x: x["change_pct"])  # most negative first
+
+    # --- Rules status ---
+    override_rules_active = 0
+    opportunity_rules_active = 0
+    recent_overrides = 0
+    recent_opportunities = 0
+
+    try:
+        from src.analytics.override_rules import get_rules
+        rules = get_rules(active_only=True)
+        override_rules_active = len(rules)
+    except (ImportError, OSError, Exception):
+        pass
+
+    try:
+        from src.analytics.opportunity_rules import get_opp_rules
+        opp_rules = get_opp_rules(active_only=True)
+        opportunity_rules_active = len(opp_rules)
+    except (ImportError, OSError, Exception):
+        pass
+
+    try:
+        from src.analytics.override_rules import get_execution_log
+        override_log = get_execution_log(limit=100)
+        recent_overrides = sum(
+            1 for entry in override_log
+            if str(entry.get("executed_at", "")).startswith(today)
+        )
+    except (ImportError, OSError, Exception):
+        pass
+
+    try:
+        from src.analytics.opportunity_rules import get_opp_execution_log
+        opp_log = get_opp_execution_log(limit=100)
+        recent_opportunities = sum(
+            1 for entry in opp_log
+            if str(entry.get("executed_at", "")).startswith(today)
+        )
+    except (ImportError, OSError, Exception):
+        pass
+
+    # --- Aggregates ---
+    total_options = len(signals)
+    avg_conf = round(sum(confidences) / len(confidences), 1) if confidences else 0
+    avg_t = round(sum(t_values) / len(t_values)) if t_values else 0
+
+    price_range = {
+        "min": round(min(prices), 2) if prices else 0,
+        "max": round(max(prices), 2) if prices else 0,
+        "avg": round(sum(prices) / len(prices), 2) if prices else 0,
+    }
+
+    return {
+        "date": today,
+        "signal_distribution": dist,
+        "total_options": total_options,
+        "hotels_count": len(hotels_seen),
+        "top_calls": calls[:top_n],
+        "top_puts": puts[:top_n],
+        "override_rules_active": override_rules_active,
+        "opportunity_rules_active": opportunity_rules_active,
+        "recent_executions": {
+            "overrides": recent_overrides,
+            "opportunities": recent_opportunities,
+        },
+        "avg_confidence_pct": avg_conf,
+        "avg_t_days": avg_t,
+        "price_range": price_range,
     }
