@@ -76,7 +76,10 @@ class HotelPriceForecaster:
         self.target_series = TimeSeries.from_dataframe(
             df, time_col=date_col, value_cols=target_col, fill_missing_dates=True
         )
-        self.target_series = self.scaler.fit_transform(self.target_series)
+        # Fit scaler on training portion only to prevent data leakage
+        train_portion = self.target_series[:len(self.target_series) - self.horizon]
+        self.scaler.fit(train_portion)
+        self.target_series = self.scaler.transform(self.target_series)
 
         # Past covariate series (known only historically)
         self.covariate_series = None

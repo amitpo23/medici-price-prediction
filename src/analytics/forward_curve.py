@@ -696,11 +696,12 @@ def predict_forward_curve(
         rebuy_adj = enrichments.get_rebuy_signal_daily_adj()
         sv_adj = enrichments.get_search_volume_daily_adj()
 
-        # Total daily change
-        total_daily_pct = (base_pct + offset_pct + mom_adj + event_adj
-                           + season_adj + demand_adj + weather_adj + comp_adj
-                           + velocity_adj + cancel_adj + provider_adj
-                           + dz_adj + rebuy_adj + sv_adj)
+        # Total daily change (with cumulative enrichment cap of ±0.5%/day)
+        enrichment_adj = (event_adj + season_adj + demand_adj + weather_adj
+                          + comp_adj + velocity_adj + cancel_adj + provider_adj
+                          + dz_adj + rebuy_adj + sv_adj)
+        enrichment_adj = max(-0.5, min(0.5, enrichment_adj))
+        total_daily_pct = base_pct + offset_pct + mom_adj + enrichment_adj
 
         # Apply change (multiplicative)
         predicted_price *= (1.0 + total_daily_pct / 100.0)

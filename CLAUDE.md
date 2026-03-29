@@ -8,7 +8,7 @@ Medici Price Prediction is a **Decision Brain** for hotel room pricing. It model
 
 ```
 Layer 1: Data Collection → 12 active sources (Azure SQL, APIs, files)
-Layer 2: Prediction Engine → Weighted ensemble: Forward Curve 50% + Historical 30% + ML 20%
+Layer 2: Prediction Engine → Weighted ensemble: Forward Curve 55% + Historical 25% + ML 20%
 Layer 3: AI Intelligence → Anomaly detection, risk assessment, Claude Q&A, rules engine
 Layer 4: API & Dashboard → FastAPI 90+ endpoints, HTML dashboard, JSON/CSV export
 ```
@@ -63,7 +63,7 @@ tests/
 1. **Read-only database access**: `src/data/trading_db.py` uses SQLAlchemy event listener to block all INSERT/UPDATE/DELETE. Never disable this.
 2. **Decision Brain boundary**: The system must NEVER execute trades, change prices, or perform actions in SalesOffice. It only reads and recommends.
 3. **Claude AI fallback**: Every AI feature must work without an API key via rule-based fallback. Never make Claude API a hard dependency.
-4. **Ensemble weights**: 50/30/20 split (FC/Historical/ML) is documented and validated. Don't change without A/B testing evidence.
+4. **Ensemble weights**: 55/25/20 split (FC/Historical/ML) after fixing Historical compounding bug. See config/constants.py.
 
 ## Prediction Pipeline
 

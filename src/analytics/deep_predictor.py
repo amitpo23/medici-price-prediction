@@ -14,6 +14,7 @@ Produces enriched predictions with:
 from __future__ import annotations
 
 import logging
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 
@@ -113,6 +114,7 @@ class DeepPredictor:
             current_price=current_price,
             date_from=date_from,
             enrichments=enrichments,
+            detail_id=detail_id,
         )
 
         # Collect available signals
@@ -386,34 +388,43 @@ class DeepPredictor:
             else:
                 return None  # No useful historical signal
 
-        # Adjust by lead-time pattern
+        # Adjust by lead-time pattern (compounding with horizon decay)
+        from math import exp as _exp
         lead_time = ctx.get("lead_time", [])
         lead_adj = 0.0
         for lt in lead_time:
             bucket = lt["bucket"]
+            daily_pct = lt["avg_daily_change_pct"]
+            matched = False
+            effective_days = 0
             if bucket == "0-7d" and days_to_checkin <= 7:
-                lead_adj = lt["avg_daily_change_pct"] * days_to_checkin
-                reasoning_parts.append(f"Lead-time ({bucket}): {lead_adj:+.1f}% typical")
-                break
+                effective_days = days_to_checkin
+                matched = True
             elif bucket == "8-14d" and 8 <= days_to_checkin <= 14:
-                lead_adj = lt["avg_daily_change_pct"] * days_to_checkin
-                reasoning_parts.append(f"Lead-time ({bucket}): {lead_adj:+.1f}% typical")
-                break
+                effective_days = days_to_checkin
+                matched = True
             elif bucket == "15-30d" and 15 <= days_to_checkin <= 30:
-                lead_adj = lt["avg_daily_change_pct"] * days_to_checkin
-                reasoning_parts.append(f"Lead-time ({bucket}): {lead_adj:+.1f}% typical")
-                break
+                effective_days = days_to_checkin
+                matched = True
             elif bucket == "31-60d" and 31 <= days_to_checkin <= 60:
-                lead_adj = lt["avg_daily_change_pct"] * days_to_checkin
-                reasoning_parts.append(f"Lead-time ({bucket}): {lead_adj:+.1f}% typical")
-                break
+                effective_days = days_to_checkin
+                matched = True
             elif bucket == "60+d" and days_to_checkin > 60:
-                lead_adj = lt["avg_daily_change_pct"] * min(days_to_checkin, 90)
-                reasoning_parts.append(f"Lead-time ({bucket}): {lead_adj:+.1f}% typical")
+                effective_days = min(days_to_checkin, 90)
+                matched = True
+
+            if matched:
+                # Compounding: (1 + r)^n - 1, with decay for long horizons
+                compound_factor = (1 + daily_pct / 100) ** effective_days - 1
+                horizon_decay = _exp(-effective_days / 90)
+                lead_adj = compound_factor * 100 * horizon_decay  # back to pct
+                reasoning_parts.append(
+                    f"Lead-time ({bucket}): {lead_adj:+.1f}% "
+                    f"(compound {daily_pct:.2f}%/d × {effective_days}d, decay={horizon_decay:.2f})"
+                )
                 break
 
         # Cap lead-time adjustment to ±30% — prevents Historical from inflating predictions
-        # (e.g. 3%/day × 65 days = 195% is unrealistic for hotel rooms)
         lead_adj = max(-30.0, min(30.0, lead_adj))
         predicted = base_price * (1 + lead_adj / 100)
 
@@ -458,6 +469,7 @@ class DeepPredictor:
         current_price: float = 0,
         date_from=None,
         enrichments: Enrichments | None = None,
+        detail_id: int | None = None,
     ) -> dict | None:
         """Signal 3: ML forecast from trained LightGBM model.
 
@@ -498,8 +510,38 @@ class DeepPredictor:
                     except (ValueError, TypeError):
                         pass
 
-                # Price-based features
-                if current_price > 0:
+                # Price-based features: load real history from price_store
+                price_history = None
+                if detail_id is not None:
+                    try:
+                        from src.analytics.price_store import load_price_history
+                        hist_df = load_price_history(detail_id)
+                        if not hist_df.empty and len(hist_df) >= 2:
+                            price_history = hist_df["room_price"].values
+                    except (ImportError, OSError, sqlite3.Error) as e:
+                        logger.debug("Could not load price history for detail %s: %s", detail_id, e)
+
+                if price_history is not None and len(price_history) >= 2:
+                    # Real lag features from historical snapshots
+                    prices = price_history  # oldest first
+                    n = len(prices)
+                    for lag in [1, 3, 7, 14, 28]:
+                        idx = n - lag
+                        features[f"price_lag_{lag}"] = float(prices[idx]) if idx >= 0 else float(prices[0])
+
+                    # Real rolling features
+                    for window in [7, 14, 28]:
+                        window_prices = prices[-window:] if n >= window else prices
+                        features[f"price_rolling_mean_{window}"] = float(np.mean(window_prices))
+                        features[f"price_rolling_std_{window}"] = float(np.std(window_prices))
+
+                    features["price_min"] = float(np.min(prices))
+                    features["price_max"] = float(np.max(prices))
+                    features["price_std"] = float(np.std(prices))
+                    if price_mean > 0:
+                        features["price_vs_market"] = current_price / price_mean
+                elif current_price > 0:
+                    # Fallback for new rooms with no history
                     features["price_lag_1"] = current_price
                     features["price_lag_3"] = current_price
                     features["price_lag_7"] = current_price
