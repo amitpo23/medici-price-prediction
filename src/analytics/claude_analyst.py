@@ -621,8 +621,8 @@ def enrich_room_metadata(
                 meta = json.loads(json_match.group())
                 _cache_set(cache_key, meta)
                 return meta
-        except (json.JSONDecodeError, AttributeError):
-            pass
+        except (json.JSONDecodeError, AttributeError) as exc:
+            logger.debug("Claude metadata JSON parse failed: %s", exc)
 
     # Fallback — rule-based metadata
     meta = _fallback_metadata(pred, detail_id)

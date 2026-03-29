@@ -106,8 +106,8 @@ def _load_miami_data() -> pd.DataFrame:
                 parts = s.split("|")
                 try:
                     return float(parts[0].strip()), float(parts[1].strip())
-                except (ValueError, IndexError):
-                    pass
+                except (ValueError, IndexError) as exc:
+                    logger.debug("Map coordinate parse failed: %s", exc)
             return None, None
 
         df["lat"], df["lon"] = zip(*df["Map"].apply(_parse_map))

@@ -656,8 +656,8 @@ def execute_matched_opportunities(matches: list[dict]) -> dict:
                     cursor.execute("SELECT @@IDENTITY")
                     alt_row = cursor.fetchone()
                     opp_id = int(alt_row[0]) if alt_row and alt_row[0] else None
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning("@@IDENTITY fallback failed for detail=%d: %s", detail_id, exc)
 
             if not opp_id:
                 logger.error(

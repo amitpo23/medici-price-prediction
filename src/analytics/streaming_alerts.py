@@ -431,8 +431,8 @@ def _row_to_alert(row: dict) -> StreamingAlert:
     data = {}
     try:
         data = json.loads(row.get("data_json", "{}") or "{}")
-    except (json.JSONDecodeError, TypeError):
-        pass
+    except (json.JSONDecodeError, TypeError) as exc:
+        logger.debug("Streaming alert data_json parse failed: %s", exc)
 
     return StreamingAlert(
         alert_id=row.get("alert_id", ""),
