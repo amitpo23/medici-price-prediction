@@ -21,7 +21,7 @@ Decay Curve (Bayesian smoothed from 7M+ historical observations)
   ↓
 Forward Curve Walk (9 enrichments per day)
   ↓
-Ensemble: FC 70% + Historical 10% + ML 20%
+Ensemble: FC 55% + Historical 25% + ML 20%
   ↓
 14-Voter Consensus Engine (≥66% agreement, min 4 voters)
   ↓
@@ -111,9 +111,9 @@ for each day (T → 1):
 
 | Signal | Weight | Source | What It Does |
 |--------|--------|--------|-------------|
-| Forward Curve | 70% | Decay curve walk | Projects price path based on historical T-behavior |
-| Historical Pattern | 10% | Same-period last year | Compares to same month/DOW/lead-time bucket |
-| ML (LightGBM) | 20% | Trained model | Direct price prediction from features |
+| Forward Curve | 55% | Decay curve walk | Projects price path based on historical T-behavior |
+| Historical Pattern | 25% | Same-period last year | Compares to same month/DOW/lead-time bucket (compounding + decay) |
+| ML (LightGBM) | 20% | Trained model | Direct price prediction from real lag/rolling features |
 
 ### Dynamic Weight Scaling
 ```
@@ -248,8 +248,11 @@ If 100% CALL or 100% PUT → something wrong with decay curve or clamps.
 1. **Kiwi flights collector off** → demand_adj always 0
 2. **FRED no API key** → no macro context
 3. **Cancellation adj always 0** → not flowing into FC enrichment
-4. **ML model not trained** → 20% weight slot unused
+4. ~~ML model not trained~~ → **FIXED (Sprint 6)**: real lag/rolling features from price history
 5. **Accuracy scoring empty** → no retroactive learning yet
+6. **PUT bias in voters** → 7/14 voters easier to trigger PUT than CALL (see threshold table)
+7. **Booking Momentum voter** → can never vote CALL (only PUT on cancellations)
+8. **No post-execution verification** → no check that Zenith push or BuyRoom actually worked
 
 ### Planned Improvements
 1. **Per-zone seasonality** (South Beach vs Airport vs Downtown)
