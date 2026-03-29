@@ -432,18 +432,16 @@ def _get_forward_curve_data(hotel_id: int) -> Optional[dict]:
     Runs the full analysis pipeline to get FC points.
     """
     try:
-        from src.analytics.runner import run_full_analysis
-        analysis = run_full_analysis()
+        from src.api.routers._shared_state import _get_cached_analysis
+        analysis = _get_cached_analysis()
         if not analysis:
             return None
 
-        # Find rows for this hotel
-        rows = analysis.get("rows", [])
-        for row in rows:
-            if row.get("hotel_id") == hotel_id:
-                fc = row.get("forward_curve", {})
-                points = fc.get("points", [])
-                current_price = row.get("current_price") or row.get("buy_price", 0)
+        predictions = analysis.get("predictions", {})
+        for detail_id, pred in predictions.items():
+            if pred.get("hotel_id") == hotel_id:
+                points = pred.get("forward_curve_points", [])
+                current_price = pred.get("current_price", 0)
                 if points and current_price:
                     return {
                         "current_price": current_price,
@@ -459,17 +457,17 @@ def _get_forward_curve_data(hotel_id: int) -> Optional[dict]:
 def _get_all_forward_curves() -> list[dict]:
     """Get forward curves for all active hotels."""
     try:
-        from src.analytics.runner import run_full_analysis
-        analysis = run_full_analysis()
+        from src.api.routers._shared_state import _get_cached_analysis
+        analysis = _get_cached_analysis()
         if not analysis:
             return []
 
         results = []
-        for row in analysis.get("rows", []):
-            fc = row.get("forward_curve", {})
-            points = fc.get("points", [])
-            hotel_id = row.get("hotel_id")
-            current_price = row.get("current_price") or row.get("buy_price", 0)
+        predictions = analysis.get("predictions", {})
+        for detail_id, pred in predictions.items():
+            points = pred.get("forward_curve_points", [])
+            hotel_id = pred.get("hotel_id")
+            current_price = pred.get("current_price", 0)
 
             if hotel_id and points and current_price:
                 results.append({
@@ -487,11 +485,12 @@ def _get_all_forward_curves() -> list[dict]:
 def _get_recent_prices(hotel_id: int) -> list[dict]:
     """Get recent scan prices from trading DB for preview."""
     try:
-        from src.data.trading_db import load_scan_history, check_connection
+        from src.data.trading_db import check_connection
         if not check_connection():
             return []
 
-        history = load_scan_history(hotel_id)
+        from src.analytics.price_store import load_price_history
+        history = load_price_history(hotel_id)
         if history.empty:
             return []
 
