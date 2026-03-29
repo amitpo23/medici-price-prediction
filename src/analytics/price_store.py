@@ -5,6 +5,7 @@ and build price trajectories for each room until check-in.
 """
 from __future__ import annotations
 
+import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,8 @@ from pathlib import Path
 import pandas as pd
 
 from config.settings import DATA_DIR
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = DATA_DIR / "salesoffice_prices.db"
 
@@ -23,8 +26,15 @@ def _get_conn() -> sqlite3.Connection:
 
 
 def init_db() -> None:
-    """Create tables if they don't exist."""
-    conn = _get_conn()
+    """Create tables if they don't exist. Recreates DB if corrupted."""
+    try:
+        conn = _get_conn()
+    except sqlite3.DatabaseError:
+        logger.warning("SQLite DB corrupted at %s — recreating", DB_PATH)
+        DB_PATH.unlink(missing_ok=True)
+        for suffix in (".db-wal", ".db-shm"):
+            Path(str(DB_PATH) + suffix.replace(".db", "")).unlink(missing_ok=True)
+        conn = _get_conn()
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS price_snapshots (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
