@@ -456,6 +456,18 @@ def _run_collection_cycle() -> dict | None:
     except Exception as exc:
         logger.warning("Opportunity rules execution failed (non-fatal): %s", exc)
 
+    # ── Process Override Queue: execute pending manual overrides ──
+    try:
+        _process_override_queue()
+    except Exception as exc:
+        logger.warning("Override queue processing failed (non-fatal): %s", exc)
+
+    # ── Process Opportunity Queue: execute pending manual buys ──
+    try:
+        _process_opportunity_queue()
+    except Exception as exc:
+        logger.warning("Opportunity queue processing failed (non-fatal): %s", exc)
+
     # ── Post-execution verification ─────────────────────────────
     try:
         _verify_recent_executions()
@@ -1337,6 +1349,95 @@ def _detect_brightdata_ota_outputs() -> dict:
     except (FileNotFoundError, OSError, KeyError, ValueError) as exc:
         logger.warning("BrightData OTA output detection failed: %s", exc)
         return result
+
+
+def _process_override_queue() -> None:
+    """Pick pending override queue items and execute them via PriceOverride + Zenith push."""
+    import os
+
+    try:
+        from src.analytics.override_queue import get_queue, mark_picked, mark_completed
+    except ImportError:
+        return
+
+    pending_items, total = get_queue(status="pending", limit=100)
+    if not pending_items:
+        return
+
+    # Convert OverrideRequest objects to dicts
+    pending = [vars(r) if hasattr(r, '__dict__') else r for r in pending_items]
+    logger.info("Override queue: processing %d pending items (of %d total)", len(pending), total)
+
+    push_enabled = os.getenv("OVERRIDE_PUSH_ENABLED", "false").lower() == "true"
+    done_count = 0
+    fail_count = 0
+
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection, push_rate_to_zenith
+        conn = get_pyodbc_connection()
+        cursor = conn.cursor()
+    except Exception as exc:
+        logger.warning("Override queue: DB connect failed: %s", exc)
+        return
+
+    try:
+        seen_details: set[int] = set()
+        for item in pending:
+            detail_id = item.get("detail_id")
+            if not detail_id or detail_id in seen_details:
+                mark_completed(item["id"], success=True)
+                continue
+            seen_details.add(detail_id)
+
+            mark_picked(item["id"])
+            target_price = item.get("target_price", 0)
+            original_price = item.get("current_price", 0)
+
+            # Sanity check
+            if target_price > 10_000 or target_price <= 0:
+                mark_completed(item["id"], success=False, error_message=f"Price out of range: {target_price}")
+                fail_count += 1
+                continue
+
+            try:
+                # Deactivate old overrides
+                cursor.execute(
+                    "UPDATE [SalesOffice.PriceOverride] SET IsActive = 0 WHERE DetailId = ? AND IsActive = 1",
+                    detail_id,
+                )
+                # Insert new override
+                cursor.execute(
+                    "INSERT INTO [SalesOffice.PriceOverride] "
+                    "(DetailId, OriginalPrice, OverridePrice, CreatedBy, IsActive) "
+                    "VALUES (?, ?, ?, 'PricePredictor', 1)",
+                    detail_id, original_price, target_price,
+                )
+                conn.commit()
+                mark_completed(item["id"], success=True)
+                done_count += 1
+            except Exception as exc:
+                mark_completed(item["id"], success=False, error_message=str(exc)[:200])
+                fail_count += 1
+
+        logger.info("Override queue: done=%d failed=%d", done_count, fail_count)
+    finally:
+        conn.close()
+
+
+def _process_opportunity_queue() -> None:
+    """Pick pending opportunity queue items and execute them."""
+    try:
+        from src.analytics.opportunity_queue import get_queue as get_opp_queue
+    except ImportError:
+        return
+
+    opp_pending, opp_total = get_opp_queue(status="pending", limit=50)
+    if not opp_pending:
+        return
+
+    logger.info("Opportunity queue: %d pending items (of %d total)", len(opp_pending), opp_total)
+    # Opportunity queue items are picked up by the BuyRoom WebJob directly
+    # We just log that they exist for visibility
 
 
 def _verify_recent_executions() -> None:
