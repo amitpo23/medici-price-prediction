@@ -84,15 +84,16 @@ def _load_competitor_zone_averages(predictions: dict) -> dict[int, float]:
     if not checkin_dates:
         return {}
 
-    # Build SQL: query AI_Search for Miami hotels, matching StayFrom dates, last 7 days
+    # Build SQL: query AI_Search for Miami hotels, matching StayFrom dates, last 3 days
+    # Use TOP to prevent huge result sets and set query timeout
     date_list = ", ".join(f"'{d}'" for d in sorted(checkin_dates))
     sql = f"""
-        SELECT HotelId, AVG(PriceAmount) as avg_price
+        SELECT TOP 500 HotelId, AVG(PriceAmount) as avg_price
         FROM AI_Search_HotelData
         WHERE CityName = 'Miami'
           AND StayFrom IN ({date_list})
-          AND UpdatedAt > DATEADD(day, -7, GETUTCDATE())
-          AND PriceAmount > 0
+          AND UpdatedAt > DATEADD(day, -3, GETUTCDATE())
+          AND PriceAmount > 0 AND PriceAmount < 10000
         GROUP BY HotelId
     """
 
@@ -102,8 +103,8 @@ def _load_competitor_zone_averages(predictions: dict) -> dict[int, float]:
         cursor.execute(sql)
         rows = cursor.fetchall()
         conn.close()
-    except (OSError, ConnectionError, ValueError, Exception) as exc:
-        logger.warning("AI_Search competitor query failed: %s", exc)
+    except Exception as exc:
+        logger.warning("AI_Search competitor query failed (non-fatal): %s", exc)
         return {}
 
     if not rows:
