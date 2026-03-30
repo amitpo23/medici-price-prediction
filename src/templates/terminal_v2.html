@@ -93,6 +93,19 @@ body {
 .vdot { width:6px; height:6px; border-radius:50%; display:inline-block; }
 .consensus-bar { display:flex; height:4px; border-radius:2px; overflow:hidden; flex:1; max-width:100px; }
 
+/* ===== VOTES PANEL ===== */
+.votes-panel { padding:4px 0; }
+.vote-header { font-size:10px; font-weight:bold; padding:4px 0 6px; border-bottom:1px solid #1e293b; margin-bottom:4px; }
+.vote-row { font-size:9px; padding:2px 0; line-height:1.5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.vote-row.call { color:#10b981; }
+.vote-row.put { color:#ef4444; }
+.vote-row.neutral { color:#64748b; }
+
+/* ===== ARBITRAGE PANEL ===== */
+.arb-panel { padding:6px 0; border-top:1px solid #1e293b; margin-top:4px; }
+.arb-panel div { font-size:10px; line-height:1.7; }
+.arb-panel .arb-profit { font-weight:bold; }
+
 /* ===== SIDEBAR ===== */
 .sb-section { border-bottom:1px solid #1e293b; }
 .sb-header { padding:8px 12px; color:#94a3b8; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; background:#0b1120; }
@@ -117,13 +130,6 @@ body {
 .sb-btn.buy:hover { background:#059669; color:#fff; }
 .sb-btn.rules { border-color:#3b82f6; color:#60a5fa; }
 .sb-btn.rules:hover { background:#3b82f6; color:#fff; }
-
-/* ===== HEATMAP ===== */
-.heatmap { display:none; padding:8px; overflow:auto; flex:1; }
-.heatmap.active { display:block; }
-.heatmap table { width:100%; border-collapse:collapse; }
-.heatmap th { background:#0f172a; color:#64748b; padding:6px; font-size:10px; border:1px solid #1e293b; }
-.heatmap td { padding:8px; text-align:center; font-size:11px; font-weight:bold; border:1px solid #1e293b; cursor:pointer; }
 
 /* ===== SPARKLINE ===== */
 .spark { letter-spacing:-1px; font-size:13px; }
@@ -201,7 +207,6 @@ body {
       <div class="chart-area" id="chart-area">
         <div class="chart-tabs">
           <span class="ctab active" id="tab-chart" onclick="setChartMode('chart')">Chart</span>
-          <span class="ctab" id="tab-heatmap" onclick="setChartMode('heatmap')">HeatMap</span>
           <span style="flex:1;"></span>
           <span class="muted" id="chart-context">Select a room to view chart</span>
         </div>
@@ -220,11 +225,6 @@ body {
             <div class="chart-label">VOTERS — 14 Agent Timeline</div>
             <canvas id="voters-canvas"></canvas>
           </div>
-        </div>
-
-        <!-- HEATMAP (hidden by default) -->
-        <div class="heatmap" id="heatmap-area">
-          <div class="loading">Loading heatmap...</div>
         </div>
 
         <!-- VOTER TOGGLE BAR -->
@@ -644,12 +644,13 @@ function updateActionButtons(row) {
 // ===== CHARTS =====
 async function loadCharts(detailId) {
   try {
-    // Fetch detail (includes scan_price_series), FC, path, consensus in parallel
-    const [fc, detail, path, consensus] = await Promise.all([
+    // Fetch detail (includes scan_price_series), FC, path, consensus, arbitrage in parallel
+    const [fc, detail, path, consensus, arbitrage] = await Promise.all([
       fetchJSON(`${API}/forward-curve/${detailId}?raw=true`).catch(() => null),
       fetchJSON(`${API}/options/detail/${detailId}`).catch(() => null),
       fetchJSON(`${API}/path-forecast/${detailId}`).catch(() => null),
       fetchJSON(`${API}/signal/consensus/${detailId}`).catch(() => null),
+      fetchJSON(`${API}/signal/arbitrage/${detailId}`).catch(() => null),
     ]);
     // Build scan data from detail response or embedded data
     const series = detail?.scan_history?.scan_price_series || S.options.find(r => r.detail_id === detailId)?.scan_history?.scan_price_series;
@@ -658,6 +659,7 @@ async function loadCharts(detailId) {
     renderVelocityChart(scanData);
     renderVoterTimeline(consensus, fc);
     renderConsensusBar(consensus);
+    renderSidebarConsensus(consensus, arbitrage);
   } catch (e) {
     console.error('Chart load error:', e);
   }
@@ -877,6 +879,59 @@ function renderConsensusBar(consensus) {
   }
 }
 
+// ===== SIDEBAR: CONSENSUS VOTES + ARBITRAGE =====
+function renderSidebarConsensus(consensus, arbitrage) {
+  const body = document.getElementById('selected-body');
+  if (!body) return;
+
+  // Remove any previous votes/arb panels
+  body.querySelectorAll('.votes-panel, .arb-panel').forEach(el => el.remove());
+
+  // Consensus votes panel
+  if (consensus) {
+    const agree = consensus.sources_agree || 0;
+    const voting = consensus.sources_voting || 1;
+    const sig = (consensus.signal || 'NEUTRAL').toUpperCase();
+    const pct = Math.round(consensus.probability || (agree / voting) * 100);
+    const votesArr = Array.isArray(consensus.votes) ? consensus.votes : Object.values(consensus.votes || {});
+
+    let html = `<div class="votes-panel">`;
+    html += `<div class="vote-header ${sig === 'CALL' ? 'up' : sig === 'PUT' ? 'down' : 'flat'}">Consensus: ${pct}% ${sig} (${agree}/${voting} voters)</div>`;
+    if (votesArr.length) {
+      votesArr.forEach(v => {
+        const vote = (v.vote || 'NEUTRAL').toUpperCase();
+        const cls = vote === 'CALL' ? 'call' : vote === 'PUT' ? 'put' : 'neutral';
+        const icon = vote === 'CALL' ? '\u2705' : vote === 'PUT' ? '\uD83D\uDD34' : '\u26AA';
+        const reason = v.reason ? ': ' + v.reason : '';
+        html += `<div class="vote-row ${cls}">${icon} ${v.source || 'unknown'}${reason}</div>`;
+      });
+    }
+    html += `</div>`;
+    body.insertAdjacentHTML('beforeend', html);
+  }
+
+  // Arbitrage panel
+  if (arbitrage && (arbitrage.best_trade || arbitrage.buy_point || arbitrage.sell_point)) {
+    const trade = arbitrage.best_trade || arbitrage;
+    const buyT = trade.buy_t ?? trade.buy_point?.t ?? '—';
+    const buyP = trade.buy_price ?? trade.buy_point?.price ?? null;
+    const sellT = trade.sell_t ?? trade.sell_point?.t ?? '—';
+    const sellP = trade.sell_price ?? trade.sell_point?.price ?? null;
+    const profit = (buyP && sellP) ? (sellP - buyP) : null;
+    const profitPct = (buyP && profit) ? ((profit / buyP) * 100).toFixed(1) : null;
+
+    let html = `<div class="arb-panel">`;
+    html += `<div class="muted">Best Buy: T=${buyT}${buyP ? ' @ $' + buyP.toFixed(0) : ''}</div>`;
+    html += `<div class="muted">Best Sell: T=${sellT}${sellP ? ' @ $' + sellP.toFixed(0) : ''}</div>`;
+    if (profit !== null) {
+      const cls = profit >= 0 ? 'up' : 'down';
+      html += `<div class="arb-profit ${cls}">Profit: ${profit >= 0 ? '+' : ''}$${profit.toFixed(0)} (${profitPct}%)</div>`;
+    }
+    html += `</div>`;
+    body.insertAdjacentHTML('beforeend', html);
+  }
+}
+
 // ===== VOTER TOGGLES =====
 function initVoterToggles() {
   const bar = document.getElementById('voter-toggles');
@@ -899,51 +954,8 @@ function toggleVoter(id, el) {
 function setChartMode(mode) {
   S.chartMode = mode;
   document.getElementById('tab-chart').classList.toggle('active', mode === 'chart');
-  document.getElementById('tab-heatmap').classList.toggle('active', mode === 'heatmap');
   document.getElementById('chart-panels').style.display = mode === 'chart' ? 'flex' : 'none';
-  document.getElementById('heatmap-area').classList.toggle('active', mode === 'heatmap');
   document.getElementById('voter-toggles').style.display = mode === 'chart' ? 'flex' : 'none';
-  if (mode === 'heatmap') renderHeatmap();
-}
-
-function renderHeatmap() {
-  const area = document.getElementById('heatmap-area');
-  const buckets = ['0-14d', '15-30d', '31-60d', '61-90d', '91+d'];
-  const hotels = {};
-  S.options.forEach(r => {
-    if (!hotels[r.hotel_name]) hotels[r.hotel_name] = {};
-    const t = computeT(r);
-    const bucket = t <= 14 ? '0-14d' : t <= 30 ? '15-30d' : t <= 60 ? '31-60d' : t <= 90 ? '61-90d' : '91+d';
-    if (!hotels[r.hotel_name][bucket]) hotels[r.hotel_name][bucket] = { call: 0, put: 0, neut: 0, total: 0 };
-    const sig = (r.option_signal || 'NEUTRAL').toUpperCase();
-    if (sig === 'CALL') hotels[r.hotel_name][bucket].call++;
-    else if (sig === 'PUT') hotels[r.hotel_name][bucket].put++;
-    else hotels[r.hotel_name][bucket].neut++;
-    hotels[r.hotel_name][bucket].total++;
-  });
-
-  let html = '<table><thead><tr><th>Hotel</th>' + buckets.map(b => `<th>${b}</th>`).join('') + '</tr></thead><tbody>';
-  Object.keys(hotels).sort().forEach(name => {
-    html += `<tr><td style="text-align:left;color:#e2e8f0;">${name}</td>`;
-    buckets.forEach(b => {
-      const cell = hotels[name][b] || { call:0, put:0, neut:0, total:0 };
-      let bg = '#1e293b', color = '#64748b';
-      if (cell.call > cell.put && cell.call > cell.neut) { bg = `rgba(16,185,129,${0.1 + cell.call/cell.total*0.4})`; color = '#10b981'; }
-      else if (cell.put > cell.call && cell.put > cell.neut) { bg = `rgba(239,68,68,${0.1 + cell.put/cell.total*0.4})`; color = '#ef4444'; }
-      html += `<td style="background:${bg};color:${color};" onclick="filterFromHeatmap('${name}','${b}')">${cell.total || ''}</td>`;
-    });
-    html += '</tr>';
-  });
-  html += '</tbody></table>';
-  area.innerHTML = html;
-}
-
-function filterFromHeatmap(hotel, bucket) {
-  document.getElementById('f-hotel').value = hotel;
-  const tMap = {'0-14d':'0-14','15-30d':'15-30','31-60d':'31-60','61-90d':'61-90','91+d':'91+'};
-  document.getElementById('f-t').value = tMap[bucket] || '';
-  setChartMode('chart');
-  applyFilters();
 }
 
 // ===== SIDEBAR: ALERTS =====
@@ -1166,8 +1178,18 @@ document.addEventListener('keydown', e => {
   const rows = S.filtered;
   if (!rows.length) return;
   const idx = rows.findIndex(r => r.detail_id === S.selectedId);
-  if (e.key === 'ArrowDown' && idx < rows.length - 1) { e.preventDefault(); selectRow(rows[idx + 1].detail_id); }
-  if (e.key === 'ArrowUp' && idx > 0) { e.preventDefault(); selectRow(rows[idx - 1].detail_id); }
+  if (e.key === 'ArrowDown' && idx < rows.length - 1) {
+    e.preventDefault();
+    selectRow(rows[idx + 1].detail_id);
+    const sel = document.querySelector('#signal-table tr.selected');
+    if (sel) sel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  if (e.key === 'ArrowUp' && idx > 0) {
+    e.preventDefault();
+    selectRow(rows[idx - 1].detail_id);
+    const sel = document.querySelector('#signal-table tr.selected');
+    if (sel) sel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
 });
 </script>
 </body>

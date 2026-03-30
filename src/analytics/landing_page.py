@@ -10,6 +10,8 @@ from src.utils.template_engine import render_template
 
 # Page definitions — static data for the landing page cards
 _PAGES = [
+    {"title": "Trading Terminal (PRIMARY)", "url": "/api/v1/salesoffice/dashboard/terminal-v2",
+     "icon": "&#x1F4BB;", "description": "PRIMARY — Bloomberg-style trading terminal with charts, consensus votes, arbitrage, and keyboard navigation", "category": "core"},
     {"title": "Command Center", "url": "/api/v1/salesoffice/dashboard/command-center",
      "icon": "&#x1F3AE;", "description": "Unified 3-column trading — navigate, analyze, and execute from one screen", "category": "core"},
     {"title": "Macro Terminal", "url": "/api/v1/salesoffice/dashboard/macro",

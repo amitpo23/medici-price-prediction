@@ -55,7 +55,7 @@ async def salesoffice_home():
         html = generate_landing_html(status_data)
     except Exception as exc:
         logger.error("Landing page generation failed: %s", exc)
-        html = "<h1>Medici Price Prediction</h1><p>Landing page loading...</p><p><a href='/api/v1/salesoffice/dashboard/command-center'>Command Center</a></p>"
+        html = "<h1>Medici Price Prediction</h1><p>Landing page loading...</p><p><a href='/api/v1/salesoffice/dashboard/terminal-v2'>Trading Terminal</a></p>"
     return HTMLResponse(content=html)
 
 
