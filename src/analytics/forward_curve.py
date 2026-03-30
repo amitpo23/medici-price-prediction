@@ -168,6 +168,9 @@ class ForwardPoint:
     momentum_adj_pct: float = 0.0
     weather_adj_pct: float = 0.0
     competitor_adj_pct: float = 0.0
+    # Cancellation + provider enrichments
+    cancellation_adj_pct: float = 0.0
+    provider_adj_pct: float = 0.0
     # Phase 2 enrichments (NEW — defaults preserve backward compat)
     demand_zone_adj_pct: float = 0.0
     rebuy_signal_adj_pct: float = 0.0
@@ -729,6 +732,8 @@ def predict_forward_curve(
             momentum_adj_pct=round(mom_adj, 4),
             weather_adj_pct=round(weather_adj, 4),
             competitor_adj_pct=round(comp_adj, 4),
+            cancellation_adj_pct=round(cancel_adj, 4),
+            provider_adj_pct=round(provider_adj, 4),
             demand_zone_adj_pct=round(dz_adj, 4),
             rebuy_signal_adj_pct=round(rebuy_adj, 4),
             search_volume_adj_pct=round(sv_adj, 4),

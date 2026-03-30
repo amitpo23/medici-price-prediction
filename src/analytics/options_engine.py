@@ -74,8 +74,13 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
         if not mb_df.empty and "HotelId" in mb_df.columns and "BuyPrice" in mb_df.columns:
             for _, row in mb_df.groupby("HotelId")["BuyPrice"].mean().items():
                 med_book_prices[int(_)] = float(row)
-    except (ImportError, OSError, ConnectionError, ValueError):
-        pass  # MED_Book data optional
+            logger.info("MED_Book buy prices loaded for %d hotels", len(med_book_prices))
+        else:
+            logger.debug("MED_Book: no active bookings found (empty=%s, cols=%s)",
+                         mb_df.empty if mb_df is not None else "None",
+                         list(mb_df.columns) if mb_df is not None and not mb_df.empty else "N/A")
+    except (ImportError, OSError, ConnectionError, ValueError) as exc:
+        logger.debug("MED_Book buy price loading failed: %s", exc)
 
     signals: list[dict] = []
 
@@ -125,25 +130,32 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 if seg:
                     zone = seg["zone"]
                     tier = seg["tier"]
-                    zone_prices = []
+                    zone_prices = []        # same zone (any tier) for zone_avg
+                    tier_directions = []    # same zone+tier for peer directions
+                    zone_directions = []    # same zone (any tier) fallback
+                    seen_hotels = set()     # deduplicate per hotel for directions
                     for _, other_pred in predictions.items():
                         other_hid = int(other_pred.get("hotel_id", 0) or 0)
                         if other_hid == int(hotel_id_val):
                             continue  # skip self
                         other_seg = HOTEL_SEGMENTS.get(other_hid, {})
-                        # Compare within same zone AND same tier
-                        if other_seg.get("zone") == zone and other_seg.get("tier") == tier:
-                            other_cp = float(other_pred.get("current_price", 0) or 0)
-                            if other_cp > 0:
-                                zone_prices.append(other_cp)
-                            # Collect peer direction for consensus voter
-                            other_change = float(other_pred.get("expected_change_pct", 0) or 0)
-                            if other_change > 0:
-                                peer_directions.append({"direction": "up"})
-                            elif other_change < 0:
-                                peer_directions.append({"direction": "down"})
+                        if other_seg.get("zone") != zone:
+                            continue  # different zone — skip entirely
+                        other_cp = float(other_pred.get("current_price", 0) or 0)
+                        if other_cp > 0:
+                            zone_prices.append(other_cp)
+                        # Collect peer direction (one vote per hotel, not per room)
+                        other_change = float(other_pred.get("expected_change_pct", 0) or 0)
+                        if other_hid not in seen_hotels and other_change != 0:
+                            seen_hotels.add(other_hid)
+                            direction = {"direction": "up" if other_change > 0 else "down"}
+                            zone_directions.append(direction)
+                            if other_seg.get("tier") == tier:
+                                tier_directions.append(direction)
                     if zone_prices:
                         zone_avg = sum(zone_prices) / len(zone_prices)
+                    # Prefer same zone+tier peers; fall back to zone-only
+                    peer_directions = tier_directions if tier_directions else zone_directions
             except (ImportError, ValueError, TypeError) as exc:
                 logger.debug("Hotel segments lookup failed: %s", exc)
 
