@@ -4110,39 +4110,24 @@ async def scan_price_history(
         cols = [desc[0] for desc in cursor.description]
         detail = dict(zip(cols, detail_row))
 
-        # Price change history from SalesOffice.Log
+        # Price change history from SalesOffice.PriceHistory (fast, indexed by DetailId)
         cursor.execute("""
-            SELECT l.DateCreated, l.Message, l.ActionId
-            FROM [SalesOffice.Log] l
-            WHERE l.SalesOfficeDetailId = ?
-              AND l.DateCreated >= DATEADD(day, ?, GETDATE())
-            ORDER BY l.DateCreated ASC
+            SELECT ph.ScanDate, ph.OldPrice, ph.NewPrice, ph.ChangePct
+            FROM [SalesOffice.PriceHistory] ph
+            WHERE ph.DetailId = ?
+              AND ph.ScanDate >= DATEADD(day, ?, GETDATE())
+            ORDER BY ph.ScanDate ASC
         """, detail_id, -abs(days_back))
 
-        log_rows = cursor.fetchall()
-        log_cols = [desc[0] for desc in cursor.description]
-
-        # Parse price changes: "DbRoomPrice: 195.02 -> API RoomPrice: 193.95"
-        price_pattern = re.compile(
-            r"DbRoomPrice:\s*([\d.]+)\s*->\s*API RoomPrice:\s*([\d.]+)"
-        )
+        ph_rows = cursor.fetchall()
         price_history: list[dict] = []
-        for row in log_rows:
-            log_entry = dict(zip(log_cols, row))
-            msg = str(log_entry.get("Message", ""))
-            dt = log_entry.get("DateCreated")
-            match = price_pattern.search(msg)
-            if match:
-                old_price = float(match.group(1))
-                new_price = float(match.group(2))
-                price_history.append({
-                    "timestamp": dt.isoformat() if hasattr(dt, "isoformat") else str(dt),
-                    "old_price": old_price,
-                    "new_price": new_price,
-                    "change_pct": round(
-                        (new_price - old_price) / old_price * 100, 2
-                    ) if old_price else 0,
-                })
+        for row in ph_rows:
+            price_history.append({
+                "timestamp": row[0].isoformat() if hasattr(row[0], "isoformat") else str(row[0]),
+                "old_price": float(row[1]),
+                "new_price": float(row[2]),
+                "change_pct": round(float(row[3]), 2),
+            })
 
         # RoomPriceUpdateLog for same hotel+date
         hotel_id = detail.get("HotelId")

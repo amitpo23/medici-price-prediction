@@ -652,9 +652,18 @@ async function loadCharts(detailId) {
       fetchJSON(`${API}/signal/consensus/${detailId}`).catch(() => null),
       fetchJSON(`${API}/signal/arbitrage/${detailId}`).catch(() => null),
     ]);
-    // Build scan data from detail response or embedded data
-    const series = detail?.scan_history?.scan_price_series || S.options.find(r => r.detail_id === detailId)?.scan_history?.scan_price_series;
-    const scanData = series && series.length ? { price_history: series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null;
+    // Build scan data from detail response, embedded data, or live DB query
+    let series = detail?.scan_history?.scan_price_series || S.options.find(r => r.detail_id === detailId)?.scan_history?.scan_price_series;
+    let scanData = series && series.length > 1 ? { price_history: series.map(p => ({ timestamp: p.date, new_price: p.price })) } : null;
+    // Fallback: fetch real scan history from SalesOffice.PriceHistory if local data is thin
+    if (!scanData || !scanData.price_history || scanData.price_history.length < 3) {
+      try {
+        const sh = await fetchJSON(`${API}/scan-history/${detailId}?days_back=90`);
+        if (sh?.scan_history?.from_salesoffice_log?.length) {
+          scanData = { price_history: sh.scan_history.from_salesoffice_log };
+        }
+      } catch (e) { /* scan-history unavailable, use what we have */ }
+    }
     renderPriceChart(fc, scanData, path);
     renderVelocityChart(scanData);
     renderVoterTimeline(consensus, fc);
