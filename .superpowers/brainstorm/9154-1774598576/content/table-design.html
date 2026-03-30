@@ -1,0 +1,137 @@
+<h2>טבלת הסריקות — מה מופיע בכל שורה?</h2>
+<p class="subtitle">זו הטבלה הראשית שרואים כשפותחים את הטרמינל. צריכה לתת תמונה מלאה בשורה אחת.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Option A — "Signal-First" (ממוקד מסחר)</div>
+  <div class="mockup-body" style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:monospace;">
+      <tr style="color:#888;border-bottom:1px solid #333;">
+        <th style="text-align:left;padding:6px 4px;">Hotel</th>
+        <th style="padding:6px 4px;">Cat</th>
+        <th style="padding:6px 4px;">T</th>
+        <th style="padding:6px 4px;">Price</th>
+        <th style="padding:6px 4px;">Signal</th>
+        <th style="padding:6px 4px;">Cons%</th>
+        <th style="padding:6px 4px;">Δ24h</th>
+        <th style="padding:6px 4px;">Rate/d</th>
+        <th style="padding:6px 4px;">Trend</th>
+        <th style="padding:6px 4px;">Voters</th>
+        <th style="padding:6px 4px;">Target</th>
+      </tr>
+      <tr style="border-bottom:1px solid #222;background:rgba(16,185,129,0.05);">
+        <td style="padding:6px 4px;color:#ddd;">Marriott SB</td>
+        <td style="padding:6px 4px;color:#888;">DLX BB</td>
+        <td style="padding:6px 4px;color:#f59e0b;">32d</td>
+        <td style="padding:6px 4px;color:#fff;">$285</td>
+        <td style="padding:6px 4px;"><span style="background:#059669;color:white;padding:1px 6px;border-radius:3px;font-size:10px;">CALL</span></td>
+        <td style="padding:6px 4px;color:#10b981;">78%</td>
+        <td style="padding:6px 4px;color:#10b981;">+4.4%</td>
+        <td style="padding:6px 4px;color:#10b981;">+$4/d</td>
+        <td style="padding:6px 4px;color:#10b981;">↑↑</td>
+        <td style="padding:6px 4px;color:#888;">11/14</td>
+        <td style="padding:6px 4px;color:#10b981;">$320</td>
+      </tr>
+      <tr style="border-bottom:1px solid #222;background:rgba(239,68,68,0.05);">
+        <td style="padding:6px 4px;color:#ddd;">Hilton DT</td>
+        <td style="padding:6px 4px;color:#888;">STD RO</td>
+        <td style="padding:6px 4px;color:#ef4444;">8d</td>
+        <td style="padding:6px 4px;color:#fff;">$195</td>
+        <td style="padding:6px 4px;"><span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:10px;">PUT</span></td>
+        <td style="padding:6px 4px;color:#ef4444;">82%</td>
+        <td style="padding:6px 4px;color:#ef4444;">-3.1%</td>
+        <td style="padding:6px 4px;color:#ef4444;">-$2/d</td>
+        <td style="padding:6px 4px;color:#ef4444;">↓↓</td>
+        <td style="padding:6px 4px;color:#888;">9/14</td>
+        <td style="padding:6px 4px;color:#ef4444;">$178</td>
+      </tr>
+      <tr style="border-bottom:1px solid #222;">
+        <td style="padding:6px 4px;color:#ddd;">W South Beach</td>
+        <td style="padding:6px 4px;color:#888;">SUP HB</td>
+        <td style="padding:6px 4px;color:#888;">55d</td>
+        <td style="padding:6px 4px;color:#fff;">$412</td>
+        <td style="padding:6px 4px;"><span style="background:#6b7280;color:white;padding:1px 6px;border-radius:3px;font-size:10px;">NEUT</span></td>
+        <td style="padding:6px 4px;color:#888;">45%</td>
+        <td style="padding:6px 4px;color:#888;">+0.2%</td>
+        <td style="padding:6px 4px;color:#888;">$0/d</td>
+        <td style="padding:6px 4px;color:#888;">─</td>
+        <td style="padding:6px 4px;color:#888;">6/14</td>
+        <td style="padding:6px 4px;color:#888;">$415</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div style="height:20px;"></div>
+
+<div class="mockup">
+  <div class="mockup-header">Option B — "Scan-History-First" (ממוקד תנועה)</div>
+  <div class="mockup-body" style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:monospace;">
+      <tr style="color:#888;border-bottom:1px solid #333;">
+        <th style="text-align:left;padding:6px 4px;">Hotel</th>
+        <th style="padding:6px 4px;">Price</th>
+        <th style="padding:6px 4px;">Signal</th>
+        <th style="padding:6px 4px;">Scans</th>
+        <th style="padding:6px 4px;">Rises</th>
+        <th style="padding:6px 4px;">Drops</th>
+        <th style="padding:6px 4px;">Net Δ</th>
+        <th style="padding:6px 4px;">Max↑</th>
+        <th style="padding:6px 4px;">Max↓</th>
+        <th style="padding:6px 4px;">Sparkline</th>
+        <th style="padding:6px 4px;">Direction</th>
+      </tr>
+      <tr style="border-bottom:1px solid #222;background:rgba(16,185,129,0.05);">
+        <td style="padding:6px 4px;color:#ddd;">Marriott SB DLX BB</td>
+        <td style="padding:6px 4px;color:#fff;">$285</td>
+        <td style="padding:6px 4px;"><span style="background:#059669;color:white;padding:1px 6px;border-radius:3px;font-size:10px;">CALL</span></td>
+        <td style="padding:6px 4px;color:#888;">18</td>
+        <td style="padding:6px 4px;color:#10b981;">12</td>
+        <td style="padding:6px 4px;color:#ef4444;">4</td>
+        <td style="padding:6px 4px;color:#10b981;">+$42</td>
+        <td style="padding:6px 4px;color:#10b981;">+$15</td>
+        <td style="padding:6px 4px;color:#ef4444;">-$8</td>
+        <td style="padding:6px 4px;color:#10b981;">▁▂▃▂▄▅▆▅▇</td>
+        <td style="padding:6px 4px;color:#10b981;font-size:13px;">↑ Bullish</td>
+      </tr>
+      <tr style="border-bottom:1px solid #222;background:rgba(239,68,68,0.05);">
+        <td style="padding:6px 4px;color:#ddd;">Hilton DT STD RO</td>
+        <td style="padding:6px 4px;color:#fff;">$195</td>
+        <td style="padding:6px 4px;"><span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:10px;">PUT</span></td>
+        <td style="padding:6px 4px;color:#888;">22</td>
+        <td style="padding:6px 4px;color:#10b981;">5</td>
+        <td style="padding:6px 4px;color:#ef4444;">15</td>
+        <td style="padding:6px 4px;color:#ef4444;">-$38</td>
+        <td style="padding:6px 4px;color:#10b981;">+$5</td>
+        <td style="padding:6px 4px;color:#ef4444;">-$22</td>
+        <td style="padding:6px 4px;color:#ef4444;">▇▆▅▆▃▂▃▁▁</td>
+        <td style="padding:6px 4px;color:#ef4444;font-size:13px;">↓ Bearish</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div style="height:20px;"></div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Signal-First</h3>
+      <p>ממוקד: Signal, Consensus%, Δ24h, Rate/day, Voters, Target — מידע מסחרי מהיר</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Scan-History-First</h3>
+      <p>ממוקד: Scans, Rises, Drops, Net Δ, Max↑, Max↓, Sparkline, Direction — כל ההיסטוריה בשורה</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>שילוב — Signal + Sparkline + Key Scan Metrics</h3>
+      <p>Hotel | Price | Signal | Cons% | Δ24h | Sparkline | Rises/Drops | Rate/d | Direction | Target</p>
+    </div>
+  </div>
+</div>

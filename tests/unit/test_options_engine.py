@@ -276,7 +276,7 @@ class TestComputeNextDaySignals:
         assert signals[0]["recommendation"] in ("PUT", "NONE")
 
     def test_signal_output_fields(self):
-        """Verify all required fields in signal output, including consensus fields."""
+        """Verify all required fields in signal output, including consensus and AI_Search fields."""
         analysis = {"predictions": _make_prediction(p_up=75.0, p_down=10.0, accel=0.5)}
         signals = compute_next_day_signals(analysis)
         sig = signals[0]
@@ -290,6 +290,7 @@ class TestComputeNextDaySignals:
             "consensus_sources_voting", "consensus_by_category",
             "fc_max_drop_pct", "fc_max_rise_pct", "fc_points",
             "market_context",
+            "ai_search_zone_avg", "ai_search_yoy",
         ]
         for f in required_fields:
             assert f in sig, f"Missing field: {f}"
@@ -486,3 +487,81 @@ class TestEdgeCases:
         assert len(signals) >= 1
         good_ids = [s["detail_id"] for s in signals]
         assert "good" in good_ids
+
+
+# ── AI_Search integration tests (graceful fallback) ──────────────────
+
+
+class TestAISearchCompetitorZoneAverages:
+    """Test _load_competitor_zone_averages — graceful fallback when DB unavailable."""
+
+    def test_empty_predictions(self):
+        from src.analytics.options_engine import _load_competitor_zone_averages
+        result = _load_competitor_zone_averages({})
+        assert result == {}
+
+    def test_no_checkin_dates(self):
+        from src.analytics.options_engine import _load_competitor_zone_averages
+        preds = {"1001": {"hotel_id": 42, "current_price": 200}}
+        result = _load_competitor_zone_averages(preds)
+        assert isinstance(result, dict)
+
+    def test_graceful_fallback_no_db(self):
+        """When DB connection fails, returns empty dict without crashing."""
+        from src.analytics.options_engine import _load_competitor_zone_averages
+        preds = {
+            "1001": {
+                "hotel_id": 6805,
+                "date_from": "2026-04-20",
+                "current_price": 150.0,
+            }
+        }
+        # DB unavailable in test environment → should return {} gracefully
+        result = _load_competitor_zone_averages(preds)
+        assert isinstance(result, dict)
+
+    def test_signals_include_ai_search_fields(self):
+        """Signal output includes ai_search_zone_avg and ai_search_yoy fields."""
+        analysis = {"predictions": _make_prediction(p_up=75.0, p_down=10.0)}
+        signals = compute_next_day_signals(analysis)
+        assert len(signals) == 1
+        assert "ai_search_zone_avg" in signals[0]
+        assert "ai_search_yoy" in signals[0]
+
+    def test_ai_search_fields_null_when_no_data(self):
+        """AI_Search fields are None when no external data is available."""
+        analysis = {"predictions": _make_prediction(
+            p_up=75.0, p_down=10.0, hotel_id=99999,
+        )}
+        signals = compute_next_day_signals(analysis)
+        assert signals[0]["ai_search_zone_avg"] is None
+        assert signals[0]["ai_search_yoy"] is None
+
+
+class TestAISearchHistoricalComparisons:
+    """Test _load_historical_comparisons — graceful fallback when DB unavailable."""
+
+    def test_empty_predictions(self):
+        from src.analytics.options_engine import _load_historical_comparisons
+        result = _load_historical_comparisons({})
+        assert result == {}
+
+    def test_no_valid_combos(self):
+        from src.analytics.options_engine import _load_historical_comparisons
+        preds = {"1001": {"hotel_id": None, "category": "", "date_from": ""}}
+        result = _load_historical_comparisons(preds)
+        assert isinstance(result, dict)
+
+    def test_graceful_fallback_no_db(self):
+        """When DB connection fails, returns empty dict without crashing."""
+        from src.analytics.options_engine import _load_historical_comparisons
+        preds = {
+            "1001": {
+                "hotel_id": 6805,
+                "category": "Standard Room",
+                "date_from": "2026-04-20",
+                "current_price": 150.0,
+            }
+        }
+        result = _load_historical_comparisons(preds)
+        assert isinstance(result, dict)

@@ -1,0 +1,80 @@
+<h2>Mode Switcher — איך עוברים בין תצוגות?</h2>
+<p class="subtitle">אמרת שצריך Table / HeatMap / Chart / Alerts — איך זה מתחבר?</p>
+
+<div class="mockup">
+  <div class="mockup-header">הדמיה של ה-Header + Mode Switcher</div>
+  <div class="mockup-body" style="padding:0;">
+    <!-- Top bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#0f172a;border-bottom:1px solid #1e293b;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="color:#3b82f6;font-weight:bold;font-size:14px;">MEDICI TERMINAL</span>
+        <span style="color:#10b981;font-size:11px;">● LIVE</span>
+      </div>
+      <div style="display:flex;gap:4px;color:#888;font-size:11px;">
+        <span style="color:#10b981;">CALL:142</span>
+        <span style="color:#666;">│</span>
+        <span style="color:#ef4444;">PUT:89</span>
+        <span style="color:#666;">│</span>
+        <span style="color:#888;">NEUT:231</span>
+        <span style="color:#666;">│</span>
+        <span style="color:#f59e0b;">Alerts:3</span>
+      </div>
+    </div>
+    <!-- Mode bar -->
+    <div style="display:flex;gap:2px;padding:6px 16px;background:#0b1120;border-bottom:1px solid #1e293b;">
+      <div style="padding:5px 14px;background:#1e293b;color:#3b82f6;border-radius:4px;font-size:12px;border:1px solid #3b82f6;">📊 Table</div>
+      <div style="padding:5px 14px;color:#666;border-radius:4px;font-size:12px;">🗺️ HeatMap</div>
+      <div style="padding:5px 14px;color:#666;border-radius:4px;font-size:12px;">📈 Chart</div>
+      <div style="padding:5px 14px;color:#666;border-radius:4px;font-size:12px;position:relative;">⚡ Alerts <span style="background:#ef4444;color:white;font-size:9px;padding:0 4px;border-radius:8px;position:absolute;top:2px;right:2px;">3</span></div>
+    </div>
+  </div>
+</div>
+
+<div style="height:24px;"></div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Tabs — מחליפים את כל ה-Main Area</h3>
+      <p>כל mode תופס את כל השטח המרכזי. Table ← HeatMap ← Chart ← Alerts. פשוט ונקי. בוחרים mode אחד.</p>
+      <div style="margin-top:6px;color:#f59e0b;font-size:12px;">⚠ בוחרים חדר בטבלה, עוברים ל-Chart — צריך ללחוץ חזרה לטבלה</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Split — טבלה תמיד למעלה, Chart/HeatMap/Alerts למטה</h3>
+      <p>חצי עליון: תמיד הטבלה (ניתן לכווץ). חצי תחתון: modes מתחלפים (Chart/HeatMap/Alerts). בוחר שורה בטבלה → chart למטה מתעדכן.</p>
+      <div style="display:flex;flex-direction:column;margin-top:8px;height:80px;border-radius:4px;overflow:hidden;border:1px solid #333;">
+        <div style="flex:1;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:#3b82f6;font-size:11px;border-bottom:1px solid #333;">Signal Table (always visible, resizable)</div>
+        <div style="flex:1;background:#0f172a;display:flex;align-items:center;justify-content:center;color:#10b981;font-size:11px;">Chart / HeatMap / Alerts (switchable)</div>
+      </div>
+      <div style="margin-top:6px;color:#10b981;font-size:12px;">✓ טבלה + chart באותו זמן, לא מפסידים הקשר</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Master-Detail — טבלה בוחרת, Chart נפתח inline</h3>
+      <p>לוחצים על שורה → היא מתרחבת ומראה 3 charts מסונכרנים מתחתיה (accordion style). שאר השורות נדחקות למטה. לחיצה נוספת סוגרת.</p>
+      <div style="margin-top:8px;padding:8px;background:rgba(255,255,255,0.03);border-radius:4px;font-size:11px;font-family:monospace;">
+        <div style="padding:4px;border-bottom:1px solid #222;color:#888;">Marriott DLX BB — CALL 78% ↑↑</div>
+        <div style="padding:8px;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.2);border-radius:3px;margin:4px 0;">
+          <div style="color:#3b82f6;font-size:10px;margin-bottom:4px;">▼ EXPANDED — 3 Synced Charts</div>
+          <div style="display:flex;gap:4px;">
+            <div style="flex:1;height:30px;background:#0f172a;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#444;font-size:9px;">Price + FC</div>
+            <div style="flex:1;height:30px;background:#0f172a;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#444;font-size:9px;">Velocity</div>
+            <div style="flex:1;height:30px;background:#0f172a;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#444;font-size:9px;">Voters</div>
+          </div>
+        </div>
+        <div style="padding:4px;border-bottom:1px solid #222;color:#888;">Hilton STD RO — PUT 82% ↓↓</div>
+      </div>
+      <div style="margin-top:6px;color:#10b981;font-size:12px;">✓ הכל בזרימה אחת, בלי mode switching</div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:24px;color:#888;font-size:13px;">💡 זה קובע את כל חוויית הניווט בטרמינל</p>

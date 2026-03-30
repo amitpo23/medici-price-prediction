@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import math
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -51,20 +52,247 @@ def _count_crossings(values: np.ndarray, threshold: float) -> int:
     return transitions + first_below
 
 
+# ── AI_Search competitor & historical data ───────────────────────────
+
+def _load_competitor_zone_averages(predictions: dict) -> dict[int, float]:
+    """Load zone average prices from AI_Search_HotelData for competitor comparison.
+
+    Queries AI_Search for Miami hotels with matching StayFrom dates (last 7 days data).
+    Groups by zone (using HOTEL_SEGMENTS config) and computes average price per zone.
+    Returns {hotel_id: zone_avg_price} for each hotel in predictions.
+    """
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection
+        from config.hotel_segments import HOTEL_SEGMENTS, ZONES
+    except ImportError as exc:
+        logger.debug("AI_Search competitor loading skipped (import): %s", exc)
+        return {}
+
+    # Collect unique checkin dates from predictions
+    checkin_dates: set[str] = set()
+    hotel_ids_in_preds: set[int] = set()
+    for pred in predictions.values():
+        date_from = pred.get("date_from", "")
+        if isinstance(date_from, str) and len(date_from) >= 10:
+            checkin_dates.add(date_from[:10])
+        elif hasattr(date_from, "strftime"):
+            checkin_dates.add(date_from.strftime("%Y-%m-%d"))
+        hid = pred.get("hotel_id")
+        if hid:
+            hotel_ids_in_preds.add(int(hid))
+
+    if not checkin_dates:
+        return {}
+
+    # Build SQL: query AI_Search for Miami hotels, matching StayFrom dates, last 7 days
+    date_list = ", ".join(f"'{d}'" for d in sorted(checkin_dates))
+    sql = f"""
+        SELECT HotelId, AVG(PriceAmount) as avg_price
+        FROM AI_Search_HotelData
+        WHERE CityName = 'Miami'
+          AND StayFrom IN ({date_list})
+          AND UpdatedAt > DATEADD(day, -7, GETUTCDATE())
+          AND PriceAmount > 0
+        GROUP BY HotelId
+    """
+
+    try:
+        conn = get_pyodbc_connection()
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        conn.close()
+    except (OSError, ConnectionError, ValueError, Exception) as exc:
+        logger.warning("AI_Search competitor query failed: %s", exc)
+        return {}
+
+    if not rows:
+        logger.debug("AI_Search competitor query returned 0 rows")
+        return {}
+
+    # Map external hotel_id -> avg_price
+    external_prices: dict[int, float] = {}
+    for row in rows:
+        try:
+            external_prices[int(row[0])] = float(row[1])
+        except (TypeError, ValueError):
+            continue
+
+    logger.info("AI_Search competitor prices loaded for %d hotels", len(external_prices))
+
+    # Group external prices by zone
+    zone_price_sums: dict[str, float] = {}
+    zone_price_counts: dict[str, int] = {}
+    for hid, price in external_prices.items():
+        seg = HOTEL_SEGMENTS.get(hid)
+        if seg:
+            zone = seg["zone"]
+        else:
+            # External hotels not in our segments — skip (we only have zone mapping for ours)
+            # But AI_Search has 6013 hotels — we can still count them if they match Miami
+            # For now, only use hotels we can map to a zone
+            continue
+        zone_price_sums[zone] = zone_price_sums.get(zone, 0.0) + price
+        zone_price_counts[zone] = zone_price_counts.get(zone, 0) + 1
+
+    # Also include ALL external Miami hotels in a global "miami" average as fallback
+    all_prices = [p for p in external_prices.values() if p > 0]
+    miami_avg = sum(all_prices) / len(all_prices) if all_prices else 0.0
+
+    zone_averages: dict[str, float] = {}
+    for zone in zone_price_sums:
+        count = zone_price_counts[zone]
+        if count >= 2:  # Need at least 2 hotels for meaningful average
+            zone_averages[zone] = zone_price_sums[zone] / count
+
+    # Map each hotel_id in predictions to its zone average
+    result: dict[int, float] = {}
+    for hid in hotel_ids_in_preds:
+        seg = HOTEL_SEGMENTS.get(hid)
+        if not seg:
+            continue
+        zone = seg["zone"]
+        if zone in zone_averages:
+            result[hid] = zone_averages[zone]
+        elif miami_avg > 0:
+            # Fallback to city-wide average if zone has too few hotels in AI_Search
+            result[hid] = miami_avg
+
+    logger.info("AI_Search zone averages: %s (miami_avg=%.0f)", {z: round(v) for z, v in zone_averages.items()}, miami_avg)
+    return result
+
+
+def _load_historical_comparisons(predictions: dict) -> dict[str, dict]:
+    """Load historical price comparisons from AI_Search_HotelData (same period last year).
+
+    For each unique (hotel_id, room_type, checkin_month) combo, queries AI_Search
+    for the same hotel, same room type, same month last year.
+
+    Returns {detail_id: {"yoy_avg": float, "yoy_samples": int, "yoy_change_pct": float}}
+    """
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection
+    except ImportError as exc:
+        logger.debug("AI_Search historical loading skipped (import): %s", exc)
+        return {}
+
+    # Collect unique (hotel_id, category, month) combos + map detail_ids
+    combos: dict[tuple, list[str]] = {}  # (hotel_id, category, month, year-1) -> [detail_ids]
+    for detail_id, pred in predictions.items():
+        hid = pred.get("hotel_id")
+        cat = pred.get("category", "")
+        date_from = pred.get("date_from", "")
+        if not hid or not cat or not date_from:
+            continue
+        try:
+            if isinstance(date_from, str):
+                checkin = datetime.strptime(date_from[:10], "%Y-%m-%d")
+            elif hasattr(date_from, "month"):
+                checkin = date_from
+            else:
+                continue
+            month = checkin.month
+            last_year = checkin.year - 1
+        except (ValueError, AttributeError):
+            continue
+        key = (int(hid), cat, month, last_year)
+        combos.setdefault(key, []).append(str(detail_id))
+
+    if not combos:
+        return {}
+
+    # Build a UNION ALL query for each unique (hotel_id, month, year) combo
+    # But to avoid massive queries, batch by hotel_id
+    hotel_month_groups: dict[int, list[tuple]] = {}
+    for key in combos:
+        hid = key[0]
+        hotel_month_groups.setdefault(hid, []).append(key)
+
+    try:
+        conn = get_pyodbc_connection()
+        cursor = conn.cursor()
+    except (OSError, ConnectionError, ValueError, Exception) as exc:
+        logger.warning("AI_Search historical query connection failed: %s", exc)
+        return {}
+
+    result: dict[str, dict] = {}
+    query_count = 0
+
+    try:
+        for hid, keys in hotel_month_groups.items():
+            # Build one query per hotel with all month/year combos
+            # Use UNION for each month/year pair
+            for key in keys:
+                _, cat, month, year = key
+                sql = """
+                    SELECT TOP 50 RoomType, AVG(PriceAmount) as avg_price, COUNT(*) as samples
+                    FROM AI_Search_HotelData
+                    WHERE HotelId = ? AND MONTH(StayFrom) = ? AND YEAR(StayFrom) = ?
+                      AND RoomType LIKE ? AND PriceAmount > 0
+                    GROUP BY RoomType
+                """
+                # Use category as a LIKE pattern (room types may not match exactly)
+                cat_pattern = f"%{cat[:20]}%" if cat else "%"
+                cursor.execute(sql, (hid, month, year, cat_pattern))
+                rows = cursor.fetchall()
+                query_count += 1
+
+                if rows:
+                    # Take the first matching room type average
+                    yoy_avg = float(rows[0][1])
+                    yoy_samples = int(rows[0][2])
+                    for did in combos[key]:
+                        # Find current price for this detail
+                        pred = predictions.get(did) or predictions.get(int(did))
+                        current_price = float((pred or {}).get("current_price", 0) or 0)
+                        yoy_change_pct = 0.0
+                        if yoy_avg > 0 and current_price > 0:
+                            yoy_change_pct = ((current_price - yoy_avg) / yoy_avg) * 100
+                        result[str(did)] = {
+                            "yoy_avg": round(yoy_avg, 2),
+                            "yoy_samples": yoy_samples,
+                            "yoy_change_pct": round(yoy_change_pct, 1),
+                        }
+        conn.close()
+    except (OSError, ConnectionError, ValueError, Exception) as exc:
+        logger.warning("AI_Search historical query failed after %d queries: %s", query_count, exc)
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    logger.info("AI_Search historical comparisons loaded for %d details (%d queries)", len(result), query_count)
+    return result
+
+
 # ── Section A: Ex-ante next-day signals ──────────────────────────────
 
 def compute_next_day_signals(analysis: dict) -> list[dict]:
     """Compute CALL/PUT/NONE recommendation for each active contract.
 
-    Uses existing analysis["predictions"] — no additional DB queries needed.
-    P_up/P_down come from the decay-curve probability distribution already stored
-    in each prediction's "probability" dict (values are 0–100 scale).
+    Pre-loads bulk data from AI_Search_HotelData (competitor zone averages, YoY
+    historical comparisons) and MED_Book buy prices, then runs consensus voters
+    per detail.
 
     Returns a list of signal dicts, sorted by (hotel_id, checkin_date, T desc).
     """
     predictions = analysis.get("predictions", {})
     if not predictions:
         return []
+
+    # Pre-load AI_Search competitor zone averages (one query for all dates)
+    ai_search_zone_avgs: dict[int, float] = {}
+    try:
+        ai_search_zone_avgs = _load_competitor_zone_averages(predictions)
+    except Exception as exc:
+        logger.warning("AI_Search competitor loading failed: %s", exc)
+
+    # Pre-load AI_Search historical YoY comparisons
+    ai_search_historical: dict[str, dict] = {}
+    try:
+        ai_search_historical = _load_historical_comparisons(predictions)
+    except Exception as exc:
+        logger.warning("AI_Search historical loading failed: %s", exc)
 
     # Pre-load MED_Book buy prices for margin erosion voter
     med_book_prices: dict[int, float] = {}  # hotel_id -> avg buy price
@@ -130,21 +358,38 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 if seg:
                     zone = seg["zone"]
                     tier = seg["tier"]
-                    zone_prices = []        # same zone (any tier) for zone_avg
-                    tier_directions = []    # same zone+tier for peer directions
-                    zone_directions = []    # same zone (any tier) fallback
-                    seen_hotels = set()     # deduplicate per hotel for directions
+
+                    # Prefer AI_Search zone average (real market data from 129 providers)
+                    ai_zone_avg = ai_search_zone_avgs.get(int(hotel_id_val), 0.0)
+                    if ai_zone_avg > 0:
+                        zone_avg = ai_zone_avg
+                    else:
+                        # Fallback: compute from other predictions in same zone
+                        zone_prices = []
+                        for _, other_pred in predictions.items():
+                            other_hid = int(other_pred.get("hotel_id", 0) or 0)
+                            if other_hid == int(hotel_id_val):
+                                continue
+                            other_seg = HOTEL_SEGMENTS.get(other_hid, {})
+                            if other_seg.get("zone") != zone:
+                                continue
+                            other_cp = float(other_pred.get("current_price", 0) or 0)
+                            if other_cp > 0:
+                                zone_prices.append(other_cp)
+                        if zone_prices:
+                            zone_avg = sum(zone_prices) / len(zone_prices)
+
+                    # Collect peer directions (one vote per hotel, not per room)
+                    tier_directions = []
+                    zone_directions = []
+                    seen_hotels = set()
                     for _, other_pred in predictions.items():
                         other_hid = int(other_pred.get("hotel_id", 0) or 0)
                         if other_hid == int(hotel_id_val):
-                            continue  # skip self
+                            continue
                         other_seg = HOTEL_SEGMENTS.get(other_hid, {})
                         if other_seg.get("zone") != zone:
-                            continue  # different zone — skip entirely
-                        other_cp = float(other_pred.get("current_price", 0) or 0)
-                        if other_cp > 0:
-                            zone_prices.append(other_cp)
-                        # Collect peer direction (one vote per hotel, not per room)
+                            continue
                         other_change = float(other_pred.get("expected_change_pct", 0) or 0)
                         if other_hid not in seen_hotels and other_change != 0:
                             seen_hotels.add(other_hid)
@@ -152,8 +397,6 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                             zone_directions.append(direction)
                             if other_seg.get("tier") == tier:
                                 tier_directions.append(direction)
-                    if zone_prices:
-                        zone_avg = sum(zone_prices) / len(zone_prices)
                     # Prefer same zone+tier peers; fall back to zone-only
                     peer_directions = tier_directions if tier_directions else zone_directions
             except (ImportError, ValueError, TypeError) as exc:
@@ -171,7 +414,6 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
             events_for_voter = []
             try:
                 from src.analytics.events_store import MIAMI_MAJOR_EVENTS
-                from datetime import datetime, timedelta
                 date_from_str = pred.get("date_from", "")
                 if date_from_str:
                     if isinstance(date_from_str, str):
@@ -253,6 +495,9 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
             except (ImportError, OSError, Exception):
                 pass  # Monitor bridge is optional
 
+            # AI_Search historical YoY comparison for this detail
+            yoy_data = ai_search_historical.get(str(detail_id), {})
+
             signals.append({
                 "detail_id":        str(detail_id),
                 "hotel_id":         pred.get("hotel_id"),
@@ -281,6 +526,8 @@ def compute_next_day_signals(analysis: dict) -> list[dict]:
                 "fc_max_rise_pct":  round(max_rise_pct, 1),
                 "fc_points":        len(fc_prices),
                 "market_context":   market_ctx,
+                "ai_search_zone_avg": round(zone_avg, 2) if ai_search_zone_avgs.get(int(hotel_id_val), 0) > 0 else None,
+                "ai_search_yoy":    yoy_data if yoy_data else None,
             })
         except (KeyError, ValueError, TypeError, AttributeError, ZeroDivisionError) as exc:
             logger.debug("options signal failed for %s: %s", detail_id, exc)

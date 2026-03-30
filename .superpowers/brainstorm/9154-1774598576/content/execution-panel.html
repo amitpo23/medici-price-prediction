@@ -1,0 +1,53 @@
+<h2>פאנל ביצוע — איפה ואיך?</h2>
+<p class="subtitle">Override/Opportunity/Rules — איך אתה רוצה לבצע פעולות מהטרמינל?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Sidebar קבוע בצד ימין</h3>
+      <p>פאנל צר (250px) שתמיד פתוח — queues, rules, quick actions. לוחץ על חדר בטבלה ← הפאנל מתעדכן עם פעולות רלוונטיות.</p>
+      <div style="display:flex;margin-top:10px;height:80px;border-radius:4px;overflow:hidden;border:1px solid #333;">
+        <div style="flex:1;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:#666;font-size:11px;">Table + Charts</div>
+        <div style="width:60px;background:#16213e;display:flex;align-items:center;justify-content:center;color:#3b82f6;font-size:10px;border-left:1px solid #333;">Execute Panel</div>
+      </div>
+      <div style="margin-top:6px;color:#10b981;font-size:12px;">✓ תמיד נגיש, לא צריך לחפש</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Drawer נשלף מלמטה</h3>
+      <p>ברגע שבוחרים חדר או כמה חדרים — drawer עולה מלמטה עם כל הפעולות. אפשר לגרור גודל. כשלא צריך — הוא מוסתר ויש יותר מקום ל-charts.</p>
+      <div style="display:flex;flex-direction:column;margin-top:10px;height:80px;border-radius:4px;overflow:hidden;border:1px solid #333;">
+        <div style="flex:1;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:#666;font-size:11px;">Table + Charts (full width)</div>
+        <div style="height:25px;background:#16213e;display:flex;align-items:center;justify-content:center;color:#f59e0b;font-size:10px;border-top:1px solid #333;">⬆ Execute Drawer (drag to resize)</div>
+      </div>
+      <div style="margin-top:6px;color:#10b981;font-size:12px;">✓ יותר מקום ל-charts כשלא מבצעים</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Inline בטבלה + Modal לפעולות מורכבות</h3>
+      <p>כפתורי Override/Buy ישירות בשורת הטבלה. Rules וbulk actions נפתחים ב-modal. מינימליסטי — הכל זורם מהטבלה.</p>
+      <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,0.03);border-radius:4px;font-size:12px;font-family:monospace;">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #222;">
+          <span style="color:#888;">Hilton Deluxe BB T=45</span>
+          <span style="color:#ef4444;">PUT 78%</span>
+          <span><button style="background:#7c3aed;color:white;border:none;padding:2px 8px;border-radius:3px;font-size:10px;">Override</button></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;">
+          <span style="color:#888;">Marriott Suite RO T=22</span>
+          <span style="color:#10b981;">CALL 85%</span>
+          <span><button style="background:#059669;color:white;border:none;padding:2px 8px;border-radius:3px;font-size:10px;">Buy</button></span>
+        </div>
+      </div>
+      <div style="margin-top:6px;color:#10b981;font-size:12px;">✓ פשוט, ישיר, בלי panels מיותרים</div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:24px;color:#888;font-size:13px;">💡 זה קובע כמה מקום מסך ה-charts מקבלים</p>

@@ -19,6 +19,27 @@
 
 const { test, expect } = require('@playwright/test');
 
+function normalize(value) {
+  return (value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function inferRoomPmsCode(title, fallback = '') {
+  const normalizedTitle = normalize(title);
+  if (normalizedTitle.includes('superior') || normalizedTitle === 'spr' || normalizedTitle === 'sup') {
+    return 'SPR';
+  }
+  if (normalizedTitle.includes('deluxe') || normalizedTitle === 'dlx') {
+    return 'DLX';
+  }
+  if (normalizedTitle.includes('suite') || normalizedTitle === 'sui') {
+    return 'Suite';
+  }
+  if (normalizedTitle.includes('standard') || normalizedTitle === 'stnd') {
+    return 'Stnd';
+  }
+  return fallback;
+}
+
 const REFERENCE_VENUE = 5077; // SLS Lux Brickell — working reference
 
 // 26 venues with NO products (confirmed by Zenith API probe)
@@ -55,9 +76,51 @@ const TARGET_VENUES = [
   { venueId: 5277, hotelId: 87197,  name: 'The Catalina Hotel & Beach Club' },
 ];
 
-const DRY_RUN = !process.argv.includes('--apply');
+const DRY_RUN = !(process.argv.includes('--apply') || process.env.APPLY === '1');
+const REQUESTED_VENUES = (process.env.VENUES || '')
+  .split(',')
+  .map(value => Number.parseInt(value.trim(), 10))
+  .filter(Number.isFinite);
+const SELECTED_TARGET_VENUES = REQUESTED_VENUES.length > 0
+  ? TARGET_VENUES.filter(target => REQUESTED_VENUES.includes(target.venueId))
+  : TARGET_VENUES;
 
 test.setTimeout(600_000); // 10 minutes
+
+async function setVenueContext(page, venueId) {
+  const resetButton = page.getByRole('button', { name: /reset/i }).first();
+  if (await resetButton.count()) {
+    await resetButton.click().catch(() => undefined);
+    await page.waitForTimeout(500);
+  }
+
+  await page.evaluate((selectedVenueId) => {
+    const selector = document.querySelector('#venue_context_selector');
+    if (!selector) throw new Error('Venue selector not found');
+    selector.value = String(selectedVenueId);
+    selector.dispatchEvent(new Event('change', { bubbles: true }));
+    selector.dispatchEvent(new Event('input', { bubbles: true }));
+  }, venueId);
+
+  await page.waitForTimeout(1000);
+  const searchButton = page.getByRole('button', { name: /search/i }).first();
+  if (await searchButton.count()) {
+    await searchButton.click().catch(() => undefined);
+  }
+  await page.waitForTimeout(1700);
+}
+
+async function setProductVenue(page, venueId) {
+  const venueField = page.locator('select[name="venue"]');
+  if (await venueField.count() === 0) {
+    throw new Error('Product venue field not found');
+  }
+
+  await venueField.selectOption(String(venueId));
+  await venueField.dispatchEvent('change').catch(() => undefined);
+  await venueField.dispatchEvent('input').catch(() => undefined);
+  await page.waitForTimeout(300);
+}
 
 test('create products for 26 empty venues', async ({ browser }) => {
   const accountName = process.env.HOTEL_TOOLS_ACCOUNT_NAME || process.env.NOOVY_ACCOUNT_NAME;
@@ -71,7 +134,10 @@ test('create products for 26 empty venues', async ({ browser }) => {
 
   console.log(`Mode: ${DRY_RUN ? 'DRY RUN' : '🔴 APPLY'}`);
   console.log(`Reference venue: ${REFERENCE_VENUE}`);
-  console.log(`Target venues: ${TARGET_VENUES.length}`);
+  console.log(`Target venues: ${SELECTED_TARGET_VENUES.length}`);
+  if (REQUESTED_VENUES.length > 0) {
+    console.log(`Requested filter: ${REQUESTED_VENUES.join(', ')}`);
+  }
   console.log();
 
   const context = await browser.newContext({ viewport: { width: 1700, height: 1100 } });
@@ -93,22 +159,29 @@ test('create products for 26 empty venues', async ({ browser }) => {
   await page.waitForTimeout(2000);
 
   // Set venue context
-  const venueSelector = page.locator('#venue_context_selector');
-  if (await venueSelector.count() > 0) {
-    await venueSelector.selectOption({ value: String(REFERENCE_VENUE) });
-    await page.waitForTimeout(2000);
-  }
+  await setVenueContext(page, REFERENCE_VENUE);
 
   // Read product table
   const productRows = await page.locator('table tbody tr').all();
   const templates = [];
+  const seenTemplateTitles = new Set();
 
   for (const row of productRows) {
     const cells = await row.locator('td').all();
     if (cells.length < 5) continue;
 
     const title = (await cells[1].textContent()).trim();
-    const productType = (await cells[4].textContent()).trim().toLowerCase();
+    const productType = normalize(await cells[4].textContent());
+    const normalizedTitle = normalize(title);
+
+    // Product-failure hotels need missing room products, not meal-plan rows.
+    if (productType !== 'room') {
+      continue;
+    }
+
+    if (!normalizedTitle || seenTemplateTitles.has(normalizedTitle)) {
+      continue;
+    }
 
     // Get edit link
     const editLink = await row.locator('a[href*="/products/"]').first();
@@ -131,21 +204,35 @@ test('create products for 26 empty venues', async ({ browser }) => {
       realPrice: await safeValue(page, '#f-real-price'),
       baseCurrency: await safeValue(page, '#f-base-currency'),
       baseQuantity: await safeValue(page, '#f-base-quantity'),
+      affectedBy: await safeValue(page, '#f-affected'),
       maxOccupancy: await safeValue(page, '#f-max-occupancy'),
+      startDate: await safeValue(page, '#f-alt-start-date') || await safeValue(page, '#f-start-date'),
+      endDate: await safeValue(page, '#f-alt-end-date') || await safeValue(page, '#f-end-date'),
+      exclusive: await safeValue(page, '#f-exclusive'),
+      tags: await safeValue(page, '#f-tags'),
+      productOrder: await safeValue(page, '#f-product-order'),
+      roomsReserve: await safeValue(page, '#f-rooms-reserve'),
       status: await safeValue(page, '#f-status'),
-      pmsCode: await safeValue(page, '#f-pms-code'),
+      pmsCode: await safeValue(page, '#rnd-f-pms_code') || await safeValue(page, '#f-pms-code'),
     };
 
+    template.pmsCode = inferRoomPmsCode(template.title, template.pmsCode);
+    if (!template.shortName) {
+      template.shortName = template.pmsCode;
+    }
+
+    seenTemplateTitles.add(normalizedTitle);
     templates.push(template);
     await page.goto('https://hotel.tools/products');
     await page.waitForTimeout(1000);
+    await setVenueContext(page, REFERENCE_VENUE);
   }
 
   console.log(`\nLoaded ${templates.length} templates from reference venue.`);
 
   if (DRY_RUN) {
     console.log('\n=== DRY RUN — would create these products ===');
-    for (const t of TARGET_VENUES) {
+      for (const t of SELECTED_TARGET_VENUES) {
       console.log(`\nVenue ${t.venueId} (${t.name}):`);
       for (const tmpl of templates) {
         console.log(`  + ${tmpl.productType}: ${tmpl.title} (${tmpl.shortName}) — ${tmpl.baseCurrency} ${tmpl.basePrice}`);
@@ -158,18 +245,14 @@ test('create products for 26 empty venues', async ({ browser }) => {
   // --- APPLY mode: create products ---
   const report = { created: [], skipped: [], errors: [], timestamp: new Date().toISOString() };
 
-  for (const target of TARGET_VENUES) {
+  for (const target of SELECTED_TARGET_VENUES) {
     console.log(`\n--- Processing venue ${target.venueId} (${target.name}) ---`);
 
     try {
       await page.goto('https://hotel.tools/products');
       await page.waitForTimeout(2000);
 
-      // Set venue context
-      if (await venueSelector.count() > 0) {
-        await venueSelector.selectOption({ value: String(target.venueId) });
-        await page.waitForTimeout(2000);
-      }
+      await setVenueContext(page, target.venueId);
 
       // Check existing products
       const existingRows = await page.locator('table tbody tr').count();
@@ -177,13 +260,13 @@ test('create products for 26 empty venues', async ({ browser }) => {
       for (const row of await page.locator('table tbody tr').all()) {
         const cells = await row.locator('td').all();
         if (cells.length >= 2) {
-          existingTitles.push((await cells[1].textContent()).trim().toLowerCase());
+          existingTitles.push(normalize(await cells[1].textContent()));
         }
       }
 
       let createdCount = 0;
       for (const tmpl of templates) {
-        const normalizedTitle = tmpl.title.toLowerCase();
+        const normalizedTitle = normalize(tmpl.title);
         if (existingTitles.includes(normalizedTitle)) {
           console.log(`  SKIP: "${tmpl.title}" already exists`);
           continue;
@@ -193,20 +276,44 @@ test('create products for 26 empty venues', async ({ browser }) => {
 
         await page.goto('https://hotel.tools/products/new');
         await page.waitForTimeout(1500);
+        await setVenueContext(page, target.venueId);
+        await setProductVenue(page, target.venueId);
 
         // Fill form
         await safeFill(page, '#f-product-type', tmpl.productType);
         await safeFill(page, '#f-title', tmpl.title);
         await safeFill(page, '#f-short-name', tmpl.shortName);
-        if (tmpl.mealPlanType) await safeFill(page, '#f-meal-plan-type', tmpl.mealPlanType);
         await safeFill(page, '#f-base-price', tmpl.basePrice);
         if (tmpl.minPrice) await safeFill(page, '#f-min-price', tmpl.minPrice);
         if (tmpl.realPrice) await safeFill(page, '#f-real-price', tmpl.realPrice);
         await safeFill(page, '#f-base-currency', tmpl.baseCurrency);
         if (tmpl.baseQuantity) await safeFill(page, '#f-base-quantity', tmpl.baseQuantity);
+        if (tmpl.affectedBy) await safeFill(page, '#f-affected', tmpl.affectedBy);
         if (tmpl.maxOccupancy) await safeFill(page, '#f-max-occupancy', tmpl.maxOccupancy);
-        await safeFill(page, '#f-status', tmpl.status || 'active');
-        if (tmpl.pmsCode) await safeFill(page, '#f-pms-code', tmpl.pmsCode);
+
+        await page.evaluate(({ startDate, endDate }) => {
+          const set = (selector, value) => {
+            const element = document.querySelector(selector);
+            if (!element) return;
+            element.value = value || '';
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+          };
+          set('#f-start-date', startDate || '');
+          set('#f-alt-start-date', startDate || '');
+          set('#f-end-date', endDate || '');
+          set('#f-alt-end-date', endDate || '');
+        }, { startDate: tmpl.startDate || '', endDate: tmpl.endDate || '' });
+
+        if (tmpl.exclusive) await safeFill(page, '#f-exclusive', tmpl.exclusive);
+        if (tmpl.tags) await safeFill(page, '#f-tags', tmpl.tags);
+        if (tmpl.productOrder) await safeFill(page, '#f-product-order', tmpl.productOrder);
+        if (tmpl.roomsReserve) await safeFill(page, '#f-rooms-reserve', tmpl.roomsReserve);
+        await safeFill(page, '#f-status', tmpl.status || '1');
+        if (tmpl.pmsCode) {
+          await safeFill(page, '#rnd-f-pms_code', tmpl.pmsCode);
+          await safeFill(page, '#f-pms-code', tmpl.pmsCode);
+        }
 
         // Submit
         const saveBtn = page.getByRole('button', { name: /save|create|submit/i });
@@ -215,6 +322,20 @@ test('create products for 26 empty venues', async ({ browser }) => {
           await page.waitForTimeout(3000);
         }
 
+        await page.goto('https://hotel.tools/products');
+        await page.waitForTimeout(1500);
+        await setVenueContext(page, target.venueId);
+        const updatedTitles = [];
+        for (const row of await page.locator('table tbody tr').all()) {
+          const cells = await row.locator('td').all();
+          if (cells.length >= 2) {
+            updatedTitles.push(normalize(await cells[1].textContent()));
+          }
+        }
+        if (!updatedTitles.includes(normalizedTitle)) {
+          throw new Error(`Product did not persist after submit: ${tmpl.title}`);
+        }
+        existingTitles.push(normalizedTitle);
         createdCount++;
       }
 
@@ -249,6 +370,7 @@ async function safeFill(page, selector, value) {
   if (!value) return;
   const el = page.locator(selector);
   if (await el.count() === 0) return;
+  if (!(await el.isVisible()) || await el.isDisabled()) return;
   const tag = await el.evaluate(e => e.tagName.toLowerCase());
   if (tag === 'select') {
     await el.selectOption(value);

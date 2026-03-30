@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Medici Terminal V2 — Full Design Mockup</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#080c14; color:#e2e8f0; font-family:'SF Mono','Fira Code',monospace; font-size:11px; overflow-x:hidden; }
+
+  /* Header */
+  .header { display:flex; justify-content:space-between; align-items:center; padding:6px 16px; background:#0a0f1a; border-bottom:1px solid #1e293b; }
+  .header-left { display:flex; align-items:center; gap:12px; }
+  .logo { color:#3b82f6; font-weight:bold; font-size:14px; letter-spacing:1px; }
+  .live-badge { color:#10b981; font-size:10px; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+  .header-stats { display:flex; gap:8px; font-size:11px; }
+  .header-stats .call { color:#10b981; }
+  .header-stats .put { color:#ef4444; }
+  .header-stats .neut { color:#6b7280; }
+  .header-stats .alerts { color:#f59e0b; }
+  .sep { color:#333; }
+
+  /* Filter Strip */
+  .filter-strip { display:flex; align-items:center; gap:6px; padding:5px 16px; background:#0b1120; border-bottom:1px solid #1e293b; }
+  .filter-btn { padding:3px 10px; background:#1e293b; color:#94a3b8; border:1px solid #334155; border-radius:4px; font-size:10px; cursor:pointer; }
+  .filter-btn:hover { border-color:#3b82f6; color:#e2e8f0; }
+  .filter-btn.active { border-color:#3b82f6; color:#3b82f6; background:rgba(59,130,246,0.1); }
+  .search-box { flex:1; padding:3px 10px; background:#1e293b; color:#e2e8f0; border:1px solid #334155; border-radius:4px; font-size:10px; }
+  .reset-btn { padding:3px 10px; background:#7c3aed; color:white; border:none; border-radius:4px; font-size:10px; cursor:pointer; }
+
+  /* Main Layout */
+  .main-layout { display:flex; height:calc(100vh - 68px); }
+  .center-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .right-sidebar { width:240px; background:#0a0f1a; border-left:1px solid #1e293b; display:flex; flex-direction:column; overflow-y:auto; }
+
+  /* Table Area */
+  .table-area { flex:0 0 45%; overflow:auto; border-bottom:1px solid #1e293b; }
+  table { width:100%; border-collapse:collapse; }
+  th { position:sticky; top:0; background:#0f172a; color:#64748b; text-align:left; padding:6px 6px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; cursor:pointer; white-space:nowrap; }
+  th:hover { color:#e2e8f0; }
+  td { padding:5px 6px; border-bottom:1px solid #111827; white-space:nowrap; }
+  tr:hover { background:rgba(59,130,246,0.05); }
+  tr.selected { background:rgba(59,130,246,0.1); border-left:2px solid #3b82f6; }
+  .signal-badge { padding:1px 6px; border-radius:3px; font-size:9px; font-weight:bold; color:white; }
+  .signal-call { background:#059669; }
+  .signal-put { background:#dc2626; }
+  .signal-neut { background:#4b5563; }
+  .sparkline { letter-spacing:-1px; font-size:13px; }
+  .up { color:#10b981; }
+  .down { color:#ef4444; }
+  .flat { color:#6b7280; }
+
+  /* Resize Handle */
+  .resize-handle { height:4px; background:#1e293b; cursor:ns-resize; display:flex; align-items:center; justify-content:center; }
+  .resize-handle:hover { background:#3b82f6; }
+  .resize-handle::after { content:''; width:30px; height:2px; background:#4b5563; border-radius:1px; }
+
+  /* Chart Area */
+  .chart-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .chart-tabs { display:flex; gap:2px; padding:4px 12px; background:#0b1120; border-bottom:1px solid #1e293b; }
+  .chart-tab { padding:4px 12px; color:#64748b; border-radius:4px; font-size:10px; cursor:pointer; }
+  .chart-tab.active { background:#1e293b; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); }
+  .chart-tab .badge { background:#ef4444; color:white; font-size:8px; padding:0 4px; border-radius:6px; margin-left:4px; }
+
+  /* Chart Panels */
+  .chart-panels { flex:1; display:flex; flex-direction:column; padding:8px 12px; gap:4px; overflow:hidden; }
+  .chart-panel { flex:1; background:#0f172a; border:1px solid #1e293b; border-radius:4px; position:relative; overflow:hidden; min-height:0; }
+  .chart-label { position:absolute; top:4px; left:8px; color:#475569; font-size:9px; font-weight:600; text-transform:uppercase; z-index:1; }
+  .chart-content { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+
+  /* Price Chart Mockup */
+  .price-chart-mock { width:100%; height:100%; position:relative; padding:20px 12px 12px; }
+  .chart-line { position:absolute; bottom:20%; left:5%; right:5%; height:1px; background:#1e293b; }
+  .chart-midline { position:absolute; top:50%; left:50%; width:1px; height:60%; transform:translateY(-50%); border-left:1px dashed #3b82f6; opacity:0.3; }
+  .chart-today { position:absolute; top:15%; left:50%; transform:translateX(-50%); color:#3b82f6; font-size:8px; background:#0f172a; padding:0 4px; }
+  .chart-past { position:absolute; bottom:8px; left:15%; color:#64748b; font-size:8px; }
+  .chart-future { position:absolute; bottom:8px; right:15%; color:#64748b; font-size:8px; }
+
+  /* Scan history line (left side) */
+  .scan-line { position:absolute; bottom:25%; left:5%; width:45%; height:40%; }
+  .scan-line svg { width:100%; height:100%; }
+
+  /* FC line (right side) */
+  .fc-line { position:absolute; bottom:25%; left:52%; width:43%; height:40%; }
+  .fc-line svg { width:100%; height:100%; }
+
+  /* Voter annotations */
+  .voter-icon { position:absolute; font-size:10px; cursor:pointer; }
+  .voter-icon:hover::after { content:attr(data-label); position:absolute; top:-18px; left:50%; transform:translateX(-50%); background:#1e293b; color:#e2e8f0; padding:2px 6px; border-radius:3px; font-size:8px; white-space:nowrap; }
+
+  /* Voter toggles */
+  .voter-toggles { display:flex; flex-wrap:wrap; gap:3px; padding:4px 12px; background:#080c14; border-top:1px solid #1e293b; }
+  .voter-toggle { padding:2px 6px; border:1px solid #1e293b; border-radius:3px; font-size:9px; color:#64748b; cursor:pointer; display:flex; align-items:center; gap:3px; }
+  .voter-toggle.on { border-color:#3b82f6; color:#e2e8f0; }
+  .voter-dot { width:6px; height:6px; border-radius:50%; }
+
+  /* Velocity panel */
+  .velocity-bars { display:flex; align-items:flex-end; gap:1px; height:100%; padding:16px 20px 8px; }
+  .v-bar { flex:1; border-radius:1px 1px 0 0; min-height:2px; }
+  .v-bar.up { background:#10b981; }
+  .v-bar.down { background:#ef4444; }
+  .v-bar.flat { background:#334155; }
+
+  /* Voter timeline */
+  .voter-timeline-grid { display:grid; grid-template-columns:60px 1fr; gap:0; height:100%; padding:16px 8px 8px; overflow-y:auto; }
+  .vt-label { color:#64748b; font-size:8px; padding:2px 4px; border-bottom:1px solid #111827; display:flex; align-items:center; }
+  .vt-row { display:flex; gap:1px; padding:2px 0; border-bottom:1px solid #111827; align-items:center; }
+  .vt-cell { width:8px; height:8px; border-radius:2px; }
+  .vt-call { background:#059669; }
+  .vt-put { background:#dc2626; }
+  .vt-neut { background:#1e293b; }
+
+  /* Right Sidebar */
+  .sidebar-section { border-bottom:1px solid #1e293b; }
+  .sidebar-header { padding:8px 12px; color:#94a3b8; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; background:#0b1120; }
+  .sidebar-body { padding:8px 12px; }
+  .alert-item { display:flex; gap:8px; padding:6px 0; border-bottom:1px solid #111827; }
+  .alert-severity { width:3px; border-radius:2px; }
+  .alert-severity.critical { background:#ef4444; }
+  .alert-severity.warning { background:#f59e0b; }
+  .alert-severity.info { background:#3b82f6; }
+  .alert-text { font-size:10px; color:#cbd5e1; line-height:1.4; }
+  .alert-time { font-size:9px; color:#475569; }
+
+  .queue-item { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #111827; font-size:10px; }
+  .queue-status { display:flex; align-items:center; gap:4px; }
+  .status-dot { width:6px; height:6px; border-radius:50%; }
+  .status-pending { background:#f59e0b; }
+  .status-done { background:#10b981; }
+
+  .rule-item { padding:5px 0; border-bottom:1px solid #111827; }
+  .rule-name { font-size:10px; color:#e2e8f0; }
+  .rule-detail { font-size:9px; color:#475569; margin-top:2px; }
+
+  .action-btn { width:100%; padding:6px; border:1px solid #334155; background:#1e293b; color:#e2e8f0; border-radius:4px; font-size:10px; cursor:pointer; margin-top:4px; text-align:center; }
+  .action-btn.override { border-color:#7c3aed; color:#a78bfa; }
+  .action-btn.override:hover { background:#7c3aed; color:white; }
+  .action-btn.buy { border-color:#059669; color:#34d399; }
+  .action-btn.buy:hover { background:#059669; color:white; }
+
+  /* Consensus bar */
+  .consensus-bar { display:flex; height:4px; border-radius:2px; overflow:hidden; margin:4px 0; }
+  .consensus-call { background:#10b981; }
+  .consensus-put { background:#ef4444; }
+  .consensus-neut { background:#334155; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <span class="logo">MEDICI TERMINAL</span>
+    <span class="live-badge">● LIVE</span>
+    <span style="color:#475569;font-size:10px;">Last scan: 14:32</span>
+  </div>
+  <div class="header-stats">
+    <span class="call">CALL:142</span><span class="sep">│</span>
+    <span class="put">PUT:89</span><span class="sep">│</span>
+    <span class="neut">NEUT:231</span><span class="sep">│</span>
+    <span style="color:#e2e8f0;">4,050 rooms</span><span class="sep">│</span>
+    <span class="alerts">⚡ 3 alerts</span>
+  </div>
+</div>
+
+<!-- FILTER STRIP -->
+<div class="filter-strip">
+  <span class="filter-btn active">All Signals</span>
+  <span class="filter-btn">CALL</span>
+  <span class="filter-btn">PUT</span>
+  <span style="color:#333;">│</span>
+  <span class="filter-btn">Hotel ▼</span>
+  <span class="filter-btn">Zone ▼</span>
+  <span class="filter-btn">T: 0-180 ▼</span>
+  <span class="filter-btn">Category ▼</span>
+  <span class="filter-btn">Board ▼</span>
+  <input class="search-box" placeholder="🔍 Search hotel, room, date..." />
+  <span class="reset-btn">Reset</span>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- CENTER AREA -->
+  <div class="center-area">
+
+    <!-- TABLE (top half) -->
+    <div class="table-area">
+      <table>
+        <thead>
+          <tr>
+            <th>Hotel</th>
+            <th>Cat/Board</th>
+            <th>Check-in</th>
+            <th>T</th>
+            <th>Price</th>
+            <th>Signal</th>
+            <th>Cons%</th>
+            <th>Δ24h</th>
+            <th>Sparkline</th>
+            <th>↑/↓</th>
+            <th>Rate/d</th>
+            <th>Direction</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="selected">
+            <td style="color:#e2e8f0;">Marriott SB</td>
+            <td style="color:#64748b;">DLX BB</td>
+            <td style="color:#64748b;">Apr 28</td>
+            <td style="color:#f59e0b;">32d</td>
+            <td style="color:#fff;font-weight:bold;">$285</td>
+            <td><span class="signal-badge signal-call">CALL</span></td>
+            <td class="up">78%</td>
+            <td class="up">+4.4%</td>
+            <td class="sparkline up">▁▂▃▂▄▅▆▅▇</td>
+            <td><span class="up">12</span>/<span class="down">4</span></td>
+            <td class="up">+$4/d</td>
+            <td class="up">↑↑ Bullish</td>
+            <td class="up">$320</td>
+          </tr>
+          <tr>
+            <td style="color:#e2e8f0;">Hilton DT</td>
+            <td style="color:#64748b;">STD RO</td>
+            <td style="color:#64748b;">Apr 5</td>
+            <td style="color:#ef4444;">8d</td>
+            <td style="color:#fff;font-weight:bold;">$195</td>
+            <td><span class="signal-badge signal-put">PUT</span></td>
+            <td class="down">82%</td>
+            <td class="down">-3.1%</td>
+            <td class="sparkline down">▇▆▅▆▃▂▃▁▁</td>
+            <td><span class="up">5</span>/<span class="down">15</span></td>
+            <td class="down">-$2/d</td>
+            <td class="down">↓↓ Bearish</td>
+            <td class="down">$178</td>
+          </tr>
+          <tr>
+            <td style="color:#e2e8f0;">W South Beach</td>
+            <td style="color:#64748b;">SUP HB</td>
+            <td style="color:#64748b;">May 22</td>
+            <td style="color:#94a3b8;">55d</td>
+            <td style="color:#fff;font-weight:bold;">$412</td>
+            <td><span class="signal-badge signal-neut">NEUT</span></td>
+            <td class="flat">45%</td>
+            <td class="flat">+0.2%</td>
+            <td class="sparkline flat">▄▄▅▄▅▄▄▅▄</td>
+            <td><span class="up">8</span>/<span class="down">7</span></td>
+            <td class="flat">$0/d</td>
+            <td class="flat">─ Sideways</td>
+            <td class="flat">$415</td>
+          </tr>
+          <tr>
+            <td style="color:#e2e8f0;">Fontainebleau</td>
+            <td style="color:#64748b;">STE FB</td>
+            <td style="color:#64748b;">Jun 15</td>
+            <td style="color:#94a3b8;">80d</td>
+            <td style="color:#fff;font-weight:bold;">$680</td>
+            <td><span class="signal-badge signal-call">CALL</span></td>
+            <td class="up">91%</td>
+            <td class="up">+2.1%</td>
+            <td class="sparkline up">▂▃▃▄▅▅▆▇▇</td>
+            <td><span class="up">16</span>/<span class="down">2</span></td>
+            <td class="up">+$8/d</td>
+            <td class="up">↑↑↑ Strong Bull</td>
+            <td class="up">$750</td>
+          </tr>
+          <tr>
+            <td style="color:#e2e8f0;">Novotel Brickell</td>
+            <td style="color:#64748b;">STD BB</td>
+            <td style="color:#64748b;">Apr 12</td>
+            <td style="color:#f59e0b;">15d</td>
+            <td style="color:#fff;font-weight:bold;">$155</td>
+            <td><span class="signal-badge signal-put">PUT</span></td>
+            <td class="down">71%</td>
+            <td class="down">-1.8%</td>
+            <td class="sparkline down">▆▅▅▄▃▃▂▂▁</td>
+            <td><span class="up">3</span>/<span class="down">11</span></td>
+            <td class="down">-$3/d</td>
+            <td class="down">↓ Bearish</td>
+            <td class="down">$140</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- RESIZE HANDLE -->
+    <div class="resize-handle"></div>
+
+    <!-- CHART AREA (bottom half) -->
+    <div class="chart-area">
+      <!-- Chart Mode Tabs -->
+      <div class="chart-tabs">
+        <span class="chart-tab active">📈 Chart</span>
+        <span class="chart-tab">🗺️ HeatMap</span>
+        <span style="flex:1;"></span>
+        <span style="color:#3b82f6;font-size:10px;">Marriott SB — DLX BB — Apr 28 (T=32)</span>
+      </div>
+
+      <!-- 3 Synced Chart Panels -->
+      <div class="chart-panels">
+
+        <!-- Panel 1: Price + FC -->
+        <div class="chart-panel" style="flex:3;">
+          <div class="chart-label">PRICE — Scan History ← Today → Forward Curve</div>
+          <div class="price-chart-mock">
+            <!-- Midline (today) -->
+            <div class="chart-midline"></div>
+            <div class="chart-today">TODAY</div>
+            <div class="chart-past">← Scan History (actual)</div>
+            <div class="chart-future">Forward Curve (predicted) →</div>
+
+            <!-- Scan History (green line, left side) -->
+            <div class="scan-line">
+              <svg viewBox="0 0 200 80" preserveAspectRatio="none">
+                <polyline points="0,65 15,60 30,55 45,58 60,50 75,45 90,48 105,40 120,42 135,35 150,30 165,25 180,28 200,20" fill="none" stroke="#10b981" stroke-width="2"/>
+                <polyline points="0,65 15,60 30,55 45,58 60,50 75,45 90,48 105,40 120,42 135,35 150,30 165,25 180,28 200,20" fill="url(#greenGrad)" stroke="none" opacity="0.15"/>
+                <defs>
+                  <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#10b981"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                  </linearGradient>
+                </defs>
+                <!-- Scan dots -->
+                <circle cx="30" cy="55" r="2.5" fill="#10b981"/>
+                <circle cx="75" cy="45" r="2.5" fill="#10b981"/>
+                <circle cx="120" cy="42" r="2.5" fill="#10b981"/>
+                <circle cx="165" cy="25" r="2.5" fill="#10b981"/>
+              </svg>
+            </div>
+
+            <!-- Forward Curve (blue dashed, right side) -->
+            <div class="fc-line">
+              <svg viewBox="0 0 200 80" preserveAspectRatio="none">
+                <polyline points="0,20 20,18 40,16 60,15 80,12 100,10 120,8 140,9 160,7 180,5 200,3" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="6,3"/>
+                <!-- Confidence band -->
+                <polygon points="0,25 20,23 40,22 60,21 80,19 100,18 120,17 140,19 160,17 180,16 200,15 200,-8 180,-6 160,-4 140,-2 120,-3 100,-1 80,0 60,2 40,4 20,6 0,8" fill="#3b82f6" opacity="0.08"/>
+                <!-- Target dot -->
+                <circle cx="200" cy="3" r="3" fill="#3b82f6"/>
+              </svg>
+            </div>
+
+            <!-- Voter Annotations -->
+            <div class="voter-icon" style="top:25%;left:20%;" data-label="★ Art Basel +0.4%">★</div>
+            <div class="voter-icon" style="top:45%;left:35%;color:#60a5fa;" data-label="✈ Flight Surge +0.15%">✈</div>
+            <div class="voter-icon" style="top:30%;left:65%;color:#fbbf24;" data-label="☀ Clear +0.02%">☀</div>
+            <div class="voter-icon" style="top:55%;left:80%;color:#f87171;" data-label="🏨 Competitor -0.1%">🏨</div>
+
+            <!-- Buy/Sell markers -->
+            <div style="position:absolute;bottom:30%;left:12%;color:#10b981;font-size:9px;font-weight:bold;">▲ BUY $243</div>
+            <div style="position:absolute;top:22%;right:12%;color:#f59e0b;font-size:9px;font-weight:bold;">▼ SELL $320</div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Velocity -->
+        <div class="chart-panel" style="flex:1;">
+          <div class="chart-label">VELOCITY — Rate of Change</div>
+          <div class="velocity-bars">
+            <div class="v-bar up" style="height:30%;"></div>
+            <div class="v-bar up" style="height:20%;"></div>
+            <div class="v-bar down" style="height:15%;"></div>
+            <div class="v-bar up" style="height:40%;"></div>
+            <div class="v-bar up" style="height:55%;"></div>
+            <div class="v-bar up" style="height:35%;"></div>
+            <div class="v-bar down" style="height:10%;"></div>
+            <div class="v-bar up" style="height:60%;"></div>
+            <div class="v-bar up" style="height:70%;"></div>
+            <div class="v-bar up" style="height:45%;"></div>
+            <div class="v-bar up" style="height:80%;"></div>
+            <div class="v-bar up" style="height:50%;"></div>
+            <div class="v-bar flat" style="height:5%;"></div>
+            <div class="v-bar up" style="height:65%;"></div>
+            <div class="v-bar up" style="height:75%;"></div>
+            <div class="v-bar up" style="height:60%;"></div>
+            <div class="v-bar up" style="height:85%;"></div>
+            <div class="v-bar up" style="height:70%;"></div>
+            <div class="v-bar down" style="height:20%;"></div>
+            <div class="v-bar up" style="height:90%;"></div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Voter Timeline -->
+        <div class="chart-panel" style="flex:1.2;">
+          <div class="chart-label">VOTERS — 14 Agent Timeline</div>
+          <div class="voter-timeline-grid">
+            <div class="vt-label">FC</div>
+            <div class="vt-row"><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div></div>
+
+            <div class="vt-label">Velocity</div>
+            <div class="vt-row"><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-put"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div></div>
+
+            <div class="vt-label">Events</div>
+            <div class="vt-row"><div class="vt-cell vt-neut"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div></div>
+
+            <div class="vt-label">Competitors</div>
+            <div class="vt-row"><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div></div>
+
+            <div class="vt-label">Seasonality</div>
+            <div class="vt-row"><div class="vt-cell vt-put"></div><div class="vt-cell vt-put"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div></div>
+
+            <div class="vt-label">Flights</div>
+            <div class="vt-row"><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div></div>
+
+            <div class="vt-label">Weather</div>
+            <div class="vt-row"><div class="vt-cell vt-neut"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-put"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-neut"></div></div>
+
+            <div class="vt-label">Peers</div>
+            <div class="vt-row"><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-call"></div><div class="vt-cell vt-neut"></div><div class="vt-cell vt-call"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voter Toggle Bar -->
+      <div class="voter-toggles">
+        <span style="color:#475569;font-size:9px;margin-right:4px;">LAYERS:</span>
+        <span class="voter-toggle on"><span class="voter-dot" style="background:#10b981;"></span>FC</span>
+        <span class="voter-toggle on"><span class="voter-dot" style="background:#3b82f6;"></span>Velocity</span>
+        <span class="voter-toggle on"><span class="voter-dot" style="background:#f59e0b;"></span>Events</span>
+        <span class="voter-toggle on"><span class="voter-dot" style="background:#ec4899;"></span>Competitors</span>
+        <span class="voter-toggle on"><span class="voter-dot" style="background:#8b5cf6;"></span>Seasonality</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#06b6d4;"></span>Flights</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#84cc16;"></span>Weather</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#f97316;"></span>Peers</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#14b8a6;"></span>Bookings</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#e11d48;"></span>Historical</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#a855f7;"></span>Benchmark</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#64748b;"></span>ScanDrop</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#0ea5e9;"></span>Provider</span>
+        <span class="voter-toggle"><span class="voter-dot" style="background:#d946ef;"></span>Margin</span>
+        <span style="flex:1;"></span>
+        <span style="font-size:9px;color:#475569;">Consensus:</span>
+        <div style="width:100px;display:flex;align-items:center;">
+          <div class="consensus-bar" style="flex:1;">
+            <div class="consensus-call" style="width:78%;"></div>
+            <div class="consensus-put" style="width:7%;"></div>
+            <div class="consensus-neut" style="width:15%;"></div>
+          </div>
+        </div>
+        <span class="up" style="font-size:10px;font-weight:bold;">78% CALL (11/14)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="right-sidebar">
+
+    <!-- Alerts -->
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <span>⚡ ALERTS</span>
+        <span style="background:#ef4444;color:white;padding:0 6px;border-radius:8px;font-size:9px;">3</span>
+      </div>
+      <div class="sidebar-body">
+        <div class="alert-item">
+          <div class="alert-severity critical"></div>
+          <div>
+            <div class="alert-text">Signal Flip: Hilton DT → PUT (was NEUT)</div>
+            <div class="alert-time">2 min ago</div>
+          </div>
+        </div>
+        <div class="alert-item">
+          <div class="alert-severity warning"></div>
+          <div>
+            <div class="alert-text">Price Drop -8%: W South Beach STD</div>
+            <div class="alert-time">15 min ago</div>
+          </div>
+        </div>
+        <div class="alert-item">
+          <div class="alert-severity info"></div>
+          <div>
+            <div class="alert-text">Event: Miami Music Week starts in 3d</div>
+            <div class="alert-time">1h ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Override Queue -->
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <span>🔻 OVERRIDE QUEUE</span>
+        <span style="color:#f59e0b;font-size:9px;">2 pending</span>
+      </div>
+      <div class="sidebar-body">
+        <div class="queue-item">
+          <span style="color:#cbd5e1;">Hilton STD -$1</span>
+          <div class="queue-status"><div class="status-dot status-pending"></div><span style="color:#f59e0b;">pending</span></div>
+        </div>
+        <div class="queue-item">
+          <span style="color:#cbd5e1;">Novotel BB -$2</span>
+          <div class="queue-status"><div class="status-dot status-done"></div><span style="color:#10b981;">done</span></div>
+        </div>
+        <button class="action-btn override">▼ Queue Override for Selected</button>
+      </div>
+    </div>
+
+    <!-- Opportunity Queue -->
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <span>🔺 OPPORTUNITY QUEUE</span>
+        <span style="color:#10b981;font-size:9px;">1 pending</span>
+      </div>
+      <div class="sidebar-body">
+        <div class="queue-item">
+          <span style="color:#cbd5e1;">Marriott DLX +$50</span>
+          <div class="queue-status"><div class="status-dot status-pending"></div><span style="color:#f59e0b;">pending</span></div>
+        </div>
+        <button class="action-btn buy">▲ Queue Buy for Selected</button>
+      </div>
+    </div>
+
+    <!-- Rules -->
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <span>📋 RULES</span>
+        <span style="color:#3b82f6;font-size:9px;cursor:pointer;">+ Add</span>
+      </div>
+      <div class="sidebar-body">
+        <div class="rule-item">
+          <div class="rule-name">Auto-Override PUT > 70%</div>
+          <div class="rule-detail">Discount $1 • Hotels: All • Active ✓</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-name">Buy CALL > 80% T>30</div>
+          <div class="rule-detail">Max 5 rooms • Min profit $50 • Active ✓</div>
+        </div>
+        <button class="action-btn" style="border-color:#3b82f6;color:#60a5fa;">▶ Trigger Rules Now</button>
+      </div>
+    </div>
+
+    <!-- Quick Info -->
+    <div class="sidebar-section" style="border-bottom:none;">
+      <div class="sidebar-header">
+        <span>ℹ️ SELECTED</span>
+      </div>
+      <div class="sidebar-body" style="font-size:10px;color:#94a3b8;line-height:1.8;">
+        <div>Marriott South Beach</div>
+        <div>Deluxe BB • Check-in Apr 28</div>
+        <div>T=32d • Price $285 • Target $320</div>
+        <div>Trade: +$35 (+12.3%)</div>
+        <div style="margin-top:6px;">
+          <span style="color:#64748b;">Accuracy (30d):</span> <span class="up">74%</span>
+        </div>
+        <div>
+          <span style="color:#64748b;">Data Quality:</span> <span class="up">0.92</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

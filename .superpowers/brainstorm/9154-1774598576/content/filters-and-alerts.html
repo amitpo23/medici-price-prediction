@@ -1,0 +1,65 @@
+<h2>שאלה אחרונה — Filters ו-Alerts</h2>
+<p class="subtitle">שתי שאלות קטנות לסגור את העיצוב</p>
+
+<h3 style="margin-top:24px;color:#e2e8f0;">1. איפה ה-Filters?</h3>
+
+<div class="options">
+  <div class="option" data-choice="filters-top" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Strip אופקי מעל הטבלה</h3>
+      <p>שורה אחת: Signal ▼ | Hotel ▼ | Zone ▼ | T Range ▼ | Category ▼ | 🔍 Search — חוסך מקום אנכי</p>
+      <div style="margin-top:6px;padding:6px 10px;background:#0f172a;border:1px solid #1e293b;border-radius:4px;display:flex;gap:8px;font-size:10px;color:#888;">
+        <span style="padding:2px 8px;background:#1e293b;border-radius:3px;">Signal ▼</span>
+        <span style="padding:2px 8px;background:#1e293b;border-radius:3px;">Hotel ▼</span>
+        <span style="padding:2px 8px;background:#1e293b;border-radius:3px;">Zone ▼</span>
+        <span style="padding:2px 8px;background:#1e293b;border-radius:3px;">T: 0-90 ▼</span>
+        <span style="padding:2px 8px;background:#1e293b;border-radius:3px;">Category ▼</span>
+        <span style="flex:1;padding:2px 8px;background:#1e293b;border-radius:3px;">🔍 Search...</span>
+        <span style="padding:2px 8px;background:#7c3aed;color:white;border-radius:3px;">Reset</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="filters-left" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Sidebar שמאלי (בנוסף ל-execution sidebar בימין)</h3>
+      <p>פאנל צר בשמאל עם filters אנכיים. Layout: [Filters | Table+Chart | Execution]</p>
+      <div style="display:flex;margin-top:6px;height:50px;border:1px solid #333;border-radius:4px;overflow:hidden;">
+        <div style="width:50px;background:#16213e;display:flex;align-items:center;justify-content:center;color:#3b82f6;font-size:9px;">Filters</div>
+        <div style="flex:1;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:#666;font-size:9px;">Table + Chart</div>
+        <div style="width:50px;background:#16213e;display:flex;align-items:center;justify-content:center;color:#f59e0b;font-size:9px;">Execute</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="height:32px;border-bottom:1px solid #333;"></div>
+
+<h3 style="margin-top:24px;color:#e2e8f0;">2. Alerts — איפה הם מופיעים?</h3>
+
+<div class="options">
+  <div class="option" data-choice="alerts-tab" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Tab בחצי התחתון (לצד Chart ו-HeatMap)</h3>
+      <p>Mode switcher למטה: Chart | HeatMap | <strong>Alerts</strong> — עוברים ל-alerts כשרוצים. Badge עם מספר על הtab.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="alerts-sidebar" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>חלק מה-Execution Sidebar בימין</h3>
+      <p>ה-sidebar הימני מחולק: למעלה Alerts feed (מתעדכן כל 30s), למטה Override/Opportunity actions. הכל במקום אחד.</p>
+      <div style="display:flex;flex-direction:column;margin-top:6px;height:80px;width:120px;border:1px solid #333;border-radius:4px;overflow:hidden;">
+        <div style="flex:1;background:#16213e;display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:9px;border-bottom:1px solid #333;">⚡ Alerts (3)</div>
+        <div style="flex:1;background:#16213e;display:flex;align-items:center;justify-content:center;color:#7c3aed;font-size:9px;border-bottom:1px solid #333;">Override Queue</div>
+        <div style="flex:1;background:#16213e;display:flex;align-items:center;justify-content:center;color:#059669;font-size:9px;">Opportunity Queue</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:24px;color:#888;font-size:13px;">💡 בחר אחד מכל סעיף (filters + alerts). אפשר גם לענות בטרמינל.</p>

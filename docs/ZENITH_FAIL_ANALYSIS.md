@@ -62,3 +62,32 @@ For each hotel, in Noovy:
 3. Verify rate plans match the RatePlanCodes
 4. Set pricing ($1000 fixed) for the push dates
 5. After setup, the next push cycle should succeed
+
+## Focused Diagnosis — 2026-03-30
+
+Targeted re-check of the remaining four hotels produced a split result:
+
+| Venue | Hotel | Current state | Evidence | Root cause |
+|---|---|---|---|---|
+| 5276 | InterContinental Miami | Pricing UI works, bulk update applied, scan maps cleanly | `Orders`: `Api: 15; Flat: 6; Map: 6; Miss: 0` | Local config is no longer the blocker. If Zenith still fails, suspect downstream static sync / supplier-side recognition. |
+| 5268 | Fontainebleau Miami Beach | Pricing UI works, bulk update applied, scan maps cleanly | `Orders`: `Api: 23; Flat: 6; Map: 6; Miss: 0` | Local config is no longer the blocker. If Zenith still fails, suspect downstream static sync / supplier-side recognition. |
+| 5064 | Hotel Chelsea | Pricing UI works, bulk update applied, but scan still returns no API rows | `Orders`: `Api: 0; Flat: 0; Map: 0; Miss: 0` | Not a mapping problem right now. Root cause is upstream availability / supplier / API result absence. |
+| 5115 | Hilton Cabana Miami Beach | Scan still drops 5 combinations; pricing page automation cannot bind venue context | `Orders`: `Api: 33; Flat: 10; Map: 5; Miss: 5`; `MappingMisses`: `standard/superior/deluxe/suite/dormitory` on `RO` | Primary root cause is broken `Med_Hotels_ratebycat` coverage for RO. Current DB rows are BB-only (`RatePlanCode=13168`) while project docs expect `RO=13571`, `BB=13572`. |
+
+### Hilton Cabana Note
+
+Current DB evidence for HotelId `254198` shows only `BoardId = 2` rows in `Med_Hotels_ratebycat`, so the WebJob cannot map returned `RO` prices.
+This is consistent with repeated `SalesOffice.MappingMisses` on:
+
+- `standard / RO`
+- `superior / RO`
+- `deluxe / RO`
+- `suite / RO`
+- `dormitory / RO`
+
+The project already documents the intended correction in `docs/RATEBYCAT_MAPPING_FIX.md`:
+
+- `5115`: `RO 12035 -> 13571`
+- `5115`: `BB 13168 -> 13572`
+
+Until that DB mapping is corrected, Hilton Cabana will continue to miss scan output even if Noovy pricing and availability are fixed.

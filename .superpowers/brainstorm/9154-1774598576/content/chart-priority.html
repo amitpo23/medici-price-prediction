@@ -1,0 +1,39 @@
+<h2>מה הדבר הכי חשוב על ה-Chart?</h2>
+<p class="subtitle">ה-Chart הוא הלב של הטרמינל — מה אתה צריך לראות עליו ברגע שבוחרים חדר?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Forward Curve בלבד + Voter Annotations</h3>
+      <p>קו אחד של חיזוי מחיר עתידי (T=90→T=0), עם שכבות של voters כ-annotations — אייקוני אירועים, מזג אוויר, טיסות וכו'. נקי ומפוקס.</p>
+      <div style="margin-top:8px;padding:8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:4px;font-size:13px;">
+        ציר X = T (ימים ל-checkin) | ציר Y = מחיר
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Scan History (עבר) + Forward Curve (עתיד) על אותו Chart</h3>
+      <p>בצד שמאל: מה באמת קרה (סריקות אמיתיות — עליות וירידות). בצד ימין: מה צפוי לקרות (FC). הvoters מוצגים על שניהם. רואים את כל הסיפור.</p>
+      <div style="margin-top:8px;padding:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:4px;font-size:13px;">
+        ציר X = זמן (עבר ← היום → עתיד) | ציר Y = מחיר | קו מקווקו מפריד
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Multi-Chart Stack — כמו Bloomberg Terminal</h3>
+      <p>3 charts אחד מעל השני: (1) מחיר + FC, (2) Volume/Velocity — קצב שינוי, (3) Voter Consensus Timeline — כל voter לאורך זמן. סינכרון ציר X.</p>
+      <div style="margin-top:8px;padding:8px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:4px;font-size:13px;">
+        3 panels מסונכרנים | hover על אחד מדגיש את כולם | יותר מידע, יותר מקום
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:24px;color:#888;font-size:13px;">💡 זה ישפיע על כמה מקום ה-chart תופס ואיך voters מוצגים</p>
