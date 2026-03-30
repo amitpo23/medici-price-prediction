@@ -57,10 +57,14 @@ def _count_crossings(values: np.ndarray, threshold: float) -> int:
 def _load_competitor_zone_averages(predictions: dict) -> dict[int, float]:
     """Load zone average prices from AI_Search_HotelData for competitor comparison.
 
-    Queries AI_Search for Miami hotels with matching StayFrom dates (last 7 days data).
+    Queries AI_Search for Miami hotels with matching StayFrom dates (last 3 days data).
     Groups by zone (using HOTEL_SEGMENTS config) and computes average price per zone.
     Returns {hotel_id: zone_avg_price} for each hotel in predictions.
+
+    DISABLED temporarily — query too heavy for B2. Using prediction-based fallback.
     """
+    # TODO: Re-enable when Azure plan upgraded or query optimized with index
+    return {}
     try:
         from src.utils.zenith_push import get_pyodbc_connection
         from config.hotel_segments import HOTEL_SEGMENTS, ZONES
@@ -170,7 +174,11 @@ def _load_historical_comparisons(predictions: dict) -> dict[str, dict]:
     for the same hotel, same room type, same month last year.
 
     Returns {detail_id: {"yoy_avg": float, "yoy_samples": int, "yoy_change_pct": float}}
+
+    DISABLED temporarily — per-hotel queries too heavy for B2 during scan cycle.
     """
+    # TODO: Re-enable when moved to background job or Azure plan upgraded
+    return {}
     try:
         from src.utils.zenith_push import get_pyodbc_connection
     except ImportError as exc:
