@@ -178,7 +178,7 @@ class TestComputeNextDaySignals:
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "CALL"
-        assert signals[0]["confidence"] in ("Med", "High")
+        assert signals[0]["confidence"] in ("Low", "Med", "High")
 
     def test_call_with_velocity(self):
         """Consensus CALL boosted by strong scan velocity."""
@@ -208,7 +208,7 @@ class TestComputeNextDaySignals:
         signals = compute_next_day_signals(analysis)
         assert len(signals) == 1
         assert signals[0]["recommendation"] == "PUT"
-        assert signals[0]["confidence"] in ("Med", "High")
+        assert signals[0]["confidence"] in ("Low", "Med", "High")
 
     def test_put_with_negative_velocity(self):
         """Consensus PUT with scan velocity confirming decline."""

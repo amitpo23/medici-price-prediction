@@ -50,36 +50,34 @@ def calculate_consensus(votes: List[SourceVote]) -> dict:
     n_call = len(call_votes)
     n_put = len(put_votes)
     n_neutral = len(neutral_votes)
-    n_voting = n_call + n_put  # neutrals excluded
+    n_total = len(votes)
 
-    if n_voting == 0:
+    # Average score: CALL=+1, PUT=-1, NEUTRAL=0, averaged across ALL voters
+    if n_total == 0:
+        avg_score = 0.0
         call_pct = 0.0
         put_pct = 0.0
         signal = "NEUTRAL"
         probability = 0.0
-        agreeing = 0
     else:
-        call_pct = round(n_call / n_voting * 100, 1)
-        put_pct = round(n_put / n_voting * 100, 1)
+        avg_score = (n_call - n_put) / n_total  # range: -1.0 to +1.0
+        call_pct = round(n_call / n_total * 100, 1)
+        put_pct = round(n_put / n_total * 100, 1)
 
-        if n_call >= n_put:
-            majority_signal = "CALL"
-            agreeing = n_call
-        else:
-            majority_signal = "PUT"
-            agreeing = n_put
-
-        probability = round(agreeing / n_voting * 100, 1)
-
-        from config.constants import MIN_VOTING_SOURCES
-        if n_voting < MIN_VOTING_SOURCES:
-            signal = "NEUTRAL"  # Too few voters = insufficient data
-        elif probability >= 66.0:
-            signal = majority_signal
+        # Signal from average: > +0.15 = CALL, < -0.15 = PUT, else NEUTRAL
+        if avg_score > 0.15:
+            signal = "CALL"
+        elif avg_score < -0.15:
+            signal = "PUT"
         else:
             signal = "NEUTRAL"
 
-    sources_agree = agreeing if n_voting > 0 else 0
+        # Probability = how strong the average is (0-100%)
+        probability = round(abs(avg_score) * 100, 1)
+
+    n_voting = n_call + n_put
+    agreeing = max(n_call, n_put) if n_voting > 0 else 0
+    sources_agree = agreeing
     sources_disagree = n_voting - sources_agree if n_voting > 0 else 0
 
     # Category breakdown
@@ -97,6 +95,8 @@ def calculate_consensus(votes: List[SourceVote]) -> dict:
     return {
         "signal": signal,
         "probability": probability,
+        "avg_score": round(avg_score, 3),  # -1.0 (strong PUT) to +1.0 (strong CALL)
+        "sources_total": n_total,
         "sources_voting": n_voting,
         "sources_neutral": n_neutral,
         "sources_agree": sources_agree,

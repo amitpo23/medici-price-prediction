@@ -102,8 +102,8 @@ class TestCalculateConsensus:
         assert result["signal"] == "PUT"
         assert result["probability"] == 100.0
 
-    def test_majority_above_threshold(self):
-        """3 CALL + 1 PUT = 75% -> CALL."""
+    def test_strong_call_average(self):
+        """3 CALL + 1 PUT = avg (3-1)/4 = 0.5 -> CALL."""
         votes = [
             SourceVote("a", "CALL", "Leading"),
             SourceVote("b", "CALL", "Coincident"),
@@ -112,12 +112,12 @@ class TestCalculateConsensus:
         ]
         result = calculate_consensus(votes)
         assert result["signal"] == "CALL"
-        assert result["probability"] == 75.0
+        assert result["avg_score"] == pytest.approx(0.5, abs=0.01)
         assert result["call_pct"] == 75.0
         assert result["put_pct"] == 25.0
 
-    def test_split_below_threshold(self):
-        """3 CALL + 2 PUT = 60% -> NEUTRAL (below 66%)."""
+    def test_weak_call_still_call(self):
+        """3 CALL + 2 PUT = avg (3-2)/5 = 0.2 -> CALL (>0.15)."""
         votes = [
             SourceVote("a", "CALL", "Leading"),
             SourceVote("b", "CALL", "Coincident"),
@@ -126,11 +126,11 @@ class TestCalculateConsensus:
             SourceVote("e", "PUT", "Coincident"),
         ]
         result = calculate_consensus(votes)
-        assert result["signal"] == "NEUTRAL"
-        assert result["probability"] == 60.0
+        assert result["signal"] == "CALL"
+        assert result["avg_score"] == pytest.approx(0.2, abs=0.01)
 
-    def test_neutral_excluded_from_voting(self):
-        """4 CALL + 1 NEUTRAL = 4 voting, 100% CALL."""
+    def test_neutral_included_in_average(self):
+        """4 CALL + 1 NEUTRAL = avg_score 0.8 -> CALL."""
         votes = [
             SourceVote("a", "CALL", "Leading"),
             SourceVote("b", "CALL", "Coincident"),
@@ -140,7 +140,7 @@ class TestCalculateConsensus:
         ]
         result = calculate_consensus(votes)
         assert result["signal"] == "CALL"
-        assert result["probability"] == 100.0
+        assert result["avg_score"] == pytest.approx(0.8, abs=0.01)
         assert result["sources_voting"] == 4
         assert result["sources_neutral"] == 1
 
@@ -176,8 +176,8 @@ class TestCalculateConsensus:
         assert result["by_category"]["Coincident"]["call"] == 1
         assert result["by_category"]["Lagging"]["neutral"] == 1
 
-    def test_exact_threshold_66_percent(self):
-        """4 CALL + 2 PUT = 66.7% -> CALL (above 66%)."""
+    def test_average_scoring(self):
+        """4 CALL + 2 PUT = avg_score (4-2)/6 = 0.333 -> CALL (>0.15)."""
         votes = [
             SourceVote("a", "CALL", "Leading"),
             SourceVote("b", "CALL", "Coincident"),
@@ -188,7 +188,7 @@ class TestCalculateConsensus:
         ]
         result = calculate_consensus(votes)
         assert result["signal"] == "CALL"
-        assert result["probability"] == pytest.approx(66.7, abs=0.1)
+        assert result["avg_score"] == pytest.approx(0.333, abs=0.01)
 
 
 # ===================================================================
