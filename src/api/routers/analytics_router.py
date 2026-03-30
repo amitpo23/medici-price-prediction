@@ -4110,14 +4110,19 @@ async def scan_price_history(
         cols = [desc[0] for desc in cursor.description]
         detail = dict(zip(cols, detail_row))
 
-        # Price change history from SalesOffice.PriceHistory (fast, indexed by DetailId)
+        # Price change history from SalesOffice.PriceHistory (query by HotelId+Category+Board — fast)
+        hotel_id = detail.get("HotelId")
+        category = detail.get("RoomCategory", "")
+        board = detail.get("RoomBoard", "")
         cursor.execute("""
-            SELECT ph.ScanDate, ph.OldPrice, ph.NewPrice, ph.ChangePct
+            SELECT TOP 200 ph.ScanDate, ph.OldPrice, ph.NewPrice, ph.ChangePct
             FROM [SalesOffice.PriceHistory] ph
-            WHERE ph.DetailId = ?
+            WHERE ph.HotelId = ?
+              AND ph.RoomCategory = ?
+              AND ph.RoomBoard = ?
               AND ph.ScanDate >= DATEADD(day, ?, GETDATE())
             ORDER BY ph.ScanDate ASC
-        """, detail_id, -abs(days_back))
+        """, hotel_id, category, board, -abs(days_back))
 
         ph_rows = cursor.fetchall()
         price_history: list[dict] = []
