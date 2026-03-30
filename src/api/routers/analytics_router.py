@@ -2469,6 +2469,26 @@ async def override_history(
     return get_history(days=days, hotel_id=hotel_id)
 
 
+# ── Override Queue: Process Pending ────────────────────────────────────
+
+@analytics_router.post("/override/queue/process")
+@limiter.limit("5/minute")
+async def override_queue_process(
+    request: Request,
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Manually trigger processing of all pending override queue items."""
+    try:
+        from src.api.routers._shared_state import _process_override_queue
+        _process_override_queue()
+        from src.analytics.override_queue import get_queue_stats
+        stats = get_queue_stats()
+        return {"status": "processed", "stats": stats}
+    except Exception as exc:
+        logger.error("Override queue process failed: %s", exc)
+        raise HTTPException(500, str(exc)[:200])
+
+
 # ── Override Execute (Direct Push to Zenith) ────────────────────────────
 
 @analytics_router.post("/override/execute")
