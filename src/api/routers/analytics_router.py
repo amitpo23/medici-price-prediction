@@ -2469,6 +2469,89 @@ async def override_history(
     return get_history(days=days, hotel_id=hotel_id)
 
 
+# ── Execution Health Monitor ──────────────────────────────────────────
+
+@analytics_router.get("/execution/health")
+@limiter.limit(RATE_LIMIT_DATA)
+async def execution_health(request: Request, _api_key: str = Depends(_optional_api_key)):
+    """Full execution health check — override queue, PriceOverride DB, opportunity queue."""
+    result: dict = {"status": "ok", "issues": []}
+
+    # 1. Override Queue health
+    try:
+        from src.analytics.override_queue import get_queue_stats, get_queue
+        stats = get_queue_stats()
+        result["override_queue"] = stats
+
+        # Check for stuck items (pending > 1 hour)
+        pending_items, _ = get_queue(status="pending", limit=5)
+        stuck = []
+        if pending_items:
+            from datetime import datetime, timedelta
+            cutoff = datetime.utcnow() - timedelta(hours=1)
+            for item in pending_items:
+                created = getattr(item, "created_at", None)
+                if created and isinstance(created, str):
+                    try:
+                        ct = datetime.fromisoformat(created.replace("Z", ""))
+                        if ct < cutoff:
+                            stuck.append(getattr(item, "id", 0))
+                    except (ValueError, TypeError):
+                        pass
+        if stuck:
+            result["issues"].append(f"Override queue: {len(stuck)} items stuck > 1 hour")
+        if stats.get("failed", 0) > 0:
+            result["issues"].append(f"Override queue: {stats['failed']} failed items")
+    except Exception as exc:
+        result["override_queue"] = {"error": str(exc)[:100]}
+
+    # 2. PriceOverride DB health
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection
+        conn = get_pyodbc_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT COUNT(*) as active,
+                   MIN(OverridePrice) as min_price,
+                   MAX(OverridePrice) as max_price
+            FROM [SalesOffice.PriceOverride] WHERE IsActive = 1
+        """)
+        row = cursor.fetchone()
+        result["price_override_db"] = {
+            "active_overrides": row[0],
+            "min_price": float(row[1]) if row[1] else 0,
+            "max_price": float(row[2]) if row[2] else 0,
+        }
+        if row[2] and float(row[2]) > 10000:
+            result["issues"].append(f"PriceOverride: max price ${float(row[2]):,.0f} exceeds $10K cap")
+
+        # Recent overrides (last 6 hours)
+        cursor.execute("""
+            SELECT COUNT(*) FROM [SalesOffice.PriceOverride]
+            WHERE CreatedAt >= DATEADD(hour, -6, GETUTCDATE())
+        """)
+        result["price_override_db"]["recent_6h"] = cursor.fetchone()[0]
+        conn.close()
+    except Exception as exc:
+        result["price_override_db"] = {"error": str(exc)[:100]}
+
+    # 3. Opportunity Queue health
+    try:
+        from src.analytics.opportunity_queue import get_queue_stats as get_opp_stats
+        opp_stats = get_opp_stats()
+        result["opportunity_queue"] = opp_stats
+        if opp_stats.get("failed", 0) > 0:
+            result["issues"].append(f"Opportunity queue: {opp_stats['failed']} failed items")
+    except Exception as exc:
+        result["opportunity_queue"] = {"error": str(exc)[:100]}
+
+    if result["issues"]:
+        result["status"] = "warning"
+
+    return result
+
+
 # ── Override Queue: Process Pending ────────────────────────────────────
 
 @analytics_router.post("/override/queue/process")

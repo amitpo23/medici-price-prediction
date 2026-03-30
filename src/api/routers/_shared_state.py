@@ -1468,6 +1468,35 @@ def _verify_recent_executions() -> None:
                 len(recent_opps), active, filled,
             )
 
+        # Check active PriceOverrides
+        cursor.execute("""
+            SELECT COUNT(*) as active,
+                   COUNT(CASE WHEN OverridePrice > 10000 THEN 1 END) as over_10k
+            FROM [SalesOffice.PriceOverride] WHERE IsActive = 1
+        """)
+        ov_row = cursor.fetchone()
+        logger.info(
+            "Execution verification: %d active overrides (%d over $10K cap)",
+            ov_row[0], ov_row[1],
+        )
+        if ov_row[1] > 0:
+            logger.warning("ALERT: %d overrides exceed $10K price cap!", ov_row[1])
+
         conn.close()
     except Exception as exc:
         logger.debug("Execution verification DB check failed: %s", exc)
+
+    # Check override queue for stuck/failed items
+    try:
+        from src.analytics.override_queue import get_queue_stats
+        stats = get_queue_stats()
+        if stats.get("failed", 0) > 0:
+            logger.warning("ALERT: Override queue has %d failed items", stats["failed"])
+        if stats.get("pending", 0) > 50:
+            logger.warning("ALERT: Override queue has %d pending items (backlog)", stats["pending"])
+        logger.info(
+            "Queue health: pending=%d done=%d failed=%d",
+            stats.get("pending", 0), stats.get("done", 0), stats.get("failed", 0),
+        )
+    except Exception as exc:
+        logger.debug("Queue health check failed: %s", exc)
