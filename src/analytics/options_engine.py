@@ -55,23 +55,48 @@ def _count_crossings(values: np.ndarray, threshold: float) -> int:
 # ── AI_Search competitor & historical data ───────────────────────────
 
 def _load_competitor_zone_averages(predictions: dict) -> dict[int, float]:
-    """Load zone average prices from AI_Search_HotelData for competitor comparison.
+    """Load zone average prices from cached AI_Search data (nightly refresh).
 
-    Queries AI_Search for Miami hotels with matching StayFrom dates (last 3 days data).
-    Groups by zone (using HOTEL_SEGMENTS config) and computes average price per zone.
+    Reads from analytical_cache SQLite (populated by nightly _refresh_ai_search_cache).
+    Falls back to prediction-based averages if cache unavailable.
     Returns {hotel_id: zone_avg_price} for each hotel in predictions.
-
-    DISABLED temporarily — query too heavy for B2. Using prediction-based fallback.
     """
-    # TODO: Re-enable when Azure plan upgraded or query optimized with index
-    return {}
     try:
-        from src.utils.zenith_push import get_pyodbc_connection
-        from config.hotel_segments import HOTEL_SEGMENTS, ZONES
-    except ImportError as exc:
-        logger.debug("AI_Search competitor loading skipped (import): %s", exc)
+        from config.hotel_segments import HOTEL_SEGMENTS
+    except ImportError:
         return {}
 
+    # Try reading from analytical cache (nightly refresh)
+    try:
+        from src.analytics.analytical_cache import AnalyticalCache
+        import json as _json
+        cache = AnalyticalCache()
+        with cache._get_conn() as c:
+            row = c.execute(
+                "SELECT status FROM trade_journal WHERE id = 999999"
+            ).fetchone()
+        if row and row[0]:
+            cached = _json.loads(row[0])
+            zone_averages = cached.get("zone_averages", {})
+            if zone_averages:
+                result: dict[int, float] = {}
+                for pred in predictions.values():
+                    hid = pred.get("hotel_id")
+                    if not hid:
+                        continue
+                    seg = HOTEL_SEGMENTS.get(int(hid))
+                    if seg and seg["zone"] in zone_averages:
+                        result[int(hid)] = zone_averages[seg["zone"]]
+                if result:
+                    logger.info("AI_Search competitor: loaded from cache for %d hotels", len(result))
+                    return result
+    except Exception as exc:
+        logger.debug("AI_Search cache read failed, using fallback: %s", exc)
+
+    # Fallback: return empty (prediction-based will be used in compute_next_day_signals)
+    return {}
+
+    # --- Original AI_Search direct query (disabled — too heavy for B2) ---
     # Collect unique checkin dates from predictions
     checkin_dates: set[str] = set()
     hotel_ids_in_preds: set[int] = set()
@@ -175,9 +200,39 @@ def _load_historical_comparisons(predictions: dict) -> dict[str, dict]:
 
     Returns {detail_id: {"yoy_avg": float, "yoy_samples": int, "yoy_change_pct": float}}
 
-    DISABLED temporarily — per-hotel queries too heavy for B2 during scan cycle.
+    Reads YoY data from analytical_cache (populated by nightly _refresh_ai_search_cache).
     """
-    # TODO: Re-enable when moved to background job or Azure plan upgraded
+    # Try reading from cache
+    try:
+        from src.analytics.analytical_cache import AnalyticalCache
+        import json as _json
+        cache = AnalyticalCache()
+        with cache._get_conn() as c:
+            row = c.execute(
+                "SELECT status FROM trade_journal WHERE id = 999999"
+            ).fetchone()
+        if row and row[0]:
+            cached = _json.loads(row[0])
+            yoy_prices = cached.get("yoy_hotel_prices", {})
+            if yoy_prices:
+                result: dict[str, dict] = {}
+                for detail_id, pred in predictions.items():
+                    hid = str(pred.get("hotel_id", ""))
+                    if hid in yoy_prices:
+                        yoy_avg = yoy_prices[hid]
+                        current = float(pred.get("current_price", 0) or 0)
+                        yoy_change = ((current - yoy_avg) / yoy_avg * 100) if yoy_avg > 0 and current > 0 else 0
+                        result[str(detail_id)] = {
+                            "yoy_avg": round(yoy_avg, 2),
+                            "yoy_samples": 0,
+                            "yoy_change_pct": round(yoy_change, 1),
+                        }
+                if result:
+                    logger.info("AI_Search historical: loaded from cache for %d details", len(result))
+                    return result
+    except Exception as exc:
+        logger.debug("AI_Search historical cache read failed: %s", exc)
+
     return {}
     try:
         from src.utils.zenith_push import get_pyodbc_connection

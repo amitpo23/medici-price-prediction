@@ -509,6 +509,12 @@ def _run_collection_cycle() -> dict | None:
         except (ImportError, OSError, ValueError) as exc:
             logger.warning("Prediction scoring failed: %s", exc)
 
+        # AI_Search competitor zone averages + historical YoY (nightly, cached to SQLite)
+        try:
+            _refresh_ai_search_cache(analysis)
+        except Exception as exc:
+            logger.warning("AI_Search nightly refresh failed (non-fatal): %s", exc)
+
         # Ticketmaster + SeatGeek events
         try:
             from src.analytics.miami_events_fetcher import refresh_api_events
@@ -1349,6 +1355,109 @@ def _detect_brightdata_ota_outputs() -> dict:
     except (FileNotFoundError, OSError, KeyError, ValueError) as exc:
         logger.warning("BrightData OTA output detection failed: %s", exc)
         return result
+
+
+def _refresh_ai_search_cache(analysis: dict | None) -> None:
+    """Nightly: query AI_Search_HotelData for competitor zone averages + YoY comparisons.
+
+    Stores results in the analytical cache SQLite so compute_next_day_signals
+    can read them instantly without hitting the 8.5M-row Azure SQL table every cycle.
+    """
+    if not analysis or not analysis.get("predictions"):
+        return
+
+    predictions = analysis["predictions"]
+
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection
+        from config.hotel_segments import HOTEL_SEGMENTS
+    except ImportError:
+        return
+
+    # Collect unique checkin dates
+    checkin_dates: set[str] = set()
+    for pred in predictions.values():
+        df = pred.get("date_from", "")
+        if isinstance(df, str) and len(df) >= 10:
+            checkin_dates.add(df[:10])
+
+    if not checkin_dates:
+        return
+
+    try:
+        conn = get_pyodbc_connection()
+        cursor = conn.cursor()
+
+        # 1. Zone averages from AI_Search
+        date_list = ", ".join(f"'{d}'" for d in sorted(checkin_dates))
+        cursor.execute(f"""
+            SELECT TOP 500 HotelId, AVG(PriceAmount) as avg_price
+            FROM AI_Search_HotelData
+            WHERE CityName = 'Miami'
+              AND StayFrom IN ({date_list})
+              AND UpdatedAt > DATEADD(day, -3, GETUTCDATE())
+              AND PriceAmount > 0 AND PriceAmount < 10000
+            GROUP BY HotelId
+        """)
+        zone_rows = cursor.fetchall()
+
+        # Group by zone
+        zone_totals: dict[str, list[float]] = {}
+        for row in zone_rows:
+            hid, price = int(row[0]), float(row[1])
+            seg = HOTEL_SEGMENTS.get(hid)
+            if seg:
+                zone = seg["zone"]
+                zone_totals.setdefault(zone, []).append(price)
+
+        zone_averages = {z: sum(p) / len(p) for z, p in zone_totals.items() if p}
+        logger.info("AI_Search nightly: zone averages computed for %d zones from %d hotels",
+                     len(zone_averages), len(zone_rows))
+
+        # 2. YoY per hotel (batch: top 30 hotels only)
+        hotel_ids = list(set(int(p.get("hotel_id", 0)) for p in predictions.values() if p.get("hotel_id")))[:30]
+        yoy_data: dict[int, float] = {}
+        for hid in hotel_ids:
+            try:
+                cursor.execute("""
+                    SELECT TOP 20 AVG(PriceAmount) as avg_price
+                    FROM AI_Search_HotelData
+                    WHERE HotelId = ? AND MONTH(StayFrom) = MONTH(GETUTCDATE())
+                      AND YEAR(StayFrom) = YEAR(GETUTCDATE()) - 1
+                      AND PriceAmount > 0
+                """, hid)
+                row = cursor.fetchone()
+                if row and row[0]:
+                    yoy_data[hid] = float(row[0])
+            except Exception:
+                continue
+
+        logger.info("AI_Search nightly: YoY data for %d/%d hotels", len(yoy_data), len(hotel_ids))
+        conn.close()
+
+        # Store in analytical cache
+        cache = _get_analytical_cache()
+        if cache:
+            import json as _json
+            cache_data = {
+                "zone_averages": zone_averages,
+                "yoy_hotel_prices": {str(k): v for k, v in yoy_data.items()},
+                "updated_at": datetime.utcnow().isoformat(),
+            }
+            # Use the trade_journal table as a generic key-value store
+            try:
+                with cache._get_conn() as c:
+                    c.execute(
+                        "INSERT OR REPLACE INTO trade_journal (id, detail_id, hotel_id, entry_date, entry_price, status) "
+                        "VALUES (999999, 0, 0, ?, 0, ?)",
+                        (cache_data["updated_at"], _json.dumps(cache_data)),
+                    )
+                logger.info("AI_Search nightly: cached to analytical_cache")
+            except Exception as exc:
+                logger.warning("AI_Search cache write failed: %s", exc)
+
+    except Exception as exc:
+        logger.warning("AI_Search nightly refresh failed: %s", exc)
 
 
 def _process_override_queue() -> None:
