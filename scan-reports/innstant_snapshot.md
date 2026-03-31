@@ -1,0 +1,1002 @@
+- generic [ref=e2]:
+  - text: 
+  - menubar [ref=e7]:
+    - menuitem " Admin" [ref=e8]:
+      - link " Admin" [ref=e9] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e10]: 
+        - text: Admin
+    - menuitem " Bookings" [ref=e11]:
+      - link " Bookings" [ref=e12] [cursor=pointer]:
+        - /url: https://b2b.innstant.travel/bookings/list
+        - generic [ref=e13]: 
+        - text: Bookings
+    - menuitem "amit (Knowaa)" [ref=e14]:
+      - link " amit (Knowaa)" [ref=e15] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e16]: 
+        - text: amit (Knowaa)
+    - menuitem "English" [ref=e17]:
+      - link "English" [ref=e18] [cursor=pointer]:
+        - /url: "#"
+        - text:  English
+    - menuitem "USD" [ref=e19]:
+      - link "USD" [ref=e20] [cursor=pointer]:
+        - /url: "#"
+        - text:  USD
+    - menuitem "Help" [ref=e21]:
+      - link "Help" [ref=e22] [cursor=pointer]:
+        - /url: "#"
+        - text:  Help
+      - text:    
+  - generic [ref=e36]:
+    - link [ref=e38] [cursor=pointer]:
+      - /url: https://b2b.innstant.travel
+    - list [ref=e40]:
+      - listitem
+      - listitem [ref=e41]:
+        - link "Hotels" [ref=e42] [cursor=pointer]:
+          - /url: https://b2b.innstant.travel/search/hotels
+          - text:  Hotels
+      - listitem [ref=e43]:
+        - link "Activities" [ref=e44] [cursor=pointer]:
+          - /url: https://b2b.innstant.travel/search/events
+          - text:  Activities
+      - listitem [ref=e45]:
+        - link "Transfers" [ref=e46] [cursor=pointer]:
+          - /url: https://b2b.innstant.travel/search/transfers
+          - text:  Transfers
+      - listitem [ref=e47]:
+        - link "Groups" [ref=e48] [cursor=pointer]:
+          - /url: https://www.innstant.travel/groups/
+          - text:  Groups
+  - generic [ref=e49]:
+    - generic [ref=e50]:
+      - link "History 10" [ref=e53] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e54]: 
+        - text: History
+        - generic [ref=e55]: "10"
+      - text:          
+      - generic [ref=e331]:
+        - generic [ref=e332]:
+          - generic "Click to change" [ref=e333] [cursor=pointer]:
+            - generic [ref=e334]:
+              - generic [ref=e336]:
+                - generic [ref=e337]: 
+                - generic [ref=e338]: Miami, FL, United States (MIA)
+              - generic [ref=e340]:
+                - generic [ref=e342]: Check-In
+                - generic [ref=e344]:
+                  - generic [ref=e346]: 
+                  - generic [ref=e347]: "15"
+                  - generic [ref=e348]: Jun 2026 Monday
+                - generic [ref=e350]: Check-Out
+                - generic [ref=e352]:
+                  - generic [ref=e354]: 
+                  - generic [ref=e355]: "16"
+                  - generic [ref=e356]: Jun 2026 Tuesday
+              - generic [ref=e358]:
+                - generic [ref=e359]: 
+                - text: 2 Adults
+          - button "Change" [ref=e361] [cursor=pointer]
+        - text:   
+        - generic [ref=e362]:
+          - text: 
+          - menubar [ref=e365]:
+            - menuitem "FILTER BY" [ref=e366]
+            - menuitem "Hotel Name" [ref=e367]:
+              - link "Hotel Name " [ref=e368] [cursor=pointer]:
+                - /url: "#"
+                - text: Hotel Name
+                - generic [ref=e369]: 
+              - text: 
+            - menuitem "Price" [ref=e370]:
+              - link "Price " [ref=e371] [cursor=pointer]:
+                - /url: "#"
+                - text: Price
+                - generic [ref=e372]: 
+              - text:        
+            - menuitem "Board" [ref=e373]:
+              - link "Board " [ref=e374] [cursor=pointer]:
+                - /url: "#"
+                - text: Board
+                - generic [ref=e375]: 
+              - text:    
+            - menuitem "Rating" [ref=e376]:
+              - link "Rating " [ref=e377] [cursor=pointer]:
+                - /url: "#"
+                - text: Rating
+                - generic [ref=e378]: 
+              - text:                                            
+            - menuitem "Location" [ref=e379]:
+              - link "Location " [ref=e380] [cursor=pointer]:
+                - /url: "#"
+                - text: Location
+                - generic [ref=e381]: 
+              - text:                               
+            - menuitem "Room" [ref=e382]:
+              - link "Room " [ref=e383] [cursor=pointer]:
+                - /url: "#"
+                - text: Room
+                - generic [ref=e384]: 
+              - text:                
+            - menuitem "Providers" [ref=e827]:
+              - link "Providers " [ref=e828] [cursor=pointer]:
+                - /url: "#"
+                - text: Providers
+                - generic [ref=e829]: 
+              - text:    
+            - menuitem "Extra filters" [ref=e385]:
+              - link "Extra filters " [ref=e386] [cursor=pointer]:
+                - /url: "#"
+                - text: Extra filters
+                - generic [ref=e387]: 
+              - text:                                                                                                                                              
+          - text: 
+          - menubar [ref=e390]:
+            - menuitem "Showing 348 of 356 results" [ref=e830]
+            - 'menuitem "Close alert Location: Miami Close alert Location: Outside Miami" [ref=e831]':
+              - generic [ref=e832]:
+                - generic [ref=e833]:
+                  - button "Close alert" [ref=e834] [cursor=pointer]: 
+                  - text: "Location: Miami"
+                - generic [ref=e835]:
+                  - button "Close alert" [ref=e836] [cursor=pointer]: 
+                  - text: "Location: Outside Miami"
+            - listitem [ref=e837]:
+              - button "Clear All" [ref=e838] [cursor=pointer]
+          - generic [ref=e393]:
+            - list [ref=e395]:
+              - listitem [ref=e396]: "Sort by:"
+              - listitem [ref=e397]:
+                - link "Price" [ref=e398] [cursor=pointer]:
+                  - /url: "#"
+                  - text: 
+                  - generic [ref=e399]: Price
+              - listitem [ref=e400]:
+                - link "Name" [ref=e401] [cursor=pointer]:
+                  - /url: "#"
+                  - text: 
+                  - generic [ref=e402]: Name
+              - listitem [ref=e403]:
+                - link "Stars" [ref=e404] [cursor=pointer]:
+                  - /url: "#"
+                  - text: 
+                  - generic [ref=e405]: Stars
+              - listitem [ref=e406]:
+                - link "TripAdvisor" [ref=e407] [cursor=pointer]:
+                  - /url: "#"
+                  - text: 
+                  - generic [ref=e408]: TripAdvisor
+            - generic [ref=e411] [cursor=pointer]:
+              - generic [ref=e412]: 
+              - text: Map
+          - generic [ref=e415]:
+            - generic [ref=e840]:
+              - generic [ref=e841]:
+                - generic [ref=e843]:
+                  - button [ref=e844] [cursor=pointer]:
+                    - generic [ref=e845]: 
+                  - img [ref=e846]
+                  - button [ref=e847] [cursor=pointer]:
+                    - generic [ref=e848]: 
+                - generic [ref=e850] [cursor=pointer]: 
+              - generic [ref=e852]:
+                - link "Hotel YVE Miami" [ref=e854] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/yve-hotel-miami-66809?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e855]:
+                  - generic [ref=e856]:
+                    - generic [ref=e857]: 
+                    - generic [ref=e858]: 
+                    - generic [ref=e859]: 
+                    - generic [ref=e860]: 
+                    - generic [ref=e861]: 
+                  - generic [ref=e862]:
+                    - generic [ref=e863]: 
+                    - text: 146 Biscayne Blvd
+                  - generic [ref=e864]:
+                    - link "Hotel Page" [ref=e865] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/yve-hotel-miami-66809?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e866] [cursor=pointer]: Quick View
+                    - generic [ref=e867] [cursor=pointer]: Share
+                    - generic [ref=e868] [cursor=pointer]: Search
+                  - list [ref=e871]:
+                    - listitem [ref=e872]:
+                      - link " 3491" [ref=e873] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e874]: 
+                        - generic [ref=e876]: 
+                        - text: "3491"
+                      - text:  
+              - generic [ref=e877]:
+                - paragraph [ref=e878]: From
+                - heading "$ 298.79" [level=4] [ref=e879]:
+                  - generic [ref=e880]:
+                    - text: $
+                    - generic [ref=e881]:
+                      - text: "298"
+                      - superscript [ref=e882]: ".79"
+                - paragraph [ref=e883]:
+                  - button "Show Rooms" [ref=e884] [cursor=pointer]
+            - generic [ref=e886]:
+              - generic [ref=e887]:
+                - generic [ref=e889]:
+                  - button [ref=e890] [cursor=pointer]:
+                    - generic [ref=e891]: 
+                  - img [ref=e892]
+                  - button [ref=e893] [cursor=pointer]:
+                    - generic [ref=e894]: 
+                - generic [ref=e896] [cursor=pointer]: 
+              - generic [ref=e898]:
+                - link "Gale South Beach, Curio Collection by Hilton" [ref=e900] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/gale-south-beach-301645?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e901]:
+                  - generic [ref=e902]:
+                    - generic [ref=e903]: 
+                    - generic [ref=e904]: 
+                    - generic [ref=e905]: 
+                    - generic [ref=e906]: 
+                    - generic [ref=e907]: 
+                  - generic [ref=e908]:
+                    - generic [ref=e909]: 
+                    - text: 1690 Collins Avenue
+                  - generic [ref=e910]:
+                    - link "Hotel Page" [ref=e911] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/gale-south-beach-301645?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e912] [cursor=pointer]: Quick View
+                    - generic [ref=e913] [cursor=pointer]: Share
+                    - generic [ref=e914] [cursor=pointer]: Search
+                  - list [ref=e917]:
+                    - listitem [ref=e918]:
+                      - link " 2012" [ref=e919] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e920]: 
+                        - generic [ref=e922]: 
+                        - text: "2012"
+                      - text:  
+              - generic [ref=e923]:
+                - paragraph [ref=e924]: From
+                - heading "$ 349.57" [level=4] [ref=e925]:
+                  - generic [ref=e926]:
+                    - text: $
+                    - generic [ref=e927]:
+                      - text: "349"
+                      - superscript [ref=e928]: ".57"
+                - paragraph [ref=e929]:
+                  - button "Show Rooms" [ref=e930] [cursor=pointer]
+            - generic [ref=e932]:
+              - generic [ref=e933]:
+                - generic [ref=e935]:
+                  - button [ref=e936] [cursor=pointer]:
+                    - generic [ref=e937]: 
+                  - img [ref=e938]
+                  - button [ref=e939] [cursor=pointer]:
+                    - generic [ref=e940]: 
+                - generic [ref=e942] [cursor=pointer]: 
+              - generic [ref=e944]:
+                - generic [ref=e945]:
+                  - link "Hilton Miami/Downtown" [ref=e946] [cursor=pointer]:
+                    - /url: https://b2b.innstant.travel/hotel/hilton-miami-downtown-24982?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                  - generic "This is a Preferred Partner hotel. It was handpicked by our team, this hotel is committed to providing guests with a positive experience thanks to its commendable service and good value." [ref=e947]: 
+                - generic [ref=e948]:
+                  - generic [ref=e949]:
+                    - generic [ref=e950]: 
+                    - generic [ref=e951]: 
+                    - generic [ref=e952]: 
+                    - generic [ref=e953]: 
+                    - generic [ref=e954]: 
+                  - generic [ref=e955]:
+                    - generic [ref=e956]: 
+                    - text: 1601 Biscayne Blvd
+                  - generic [ref=e957]:
+                    - link "Hotel Page" [ref=e958] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/hilton-miami-downtown-24982?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e959] [cursor=pointer]: Quick View
+                    - generic [ref=e960] [cursor=pointer]: Share
+                    - generic [ref=e961] [cursor=pointer]: Search
+                  - list [ref=e964]:
+                    - listitem [ref=e965]:
+                      - link " 4226" [ref=e966] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e967]: 
+                        - generic [ref=e969]: 
+                        - text: "4226"
+                      - text:  
+              - generic [ref=e970]:
+                - generic [ref=e971]:
+                  - button "Special Offer" [ref=e972] [cursor=pointer]:
+                    - generic [ref=e973]: 
+                    - text: Special Offer
+                  - text: 
+                - paragraph [ref=e974]: From
+                - heading "$ 405.00" [level=4] [ref=e975]:
+                  - generic [ref=e976]:
+                    - text: $
+                    - generic [ref=e977]:
+                      - text: "405"
+                      - superscript [ref=e978]: ".00"
+                - paragraph [ref=e979]:
+                  - button "Show Rooms" [ref=e980] [cursor=pointer]
+            - generic [ref=e982]:
+              - generic [ref=e983]:
+                - generic [ref=e985]:
+                  - button [ref=e986] [cursor=pointer]:
+                    - generic [ref=e987]: 
+                  - img [ref=e988]
+                  - button [ref=e989] [cursor=pointer]:
+                    - generic [ref=e990]: 
+                - generic [ref=e992] [cursor=pointer]: 
+              - generic [ref=e994]:
+                - link "Notebook Miami Beach" [ref=e996] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/pierre-237547?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e997]:
+                  - generic [ref=e998]:
+                    - generic [ref=e999]: 
+                    - generic [ref=e1000]: 
+                    - generic [ref=e1001]: 
+                    - generic [ref=e1002]: 
+                    - generic [ref=e1003]: 
+                  - generic [ref=e1004]:
+                    - generic [ref=e1005]: 
+                    - text: 216 43rd st
+                  - generic [ref=e1006]:
+                    - link "Hotel Page" [ref=e1007] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/pierre-237547?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1008] [cursor=pointer]: Quick View
+                    - generic [ref=e1009] [cursor=pointer]: Share
+                    - generic [ref=e1010] [cursor=pointer]: Search
+                  - generic:
+                    - generic:
+                      - list
+              - generic [ref=e1011]:
+                - paragraph [ref=e1012]: From
+                - heading "$ 74.47" [level=4] [ref=e1013]:
+                  - generic [ref=e1014]:
+                    - text: $
+                    - generic [ref=e1015]:
+                      - text: "74"
+                      - superscript [ref=e1016]: ".47"
+                - paragraph [ref=e1017]:
+                  - button "Show Rooms" [ref=e1018] [cursor=pointer]
+            - generic [ref=e1020]:
+              - generic [ref=e1021]:
+                - generic [ref=e1023]:
+                  - button [ref=e1024] [cursor=pointer]:
+                    - generic [ref=e1025]: 
+                  - img [ref=e1026]
+                  - button [ref=e1027] [cursor=pointer]:
+                    - generic [ref=e1028]: 
+                - generic [ref=e1030] [cursor=pointer]: 
+              - generic [ref=e1032]:
+                - link "Freehand Miami" [ref=e1034] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/freehand-miami-6660?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1035]:
+                  - generic [ref=e1036]:
+                    - generic [ref=e1037]: 
+                    - generic [ref=e1038]: 
+                    - generic [ref=e1039]: 
+                    - generic [ref=e1040]: 
+                    - generic [ref=e1041]: 
+                  - generic [ref=e1042]:
+                    - generic [ref=e1043]: 
+                    - text: 2727 Indian Creek Dr
+                  - generic [ref=e1044]:
+                    - link "Hotel Page" [ref=e1045] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/freehand-miami-6660?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1046] [cursor=pointer]: Quick View
+                    - generic [ref=e1047] [cursor=pointer]: Share
+                    - generic [ref=e1048] [cursor=pointer]: Search
+                  - list [ref=e1051]:
+                    - listitem [ref=e1052]:
+                      - link " 1084" [ref=e1053] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e1054]: 
+                        - generic [ref=e1056]: 
+                        - text: "1084"
+                      - text:  
+              - generic [ref=e1057]:
+                - paragraph [ref=e1058]: From
+                - heading "$ 94.39" [level=4] [ref=e1059]:
+                  - generic [ref=e1060]:
+                    - text: $
+                    - generic [ref=e1061]:
+                      - text: "94"
+                      - superscript [ref=e1062]: ".39"
+                - paragraph [ref=e1063]:
+                  - button "Show Rooms" [ref=e1064] [cursor=pointer]
+            - generic [ref=e1066]:
+              - generic [ref=e1067]:
+                - generic [ref=e1069]:
+                  - button [ref=e1070] [cursor=pointer]:
+                    - generic [ref=e1071]: 
+                  - img [ref=e1072]
+                  - button [ref=e1073] [cursor=pointer]:
+                    - generic [ref=e1074]: 
+                - generic [ref=e1076] [cursor=pointer]: 
+              - generic [ref=e1078]:
+                - link "Blue Wave Hollywood Beach" [ref=e1080] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/blue-wave-hollywood-beach-308245?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1081]:
+                  - generic [ref=e1082]:
+                    - generic [ref=e1083]: 
+                    - generic [ref=e1084]: 
+                    - generic [ref=e1085]: 
+                    - generic [ref=e1086]: 
+                    - generic [ref=e1087]: 
+                    - 'generic "Please note: this hotel is in the surrounding area of the location you searched for." [ref=e1089]': Outside Miami
+                  - generic [ref=e1090]:
+                    - generic [ref=e1091]: 
+                    - text: 333 Cleveland Street
+                  - generic [ref=e1092]:
+                    - link "Hotel Page" [ref=e1093] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/blue-wave-hollywood-beach-308245?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1094] [cursor=pointer]: Quick View
+                    - generic [ref=e1095] [cursor=pointer]: Share
+                    - generic [ref=e1096] [cursor=pointer]: Search
+                  - generic:
+                    - generic:
+                      - list
+              - generic [ref=e1097]:
+                - generic [ref=e1098]:
+                  - button "Special Offer" [ref=e1099] [cursor=pointer]:
+                    - generic [ref=e1100]: 
+                    - text: Special Offer
+                  - text: 
+                - paragraph [ref=e1101]: From
+                - heading "$ 104.26" [level=4] [ref=e1102]:
+                  - generic [ref=e1103]:
+                    - text: $
+                    - generic [ref=e1104]:
+                      - text: "104"
+                      - superscript [ref=e1105]: ".26"
+                - paragraph [ref=e1106]:
+                  - button "Show Rooms" [ref=e1107] [cursor=pointer]
+            - generic [ref=e1109]:
+              - generic [ref=e1110]:
+                - generic [ref=e1112]:
+                  - button [ref=e1113] [cursor=pointer]:
+                    - generic [ref=e1114]: 
+                  - img [ref=e1115]
+                  - button [ref=e1116] [cursor=pointer]:
+                    - generic [ref=e1117]: 
+                - generic [ref=e1119] [cursor=pointer]: 
+              - generic [ref=e1121]:
+                - link "Seagull Hollywood Beach" [ref=e1123] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/seagull-hollywood-beach-308599?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1124]:
+                  - generic [ref=e1125]:
+                    - generic [ref=e1126]: 
+                    - generic [ref=e1127]: 
+                    - generic [ref=e1128]: 
+                    - generic [ref=e1129]: 
+                    - generic [ref=e1130]: 
+                    - 'generic "Please note: this hotel is in the surrounding area of the location you searched for." [ref=e1132]': Outside Miami
+                  - generic [ref=e1133]:
+                    - generic [ref=e1134]: 
+                    - text: 333 Oaklahoma Street
+                  - generic [ref=e1135]:
+                    - link "Hotel Page" [ref=e1136] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/seagull-hollywood-beach-308599?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1137] [cursor=pointer]: Quick View
+                    - generic [ref=e1138] [cursor=pointer]: Share
+                    - generic [ref=e1139] [cursor=pointer]: Search
+                  - generic:
+                    - generic:
+                      - list
+              - generic [ref=e1140]:
+                - paragraph [ref=e1141]: From
+                - heading "$ 107.13" [level=4] [ref=e1142]:
+                  - generic [ref=e1143]:
+                    - text: $
+                    - generic [ref=e1144]:
+                      - text: "107"
+                      - superscript [ref=e1145]: ".13"
+                - paragraph [ref=e1146]:
+                  - button "Show Rooms" [ref=e1147] [cursor=pointer]
+            - generic [ref=e1149]:
+              - generic [ref=e1150]:
+                - generic [ref=e1152]:
+                  - button [ref=e1153] [cursor=pointer]:
+                    - generic [ref=e1154]: 
+                  - img [ref=e1155]
+                  - button [ref=e1156] [cursor=pointer]:
+                    - generic [ref=e1157]: 
+                - generic [ref=e1159] [cursor=pointer]: 
+              - generic [ref=e1161]:
+                - link "Aloft Miami Airport" [ref=e1163] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/aloft-miami-airport-351709?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1164]:
+                  - generic [ref=e1165]:
+                    - generic [ref=e1166]: 
+                    - generic [ref=e1167]: 
+                    - generic [ref=e1168]: 
+                    - generic [ref=e1169]: 
+                    - generic [ref=e1170]: 
+                  - generic [ref=e1171]:
+                    - generic [ref=e1172]: 
+                    - text: 7220 Northwest 36th Street
+                  - generic [ref=e1173]:
+                    - link "Hotel Page" [ref=e1174] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/aloft-miami-airport-351709?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1175] [cursor=pointer]: Quick View
+                    - generic [ref=e1176] [cursor=pointer]: Share
+                    - generic [ref=e1177] [cursor=pointer]: Search
+                  - generic:
+                    - generic:
+                      - list
+              - generic [ref=e1178]:
+                - paragraph [ref=e1179]: From
+                - heading "$ 118.00" [level=4] [ref=e1180]:
+                  - generic [ref=e1181]:
+                    - text: $
+                    - generic [ref=e1182]:
+                      - text: "118"
+                      - superscript [ref=e1183]: ".00"
+                - paragraph [ref=e1184]:
+                  - button "Show Rooms" [ref=e1185] [cursor=pointer]
+            - generic [ref=e1187]:
+              - generic [ref=e1188]:
+                - generic [ref=e1190]:
+                  - button [ref=e1191] [cursor=pointer]:
+                    - generic [ref=e1192]: 
+                  - img [ref=e1193]
+                  - button [ref=e1194] [cursor=pointer]:
+                    - generic [ref=e1195]: 
+                - generic [ref=e1197] [cursor=pointer]: 
+              - generic [ref=e1199]:
+                - generic [ref=e1200]:
+                  - link "Fairfield Inn & Suites Homestead Florida City" [ref=e1201] [cursor=pointer]:
+                    - /url: https://b2b.innstant.travel/hotel/fairfield-inn-suites-by-marriott-homestead-flori-854837?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                  - generic "This is a Preferred Partner hotel. It was handpicked by our team, this hotel is committed to providing guests with a positive experience thanks to its commendable service and good value." [ref=e1202]: 
+                - generic [ref=e1203]:
+                  - generic [ref=e1204]:
+                    - generic [ref=e1205]: 
+                    - generic [ref=e1206]: 
+                    - generic [ref=e1207]: 
+                    - generic [ref=e1208]: 
+                    - generic [ref=e1209]: 
+                  - generic [ref=e1210]:
+                    - generic [ref=e1211]: 
+                    - text: 60 Sw 352Nd Street
+                  - generic [ref=e1212]:
+                    - link "Hotel Page" [ref=e1213] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/fairfield-inn-suites-by-marriott-homestead-flori-854837?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1214] [cursor=pointer]: Quick View
+                    - generic [ref=e1215] [cursor=pointer]: Share
+                    - generic [ref=e1216] [cursor=pointer]: Search
+                  - generic:
+                    - generic:
+                      - list
+              - generic [ref=e1217]:
+                - paragraph [ref=e1218]: From
+                - heading "$ 122.95" [level=4] [ref=e1219]:
+                  - generic [ref=e1220]:
+                    - text: $
+                    - generic [ref=e1221]:
+                      - text: "122"
+                      - superscript [ref=e1222]: ".95"
+                - paragraph [ref=e1223]:
+                  - button "Show Rooms" [ref=e1224] [cursor=pointer]
+            - generic [ref=e1226]:
+              - generic [ref=e1227]:
+                - generic [ref=e1229]:
+                  - button [ref=e1230] [cursor=pointer]:
+                    - generic [ref=e1231]: 
+                  - img [ref=e1232]
+                  - button [ref=e1233] [cursor=pointer]:
+                    - generic [ref=e1234]: 
+                - generic [ref=e1236] [cursor=pointer]: 
+              - generic [ref=e1238]:
+                - link "Collins Hotel" [ref=e1240] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/collins-hotel-156842?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1241]:
+                  - generic [ref=e1242]:
+                    - generic [ref=e1243]: 
+                    - generic [ref=e1244]: 
+                    - generic [ref=e1245]: 
+                    - generic [ref=e1246]: 
+                    - generic [ref=e1247]: 
+                  - generic [ref=e1248]:
+                    - generic [ref=e1249]: 
+                    - text: 6600 Collins Ave
+                  - generic [ref=e1250]:
+                    - link "Hotel Page" [ref=e1251] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/collins-hotel-156842?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1252] [cursor=pointer]: Quick View
+                    - generic [ref=e1253] [cursor=pointer]: Share
+                    - generic [ref=e1254] [cursor=pointer]: Search
+                  - list [ref=e1257]:
+                    - listitem [ref=e1258]:
+                      - link " 1077" [ref=e1259] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e1260]: 
+                        - generic [ref=e1262]: 
+                        - text: "1077"
+                      - text:  
+              - generic [ref=e1263]:
+                - paragraph [ref=e1264]: From
+                - heading "$ 123.94" [level=4] [ref=e1265]:
+                  - generic [ref=e1266]:
+                    - text: $
+                    - generic [ref=e1267]:
+                      - text: "123"
+                      - superscript [ref=e1268]: ".94"
+                - paragraph [ref=e1269]:
+                  - button "Show Rooms" [ref=e1270] [cursor=pointer]
+            - generic [ref=e1272]:
+              - generic [ref=e1273]:
+                - generic [ref=e1275]:
+                  - button [ref=e1276] [cursor=pointer]:
+                    - generic [ref=e1277]: 
+                  - img [ref=e1278]
+                  - button [ref=e1279] [cursor=pointer]:
+                    - generic [ref=e1280]: 
+                - generic [ref=e1282] [cursor=pointer]: 
+              - generic [ref=e1284]:
+                - link "The Palms Inn & Suites Miami, Kendall, FL" [ref=e1286] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/country-inn-suites-miami-kendall-123474?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1287]:
+                  - generic [ref=e1288]:
+                    - generic [ref=e1289]: 
+                    - generic [ref=e1290]: 
+                    - generic [ref=e1291]: 
+                    - generic [ref=e1292]: 
+                    - generic [ref=e1293]: 
+                    - 'generic "Please note: this hotel is in the surrounding area of the location you searched for." [ref=e1295]': Outside Miami
+                  - generic [ref=e1296]:
+                    - generic [ref=e1297]: 
+                    - text: 11750 MILL DR 33183, Fort Lauderdale
+                  - generic [ref=e1298]:
+                    - link "Hotel Page" [ref=e1299] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/country-inn-suites-miami-kendall-123474?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1300] [cursor=pointer]: Quick View
+                    - generic [ref=e1301] [cursor=pointer]: Share
+                    - generic [ref=e1302] [cursor=pointer]: Search
+                  - list [ref=e1305]:
+                    - listitem [ref=e1306]:
+                      - link " 707" [ref=e1307] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e1308]: 
+                        - generic [ref=e1310]: 
+                        - text: "707"
+                      - text:  
+              - generic [ref=e1311]:
+                - paragraph [ref=e1312]: From
+                - heading "$ 134.17" [level=4] [ref=e1313]:
+                  - generic [ref=e1314]:
+                    - text: $
+                    - generic [ref=e1315]:
+                      - text: "134"
+                      - superscript [ref=e1316]: ".17"
+                - paragraph [ref=e1317]:
+                  - button "Show Rooms" [ref=e1318] [cursor=pointer]
+            - generic [ref=e1320]:
+              - generic [ref=e1321]:
+                - generic [ref=e1323]:
+                  - button [ref=e1324] [cursor=pointer]:
+                    - generic [ref=e1325]: 
+                  - img [ref=e1326]
+                  - button [ref=e1327] [cursor=pointer]:
+                    - generic [ref=e1328]: 
+                - generic [ref=e1330] [cursor=pointer]: 
+              - generic [ref=e1332]:
+                - link "Miami Garden Inn Suites" [ref=e1334] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/roma-resort-57026?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1335]:
+                  - generic [ref=e1336]:
+                    - generic [ref=e1337]: 
+                    - generic [ref=e1338]: 
+                    - generic [ref=e1339]: 
+                    - generic [ref=e1340]: 
+                    - generic [ref=e1341]: 
+                    - 'generic "Please note: this hotel is in the surrounding area of the location you searched for." [ref=e1343]': Outside Miami
+                  - generic [ref=e1344]:
+                    - generic [ref=e1345]: 
+                    - text: 16805 Nw 12th Avenue Miami, Florida
+                  - generic [ref=e1346]:
+                    - link "Hotel Page" [ref=e1347] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/roma-resort-57026?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1348] [cursor=pointer]: Quick View
+                    - generic [ref=e1349] [cursor=pointer]: Share
+                    - generic [ref=e1350] [cursor=pointer]: Search
+                  - list [ref=e1353]:
+                    - listitem [ref=e1354]:
+                      - link " 220" [ref=e1355] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e1356]: 
+                        - generic [ref=e1358]: 
+                        - text: "220"
+                      - text:  
+              - generic [ref=e1359]:
+                - generic [ref=e1360]:
+                  - button "Special Offer" [ref=e1361] [cursor=pointer]:
+                    - generic [ref=e1362]: 
+                    - text: Special Offer
+                  - text: 
+                - paragraph [ref=e1363]: From
+                - heading "$ 140.75" [level=4] [ref=e1364]:
+                  - generic [ref=e1365]:
+                    - text: $
+                    - generic [ref=e1366]:
+                      - text: "140"
+                      - superscript [ref=e1367]: ".75"
+                - paragraph [ref=e1368]:
+                  - button "Show Rooms" [ref=e1369] [cursor=pointer]
+            - generic [ref=e1371]:
+              - generic [ref=e1372]:
+                - generic [ref=e1374]:
+                  - button [ref=e1375] [cursor=pointer]:
+                    - generic [ref=e1376]: 
+                  - img [ref=e1377]
+                  - button [ref=e1378] [cursor=pointer]:
+                    - generic [ref=e1379]: 
+                - generic [ref=e1381] [cursor=pointer]: 
+              - generic [ref=e1383]:
+                - link "Quality Inn South At The Falls" [ref=e1385] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/quality-inn-south-at-the-falls-32689?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1386]:
+                  - generic [ref=e1387]:
+                    - generic [ref=e1388]: 
+                    - generic [ref=e1389]: 
+                    - generic [ref=e1390]: 
+                    - generic [ref=e1391]: 
+                    - generic [ref=e1392]: 
+                    - 'generic "Please note: this hotel is in the surrounding area of the location you searched for." [ref=e1394]': Outside Miami
+                  - generic [ref=e1395]:
+                    - generic [ref=e1396]: 
+                    - text: 14501 S DIXIE HWY US 1
+                  - generic [ref=e1397]:
+                    - link "Hotel Page" [ref=e1398] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/quality-inn-south-at-the-falls-32689?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1399] [cursor=pointer]: Quick View
+                    - generic [ref=e1400] [cursor=pointer]: Share
+                    - generic [ref=e1401] [cursor=pointer]: Search
+                  - list [ref=e1404]:
+                    - listitem [ref=e1405]:
+                      - link " 160" [ref=e1406] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e1407]: 
+                        - generic [ref=e1409]: 
+                        - text: "160"
+                      - text:  
+              - generic [ref=e1410]:
+                - paragraph [ref=e1411]: From
+                - heading "$ 142.06" [level=4] [ref=e1412]:
+                  - generic [ref=e1413]:
+                    - text: $
+                    - generic [ref=e1414]:
+                      - text: "142"
+                      - superscript [ref=e1415]: ".06"
+                - paragraph [ref=e1416]:
+                  - button "Show Rooms" [ref=e1417] [cursor=pointer]
+            - generic [ref=e1419]:
+              - generic [ref=e1420]:
+                - generic [ref=e1422]:
+                  - button [ref=e1423] [cursor=pointer]:
+                    - generic [ref=e1424]: 
+                  - img [ref=e1425]
+                  - button [ref=e1426] [cursor=pointer]:
+                    - generic [ref=e1427]: 
+                - generic [ref=e1429] [cursor=pointer]: 
+              - generic [ref=e1431]:
+                - link "Even Miami Doral Area" [ref=e1433] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/even-hotel-sweetwater-doral-854843?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1434]:
+                  - generic [ref=e1435]:
+                    - generic [ref=e1436]: 
+                    - generic [ref=e1437]: 
+                    - generic [ref=e1438]: 
+                    - generic [ref=e1439]: 
+                    - generic [ref=e1440]: 
+                  - generic [ref=e1441]:
+                    - generic [ref=e1442]: 
+                    - text: 10770 Nw 25Th Street
+                  - generic [ref=e1443]:
+                    - link "Hotel Page" [ref=e1444] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/even-hotel-sweetwater-doral-854843?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1445] [cursor=pointer]: Quick View
+                    - generic [ref=e1446] [cursor=pointer]: Share
+                    - generic [ref=e1447] [cursor=pointer]: Search
+                  - generic:
+                    - generic:
+                      - list
+              - generic [ref=e1448]:
+                - paragraph [ref=e1449]: From
+                - heading "$ 145.36" [level=4] [ref=e1450]:
+                  - generic [ref=e1451]:
+                    - text: $
+                    - generic [ref=e1452]:
+                      - text: "145"
+                      - superscript [ref=e1453]: ".36"
+                - paragraph [ref=e1454]:
+                  - button "Show Rooms" [ref=e1455] [cursor=pointer]
+            - generic [ref=e1457]:
+              - generic [ref=e1458]:
+                - generic [ref=e1460]:
+                  - button [ref=e1461] [cursor=pointer]:
+                    - generic [ref=e1462]: 
+                  - img [ref=e1463]
+                  - button [ref=e1464] [cursor=pointer]:
+                    - generic [ref=e1465]: 
+                - generic [ref=e1467] [cursor=pointer]: 
+              - generic [ref=e1469]:
+                - link "Best Western On The Bay Inn & Marina" [ref=e1471] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/best-western-on-the-bay-inn-marina-34475?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1472]:
+                  - generic [ref=e1473]:
+                    - generic [ref=e1474]: 
+                    - generic [ref=e1475]: 
+                    - generic [ref=e1476]: 
+                    - generic [ref=e1477]: 
+                    - generic [ref=e1478]: 
+                    - 'generic "Please note: this hotel is in the surrounding area of the location you searched for." [ref=e1480]': Outside Miami
+                  - generic [ref=e1481]:
+                    - generic [ref=e1482]: 
+                    - text: 1819 79TH STREET CSWY
+                  - generic [ref=e1483]:
+                    - link "Hotel Page" [ref=e1484] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/best-western-on-the-bay-inn-marina-34475?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1485] [cursor=pointer]: Quick View
+                    - generic [ref=e1486] [cursor=pointer]: Share
+                    - generic [ref=e1487] [cursor=pointer]: Search
+                  - list [ref=e1490]:
+                    - listitem [ref=e1491]:
+                      - link " 1842" [ref=e1492] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e1493]: 
+                        - generic [ref=e1495]: 
+                        - text: "1842"
+                      - text:  
+              - generic [ref=e1496]:
+                - paragraph [ref=e1497]: From
+                - heading "$ 146.95" [level=4] [ref=e1498]:
+                  - generic [ref=e1499]:
+                    - text: $
+                    - generic [ref=e1500]:
+                      - text: "146"
+                      - superscript [ref=e1501]: ".95"
+                - paragraph [ref=e1502]:
+                  - button "Show Rooms" [ref=e1503] [cursor=pointer]
+            - generic [ref=e1505]:
+              - generic [ref=e1506]:
+                - generic [ref=e1508]:
+                  - button [ref=e1509] [cursor=pointer]:
+                    - generic [ref=e1510]: 
+                  - img [ref=e1511]
+                  - button [ref=e1512] [cursor=pointer]:
+                    - generic [ref=e1513]: 
+                - generic [ref=e1515] [cursor=pointer]: 
+              - generic [ref=e1517]:
+                - link "Beach Park Hotel" [ref=e1519] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/beach-park-hotel-2784?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1520]:
+                  - generic [ref=e1521]:
+                    - generic [ref=e1522]: 
+                    - generic [ref=e1523]: 
+                    - generic [ref=e1524]: 
+                    - generic [ref=e1525]: 
+                    - generic [ref=e1526]: 
+                  - generic [ref=e1527]:
+                    - generic [ref=e1528]: 
+                    - text: 600 Ocean Dr
+                  - generic [ref=e1529]:
+                    - link "Hotel Page" [ref=e1530] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/beach-park-hotel-2784?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1531] [cursor=pointer]: Quick View
+                    - generic [ref=e1532] [cursor=pointer]: Share
+                    - generic [ref=e1533] [cursor=pointer]: Search
+                  - list [ref=e1536]:
+                    - listitem [ref=e1537]:
+                      - link " 107" [ref=e1538] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e1539]: 
+                        - generic [ref=e1541]: 
+                        - text: "107"
+                      - text:  
+              - generic [ref=e1542]:
+                - paragraph [ref=e1543]: From
+                - heading "$ 147.32" [level=4] [ref=e1544]:
+                  - generic [ref=e1545]:
+                    - text: $
+                    - generic [ref=e1546]:
+                      - text: "147"
+                      - superscript [ref=e1547]: ".32"
+                - paragraph [ref=e1548]:
+                  - button "Show Rooms" [ref=e1549] [cursor=pointer]
+            - generic [ref=e1551]:
+              - generic [ref=e1552]:
+                - generic [ref=e1554]:
+                  - button [ref=e1555] [cursor=pointer]:
+                    - generic [ref=e1556]: 
+                  - img [ref=e1557]
+                  - button [ref=e1558] [cursor=pointer]:
+                    - generic [ref=e1559]: 
+                - generic [ref=e1561] [cursor=pointer]: 
+              - generic [ref=e1563]:
+                - link "Chateaubleau Hotel" [ref=e1565] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/chateaubleau-hotel-22030?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1566]:
+                  - generic [ref=e1567]:
+                    - generic [ref=e1568]: 
+                    - generic [ref=e1569]: 
+                    - generic [ref=e1570]: 
+                    - generic [ref=e1571]: 
+                    - generic [ref=e1572]: 
+                  - generic [ref=e1573]:
+                    - generic [ref=e1574]: 
+                    - text: 1111 Ponce De Leon Blvd
+                  - generic [ref=e1575]:
+                    - link "Hotel Page" [ref=e1576] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/chateaubleau-hotel-22030?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1577] [cursor=pointer]: Quick View
+                    - generic [ref=e1578] [cursor=pointer]: Share
+                    - generic [ref=e1579] [cursor=pointer]: Search
+                  - list [ref=e1582]:
+                    - listitem [ref=e1583]:
+                      - link " 176" [ref=e1584] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e1585]: 
+                        - generic [ref=e1587]: 
+                        - text: "176"
+                      - text:  
+              - generic [ref=e1588]:
+                - paragraph [ref=e1589]: From
+                - heading "$ 149.18" [level=4] [ref=e1590]:
+                  - generic [ref=e1591]:
+                    - text: $
+                    - generic [ref=e1592]:
+                      - text: "149"
+                      - superscript [ref=e1593]: ".18"
+                - paragraph [ref=e1594]:
+                  - button "Show Rooms" [ref=e1595] [cursor=pointer]
+            - generic [ref=e1597]:
+              - generic [ref=e1598]:
+                - generic [ref=e1600]:
+                  - button [ref=e1601] [cursor=pointer]:
+                    - generic [ref=e1602]: 
+                  - img [ref=e1603]
+                  - button [ref=e1604] [cursor=pointer]:
+                    - generic [ref=e1605]: 
+                - generic [ref=e1607] [cursor=pointer]: 
+              - generic [ref=e1609]:
+                - link "Shalimar Motel" [ref=e1611] [cursor=pointer]:
+                  - /url: https://b2b.innstant.travel/hotel/shalimar-motel-288483?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                - generic [ref=e1612]:
+                  - generic [ref=e1613]:
+                    - generic [ref=e1614]: 
+                    - generic [ref=e1615]: 
+                    - generic [ref=e1616]: 
+                    - generic [ref=e1617]: 
+                    - generic [ref=e1618]: 
+                  - generic [ref=e1619]:
+                    - generic [ref=e1620]: 
+                    - text: 6200 Biscayne Blvd.
+                  - generic [ref=e1621]:
+                    - link "Hotel Page" [ref=e1622] [cursor=pointer]:
+                      - /url: https://b2b.innstant.travel/hotel/shalimar-motel-288483?service=hotels&searchQuery=city-3927&startDate=2026-06-15&endDate=2026-06-16&account-country=US&onRequest=0&payAtTheHotel=1&onlyApartments=0&adults=2&children=&searchAction=poll
+                    - generic [ref=e1623] [cursor=pointer]: Quick View
+                    - generic [ref=e1624] [cursor=pointer]: Share
+                    - generic [ref=e1625] [cursor=pointer]: Search
+                  - generic:
+                    - generic:
+                      - list
+              - generic [ref=e1626]:
+                - paragraph [ref=e1627]: From
+                - heading "$ 150.74" [level=4] [ref=e1628]:
+                  - generic [ref=e1629]:
+                    - text: $
+                    - generic [ref=e1630]:
+                      - text: "150"
+                      - superscript [ref=e1631]: ".74"
+                - paragraph [ref=e1632]:
+                  - button "Show Rooms" [ref=e1633] [cursor=pointer]
+            - button "Show more results" [ref=e1635] [cursor=pointer]:
+              - text: Show more results
+              - generic [ref=e1636]: 
+    - text:                                     
+  - contentinfo [ref=e24]:
+    - list [ref=e30]:
+      - listitem [ref=e31]:
+        - generic [ref=e32]: 
+        - text: Copyright 2026
