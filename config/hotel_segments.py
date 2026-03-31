@@ -82,9 +82,36 @@ HOTEL_SEGMENTS = {
     853382: {"zone": "brickell",    "tier": "midscale",  "name": "Atwell Suites Miami Brickell"},
     854881: {"zone": "brickell",    "tier": "midscale",  "name": "citizenM Miami Brickell"},
 
-    # Airport
+    # Airport / Doral
     6805:   {"zone": "airport",     "tier": "upscale",   "name": "Pullman Miami Airport"},
     20702:  {"zone": "airport",     "tier": "upscale",   "name": "Embassy Suites by Hilton MIA"},
+    20706:  {"zone": "airport",     "tier": "upscale",   "name": "Hilton Miami Airport"},
+    733781: {"zone": "airport",     "tier": "upscale",   "name": "DoubleTree by Hilton Miami Doral"},
+    21842:  {"zone": "airport",     "tier": "midscale",  "name": "Miami International Airport Hotel"},
+
+    # South Beach — additional
+    66737:  {"zone": "south_beach", "tier": "midscale",  "name": "Cavalier Hotel"},
+    6654:   {"zone": "south_beach", "tier": "midscale",  "name": "Dorchester Hotel"},
+    301640: {"zone": "south_beach", "tier": "upscale",   "name": "Hilton Garden Inn Miami South Beach"},
+    854875: {"zone": "south_beach", "tier": "upscale",   "name": "Hampton Inn Miami Beach - Mid Beach"},
+    31226:  {"zone": "south_beach", "tier": "luxury",    "name": "Kimpton Angler's Hotel"},
+    846428: {"zone": "south_beach", "tier": "luxury",    "name": "Kimpton Hotel Palomar South Beach"},
+    6661:   {"zone": "south_beach", "tier": "luxury",    "name": "Loews Miami Beach Hotel"},
+    70995:  {"zone": "south_beach", "tier": "midscale",  "name": "MB Hotel, Trademark Collection by Wyndham"},
+    193899: {"zone": "south_beach", "tier": "luxury",    "name": "The Villa Casa Casuarina"},
+    701659: {"zone": "south_beach", "tier": "budget",    "name": "Generator Miami"},
+    414146: {"zone": "south_beach", "tier": "midscale",  "name": "Hotel Belleza"},
+
+    # Mid-Beach — additional
+    19977:  {"zone": "mid_beach",   "tier": "luxury",    "name": "Fontainebleau Miami Beach"},
+    68833:  {"zone": "mid_beach",   "tier": "upscale",   "name": "Grand Beach Hotel Miami"},
+    852725: {"zone": "mid_beach",   "tier": "upscale",   "name": "Gale Miami Hotel and Residences"},
+
+    # Sunny Isles / North
+    851939: {"zone": "sunny_isles", "tier": "upscale",   "name": "SERENA Hotel Aventura Miami"},
+
+    # Downtown — additional
+    6482:   {"zone": "downtown",    "tier": "luxury",    "name": "InterContinental Miami"},
 }
 
 
