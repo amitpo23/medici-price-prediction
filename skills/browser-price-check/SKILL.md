@@ -101,14 +101,17 @@ Save to `scan-reports/YYYY-MM-DD_HH-MM_full_scan.md` with tables:
 }
 ```
 
-### Step 6: Copy Reports to medici-hotels Project
-**MANDATORY** — after every scan, copy the report files to the partner project:
+### Step 6: Share Reports via GitHub (MANDATORY)
+**After every scan**, copy reports to `shared-reports/` and push to GitHub:
 ```bash
-cp scan-reports/YYYY-MM-DD_*.md ~/Desktop/coding/medici-hotels/scan-reports/
-cp scan-reports/YYYY-MM-DD_*.json ~/Desktop/coding/medici-hotels/scan-reports/
+cp scan-reports/YYYY-MM-DD_*.md shared-reports/
+cp scan-reports/YYYY-MM-DD_*.json shared-reports/
+git add shared-reports/ && git commit -m "chore: scan report YYYY-MM-DD" && git push
 ```
-Target: `~/Desktop/coding/medici-hotels/scan-reports/`
-This is where the other developer's agent reads our scan results.
+The partner project (medici-hotels, on a different machine) reads via GitHub raw URL:
+```
+https://raw.githubusercontent.com/amitpo23/medici-price-prediction/main/shared-reports/
+```
 
 ### Step 7: Optional — Write to DB
 ```bash
