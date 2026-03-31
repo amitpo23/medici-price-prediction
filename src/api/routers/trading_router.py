@@ -12,12 +12,14 @@ Endpoints for the Phase 1 analytical cache data:
   /trading/cache/refresh   — Trigger manual cache refresh
   /trading/daily-summary   — Morning brief with signal transitions
   /trading/pnl-today       — Today's executed overrides + opportunities P&L
+  /trading/portfolio       — Active + sold rooms portfolio from MED_Book
 
 Safety: This is a NEW file — does not modify any existing file.
 """
 from __future__ import annotations
 
 import logging
+from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -607,3 +609,205 @@ async def get_pnl_today(
         "opportunities_filled": opportunities_filled,
         "net_position": net_position,
     }
+
+
+# ── Portfolio ─────────────────────────────────────────────────────────
+
+
+def _query_portfolio() -> dict:
+    """Query MED_Book for active and sold rooms with P&L calculations.
+
+    Uses pyodbc directly (get_pyodbc_connection) for lean, single-purpose queries.
+    Returns structured portfolio dict; empty on DB failure.
+    """
+    empty = {
+        "active_rooms": [],
+        "sold_rooms": [],
+        "summary": {
+            "total_active": 0,
+            "total_invested": 0.0,
+            "total_push_value": 0.0,
+            "unrealized_pnl": 0.0,
+            "realized_pnl": 0.0,
+            "rooms_sold": 0,
+            "win_rate": 0.0,
+        },
+    }
+
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection
+        conn = get_pyodbc_connection()
+    except (ImportError, ValueError, OSError, Exception) as exc:
+        logger.warning("Portfolio: DB connection unavailable — %s", exc)
+        return empty
+
+    today = date.today()
+    active_rooms: list[dict] = []
+    sold_rooms: list[dict] = []
+
+    try:
+        cursor = conn.cursor()
+
+        # --- Active rooms: IsActive=1, IsSold=0 ---
+        cursor.execute("""
+            SELECT
+                b.id AS book_id,
+                h.name AS hotel_name,
+                b.HotelId AS hotel_id,
+                b.startDate AS checkin,
+                b.price AS buy_price,
+                COALESCE(o.PushPrice, b.lastPrice, b.price) AS push_price,
+                b.CancellationTo AS cancel_deadline
+            FROM MED_Book b
+            LEFT JOIN Med_Hotels h ON b.HotelId = h.HotelId
+            LEFT JOIN (
+                SELECT DestinationsId AS HotelId, DateForm, PushPrice,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY DestinationsId, DateForm
+                           ORDER BY OpportunityId DESC
+                       ) AS rn
+                FROM [MED_\u05B9O\u05B9\u05B9pportunities]
+            ) o ON o.HotelId = b.HotelId
+                AND CAST(o.DateForm AS DATE) = CAST(b.startDate AS DATE)
+                AND o.rn = 1
+            WHERE b.IsActive = 1
+              AND b.IsSold = 0
+              AND b.startDate >= GETDATE()
+            ORDER BY b.startDate
+        """)
+
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+
+        for row in rows:
+            rd = dict(zip(columns, row))
+            buy_price = float(rd.get("buy_price") or 0)
+            push_price = float(rd.get("push_price") or buy_price)
+            checkin_dt = rd.get("checkin")
+            cancel_dt = rd.get("cancel_deadline")
+
+            # Days to checkin
+            days_to = 0
+            checkin_str = ""
+            if checkin_dt:
+                if isinstance(checkin_dt, datetime):
+                    checkin_date = checkin_dt.date()
+                elif isinstance(checkin_dt, date):
+                    checkin_date = checkin_dt
+                else:
+                    checkin_date = today
+                days_to = max(0, (checkin_date - today).days)
+                checkin_str = checkin_date.isoformat()
+
+            cancel_str = ""
+            if cancel_dt:
+                if isinstance(cancel_dt, datetime):
+                    cancel_str = cancel_dt.date().isoformat()
+                elif isinstance(cancel_dt, date):
+                    cancel_str = cancel_dt.isoformat()
+
+            # Current market price: use push_price as proxy (best available)
+            current_market = push_price
+            unrealized = current_market - buy_price
+            pnl_pct = round((unrealized / buy_price * 100), 2) if buy_price > 0 else 0.0
+
+            active_rooms.append({
+                "book_id": int(rd.get("book_id") or 0),
+                "hotel_name": rd.get("hotel_name") or "Unknown",
+                "hotel_id": int(rd.get("hotel_id") or 0),
+                "checkin": checkin_str,
+                "buy_price": round(buy_price, 2),
+                "push_price": round(push_price, 2),
+                "current_market_price": round(current_market, 2),
+                "unrealized_pnl": round(unrealized, 2),
+                "pnl_pct": pnl_pct,
+                "days_to_checkin": days_to,
+                "cancel_deadline": cancel_str,
+                "status": "HELD",
+            })
+
+        # --- Sold rooms: IsSold=1, last 30 days ---
+        cursor.execute("""
+            SELECT
+                b.id AS book_id,
+                h.name AS hotel_name,
+                b.HotelId AS hotel_id,
+                b.price AS buy_price,
+                COALESCE(b.lastPrice, b.price) AS sold_price,
+                b.startDate AS checkin
+            FROM MED_Book b
+            LEFT JOIN Med_Hotels h ON b.HotelId = h.HotelId
+            WHERE b.IsSold = 1
+              AND b.DateInsert >= DATEADD(day, -30, GETDATE())
+            ORDER BY b.DateInsert DESC
+        """)
+
+        sold_rows = cursor.fetchall()
+        sold_cols = [desc[0] for desc in cursor.description]
+
+        for row in sold_rows:
+            rd = dict(zip(sold_cols, row))
+            buy_price = float(rd.get("buy_price") or 0)
+            sold_price = float(rd.get("sold_price") or buy_price)
+            realized = sold_price - buy_price
+            checkin_val = rd.get("checkin")
+            checkin_str = ""
+            if checkin_val:
+                if isinstance(checkin_val, datetime):
+                    checkin_str = checkin_val.date().isoformat()
+                elif isinstance(checkin_val, date):
+                    checkin_str = checkin_val.isoformat()
+
+            sold_rooms.append({
+                "book_id": int(rd.get("book_id") or 0),
+                "hotel_name": rd.get("hotel_name") or "Unknown",
+                "buy_price": round(buy_price, 2),
+                "sold_price": round(sold_price, 2),
+                "realized_pnl": round(realized, 2),
+                "checkin": checkin_str,
+            })
+
+        cursor.close()
+    except (OSError, ConnectionError, Exception) as exc:
+        logger.error("Portfolio query failed: %s", exc)
+        return empty
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    # --- Summary ---
+    total_invested = sum(r["buy_price"] for r in active_rooms)
+    total_push = sum(r["push_price"] for r in active_rooms)
+    unrealized_total = sum(r["unrealized_pnl"] for r in active_rooms)
+    realized_total = sum(r["realized_pnl"] for r in sold_rooms)
+    wins = sum(1 for r in sold_rooms if r["realized_pnl"] > 0)
+    win_rate = round((wins / len(sold_rooms) * 100), 1) if sold_rooms else 0.0
+
+    return {
+        "active_rooms": active_rooms,
+        "sold_rooms": sold_rooms,
+        "summary": {
+            "total_active": len(active_rooms),
+            "total_invested": round(total_invested, 2),
+            "total_push_value": round(total_push, 2),
+            "unrealized_pnl": round(unrealized_total, 2),
+            "realized_pnl": round(realized_total, 2),
+            "rooms_sold": len(sold_rooms),
+            "win_rate": win_rate,
+        },
+    }
+
+
+@trading_router.get("/portfolio")
+async def get_portfolio(
+    request=None,
+    _key: str = Depends(_optional_api_key),
+):
+    """Portfolio view: active rooms (held), sold rooms, and P&L summary.
+
+    Queries MED_Book + MED_Opportunities for buy/push prices,
+    calculates unrealized P&L for held rooms and realized P&L for sold rooms.
+    """
+    return _query_portfolio()

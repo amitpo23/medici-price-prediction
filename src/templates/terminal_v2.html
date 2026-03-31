@@ -134,6 +134,13 @@ body {
 /* ===== SPARKLINE ===== */
 .spark { letter-spacing:-1px; font-size:13px; }
 
+/* ===== PORTFOLIO TABLE ===== */
+#portfolio-table td { padding:5px 6px; border-bottom:1px solid #111827; white-space:nowrap; font-size:11px; }
+#portfolio-table tr:hover { background:rgba(59,130,246,0.05); }
+.pf-stat { text-align:center; }
+.pf-stat .pf-val { font-size:14px; font-weight:bold; color:#e2e8f0; }
+.pf-stat .pf-lbl { font-size:9px; color:#64748b; text-transform:uppercase; }
+
 /* ===== LOADING ===== */
 .loading { display:flex; align-items:center; justify-content:center; height:100%; color:#475569; }
 </style>
@@ -170,6 +177,7 @@ body {
     <select class="fbtn" id="f-cat" onchange="applyFilters()"><option value="">Category ▼</option></select>
     <select class="fbtn" id="f-board" onchange="applyFilters()"><option value="">Board ▼</option></select>
     <input class="fsearch" id="f-search" placeholder="Search hotel, room, date..." oninput="applyFilters()">
+    <button class="fbtn" id="f-myrooms" onclick="toggleMyRooms()">My Rooms</button>
     <button class="freset" onclick="resetFilters()">Reset</button>
   </div>
 
@@ -207,6 +215,7 @@ body {
       <div class="chart-area" id="chart-area">
         <div class="chart-tabs">
           <span class="ctab active" id="tab-chart" onclick="setChartMode('chart')">Chart</span>
+          <span class="ctab" id="tab-portfolio" onclick="setChartMode('portfolio')">Portfolio</span>
           <span style="flex:1;"></span>
           <span class="muted" id="chart-context">Select a room to view chart</span>
         </div>
@@ -229,6 +238,26 @@ body {
 
         <!-- VOTER TOGGLE BAR -->
         <div class="voter-toggles" id="voter-toggles"></div>
+
+        <!-- PORTFOLIO PANEL (hidden by default) -->
+        <div id="portfolio-panel" style="display:none;overflow:auto;flex:1;padding:8px;">
+          <div id="portfolio-summary" style="display:flex;gap:16px;padding:8px 4px;border-bottom:1px solid #1e293b;margin-bottom:8px;flex-wrap:wrap;"></div>
+          <table id="portfolio-table" style="width:100%;border-collapse:collapse;">
+            <thead><tr>
+              <th style="position:sticky;top:0;background:#0f172a;color:#64748b;text-align:left;padding:6px;font-size:10px;font-weight:600;text-transform:uppercase;border-bottom:1px solid #1e293b;">Hotel</th>
+              <th style="position:sticky;top:0;background:#0f172a;color:#64748b;text-align:left;padding:6px;font-size:10px;font-weight:600;text-transform:uppercase;border-bottom:1px solid #1e293b;">Date</th>
+              <th style="position:sticky;top:0;background:#0f172a;color:#64748b;text-align:right;padding:6px;font-size:10px;font-weight:600;text-transform:uppercase;border-bottom:1px solid #1e293b;">Buy$</th>
+              <th style="position:sticky;top:0;background:#0f172a;color:#64748b;text-align:right;padding:6px;font-size:10px;font-weight:600;text-transform:uppercase;border-bottom:1px solid #1e293b;">Push$</th>
+              <th style="position:sticky;top:0;background:#0f172a;color:#64748b;text-align:right;padding:6px;font-size:10px;font-weight:600;text-transform:uppercase;border-bottom:1px solid #1e293b;">Market$</th>
+              <th style="position:sticky;top:0;background:#0f172a;color:#64748b;text-align:right;padding:6px;font-size:10px;font-weight:600;text-transform:uppercase;border-bottom:1px solid #1e293b;">P&amp;L</th>
+              <th style="position:sticky;top:0;background:#0f172a;color:#64748b;text-align:right;padding:6px;font-size:10px;font-weight:600;text-transform:uppercase;border-bottom:1px solid #1e293b;">P&amp;L%</th>
+              <th style="position:sticky;top:0;background:#0f172a;color:#64748b;text-align:left;padding:6px;font-size:10px;font-weight:600;text-transform:uppercase;border-bottom:1px solid #1e293b;">Cancel</th>
+            </tr></thead>
+            <tbody id="portfolio-body">
+              <tr><td colspan="8" class="loading">Loading portfolio...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -297,7 +326,10 @@ const S = {
   sortCol: 'cons',      // current sort column
   sortAsc: false,       // sort direction
   signalFilter: 'all',  // all | CALL | PUT
-  chartMode: 'chart',   // chart | heatmap
+  myRoomsFilter: false, // "My Rooms" toggle
+  myRoomHotelIds: new Set(), // hotel_ids from portfolio
+  portfolioData: null,  // cached portfolio response
+  chartMode: 'chart',   // chart | portfolio
   voters: {},           // voter toggle states
   priceChart: null,     // Chart.js instance
   velocityChart: null,
@@ -444,6 +476,7 @@ function applyFilters() {
   const search = document.getElementById('f-search').value.toLowerCase();
 
   if (sig !== 'all') rows = rows.filter(r => (r.option_signal || '').toUpperCase() === sig);
+  if (S.myRoomsFilter && S.myRoomHotelIds.size > 0) rows = rows.filter(r => S.myRoomHotelIds.has(r.hotel_id));
   if (hotel) rows = rows.filter(r => r.hotel_name === hotel);
   if (zone) rows = rows.filter(r => r.zone === zone);
   if (cat) rows = rows.filter(r => r.category === cat);
@@ -977,8 +1010,11 @@ function toggleVoter(id, el) {
 function setChartMode(mode) {
   S.chartMode = mode;
   document.getElementById('tab-chart').classList.toggle('active', mode === 'chart');
+  document.getElementById('tab-portfolio').classList.toggle('active', mode === 'portfolio');
   document.getElementById('chart-panels').style.display = mode === 'chart' ? 'flex' : 'none';
   document.getElementById('voter-toggles').style.display = mode === 'chart' ? 'flex' : 'none';
+  document.getElementById('portfolio-panel').style.display = mode === 'portfolio' ? 'block' : 'none';
+  if (mode === 'portfolio') loadPortfolio();
 }
 
 // ===== SIDEBAR: ALERTS =====
@@ -1186,6 +1222,79 @@ async function bulkOpportunity() {
     const q = await fetchJSON(`${API}/opportunity/queue`);
     renderOppQueue(q);
   } catch (e) { console.error('Bulk opportunity error:', e); showToast('Bulk opportunity failed'); }
+}
+
+// ===== PORTFOLIO =====
+async function loadPortfolio() {
+  try {
+    const data = await fetchJSON(`${API}/trading/portfolio`);
+    S.portfolioData = data;
+    // Extract hotel_ids for "My Rooms" filter
+    S.myRoomHotelIds = new Set((data.active_rooms || []).map(r => r.hotel_id));
+    renderPortfolio(data);
+  } catch (e) {
+    console.error('Portfolio load error:', e);
+    document.getElementById('portfolio-body').innerHTML =
+      '<tr><td colspan="8" class="loading">Portfolio unavailable</td></tr>';
+  }
+}
+
+function renderPortfolio(data) {
+  const summary = data.summary || {};
+  const sumEl = document.getElementById('portfolio-summary');
+  const upnlCls = summary.unrealized_pnl >= 0 ? 'up' : 'down';
+  const rpnlCls = summary.realized_pnl >= 0 ? 'up' : 'down';
+  sumEl.innerHTML = `
+    <div class="pf-stat"><div class="pf-val">${summary.total_active}</div><div class="pf-lbl">Active Rooms</div></div>
+    <div class="pf-stat"><div class="pf-val">$${(summary.total_invested||0).toLocaleString()}</div><div class="pf-lbl">Invested</div></div>
+    <div class="pf-stat"><div class="pf-val">$${(summary.total_push_value||0).toLocaleString()}</div><div class="pf-lbl">Push Value</div></div>
+    <div class="pf-stat"><div class="pf-val ${upnlCls}">${summary.unrealized_pnl >= 0 ? '+' : ''}$${(summary.unrealized_pnl||0).toLocaleString()}</div><div class="pf-lbl">Unrealized P&amp;L</div></div>
+    <div class="pf-stat"><div class="pf-val ${rpnlCls}">${summary.realized_pnl >= 0 ? '+' : ''}$${(summary.realized_pnl||0).toLocaleString()}</div><div class="pf-lbl">Realized P&amp;L</div></div>
+    <div class="pf-stat"><div class="pf-val">${summary.rooms_sold || 0}</div><div class="pf-lbl">Sold (30d)</div></div>
+    <div class="pf-stat"><div class="pf-val">${summary.win_rate || 0}%</div><div class="pf-lbl">Win Rate</div></div>
+  `;
+
+  const tbody = document.getElementById('portfolio-body');
+  const rooms = data.active_rooms || [];
+  if (!rooms.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">No active rooms in portfolio</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rooms.map(r => {
+    const pnlCls = r.unrealized_pnl >= 0 ? 'up' : 'down';
+    const pnlSign = r.unrealized_pnl >= 0 ? '+' : '';
+    return `<tr>
+      <td class="bright">${r.hotel_name}</td>
+      <td class="muted">${r.checkin} <span class="muted">(${r.days_to_checkin}d)</span></td>
+      <td style="text-align:right;" class="muted">$${r.buy_price.toFixed(0)}</td>
+      <td style="text-align:right;" class="bright">$${r.push_price.toFixed(0)}</td>
+      <td style="text-align:right;" class="accent">$${r.current_market_price.toFixed(0)}</td>
+      <td style="text-align:right;" class="${pnlCls}">${pnlSign}$${r.unrealized_pnl.toFixed(0)}</td>
+      <td style="text-align:right;" class="${pnlCls}">${pnlSign}${r.pnl_pct.toFixed(1)}%</td>
+      <td class="muted">${r.cancel_deadline || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== MY ROOMS FILTER =====
+async function toggleMyRooms() {
+  S.myRoomsFilter = !S.myRoomsFilter;
+  document.getElementById('f-myrooms').classList.toggle('active', S.myRoomsFilter);
+  if (S.myRoomsFilter && !S.portfolioData) {
+    // Fetch portfolio to get hotel_ids
+    try {
+      const data = await fetchJSON(`${API}/trading/portfolio`);
+      S.portfolioData = data;
+      S.myRoomHotelIds = new Set((data.active_rooms || []).map(r => r.hotel_id));
+    } catch (e) {
+      console.error('My Rooms: portfolio fetch failed', e);
+      S.myRoomsFilter = false;
+      document.getElementById('f-myrooms').classList.remove('active');
+      showToast('Could not load portfolio for My Rooms filter');
+      return;
+    }
+  }
+  applyFilters();
 }
 
 function showToast(msg) {
