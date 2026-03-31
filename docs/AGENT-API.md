@@ -7,11 +7,16 @@ This document describes the automated browser scanning pipeline for hotel price 
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌─────────────┐
-│ medici-db    │────>│ Agent scans  │────>│ scan-reports/  │────>│ BrowserScan │
-│ (hotel list) │     │ Innstant B2B │     │ JSON + MD      │     │ Results DB  │
-└─────────────┘     └──────────────┘     └───────────────┘     └─────────────┘
-                                                                       │
-                    ┌──────────────┐     ┌───────────────┐            │
+│ SalesOffice  │────>│ Agent scans  │────>│ scan-reports/  │────>│ BrowserScan │
+│ .Orders (DB) │     │ Innstant B2B │     │ JSON + MD      │     │ Results DB  │
+└─────────────┘     └──────────────┘     └───────┬───────┘     └─────────────┘
+                                                  │
+                                    ┌─────────────▼──────────────┐
+                                    │ ~/Desktop/coding/           │
+                                    │ medici-hotels/scan-reports/ │
+                                    │ (partner project reads here)│
+                                    └────────────────────────────┘
+                    ┌──────────────┐     ┌───────────────┐
                     │ SalesOffice  │────>│ compare_api_  │<───────────┘
                     │ .Details     │     │ vs_browser.py │
                     └──────────────┘     └───────────────┘
@@ -51,7 +56,16 @@ python3 scripts/browser_to_db.py scan-reports/YYYY-MM-DD_HH-MM.json
 python3 scripts/compare_api_vs_browser.py
 ```
 
-### 6. Verify
+### 6. Copy to Partner Project (MANDATORY)
+After every scan, copy reports to the medici-hotels project:
+```bash
+mkdir -p ~/Desktop/coding/medici-hotels/scan-reports/
+cp scan-reports/YYYY-MM-DD_*.md ~/Desktop/coding/medici-hotels/scan-reports/
+cp scan-reports/YYYY-MM-DD_*.json ~/Desktop/coding/medici-hotels/scan-reports/
+```
+The other developer's agent reads scan results from `~/Desktop/coding/medici-hotels/scan-reports/`.
+
+### 7. Verify
 ```sql
 SELECT TOP 10 * FROM SalesOffice.BrowserScanResults ORDER BY ScanDate DESC
 ```

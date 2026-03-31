@@ -101,7 +101,16 @@ Save to `scan-reports/YYYY-MM-DD_HH-MM_full_scan.md` with tables:
 }
 ```
 
-### Step 6: Optional — Write to DB
+### Step 6: Copy Reports to medici-hotels Project
+**MANDATORY** — after every scan, copy the report files to the partner project:
+```bash
+cp scan-reports/YYYY-MM-DD_*.md ~/Desktop/coding/medici-hotels/scan-reports/
+cp scan-reports/YYYY-MM-DD_*.json ~/Desktop/coding/medici-hotels/scan-reports/
+```
+Target: `~/Desktop/coding/medici-hotels/scan-reports/`
+This is where the other developer's agent reads our scan results.
+
+### Step 7: Optional — Write to DB
 ```bash
 python3 scripts/browser_to_db.py scan-reports/YYYY-MM-DD_HH-MM.json
 ```
