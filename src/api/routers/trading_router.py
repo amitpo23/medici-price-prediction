@@ -10,6 +10,8 @@ Endpoints for the Phase 1 analytical cache data:
   /trading/overrides       — Human price override history
   /trading/cache/freshness — Cache layer freshness + row counts
   /trading/cache/refresh   — Trigger manual cache refresh
+  /trading/daily-summary   — Morning brief with signal transitions
+  /trading/pnl-today       — Today's executed overrides + opportunities P&L
 
 Safety: This is a NEW file — does not modify any existing file.
 """
@@ -35,6 +37,9 @@ from src.api.routers._shared_state import (
 logger = logging.getLogger(__name__)
 
 trading_router = APIRouter(prefix="/trading", tags=["trading-layer"])
+
+# Module-level store for signal transition tracking between cycles
+_previous_signals: dict[int, str] = {}  # detail_id → signal (CALL/PUT/NEUTRAL)
 
 
 # ── Daily Signals ────────────────────────────────────────────────────
@@ -485,6 +490,36 @@ async def get_daily_trading_summary(
         "avg": round(sum(prices) / len(prices), 2) if prices else 0,
     }
 
+    # --- Signal transitions ---
+    global _previous_signals
+    current_signals: dict[int, dict] = {}
+    for sig in signals:
+        did = sig.get("detail_id")
+        rec = sig.get("recommendation", "NONE")
+        mapped = "NEUTRAL" if rec == "NONE" else rec
+        if did is not None:
+            current_signals[int(did)] = {
+                "signal": mapped,
+                "hotel": sig.get("hotel_name", ""),
+                "price": round(float(sig.get("S_t", 0) or 0), 2),
+            }
+
+    signal_transitions: list[dict] = []
+    if _previous_signals:
+        for did, info in current_signals.items():
+            prev = _previous_signals.get(did)
+            if prev and prev != info["signal"]:
+                signal_transitions.append({
+                    "detail_id": did,
+                    "hotel": info["hotel"],
+                    "from": prev,
+                    "to": info["signal"],
+                    "price": info["price"],
+                })
+
+    # Update the store for the next cycle
+    _previous_signals = {did: info["signal"] for did, info in current_signals.items()}
+
     return {
         "date": today,
         "signal_distribution": dist,
@@ -501,4 +536,74 @@ async def get_daily_trading_summary(
         "avg_confidence_pct": avg_conf,
         "avg_t_days": avg_t,
         "price_range": price_range,
+        "signal_transitions": signal_transitions,
+        "transition_count": len(signal_transitions),
+    }
+
+
+# ── Daily P&L ──────────────────────────────────────────────────────
+
+
+@trading_router.get("/pnl-today")
+async def get_pnl_today(
+    request=None,
+    _key: str = Depends(_optional_api_key),
+):
+    """Today's executed overrides + opportunities with P&L calculations.
+
+    Queries the local execution logs (SQLite) for today's activity.
+    No Azure SQL queries — uses cached rule execution data only.
+    """
+    from datetime import date
+
+    today = date.today().isoformat()
+
+    overrides_executed = 0
+    overrides_total_discount = 0.0
+    opportunities_submitted = 0
+    opportunities_total_profit = 0.0
+    opportunities_filled = 0
+
+    # --- Override execution log ---
+    try:
+        from src.analytics.override_rules import get_execution_log
+        override_log = get_execution_log(limit=500)
+        for entry in override_log:
+            executed_at = str(entry.get("executed_at", ""))
+            if executed_at.startswith(today):
+                overrides_executed += 1
+                overrides_total_discount += float(entry.get("discount_usd", 0) or 0)
+    except (ImportError, OSError, Exception) as exc:
+        logger.debug("Could not load override execution log: %s", exc)
+
+    # --- Opportunity execution log ---
+    try:
+        from src.analytics.opportunity_rules import get_opp_execution_log
+        opp_log = get_opp_execution_log(limit=500)
+        for entry in opp_log:
+            executed_at = str(entry.get("executed_at", ""))
+            if executed_at.startswith(today):
+                opportunities_submitted += 1
+                opportunities_total_profit += float(entry.get("profit_usd", 0) or entry.get("expected_profit", 0) or 0)
+                if entry.get("status") == "filled":
+                    opportunities_filled += 1
+    except (ImportError, OSError, Exception) as exc:
+        logger.debug("Could not load opportunity execution log: %s", exc)
+
+    # --- Net position summary ---
+    parts = []
+    if overrides_executed:
+        parts.append(f"{overrides_executed} PUT overrides active")
+    if opportunities_submitted:
+        parts.append(f"{opportunities_submitted} CALL opportunities pending")
+    net_position = ", ".join(parts) if parts else "No executions today"
+
+    return {
+        "date": today,
+        "overrides_executed": overrides_executed,
+        "overrides_total_discount": round(overrides_total_discount, 2),
+        "opportunities_submitted": opportunities_submitted,
+        "opportunities_total_profit_expected": round(opportunities_total_profit, 2),
+        "opportunities_filled": opportunities_filled,
+        "net_position": net_position,
     }

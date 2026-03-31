@@ -234,6 +234,11 @@ body {
 
     <!-- RIGHT SIDEBAR -->
     <div class="right-sidebar" id="right-sidebar">
+      <!-- Signal Transitions -->
+      <div class="sb-section">
+        <div class="sb-header"><span>TRANSITIONS</span><span class="sb-badge" id="transition-count">0</span></div>
+        <div class="sb-body" id="transitions-feed"><div class="muted">Waiting for second cycle...</div></div>
+      </div>
       <!-- Alerts -->
       <div class="sb-section">
         <div class="sb-header"><span>ALERTS</span><span class="sb-badge" id="alert-count">0</span></div>
@@ -256,6 +261,11 @@ body {
           <button class="sb-btn buy" id="btn-buy" disabled onclick="queueOpportunity()">Buy Selected</button>
           <button class="sb-btn buy" style="margin-top:2px;font-size:9px;" onclick="bulkOpportunity()">Buy All CALLs in View</button>
         </div>
+      </div>
+      <!-- P&L Today -->
+      <div class="sb-section">
+        <div class="sb-header"><span>P&amp;L TODAY</span><span class="muted" id="pnl-date"></span></div>
+        <div class="sb-body" id="pnl-feed"><div class="muted">Loading...</div></div>
       </div>
       <!-- Rules -->
       <div class="sb-section">
@@ -326,7 +336,7 @@ async function init() {
 }
 
 async function loadAll() {
-  const [options, summary, alerts, overrides, opps, oRules, cRules] = await Promise.all([
+  const [options, summary, alerts, overrides, opps, oRules, cRules, dailySummary, pnlToday] = await Promise.all([
     fetchJSON(`${API}/options?limit=500&profile=lite`),
     fetchJSON(`${API}/macro/summary`).catch(() => null),
     fetchJSON(`${API}/streaming-alerts?limit=10`).catch(() => ({alerts:[]})),
@@ -334,6 +344,8 @@ async function loadAll() {
     fetchJSON(`${API}/opportunity/queue`).catch(() => ({pending:[]})),
     fetchJSON(`${API}/override/rules`).catch(() => ({rules:[]})),
     fetchJSON(`${API}/opportunity/rules`).catch(() => ({rules:[]})),
+    fetchJSON(`${API}/trading/daily-summary`).catch(() => null),
+    fetchJSON(`${API}/trading/pnl-today`).catch(() => null),
   ]);
   if (options && options.rows) {
     S.options = options.rows;
@@ -348,6 +360,8 @@ async function loadAll() {
   renderOverrideQueue(overrides);
   renderOppQueue(opps);
   renderRules(oRules, cRules);
+  if (dailySummary) renderTransitions(dailySummary);
+  if (pnlToday) renderPnl(pnlToday);
 }
 
 async function loadFullProfileInBackground() {
@@ -1029,6 +1043,63 @@ function renderRules(oRules, cRules) {
   `).join('') || '<div class="muted">No rules configured</div>';
 }
 
+// ===== SIDEBAR: SIGNAL TRANSITIONS =====
+function renderTransitions(data) {
+  const feed = document.getElementById('transitions-feed');
+  const transitions = data?.signal_transitions || [];
+  const count = data?.transition_count || transitions.length;
+  document.getElementById('transition-count').textContent = count;
+  if (!count) {
+    feed.innerHTML = '<div class="muted">No transitions yet</div>';
+    return;
+  }
+  feed.innerHTML = transitions.slice(0, 8).map(t => {
+    const fromCls = t.from === 'CALL' ? 'up' : t.from === 'PUT' ? 'down' : 'flat';
+    const toCls = t.to === 'CALL' ? 'up' : t.to === 'PUT' ? 'down' : 'flat';
+    return `
+    <div style="padding:3px 0;border-bottom:1px solid #111827;cursor:pointer;" onclick="selectRow(${t.detail_id})">
+      <div class="bright" style="font-size:10px;">${t.hotel}</div>
+      <div style="font-size:9px;">
+        <span class="${fromCls}">${t.from}</span>
+        <span class="muted"> → </span>
+        <span class="${toCls}">${t.to}</span>
+        <span class="muted"> • $${t.price}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== SIDEBAR: P&L TODAY =====
+function renderPnl(data) {
+  const feed = document.getElementById('pnl-feed');
+  const dateEl = document.getElementById('pnl-date');
+  if (!data || data.error) {
+    feed.innerHTML = '<div class="muted">Unavailable</div>';
+    return;
+  }
+  dateEl.textContent = data.date || '';
+  const ovr = data.overrides_executed || 0;
+  const ovrDisc = data.overrides_total_discount || 0;
+  const opp = data.opportunities_submitted || 0;
+  const oppProfit = data.opportunities_total_profit_expected || 0;
+  const filled = data.opportunities_filled || 0;
+  feed.innerHTML = `
+    <div style="padding:3px 0;border-bottom:1px solid #111827;">
+      <div class="muted" style="font-size:9px;">PUT OVERRIDES</div>
+      <div class="bright" style="font-size:11px;">${ovr} <span class="down">-$${ovrDisc.toFixed(2)}</span></div>
+    </div>
+    <div style="padding:3px 0;border-bottom:1px solid #111827;">
+      <div class="muted" style="font-size:9px;">CALL OPPORTUNITIES</div>
+      <div class="bright" style="font-size:11px;">${opp} <span class="up">+$${oppProfit.toFixed(2)}</span></div>
+      <div class="muted" style="font-size:9px;">${filled} filled</div>
+    </div>
+    <div style="padding:3px 0;">
+      <div class="muted" style="font-size:9px;">NET</div>
+      <div style="font-size:10px;">${data.net_position || 'No activity'}</div>
+    </div>
+  `;
+}
+
 // ===== EXECUTION ACTIONS =====
 async function queueOverride() {
   if (!S.selectedId) return;
@@ -1155,12 +1226,16 @@ function initResizeHandle() {
 function startAutoRefresh() {
   S.refreshTimer = setInterval(async () => {
     try {
-      const [options, summary] = await Promise.all([
+      const [options, summary, dailySummary, pnlToday] = await Promise.all([
         fetchJSON(`${API}/options?limit=500&profile=lite`),
         fetchJSON(`${API}/macro/summary`).catch(() => null),
+        fetchJSON(`${API}/trading/daily-summary`).catch(() => null),
+        fetchJSON(`${API}/trading/pnl-today`).catch(() => null),
       ]);
       if (options?.rows) { S.options = options.rows; applyFilters(); }
       if (summary) renderHeaderStats(summary);
+      if (dailySummary) renderTransitions(dailySummary);
+      if (pnlToday) renderPnl(pnlToday);
     } catch (e) { console.error('Refresh error:', e); }
   }, 60000);
   S.alertsTimer = setInterval(async () => {
