@@ -1,104 +1,146 @@
 # Browser Price Check — Skill Definition
 
 ## Purpose
-Scan Innstant B2B portal via browser automation (Playwright MCP) to capture live hotel pricing, then compare against our API/DB prices to find discrepancies.
+Scan Innstant B2B to verify **Knowaa_Global_zenith** competitive position:
+1. Are we listed?
+2. Are we the cheapest?
+3. Who beats us and by how much?
+
+**Schedule:** Every 8 hours | **Source of truth:** `SalesOffice.Orders` (NOT Details)
+
+## Key Principles
+- **Orders = what to scan** (hotels + dates configured for scanning)
+- **Details = API scan results** (output of the other developer's scanner)
+- **This skill = browser scan** (independent verification via Innstant B2B)
+- **Filter: Refundable only** (skip Non-Refundable offers)
+- **All room types** (Standard, Deluxe, Suite, Superior, Apartment)
+- **All boards** (RO + BB)
+- **Our provider name:** `Knowaa_Global_zenith`
+
+---
 
 ## Pipeline Steps
 
-### Step 0: Query Hotels from DB
+### Step 0: Get Active Orders from DB
+```sql
+-- Via medici-db MCP — this defines WHAT to scan and WHEN
+SELECT DISTINCT o.DestinationId AS InnstantId, h.name, h.Innstant_ZenithId AS VenueId,
+       o.DateFrom, o.DateTo
+FROM [SalesOffice.Orders] o
+JOIN Med_Hotels h ON h.InnstantId = o.DestinationId
+WHERE h.isActive = 1 AND h.Innstant_ZenithId >= 5000 AND o.IsActive = 1
+ORDER BY h.name
 ```
-Use medici-db MCP to get active hotels:
-SELECT h.Id, h.Name, h.Innstant_ZenithId, o.HotelId AS InnstantHotelId
-FROM Med_Hotels h
-JOIN SalesOffice.Orders o ON o.VenueId = h.Id
-WHERE h.isActive = 1
-GROUP BY h.Id, h.Name, h.Innstant_ZenithId, o.HotelId
-```
+This returns ~55 Miami hotels with their scan dates (currently Apr 20-21, 2026).
 
 ### Step 1: Navigate to Innstant B2B
-1. `browser_navigate` → https://b2b.innstant.travel
-2. Login: account=`amit`, user=`amit`, password=`Knowaa2024!`
-3. Set search: Miami, check-in = tomorrow+30d, check-out = +2 nights, 2 adults
+- Already logged in as `amit (Knowaa)` — session persists
+- If not logged in: account=`amit`, user=`amit`, password=`Knowaa2024!`
 
 ### Step 2: Scan Each Hotel
-For each hotel from Step 0:
-1. Search by hotel name or Innstant HotelId
-2. `browser_snapshot` → capture room offers
-3. Extract: room category, board (RO/BB), price, provider, currency
-4. Record timestamp
+For each hotel from Step 0, navigate to hotel detail page:
+```
+URL: https://b2b.innstant.travel/hotel/{slug}-{InnstantId}?service=hotels&searchQuery=hotel-{InnstantId}&startDate={DateFrom}&endDate={DateTo}&account-country=US&onRequest=0&payAtTheHotel=1&adults=2&children=
+```
 
-### Step 3: Save Results
-Save to `scan-reports/` as:
-- `scan-reports/YYYY-MM-DD_HH-MM.json` — structured data
-- `scan-reports/YYYY-MM-DD_HH-MM.md` — human-readable markdown
+Wait for `.search-result-item` selector (15s timeout), then extract:
 
-JSON structure:
+```javascript
+// CSS selectors:
+// .search-result-item         = hotel card (contains category)
+// .search-result-item-sub-section = individual room offer
+// .provider-label             = supplier name (span)
+// h4                          = price
+// Skip if text contains "non-refundable" (case insensitive)
+// Board: BB if text contains "BB" or "breakfast", else RO
+// Category: first line of .small-4/.medium-3 text
+```
+
+### Step 3: Classify Results
+For each hotel, determine:
+- `knowaaPresent`: boolean — does Knowaa_Global_zenith appear?
+- `knowaaIsCheapest`: boolean — is our price <= all others?
+- `knowaaRank`: integer — position among all offers sorted by price
+- `cheapestByProvider`: object — lowest price per provider
+- `categories`: which room types available
+- `boards`: which meal plans available
+
+### Step 4: Save Report
+Save to `scan-reports/YYYY-MM-DD_HH-MM_full_scan.md` with tables:
+- **Section A:** Hotels where Knowaa is #1 (cheapest)
+- **Section B:** Hotels where Knowaa is #2
+- **Section C:** Hotels where Knowaa is #3+
+- **Section D:** Hotels where Knowaa is NOT listed (others have offers)
+- **Section E:** Hotels with NO refundable offers at all
+
+### Step 5: Write JSON to scan-reports/
 ```json
 {
-  "scanDate": "2026-03-30",
-  "scanTime": "14:30:00",
-  "searchDates": { "checkIn": "2026-05-01", "checkOut": "2026-05-03" },
+  "scanDate": "2026-03-31",
+  "scanTime": "07:20:00",
+  "ordersDateFrom": "2026-04-20",
+  "ordersDateTo": "2026-04-21",
   "source": "innstant_b2b_browser",
-  "hotels": [
+  "totalHotelsInOrders": 55,
+  "results": [
     {
-      "hotelId": 6805,
-      "venueId": 5080,
-      "name": "Pullman Miami Airport",
-      "offers": [
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 145.00,
-          "currency": "USD",
-          "provider": "Knowaa_Global_zenith",
-          "nights": 2
-        }
-      ]
+      "hotelId": 66737,
+      "venueId": 5113,
+      "name": "Cavalier Hotel",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": false,
+      "knowaaRank": 3,
+      "knowaaPrice": 200.00,
+      "cheapestPrice": 197.93,
+      "cheapestProvider": "InnstantTravel",
+      "categories": ["Standard", "Deluxe"],
+      "boards": ["RO"],
+      "providers": ["InnstantTravel", "Knowaa_Global_zenith", "goglobal"]
     }
   ]
 }
 ```
 
-### Step 4: Write to DB
-Run `python3 scripts/browser_to_db.py scan-reports/YYYY-MM-DD_HH-MM.json`
+### Step 6: Optional — Write to DB
+```bash
+python3 scripts/browser_to_db.py scan-reports/YYYY-MM-DD_HH-MM.json
+```
 
-This writes each offer to `SalesOffice.BrowserScanResults`:
-| Column | Type | Description |
-|--------|------|-------------|
-| Id | int (identity) | Auto PK |
-| ScanDate | datetime | When scan was performed |
-| CheckInDate | date | Search check-in date |
-| CheckOutDate | date | Search check-out date |
-| VenueId | int | Noovy venue ID |
-| HotelId | int | Innstant hotel ID |
-| HotelName | nvarchar(200) | Hotel name |
-| Category | nvarchar(100) | Room category (Standard, Deluxe, etc.) |
-| Board | nvarchar(50) | Meal plan (RO, BB) |
-| Price | decimal(10,2) | Total price |
-| PricePerNight | decimal(10,2) | Price / nights |
-| Currency | nvarchar(10) | Currency code |
-| Provider | nvarchar(100) | OTA/supplier name |
-| Nights | int | Number of nights |
+---
 
-### Step 5: Compare API vs Browser
-Run `python3 scripts/compare_api_vs_browser.py`
+## Schedule: Every 8 Hours
+- Runs at 00:00, 08:00, 16:00 UTC
+- Uses dates from current SalesOffice.Orders
+- Batches: 3 × ~19 hotels (to avoid browser timeout)
+- ~17 seconds per hotel = ~16 minutes total scan time
 
-Compares latest browser scan against:
-- SalesOffice.Details (our current API prices)
-- Forward curve predictions
-- Outputs discrepancy report
-
-### Step 6: Verify
-```sql
-SELECT TOP 10 * FROM SalesOffice.BrowserScanResults ORDER BY ScanDate DESC
+## Batch Execution
+Split 55 hotels into 3 batches using `browser_run_code`:
+```javascript
+async (page) => {
+  for (const hotel of batch) {
+    await page.goto(hotelUrl);
+    await page.waitForSelector('.search-result-item', {timeout: 15000});
+    await page.waitForTimeout(2000);
+    const data = await page.evaluate(extractFunction);
+    results.push(data);
+  }
+  return results;
+}
 ```
 
 ## Credentials
-- Innstant B2B: account=`amit`, user=`amit`, password=`Knowaa2024!`
-- DB: Uses `prediction_reader` credentials from MEDICI_DB_URL
+| System | Account | User | Password |
+|--------|---------|------|----------|
+| Innstant B2B | amit | amit | Knowaa2024! |
+| medici-db | — | prediction_reader | (in MEDICI_DB_URL) |
 
-## When to Use
-- Daily price verification
-- Before/after Zenith push cycles
-- When investigating price discrepancies
-- Validating Innstant static data sync
+## Benchmarks (from 2026-03-31 scan)
+| Metric | Value |
+|--------|-------|
+| Hotels in Orders | 55 |
+| Knowaa appears | 16 (29%) |
+| Knowaa #1 | 7 (13%) |
+| Knowaa #2 | 6 (11%) |
+| Not listed | 24 (44%) |
+| No refundable offers | 15 (27%) |
