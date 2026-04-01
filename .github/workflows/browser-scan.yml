@@ -1,0 +1,74 @@
+name: Browser Price Check Scan
+
+on:
+  schedule:
+    # Every 8 hours: 00:00, 08:00, 16:00 UTC
+    - cron: '0 */8 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no DB write, no git push)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run browser scan
+        env:
+          INNSTANT_USER: ${{ secrets.INNSTANT_USER }}
+          INNSTANT_PASS: ${{ secrets.INNSTANT_PASS }}
+          INNSTANT_ACCOUNT: ${{ secrets.INNSTANT_ACCOUNT }}
+          SOURCE_DB_SERVER: ${{ secrets.SOURCE_DB_SERVER }}
+          SOURCE_DB_NAME: ${{ secrets.SOURCE_DB_NAME }}
+          SOURCE_DB_USER: ${{ secrets.SOURCE_DB_USER }}
+          SOURCE_DB_PASS: ${{ secrets.SOURCE_DB_PASS }}
+          SCAN_DB_SERVER: ${{ secrets.SCAN_DB_SERVER }}
+          SCAN_DB_NAME: ${{ secrets.SCAN_DB_NAME }}
+          SCAN_DB_USER: ${{ secrets.SCAN_DB_USER }}
+          SCAN_DB_PASS: ${{ secrets.SCAN_DB_PASS }}
+        run: |
+          FLAGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            FLAGS="--dry-run"
+          fi
+          # Git push handled separately in CI (see next step)
+          node scripts/browser_scan.js --no-push $FLAGS
+
+      - name: Commit and push reports
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scan-reports/ shared-reports/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: automated browser-price-check scan $(date -u +%Y-%m-%d)
+
+          Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            git push
+          fi

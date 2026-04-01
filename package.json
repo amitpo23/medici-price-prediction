@@ -12,6 +12,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
+    "scan": "node scripts/browser_scan.js",
+    "scan:dry": "node scripts/browser_scan.js --dry-run",
+    "scan:no-db": "node scripts/browser_scan.js --no-db",
     "agent-browser:install": "agent-browser install",
     "noovy:ab:auth-probe": "node scripts/noovy_agent_browser_auth_probe.js"
   },
@@ -27,6 +30,10 @@
     "url": "https://github.com/amitpo23/medici-price-prediction/issues"
   },
   "homepage": "https://github.com/amitpo23/medici-price-prediction#readme",
+  "dependencies": {
+    "mssql": "^11.0.1",
+    "playwright": "^1.52.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "agent-browser": "^0.20.8"
