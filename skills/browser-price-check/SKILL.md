@@ -120,11 +120,14 @@ python3 scripts/browser_to_db.py scan-reports/YYYY-MM-DD_HH-MM.json
 
 ---
 
-## Schedule: Every 8 Hours
-- Runs at 00:00, 08:00, 16:00 UTC
+## Schedule: Every 8 Hours (Local)
+- Runs via local CronCreate (durable) — requires active Claude session
+- Triggers at :17 past every 8h (local timezone)
 - Uses dates from current SalesOffice.Orders
+- Requires: Playwright MCP (browser) + medici-db MCP — only works locally
 - Batches: 3 × ~19 hotels (to avoid browser timeout)
 - ~17 seconds per hotel = ~16 minutes total scan time
+- Auto-expires after 7 days — re-create with CronCreate on new session
 
 ## Batch Execution
 Split 55 hotels into 3 batches using `browser_run_code`:
