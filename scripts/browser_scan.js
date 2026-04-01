@@ -96,7 +96,7 @@ async function fetchHotelsFromDb() {
             h.Innstant_ZenithId AS VenueId,
             o.DateFrom,
             o.DateTo
-        FROM [SalesOffice].[Orders] o
+        FROM [dbo].[SalesOffice.Orders] o
         JOIN Med_Hotels h ON h.InnstantId = o.DestinationId
         WHERE h.isActive = 1
           AND h.Innstant_ZenithId >= 5000
@@ -181,20 +181,52 @@ const EXTRACT_FN = () => {
 };
 
 async function loginIfNeeded(page) {
-    await page.goto(INNSTANT.baseUrl);
-    await page.waitForTimeout(2000);
-    const url = page.url();
-    if (url.includes('/login') || url.includes('/auth')) {
-        log('Logging in to Innstant B2B...');
-        await page.fill('input[name="account"], #account', INNSTANT.account);
-        await page.fill('input[name="username"], #username', INNSTANT.user);
-        await page.fill('input[name="password"], #password', INNSTANT.pass);
-        await page.click('button[type="submit"], .login-btn, #login-btn');
-        await page.waitForTimeout(3000);
-        log('Login complete');
-    } else {
-        log('Already logged in');
+    // Strategy 1: Load saved cookies from .innstant-cookies.json
+    const cookiePath = path.join(PROJECT_ROOT, '.innstant-cookies.json');
+    if (fs.existsSync(cookiePath)) {
+        log('Loading saved cookies...');
+        const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
+        await page.context().addCookies(cookies);
     }
+
+    // Check if cookies work
+    await page.goto(INNSTANT.baseUrl);
+    await page.waitForTimeout(3000);
+    const url = page.url();
+    if (!url.includes('/login') && !url.includes('/agent/login')) {
+        log('Authenticated via saved cookies');
+        return;
+    }
+
+    // Strategy 2: Try login with credentials
+    log('Cookies expired — logging in with credentials...');
+    await page.fill('input[name="AccountName"]', INNSTANT.account);
+    await page.fill('input[name="Username"]', INNSTANT.user);
+    await page.click('input[name="Password"]');
+    await page.waitForTimeout(500);
+    await page.evaluate(() => {
+        const el = document.querySelector('input[name="Password"]');
+        if (el) el.removeAttribute('readonly');
+    });
+    await page.fill('input[name="Password"]', INNSTANT.pass);
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(5000);
+
+    const postUrl = page.url();
+    if (postUrl.includes('/login')) {
+        throw new Error(
+            'Login failed. Update cookies by running in Playwright MCP:\n' +
+            '  1. Navigate to b2b.innstant.travel (already logged in)\n' +
+            '  2. Extract cookies with browser_run_code\n' +
+            '  3. Save to .innstant-cookies.json'
+        );
+    }
+
+    // Save fresh cookies for next run
+    const freshCookies = await page.context().cookies();
+    const innstantCookies = freshCookies.filter(c => c.domain.includes('innstant'));
+    fs.writeFileSync(cookiePath, JSON.stringify(innstantCookies, null, 2));
+    log('Logged in and saved fresh cookies');
 }
 
 async function scanHotel(page, hotel) {
@@ -387,9 +419,9 @@ async function writeToDb(jsonReport) {
 
     // Ensure table exists
     await pool.request().query(`
-        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'BrowserScanResults' AND schema_id = SCHEMA_ID('SalesOffice'))
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SalesOffice.BrowserScanResults' AND schema_id = SCHEMA_ID('dbo'))
         BEGIN
-            CREATE TABLE SalesOffice.BrowserScanResults (
+            CREATE TABLE [dbo].[SalesOffice.BrowserScanResults] (
                 Id INT IDENTITY(1,1) PRIMARY KEY,
                 ScanDate DATETIME NOT NULL,
                 CheckInDate DATE NOT NULL,
@@ -408,8 +440,8 @@ async function writeToDb(jsonReport) {
                 Nights INT NULL,
                 CreatedAt DATETIME DEFAULT GETDATE()
             );
-            CREATE INDEX IX_BrowserScanResults_ScanDate ON SalesOffice.BrowserScanResults(ScanDate);
-            CREATE INDEX IX_BrowserScanResults_VenueId ON SalesOffice.BrowserScanResults(VenueId);
+            CREATE INDEX IX_BrowserScanResults_ScanDate ON [dbo].[SalesOffice.BrowserScanResults](ScanDate);
+            CREATE INDEX IX_BrowserScanResults_VenueId ON [dbo].[SalesOffice.BrowserScanResults](VenueId);
         END
     `);
 
@@ -438,7 +470,7 @@ async function writeToDb(jsonReport) {
                     .input('rank', sql.Int, hotel.knowaaRank)
                     .input('nights', sql.Int, 1)
                     .query(`
-                        INSERT INTO SalesOffice.BrowserScanResults
+                        INSERT INTO [dbo].[SalesOffice.BrowserScanResults]
                             (ScanDate, CheckInDate, CheckOutDate, VenueId, HotelId, HotelName,
                              Category, Board, Price, PricePerNight, Currency, Provider,
                              IsKnowaa, KnowaaRank, Nights)
