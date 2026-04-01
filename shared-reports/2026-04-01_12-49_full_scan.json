@@ -1,6 +1,6 @@
 {
   "scanDate": "2026-04-01",
-  "scanTime": "12:49:22",
+  "scanTime": "12:49:29",
   "searchDates": {
     "checkIn": "2026-04-20",
     "checkOut": "2026-04-21"
@@ -9,9 +9,9 @@
   "totalHotelsScanned": 55,
   "summary": {
     "knowaaAppears": 15,
-    "knowaaFirst": 4,
-    "notListed": 26,
-    "noOffers": 14
+    "knowaaFirst": 3,
+    "notListed": 25,
+    "noOffers": 15
   },
   "hotels": [
     {
@@ -2869,13 +2869,13 @@
           "provider": "goglobal"
         },
         {
-          "category": "Deluxe",
+          "category": "Standard",
           "board": "RO",
           "price": 166.66,
           "provider": "goglobal"
         },
         {
-          "category": "Standard",
+          "category": "Deluxe",
           "board": "RO",
           "price": 166.66,
           "provider": "goglobal"
@@ -2959,12 +2959,6 @@
           "provider": "goglobal"
         },
         {
-          "category": "Standard",
-          "board": "RO",
-          "price": 170.13,
-          "provider": "goglobal"
-        },
-        {
           "category": "Deluxe",
           "board": "RO",
           "price": 170.13,
@@ -2979,7 +2973,31 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 171.04,
+          "price": 170.13,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.55,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.55,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.83,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.83,
           "provider": "InnstantTravel"
         },
         {
@@ -2987,24 +3005,6 @@
           "board": "RO",
           "price": 171.04,
           "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "RO",
-          "price": 171.29,
-          "provider": "goglobal"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 171.29,
-          "provider": "goglobal"
-        },
-        {
-          "category": "Deluxe",
-          "board": "RO",
-          "price": 171.29,
-          "provider": "goglobal"
         }
       ]
     },
@@ -4311,174 +4311,16 @@
       "hotelId": 846428,
       "venueId": 5116,
       "name": "Kimpton Hotel Palomar South Beach",
-      "knowaaPresent": true,
-      "knowaaIsCheapest": true,
-      "knowaaRank": 1,
-      "knowaaPrice": 178.75,
-      "cheapestPrice": 178.75,
-      "cheapestProvider": "Knowaa_Global_zenith",
-      "categories": [
-        "Standard"
-      ],
-      "boards": [
-        "RO"
-      ],
-      "providers": [
-        "Knowaa_Global_zenith",
-        "InnstantTravel"
-      ],
-      "offers": [
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 178.75,
-          "provider": "Knowaa_Global_zenith"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 187.83,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 187.99,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 189.48,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 190.59,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 190.59,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 190.94,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 191.89,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 193.03,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 194.71,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 194.71,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 196.29,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 197.52,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 197.97,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 197.97,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 198.57,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 199.15,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 199.15,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 200.68,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 200.9,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 200.9,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 201.2,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 203.38,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 203.65,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 206.08,
-          "provider": "InnstantTravel"
-        }
-      ]
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
     },
     {
       "hotelId": 6661,
@@ -4702,7 +4544,8 @@
       ],
       "providers": [
         "Knowaa_Global_zenith",
-        "InnstantTravel"
+        "InnstantTravel",
+        "goglobal"
       ],
       "offers": [
         {
@@ -4792,6 +4635,18 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 207.17,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 207.17,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 209.15,
           "provider": "InnstantTravel"
         },
@@ -4828,6 +4683,12 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 211.8,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 211.98,
           "provider": "InnstantTravel"
         },
@@ -4852,7 +4713,7 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 215.07,
+          "price": 214.69,
           "provider": "InnstantTravel"
         },
         {
@@ -4864,19 +4725,7 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 215.12,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 217.7,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 217.7,
+          "price": 215.07,
           "provider": "InnstantTravel"
         }
       ]
@@ -5637,10 +5486,25 @@
       "knowaaIsCheapest": false,
       "knowaaRank": null,
       "knowaaPrice": null,
-      "cheapestPrice": 185.85,
-      "cheapestProvider": "InnstantTravel",
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 193899,
+      "venueId": 5075,
+      "name": "The Villa Casa Casuarina",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": false,
+      "knowaaRank": 3,
+      "knowaaPrice": 1561.29,
+      "cheapestPrice": 1487.21,
+      "cheapestProvider": "goglobal",
       "categories": [
-        "Deluxe",
+        "Suite",
         "Standard"
       ],
       "boards": [
@@ -5648,80 +5512,114 @@
         "RO"
       ],
       "providers": [
-        "InnstantTravel",
-        "goglobal"
+        "goglobal",
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
       ],
       "offers": [
         {
-          "category": "Deluxe",
+          "category": "Suite",
           "board": "BB",
-          "price": 185.85,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "BB",
-          "price": 187.4,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "BB",
-          "price": 187.4,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 187.79,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "BB",
-          "price": 190.96,
+          "price": 1487.21,
           "provider": "goglobal"
         },
         {
           "category": "Standard",
           "board": "BB",
-          "price": 191.1,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 192.03,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 192.12,
+          "price": 1561.28,
           "provider": "goglobal"
         },
         {
           "category": "Standard",
           "board": "RO",
-          "price": 193.87,
+          "price": 1561.29,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 1620.6,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 1642.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 1654.97,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 1683.52,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 1869.14,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 1880.14,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 1923.91,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 1949.3,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 1967.31,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 1993.55,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 2124.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 2314.97,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 5000,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 5300,
           "provider": "InnstantTravel"
         }
       ]
-    },
-    {
-      "hotelId": 193899,
-      "venueId": 5075,
-      "name": "The Villa Casa Casuarina",
-      "knowaaPresent": false,
-      "knowaaIsCheapest": false,
-      "knowaaRank": null,
-      "knowaaPrice": null,
-      "cheapestPrice": null,
-      "cheapestProvider": null,
-      "categories": [],
-      "boards": [],
-      "providers": [],
-      "offers": []
     },
     {
       "hotelId": 31709,

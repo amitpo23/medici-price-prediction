@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 55 Hotels
 
-**Scan:** 2026-04-01 12:49:22 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
+**Scan:** 2026-04-01 12:49:29 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
 
 ## Summary
 
@@ -8,20 +8,19 @@
 |--------|-------|
 | Hotels scanned | 55 |
 | Knowaa appears | **15 (27%)** |
-| Knowaa #1 | **4 (7%)** |
-| Not listed | 26 (47%) |
-| No refundable offers | 14 (25%) |
+| Knowaa #1 | **3 (5%)** |
+| Not listed | 25 (45%) |
+| No refundable offers | 15 (27%) |
 
-## A. Knowaa is CHEAPEST (#1) — 4 hotels
+## A. Knowaa is CHEAPEST (#1) — 3 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | 2nd $ | 2nd Provider | Gap |
 |-------|-------|-----|-------|----------|-------|-------------|-----|
 | Cavalier Hotel | 5113 | Standard | RO | **$100.04** | $106.04 | InnstantTravel | -$6.00 |
 | Iberostar Berkeley Shore Hotel | 5092 | Standard | RO | **$219.42** | $220.54 | InnstantTravel | -$1.12 |
-| Kimpton Hotel Palomar South Beach | 5116 | Standard | RO | **$178.75** | $187.83 | InnstantTravel | -$9.08 |
 | Marseilles Hotel | 5096 | Standard | RO | **$195.02** | $195.86 | InnstantTravel | -$0.84 |
 
-## B. Knowaa Listed But Not Cheapest — 11 hotels
+## B. Knowaa Listed But Not Cheapest — 12 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | Cheapest $ | Provider | Rank | Gap |
 |-------|-------|-----|-------|----------|-----------|----------|------|-----|
@@ -36,8 +35,9 @@
 | Hotel Riu Plaza Miami Beach | 5109 | Deluxe | BB | $287.04 | $287.03 | goglobal | #2 | +$0.01 |
 | Kimpton Angler's Hotel | 5136 | Deluxe | RO | $394.67 | $373.37 | InnstantTravel | #26 | +$21.30 |
 | Loews Miami Beach Hotel | 5073 | Standard | RO | $342.38 | $342.37 | InnstantTravel | #4 | +$0.01 |
+| The Villa Casa Casuarina | 5075 | Suite | BB | $1561.29 | $1487.21 | goglobal | #3 | +$74.08 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 26 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 25 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
@@ -65,10 +65,9 @@
 | The Albion Hotel | 5117 | $103.49 | InnstantTravel | Dormitory, Standard, Deluxe, Apartment | RO |
 | The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $312.93 | InnstantTravel | Standard | BB |
 | The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | $151.52 | InnstantTravel | Standard | RO |
-| THE LANDON BAY HARBOR | 5138 | $185.85 | InnstantTravel | Deluxe, Standard | BB, RO |
 | Viajero Miami | 5111 | $117.65 | HyperGuestDirect⇄ | Deluxe | RO |
 
-## D. No Refundable Offers — 14 hotels
+## D. No Refundable Offers — 15 hotels
 
 | Hotel | Venue |
 |-------|-------|
@@ -78,6 +77,7 @@
 | Hotel Chelsea | 5064 |
 | Hotel Croydon | 5131 |
 | Hyatt Centric South Beach Miami (City View) | 5097 |
+| Kimpton Hotel Palomar South Beach | 5116 |
 | MB Hotel, Trademark Collection by Wyndham | 5105 |
 | Metropole South Beach | 5141 |
 | SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 |
@@ -85,5 +85,5 @@
 | Sole Miami, A Noble House Resort | 5104 |
 | The Catalina Hotel & Beach Club | 5277 |
 | The Grayson Hotel Miami Downtown | 5094 |
-| The Villa Casa Casuarina | 5075 |
+| THE LANDON BAY HARBOR | 5138 |
 
