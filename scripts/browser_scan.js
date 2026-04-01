@@ -58,7 +58,7 @@ const FLAGS = {
 const INNSTANT = {
     user: process.env.INNSTANT_USER || 'Amit',
     pass: process.env.INNSTANT_PASS || '',
-    account: process.env.INNSTANT_ACCOUNT || 'Knowaa',
+    account: process.env.INNSTANT_ACCOUNT || 'knowaa',
     baseUrl: 'https://b2b.innstant.travel',
 };
 

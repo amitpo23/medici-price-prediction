@@ -117,7 +117,7 @@ https://raw.githubusercontent.com/amitpo23/medici-price-prediction/main/shared-r
 | Field | Value |
 |-------|-------|
 | URL | https://b2b.innstant.travel |
-| Account | Knowaa |
+| Account | knowaa |
 | Username | Amit |
 | Password | porat10 |
 
