@@ -7,22 +7,21 @@
 | Metric | Value |
 |--------|-------|
 | Hotels scanned | 55 |
-| Knowaa appears | **14 (25%)** |
-| Knowaa #1 | **5 (9%)** |
-| Not listed | 27 (49%) |
+| Knowaa appears | **15 (27%)** |
+| Knowaa #1 | **4 (7%)** |
+| Not listed | 26 (47%) |
 | No refundable offers | 14 (25%) |
 
-## A. Knowaa is CHEAPEST (#1) — 5 hotels
+## A. Knowaa is CHEAPEST (#1) — 4 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | 2nd $ | 2nd Provider | Gap |
 |-------|-------|-----|-------|----------|-------|-------------|-----|
 | Cavalier Hotel | 5113 | Standard | RO | **$100.04** | $106.04 | InnstantTravel | -$6.00 |
-| Hilton Miami Airport | 5083 | Standard | RO | **$216.44** | $219.62 | InnstantTravel | -$3.18 |
-| Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$287.04** | $289.43 | InnstantTravel | -$2.39 |
 | Iberostar Berkeley Shore Hotel | 5092 | Standard | RO | **$219.42** | $220.54 | InnstantTravel | -$1.12 |
 | Kimpton Hotel Palomar South Beach | 5116 | Standard | RO | **$178.75** | $187.83 | InnstantTravel | -$9.08 |
+| Marseilles Hotel | 5096 | Standard | RO | **$195.02** | $195.86 | InnstantTravel | -$0.84 |
 
-## B. Knowaa Listed But Not Cheapest — 9 hotels
+## B. Knowaa Listed But Not Cheapest — 11 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | Cheapest $ | Provider | Rank | Gap |
 |-------|-------|-----|-------|----------|-----------|----------|------|-----|
@@ -33,10 +32,12 @@
 | Embassy Suites by Hilton Miami International Airport | 5081 | Suite | BB | $131.95 | $131.94 | goglobal | #4 | +$0.01 |
 | Eurostars Langford Hotel | 5098 | Deluxe | RO | $142.75 | $142.71 | InnstantTravel | #3 | +$0.04 |
 | Freehand Miami | 5107 | Superior | RO | $104.86 | $104.85 | InnstantTravel | #2 | +$0.01 |
+| Hilton Miami Airport | 5083 | Standard | RO | $216.44 | $216.43 | goglobal | #2 | +$0.01 |
+| Hotel Riu Plaza Miami Beach | 5109 | Deluxe | BB | $287.04 | $287.03 | goglobal | #2 | +$0.01 |
 | Kimpton Angler's Hotel | 5136 | Deluxe | RO | $394.67 | $373.37 | InnstantTravel | #26 | +$21.30 |
 | Loews Miami Beach Hotel | 5073 | Standard | RO | $342.38 | $342.37 | InnstantTravel | #4 | +$0.01 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 27 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 26 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
@@ -54,8 +55,7 @@
 | Hilton Cabana Miami Beach | 5115 | $163.60 | InnstantTravel | Standard, Deluxe | RO |
 | Hilton Garden Inn Miami South Beach | 5279 | $161.52 | InnstantTravel | Standard | RO |
 | HOLIDAY INN EXPRESS HOTEL & SUITES MIAMI | 5130 | $125.98 | InnstantTravel | Standard | BB |
-| Hotel Belleza | 5265 | $177.09 | InnstantTravel | Standard, Superior | RO |
-| Hotel Croydon | 5131 | $146.61 | InnstantTravel | Standard | RO |
+| Hotel Belleza | 5265 | $177.09 | InnstantTravel | Standard | RO |
 | Hôtel Gaythering | 5132 | $183.88 | InnstantTravel | Standard, Deluxe | BB |
 | InterContinental Miami | 5276 | $277.77 | goglobal | Standard | RO |
 | Miami International Airport Hotel | 5275 | $189.42 | InnstantTravel | Standard | RO |
@@ -76,8 +76,8 @@
 | FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 |
 | Hilton Miami Downtown | 5084 |
 | Hotel Chelsea | 5064 |
+| Hotel Croydon | 5131 |
 | Hyatt Centric South Beach Miami (City View) | 5097 |
-| Marseilles Hotel | 5096 |
 | MB Hotel, Trademark Collection by Wyndham | 5105 |
 | Metropole South Beach | 5141 |
 | SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 |

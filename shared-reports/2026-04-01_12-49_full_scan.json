@@ -8,9 +8,9 @@
   "source": "innstant_b2b_browser",
   "totalHotelsScanned": 55,
   "summary": {
-    "knowaaAppears": 14,
-    "knowaaFirst": 5,
-    "notListed": 27,
+    "knowaaAppears": 15,
+    "knowaaFirst": 4,
+    "notListed": 26,
     "noOffers": 14
   },
   "hotels": [
@@ -2602,7 +2602,8 @@
         "RO"
       ],
       "providers": [
-        "InnstantTravel"
+        "InnstantTravel",
+        "goglobal"
       ],
       "offers": [
         {
@@ -2626,6 +2627,12 @@
         {
           "category": "Suite",
           "board": "RO",
+          "price": 216.43,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
           "price": 218.14,
           "provider": "InnstantTravel"
         },
@@ -2644,14 +2651,20 @@
         {
           "category": "Suite",
           "board": "RO",
+          "price": 224.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
           "price": 227.06,
           "provider": "InnstantTravel"
         },
         {
           "category": "Suite",
           "board": "RO",
-          "price": 232.48,
-          "provider": "InnstantTravel"
+          "price": 230.31,
+          "provider": "goglobal"
         }
       ]
     },
@@ -2821,7 +2834,8 @@
         "RO"
       ],
       "providers": [
-        "InnstantTravel"
+        "InnstantTravel",
+        "goglobal"
       ],
       "offers": [
         {
@@ -2839,6 +2853,36 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 164.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 164.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.5,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 166.66,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 166.66,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 168.49,
           "provider": "InnstantTravel"
         },
@@ -2875,6 +2919,12 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 168.97,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 169.3,
           "provider": "InnstantTravel"
         },
@@ -2901,6 +2951,30 @@
           "board": "RO",
           "price": 169.89,
           "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.13,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.13,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 170.13,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.13,
+          "provider": "goglobal"
         },
         {
           "category": "Standard",
@@ -2915,82 +2989,22 @@
           "provider": "InnstantTravel"
         },
         {
-          "category": "Standard",
+          "category": "Deluxe",
           "board": "RO",
-          "price": 172.84,
-          "provider": "InnstantTravel"
+          "price": 171.29,
+          "provider": "goglobal"
         },
         {
           "category": "Standard",
           "board": "RO",
-          "price": 172.84,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 173.32,
-          "provider": "InnstantTravel"
+          "price": 171.29,
+          "provider": "goglobal"
         },
         {
           "category": "Deluxe",
           "board": "RO",
-          "price": 173.32,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "RO",
-          "price": 174.78,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 174.94,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 174.94,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 174.96,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 174.96,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "RO",
-          "price": 174.96,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 175.2,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "RO",
-          "price": 175.2,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 175.2,
-          "provider": "InnstantTravel"
+          "price": 171.29,
+          "provider": "goglobal"
         }
       ]
     },
@@ -3011,7 +3025,8 @@
         "RO"
       ],
       "providers": [
-        "InnstantTravel"
+        "InnstantTravel",
+        "goglobal"
       ],
       "offers": [
         {
@@ -3041,6 +3056,12 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 163.19,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 163.4,
           "provider": "InnstantTravel"
         },
@@ -3101,6 +3122,18 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 169.05,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 169.05,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 169.07,
           "provider": "InnstantTravel"
         },
@@ -3143,8 +3176,8 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 174.14,
-          "provider": "InnstantTravel"
+          "price": 171.29,
+          "provider": "goglobal"
         },
         {
           "category": "Standard",
@@ -3167,31 +3200,7 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 174.27,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 174.27,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 174.62,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 174.62,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 174.62,
+          "price": 174.14,
           "provider": "InnstantTravel"
         }
       ]
@@ -3201,11 +3210,11 @@
       "venueId": 5083,
       "name": "Hilton Miami Airport",
       "knowaaPresent": true,
-      "knowaaIsCheapest": true,
-      "knowaaRank": 1,
+      "knowaaIsCheapest": false,
+      "knowaaRank": 2,
       "knowaaPrice": 216.44,
-      "cheapestPrice": 216.44,
-      "cheapestProvider": "Knowaa_Global_zenith",
+      "cheapestPrice": 216.43,
+      "cheapestProvider": "goglobal",
       "categories": [
         "Standard"
       ],
@@ -3213,10 +3222,17 @@
         "RO"
       ],
       "providers": [
+        "goglobal",
         "Knowaa_Global_zenith",
         "InnstantTravel"
       ],
       "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 216.43,
+          "provider": "goglobal"
+        },
         {
           "category": "Standard",
           "board": "RO",
@@ -3238,6 +3254,12 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 223.37,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 225.73,
           "provider": "InnstantTravel"
         },
@@ -3246,6 +3268,12 @@
           "board": "RO",
           "price": 228.28,
           "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 229.16,
+          "provider": "goglobal"
         },
         {
           "category": "Standard",
@@ -3286,8 +3314,26 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 234.96,
-          "provider": "InnstantTravel"
+          "price": 232.63,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 232.63,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 232.63,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 232.63,
+          "provider": "goglobal"
         }
       ]
     },
@@ -3370,14 +3416,14 @@
       "cheapestPrice": 177.09,
       "cheapestProvider": "InnstantTravel",
       "categories": [
-        "Standard",
-        "Superior"
+        "Standard"
       ],
       "boards": [
         "RO"
       ],
       "providers": [
-        "InnstantTravel"
+        "InnstantTravel",
+        "goglobal"
       ],
       "offers": [
         {
@@ -3385,6 +3431,12 @@
           "board": "RO",
           "price": 177.09,
           "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 179.39,
+          "provider": "goglobal"
         },
         {
           "category": "Standard",
@@ -3402,30 +3454,6 @@
           "category": "Standard",
           "board": "RO",
           "price": 185.07,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 186.16,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Superior",
-          "board": "RO",
-          "price": 186.66,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 186.7,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 187.26,
           "provider": "InnstantTravel"
         }
       ]
@@ -3453,25 +3481,12 @@
       "knowaaIsCheapest": false,
       "knowaaRank": null,
       "knowaaPrice": null,
-      "cheapestPrice": 146.61,
-      "cheapestProvider": "InnstantTravel",
-      "categories": [
-        "Standard"
-      ],
-      "boards": [
-        "RO"
-      ],
-      "providers": [
-        "InnstantTravel"
-      ],
-      "offers": [
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 146.61,
-          "provider": "InnstantTravel"
-        }
-      ]
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
     },
     {
       "hotelId": 277280,
@@ -3550,23 +3565,30 @@
       "venueId": 5109,
       "name": "Hotel Riu Plaza Miami Beach",
       "knowaaPresent": true,
-      "knowaaIsCheapest": true,
-      "knowaaRank": 1,
+      "knowaaIsCheapest": false,
+      "knowaaRank": 2,
       "knowaaPrice": 287.04,
-      "cheapestPrice": 287.04,
-      "cheapestProvider": "Knowaa_Global_zenith",
+      "cheapestPrice": 287.03,
+      "cheapestProvider": "goglobal",
       "categories": [
         "Deluxe"
       ],
       "boards": [
-        "RO",
-        "BB"
+        "BB",
+        "RO"
       ],
       "providers": [
+        "goglobal",
         "Knowaa_Global_zenith",
         "InnstantTravel"
       ],
       "offers": [
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 287.03,
+          "provider": "goglobal"
+        },
         {
           "category": "Deluxe",
           "board": "RO",
@@ -3654,8 +3676,32 @@
         {
           "category": "Deluxe",
           "board": "BB",
+          "price": 310.17,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 310.17,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 310.17,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
           "price": 310.81,
           "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 311.33,
+          "provider": "goglobal"
         },
         {
           "category": "Deluxe",
@@ -3667,6 +3713,12 @@
           "category": "Deluxe",
           "board": "BB",
           "price": 312.07,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 312.64,
           "provider": "InnstantTravel"
         },
         {
@@ -3690,49 +3742,13 @@
         {
           "category": "Deluxe",
           "board": "BB",
-          "price": 319.46,
-          "provider": "InnstantTravel"
+          "price": 315.96,
+          "provider": "goglobal"
         },
         {
           "category": "Deluxe",
           "board": "BB",
-          "price": 319.46,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "BB",
-          "price": 320.2,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "BB",
-          "price": 320.32,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "BB",
-          "price": 323.44,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "BB",
-          "price": 323.44,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "RO",
-          "price": 323.8,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "RO",
-          "price": 323.8,
+          "price": 317.74,
           "provider": "InnstantTravel"
         }
       ]
@@ -3848,49 +3864,37 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 235.72,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 235.72,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 236.77,
           "provider": "InnstantTravel"
         },
         {
           "category": "Standard",
           "board": "RO",
-          "price": 239.8,
+          "price": 238.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 238.22,
           "provider": "InnstantTravel"
         },
         {
           "category": "Standard",
           "board": "RO",
           "price": 239.8,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 240.27,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 240.27,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 241.36,
-          "provider": "Knowaa_Global_zenith"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 242.4,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 242.4,
           "provider": "InnstantTravel"
         }
       ]
@@ -4494,7 +4498,8 @@
       ],
       "providers": [
         "InnstantTravel",
-        "Knowaa_Global_zenith"
+        "Knowaa_Global_zenith",
+        "goglobal"
       ],
       "offers": [
         {
@@ -4532,6 +4537,18 @@
           "board": "RO",
           "price": 357.27,
           "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 359.94,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 359.94,
+          "provider": "goglobal"
         },
         {
           "category": "Standard",
@@ -4644,37 +4661,25 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 371.92,
+          "price": 371.37,
           "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 371.37,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 371.51,
+          "provider": "goglobal"
         },
         {
           "category": "Standard",
           "board": "RO",
           "price": 371.92,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 375.18,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 375.18,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 377.75,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 377.75,
           "provider": "InnstantTravel"
         }
       ]
@@ -4683,16 +4688,198 @@
       "hotelId": 6663,
       "venueId": 5096,
       "name": "Marseilles Hotel",
-      "knowaaPresent": false,
-      "knowaaIsCheapest": false,
-      "knowaaRank": null,
-      "knowaaPrice": null,
-      "cheapestPrice": null,
-      "cheapestProvider": null,
-      "categories": [],
-      "boards": [],
-      "providers": [],
-      "offers": []
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 195.02,
+      "cheapestPrice": 195.02,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 195.02,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 195.86,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 195.86,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 198.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 198.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 201.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 201.53,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 205.98,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.63,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.63,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.72,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.91,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.91,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 209.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 209.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 210.42,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.01,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.01,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.98,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 212.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 212.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 212.45,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 215.07,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 215.07,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 215.12,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 217.7,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 217.7,
+          "provider": "InnstantTravel"
+        }
+      ]
     },
     {
       "hotelId": 70995,
@@ -4741,7 +4928,8 @@
         "RO"
       ],
       "providers": [
-        "InnstantTravel"
+        "InnstantTravel",
+        "goglobal"
       ],
       "offers": [
         {
@@ -4783,38 +4971,8 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 199.12,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 199.31,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 199.42,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 199.42,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 201.2,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 201.69,
-          "provider": "InnstantTravel"
+          "price": 199.07,
+          "provider": "goglobal"
         }
       ]
     },
@@ -4847,6 +5005,12 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 85.44,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 88.51,
           "provider": "InnstantTravel"
         },
@@ -4865,13 +5029,7 @@
         {
           "category": "Standard",
           "board": "RO",
-          "price": 94.19,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 96.42,
+          "price": 91.66,
           "provider": "InnstantTravel"
         }
       ]
@@ -5295,7 +5453,8 @@
         "BB"
       ],
       "providers": [
-        "InnstantTravel"
+        "InnstantTravel",
+        "goglobal"
       ],
       "offers": [
         {
@@ -5313,26 +5472,8 @@
         {
           "category": "Standard",
           "board": "BB",
-          "price": 320.69,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "BB",
-          "price": 320.69,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "BB",
-          "price": 323.97,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "BB",
-          "price": 325.71,
-          "provider": "InnstantTravel"
+          "price": 318.27,
+          "provider": "goglobal"
         }
       ]
     },
@@ -5507,7 +5648,8 @@
         "RO"
       ],
       "providers": [
-        "InnstantTravel"
+        "InnstantTravel",
+        "goglobal"
       ],
       "offers": [
         {
@@ -5537,6 +5679,12 @@
         {
           "category": "Standard",
           "board": "BB",
+          "price": 190.96,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
           "price": 191.1,
           "provider": "InnstantTravel"
         },
@@ -5549,61 +5697,13 @@
         {
           "category": "Standard",
           "board": "RO",
+          "price": 192.12,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
           "price": 193.87,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 196.31,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 196.88,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 196.88,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 196.88,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Deluxe",
-          "board": "RO",
-          "price": 197.78,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 198.41,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 200.51,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 200.51,
-          "provider": "InnstantTravel"
-        },
-        {
-          "category": "Standard",
-          "board": "RO",
-          "price": 200.55,
           "provider": "InnstantTravel"
         }
       ]
