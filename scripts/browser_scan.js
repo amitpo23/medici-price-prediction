@@ -250,38 +250,69 @@ async function scanHotel(page, hotel) {
     return { id: hotel.InnstantId, v: hotel.VenueId, hotel: hotel.name, ...data };
 }
 
-async function scanAllHotels(hotels) {
-    log(`Launching browser to scan ${hotels.length} hotels...`);
+const MAX_RETRIES = 3;
+
+async function launchBrowser() {
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
         userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
         viewport: { width: 1280, height: 800 },
     });
     const page = await context.newPage();
-
     await loginIfNeeded(page);
+    return { browser, context, page };
+}
+
+async function scanAllHotels(hotels) {
+    log(`Launching browser to scan ${hotels.length} hotels...`);
+    let { browser, context, page } = await launchBrowser();
 
     const results = [];
-    const batches = [];
-    for (let i = 0; i < hotels.length; i += BATCH_SIZE) {
-        batches.push(hotels.slice(i, i + BATCH_SIZE));
-    }
+    let i = 0;
 
-    for (let b = 0; b < batches.length; b++) {
-        const batch = batches[b];
-        log(`Batch ${b + 1}/${batches.length} — ${batch.length} hotels`);
-        for (const hotel of batch) {
-            const result = await scanHotel(page, hotel);
-            results.push(result);
-            const status = result.knowaa
-                ? (result.is1st ? '#1' : `#${result.rank}`)
-                : (result.total > 0 ? 'NOT LISTED' : 'NO OFFERS');
-            log(`  ${hotel.name}: ${status} (${result.total} offers)`);
+    while (i < hotels.length) {
+        const hotel = hotels[i];
+        let retries = 0;
+        let scanned = false;
+
+        while (retries < MAX_RETRIES && !scanned) {
+            try {
+                const result = await scanHotel(page, hotel);
+                results.push(result);
+                const status = result.knowaa
+                    ? (result.is1st ? '#1' : `#${result.rank}`)
+                    : (result.total > 0 ? 'NOT LISTED' : 'NO OFFERS');
+                log(`  ${hotel.name}: ${status} (${result.total} offers)`);
+                scanned = true;
+            } catch (err) {
+                retries++;
+                log(`  ERROR scanning ${hotel.name} (attempt ${retries}/${MAX_RETRIES}): ${err.message}`);
+                if (retries < MAX_RETRIES) {
+                    log('  Relaunching browser...');
+                    try { await browser.close(); } catch { /* already closed */ }
+                    ({ browser, context, page } = await launchBrowser());
+                }
+            }
+        }
+
+        if (!scanned) {
+            log(`  SKIPPING ${hotel.name} after ${MAX_RETRIES} failed attempts`);
+            results.push({
+                id: hotel.InnstantId, v: hotel.VenueId, hotel: hotel.name,
+                total: 0, knowaa: false, kCnt: 0, cheap: null, kCheap: null,
+                is1st: false, rank: null, provs: [], cats: [], boards: [],
+                kOffers: [], byProv: {}, allOffers: [], error: 'scan_failed',
+            });
+        }
+
+        i++;
+        if (i % BATCH_SIZE === 0 && i < hotels.length) {
+            log(`Batch ${Math.floor(i / BATCH_SIZE)}/${Math.ceil(hotels.length / BATCH_SIZE)} complete`);
         }
     }
 
-    await browser.close();
-    log(`Scan complete. ${results.length} hotels processed.`);
+    try { await browser.close(); } catch { /* already closed */ }
+    log(`Scan complete. ${results.length} hotels processed (${results.filter(r => r.error).length} failed).`);
     return results;
 }
 
