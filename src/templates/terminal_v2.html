@@ -1267,7 +1267,10 @@ function renderPortfolio(data) {
       <td class="bright">${r.hotel_name}</td>
       <td class="muted">${r.checkin} <span class="muted">(${r.days_to_checkin}d)</span></td>
       <td style="text-align:right;" class="muted">$${r.buy_price.toFixed(0)}</td>
-      <td style="text-align:right;" class="bright">$${r.push_price.toFixed(0)}</td>
+      <td style="text-align:right;" class="bright">
+        $${r.push_price.toFixed(0)}
+        <span style="cursor:pointer;margin-left:4px;opacity:0.6;" onclick="adjustPushPrice(${r.book_id}, ${r.push_price}, '${r.hotel_name}', ${r.buy_price})" title="Change sell price">✏️</span>
+      </td>
       <td style="text-align:right;" class="accent">$${r.current_market_price.toFixed(0)}</td>
       <td style="text-align:right;" class="${pnlCls}">${pnlSign}$${r.unrealized_pnl.toFixed(0)}</td>
       <td style="text-align:right;" class="${pnlCls}">${pnlSign}${r.pnl_pct.toFixed(1)}%</td>
@@ -1295,6 +1298,34 @@ async function toggleMyRooms() {
     }
   }
   applyFilters();
+}
+
+async function adjustPushPrice(bookId, currentPush, hotelName, buyPrice) {
+  const newPrice = prompt(
+    `${hotelName}\nBuy: $${buyPrice.toFixed(0)} | Current push: $${currentPush.toFixed(0)}\n\nEnter new sell price (must be > $${buyPrice.toFixed(0)}):`,
+    currentPush.toFixed(0)
+  );
+  if (!newPrice) return;
+  const price = parseFloat(newPrice);
+  if (isNaN(price) || price <= buyPrice) {
+    showToast(`Price must be > $${buyPrice.toFixed(0)}`);
+    return;
+  }
+  try {
+    const resp = await fetch(`${API}/trading/portfolio/update-push-price?book_id=${bookId}&new_push_price=${price}`, { method: 'POST' });
+    const result = await resp.json();
+    if (result.zenith_push) {
+      showToast(`✅ Push price updated to $${price} → Zenith OK`);
+    } else if (result.status === 'ok') {
+      showToast(`⚠️ DB updated but Zenith push failed: ${result.zenith_response}`);
+    } else {
+      showToast(`❌ Failed: ${result.error || result.zenith_response || 'Unknown error'}`);
+    }
+    // Refresh portfolio
+    loadPortfolio();
+  } catch (e) {
+    showToast(`❌ Error: ${e.message}`);
+  }
 }
 
 function showToast(msg) {

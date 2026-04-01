@@ -811,3 +811,133 @@ async def get_portfolio(
     calculates unrealized P&L for held rooms and realized P&L for sold rooms.
     """
     return _query_portfolio()
+
+
+# ── Update Push Price (Change sell price for active room) ─────────
+
+
+@trading_router.post("/portfolio/update-push-price")
+@limiter.limit("30/minute")
+async def update_push_price(
+    request: Request,
+    book_id: int = Query(..., description="MED_Book.Id of the active room"),
+    new_push_price: float = Query(..., ge=1, le=10000, description="New sell price to push to Zenith"),
+    _api_key: str = Depends(_optional_api_key),
+):
+    """Change the push/sell price for an active room and push to Zenith.
+
+    Flow:
+    1. Look up MED_Book record (must be IsActive=1, IsSold=0)
+    2. Find the Zenith mapping (HotelCode, InvTypeCode, RatePlanCode) from Med_Hotels_ratebycat
+    3. Update MED_Opportunities.PushPrice in Azure SQL
+    4. Push new rate to Zenith via SOAP API
+    """
+    try:
+        from src.utils.zenith_push import get_pyodbc_connection, push_rate_to_zenith
+    except ImportError as exc:
+        raise HTTPException(503, f"Zenith push module not available: {exc}")
+
+    try:
+        conn = get_pyodbc_connection()
+        cursor = conn.cursor()
+
+        # 1. Verify the room exists and is active
+        cursor.execute("""
+            SELECT b.Id, b.HotelId, b.price, b.startDate, b.endDate,
+                   h.[name] AS HotelName, h.Innstant_ZenithId
+            FROM MED_Book b
+            LEFT JOIN Med_Hotels h ON h.HotelId = b.HotelId
+            WHERE b.Id = ? AND b.IsActive = 1 AND b.IsSold = 0
+        """, book_id)
+        book_row = cursor.fetchone()
+
+        if not book_row:
+            conn.close()
+            raise HTTPException(404, f"Active room book_id={book_id} not found")
+
+        cols = [desc[0] for desc in cursor.description]
+        book = dict(zip(cols, book_row))
+        hotel_id = book["HotelId"]
+        zenith_id = str(book.get("Innstant_ZenithId", 0))
+        buy_price = float(book["price"])
+        start_date = book["startDate"].strftime("%Y-%m-%d") if hasattr(book["startDate"], "strftime") else str(book["startDate"])[:10]
+        end_date = book["endDate"].strftime("%Y-%m-%d") if hasattr(book["endDate"], "strftime") else str(book["endDate"])[:10]
+
+        # Sanity check: new price must be > buy price
+        if new_push_price <= buy_price:
+            conn.close()
+            return JSONResponse(status_code=400, content={
+                "error": f"Push price ${new_push_price} must be > buy price ${buy_price:.2f}",
+                "buy_price": buy_price,
+            })
+
+        # 2. Find Zenith mapping (InvTypeCode + RatePlanCode)
+        cursor.execute("""
+            SELECT TOP 1 r.InvTypeCode, r.RatePlanCode
+            FROM Med_Hotels_ratebycat r
+            WHERE r.HotelId = ? AND r.BoardId = 1
+            ORDER BY r.CategoryId
+        """, hotel_id)
+        mapping_row = cursor.fetchone()
+
+        if not mapping_row:
+            conn.close()
+            return JSONResponse(status_code=400, content={
+                "error": f"No Zenith mapping found for hotel {hotel_id}",
+            })
+
+        inv_type_code = mapping_row[0]
+        rate_plan_code = mapping_row[1]
+
+        # 3. Update PushPrice in MED_Opportunities
+        try:
+            cursor.execute("""
+                UPDATE [MED_ֹOֹֹpportunities]
+                SET PushPrice = ?
+                WHERE PushHotelCode = ? AND DateForm = ? AND IsActive = 1
+            """, new_push_price, int(zenith_id), book["startDate"])
+            conn.commit()
+            opp_updated = cursor.rowcount
+        except Exception as exc:
+            logger.warning("MED_Opportunities update failed (non-fatal): %s", exc)
+            opp_updated = 0
+
+        # 4. Push to Zenith
+        if zenith_id and zenith_id != "0":
+            success, response = push_rate_to_zenith(
+                hotel_code=zenith_id,
+                inv_type_code=inv_type_code,
+                rate_plan_code=rate_plan_code,
+                start=start_date,
+                end=start_date,
+                amount=new_push_price,
+                echo_token=f"push-price-{book_id}",
+            )
+        else:
+            success = False
+            response = "No Zenith ID for this hotel"
+
+        conn.close()
+
+        return {
+            "status": "ok" if success else "push_failed",
+            "book_id": book_id,
+            "hotel": book.get("HotelName", ""),
+            "buy_price": buy_price,
+            "old_push_price": None,  # Could query from MED_Opportunities
+            "new_push_price": new_push_price,
+            "margin_pct": round((new_push_price - buy_price) / buy_price * 100, 1),
+            "zenith_push": success,
+            "zenith_response": response[:200] if response else "",
+            "opp_rows_updated": opp_updated,
+            "zenith_id": zenith_id,
+            "inv_type_code": inv_type_code,
+            "rate_plan_code": rate_plan_code,
+            "date": start_date,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Update push price failed: %s", exc)
+        raise HTTPException(500, f"Failed: {str(exc)[:200]}")
