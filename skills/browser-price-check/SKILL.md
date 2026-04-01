@@ -6,7 +6,7 @@ Scan Innstant B2B to verify **Knowaa_Global_zenith** competitive position:
 2. Are we the cheapest?
 3. Who beats us and by how much?
 
-**Schedule:** Every 8 hours (GitHub Actions + local backup)
+**Schedule:** Every 8 hours via Claude Remote Trigger
 **Source of truth:** `SalesOffice.Orders` (NOT Details)
 
 ## Key Principles
@@ -18,15 +18,25 @@ Scan Innstant B2B to verify **Knowaa_Global_zenith** competitive position:
 - **All boards** (RO + BB)
 - **Our provider name:** `Knowaa_Global_zenith`
 
+## Resilience
+- **Browser crash recovery:** If browser/page closes mid-scan, auto-relaunches and retries up to 3 times per hotel
+- **Graceful skip:** After 3 failed attempts, marks hotel as `error: scan_failed` and continues to next hotel
+- **No full crash:** A single hotel failure never kills the entire 55-hotel scan
+
 ---
 
 ## How To Run
 
-### Automated (Primary — GitHub Actions)
-Runs every 8 hours via `.github/workflows/browser-scan.yml`.
-Trigger manually: GitHub → Actions → "Browser Price Check Scan" → Run workflow.
+### Automated (Primary — Remote Trigger)
+Claude Remote Trigger runs every 8 hours from the local machine.
 
-### Local (Backup)
+| Setting | Value |
+|---------|-------|
+| Trigger ID | `trig_01CAWRdQb2m57Y8MLHcb5mKg` |
+| Schedule | `0 */8 * * *` (00:00, 08:00, 16:00 UTC) |
+| Model | claude-sonnet-4-6 |
+
+### Local Script
 ```bash
 # Full scan (DB + git push)
 node scripts/browser_scan.js
@@ -37,20 +47,16 @@ node scripts/browser_scan.js --dry-run
 # Scan + push, skip DB
 node scripts/browser_scan.js --no-db
 
-# Scan + DB, skip push
-node scripts/browser_scan.js --no-push
-
 # npm shortcuts
 npm run scan
 npm run scan:dry
 npm run scan:no-db
 ```
 
-### Local crontab (every 8 hours)
+### Cross-Agent Report Access
+Other agents fetch the latest report via GitHub raw URL:
 ```bash
-crontab -e
-# Add:
-0 */8 * * * cd /Users/mymac/Desktop/coding/medici-price-prediction && node scripts/browser_scan.js >> /tmp/browser_scan.log 2>&1
+curl -s https://raw.githubusercontent.com/amitpo23/medici-price-prediction/main/shared-reports/2026-04-01_full_55_hotels_report.md
 ```
 
 ---
@@ -75,7 +81,8 @@ ORDER BY h.name
 URL pattern: `https://b2b.innstant.travel/hotel/{slug}-{InnstantId}?...`
 - Extracts via CSS selectors: `.search-result-item`, `.provider-label`, `h4` (price)
 - Skips non-refundable offers
-- Batches of 19 hotels to avoid timeout
+- ~8 seconds per hotel, ~16 minutes total for 55 hotels
+- **Crash recovery:** if browser dies mid-scan, relaunches + retries up to 3 times per hotel
 
 ### Step 3: Classify & Report
 - JSON report → `scan-reports/` + `shared-reports/`
