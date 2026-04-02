@@ -55,7 +55,7 @@ _PERSISTED_CACHE_FILES = {
 def _optional_api_key(x_api_key: str = Header(default="")) -> str:
     from src.api.middleware import verify_api_key
     if not verify_api_key(x_api_key):
-        logger.warning("Failed auth attempt with key prefix: %s...", x_api_key[:8] if x_api_key else "(empty)")
+        logger.warning("Failed API key authentication attempt")
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
     return x_api_key
 

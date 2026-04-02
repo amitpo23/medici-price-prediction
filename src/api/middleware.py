@@ -88,6 +88,15 @@ def setup_cors(app: FastAPI) -> None:
 # Setup helper — call from main.py
 # ---------------------------------------------------------------------------
 
+def warn_if_no_api_key() -> None:
+    """Log CRITICAL warning if PREDICTION_API_KEY is not configured."""
+    if not os.environ.get("PREDICTION_API_KEY", ""):
+        logger.critical(
+            "PREDICTION_API_KEY not set — API is OPEN ACCESS. "
+            "Set PREDICTION_API_KEY env var for production."
+        )
+
+
 def setup_middleware(app: FastAPI) -> None:
     """Wire up all middleware and rate limiting on the app."""
     # Rate limiter
@@ -97,11 +106,31 @@ def setup_middleware(app: FastAPI) -> None:
     # CORS
     setup_cors(app)
 
+    # Security headers
+    app.add_middleware(SecurityHeadersMiddleware)
+
     # Scheduler watchdog — restart if dead (checked every request, max once/60s)
     app.add_middleware(SchedulerWatchdogMiddleware)
 
     # Correlation ID (outermost = runs first)
     app.add_middleware(CorrelationIdMiddleware)
+
+    # Warn if no API key configured
+    warn_if_no_api_key()
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add standard security headers to all responses."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if os.environ.get("IS_PRODUCTION"):
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
 
 
 class SchedulerWatchdogMiddleware(BaseHTTPMiddleware):
