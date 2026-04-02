@@ -57,10 +57,10 @@ MAX_CONSECUTIVE_ERRORS = 5  # circuit breaker
 # Table protection: ONLY these tables can be written to
 ALLOWED_WRITE_TABLES = ["SalesOffice.PriceOverride"]
 
-# Zenith credentials
-ZENITH_URL = "https://hotel.tools/service/Medici%20new"
-ZENITH_USERNAME = "APIMedici:Medici Live"
-ZENITH_PASSWORD = "12345"
+# Zenith credentials — from environment variables, no hardcoded defaults
+ZENITH_URL = os.getenv("ZENITH_SOAP_URL", "https://hotel.tools/service/Medici%20new")
+ZENITH_USERNAME = os.getenv("ZENITH_SOAP_USERNAME")
+ZENITH_PASSWORD = os.getenv("ZENITH_SOAP_PASSWORD")
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -14,20 +14,30 @@ import requests
 logger = logging.getLogger(__name__)
 
 ZENITH_URL = os.getenv("ZENITH_SOAP_URL", "https://hotel.tools/service/Medici%20new")
-ZENITH_USERNAME = os.getenv("ZENITH_SOAP_USERNAME", "APIMedici:Medici Live")
-ZENITH_PASSWORD = os.getenv("ZENITH_SOAP_PASSWORD", "12345")
+ZENITH_USERNAME = os.getenv("ZENITH_SOAP_USERNAME")
+ZENITH_PASSWORD = os.getenv("ZENITH_SOAP_PASSWORD")
 ZENITH_TIMEOUT = 10
+
+
+def _require_zenith_creds() -> tuple[str, str]:
+    """Return (username, password) or raise if not configured."""
+    if not ZENITH_USERNAME or not ZENITH_PASSWORD:
+        raise RuntimeError(
+            "ZENITH_SOAP_USERNAME and ZENITH_SOAP_PASSWORD env vars required for Zenith push"
+        )
+    return ZENITH_USERNAME, ZENITH_PASSWORD
 
 
 def build_soap_envelope(hotel_code: str, inv_type_code: str, rate_plan_code: str,
                         start: str, end: str, amount: float, echo_token: str = "override") -> str:
     """Build OTA_HotelRateAmountNotifRQ SOAP envelope."""
+    username, password = _require_zenith_creds()
     return f'''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Header>
     <wsse:Security soap:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
       <wsse:UsernameToken>
-        <wsse:Username>{ZENITH_USERNAME}</wsse:Username>
-        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">{ZENITH_PASSWORD}</wsse:Password>
+        <wsse:Username>{username}</wsse:Username>
+        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">{password}</wsse:Password>
       </wsse:UsernameToken>
     </wsse:Security>
   </SOAP-ENV:Header>
