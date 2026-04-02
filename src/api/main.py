@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from config.settings import API_HOST, API_PORT, MODEL_PATH
@@ -30,6 +30,9 @@ app = FastAPI(
 # Middleware: correlation IDs, rate limiting, CORS
 from src.api.middleware import setup_middleware
 setup_middleware(app)
+
+# Auth dependency for endpoints in this file
+from src.api.routers._shared_state import _optional_api_key
 
 # Trading integration endpoints (no heavy deps)
 from src.api.integration import router as integration_router
@@ -210,7 +213,7 @@ _startup_time: datetime | None = None
 
 
 @app.get("/diag/price-drop-signals")
-def diag_price_drop_signals():
+def diag_price_drop_signals(_key: str = Depends(_optional_api_key)):
     """Run the SalesOffice Price Drop Intelligence skill queries and return trading signals.
 
     Based on the salesoffice-price-drop-skill analyzer.
@@ -373,7 +376,7 @@ def diag_price_drop_signals():
 
 
 @app.get("/diag/salesoffice-orders")
-def diag_salesoffice_orders():
+def diag_salesoffice_orders(_key: str = Depends(_optional_api_key)):
     """Diagnostic: show ALL SalesOffice orders grouped by hotel, including non-completed."""
     from src.data.trading_db import run_trading_query
 
@@ -598,7 +601,7 @@ async def health_dashboard():
 
 
 @app.get("/data/sources")
-async def list_data_sources():
+async def list_data_sources(_key: str = Depends(_optional_api_key)):
     """List all configured data sources and their availability."""
     if _loader is None:
         return {"sources": {}}
@@ -606,7 +609,7 @@ async def list_data_sources():
 
 
 @app.post("/predict", response_model=PredictionResponse)
-def predict(request: PredictionRequest):
+def predict(request: PredictionRequest, _key: str = Depends(_optional_api_key)):
     """Predict prices using the currently loaded model."""
     if _forecaster is None:
         raise HTTPException(status_code=503, detail="No model loaded. Train first via POST /train")
@@ -623,7 +626,7 @@ def predict(request: PredictionRequest):
 
 
 @app.post("/predict/hotel")
-def predict_hotel(request: HotelPredictionRequest):
+def predict_hotel(request: HotelPredictionRequest, _key: str = Depends(_optional_api_key)):
     """Predict price for a specific hotel profile with pricing recommendations."""
     if _forecaster is None:
         raise HTTPException(status_code=503, detail="No model loaded. Train first via POST /train")
@@ -660,7 +663,7 @@ def predict_hotel(request: HotelPredictionRequest):
 
 
 @app.post("/train", response_model=TrainResponse)
-def train(request: TrainRequest):
+def train(request: TrainRequest, _key: str = Depends(_optional_api_key)):
     """Train from Azure SQL database only."""
     global _forecaster
 
@@ -687,7 +690,7 @@ def train(request: TrainRequest):
 
 
 @app.post("/train/multi-source", response_model=TrainResponse)
-def train_multi_source(request: MultiSourceTrainRequest):
+def train_multi_source(request: MultiSourceTrainRequest, _key: str = Depends(_optional_api_key)):
     """Train using all available data sources (Azure SQL + public datasets + enrichment)."""
     global _forecaster, _occupancy_predictor, _training_data
 
@@ -737,7 +740,7 @@ def train_multi_source(request: MultiSourceTrainRequest):
 
 
 @app.post("/train/deep-models")
-def train_deep_models(hotel_id: int | None = None, lite: bool = True):
+def train_deep_models(hotel_id: int | None = None, lite: bool = True, _key: str = Depends(_optional_api_key)):
     """Train per-hotel ML models for DeepPredictor Signal 3.
 
     Loads DB sources, builds features, trains per-hotel LightGBM models.
@@ -826,7 +829,7 @@ def train_deep_models(hotel_id: int | None = None, lite: bool = True):
 
 
 @app.get("/train/deep-models/status")
-def deep_models_status():
+def deep_models_status(_key: str = Depends(_optional_api_key)):
     """Check training status and available models."""
     from config.settings import MODELS_DIR
     import json as _json
@@ -857,7 +860,7 @@ def deep_models_status():
 
 
 @app.get("/train/deep-models/test")
-def test_deep_training(hotel_id: int | None = None):
+def test_deep_training(hotel_id: int | None = None, _key: str = Depends(_optional_api_key)):
     """Fast synchronous training diagnostic — returns errors immediately.
 
     Step 1: test import
@@ -919,7 +922,7 @@ def test_deep_training(hotel_id: int | None = None):
 
 
 @app.get("/train/logs/stats")
-def prediction_log_stats():
+def prediction_log_stats(_key: str = Depends(_optional_api_key)):
     """Check structured prediction/price log stats."""
     try:
         from src.analytics.prediction_logger import get_log_stats
@@ -929,7 +932,7 @@ def prediction_log_stats():
 
 
 @app.get("/market/{city}")
-def get_market_snapshot(city: str):
+def get_market_snapshot(city: str, _key: str = Depends(_optional_api_key)):
     """Get current market pricing for a city via Google Hotels."""
     if _loader is None:
         raise HTTPException(status_code=500, detail="Loader not initialized")
@@ -947,7 +950,7 @@ def get_market_snapshot(city: str):
 
 
 @app.get("/models")
-async def list_models():
+async def list_models(_key: str = Depends(_optional_api_key)):
     available_models = []
     try:
         from src.models.forecaster import HotelPriceForecaster
@@ -965,7 +968,7 @@ async def list_models():
 # --- Analytics Endpoints ---
 
 @app.get("/analytics/overview")
-def analytics_overview():
+def analytics_overview(_key: str = Depends(_optional_api_key)):
     """Summary KPIs across all available data."""
     from src.analytics.statistics import market_overview
 
@@ -976,7 +979,7 @@ def analytics_overview():
 
 
 @app.get("/analytics/seasonality/{city}")
-def analytics_seasonality(city: str, period: int = 7):
+def analytics_seasonality(city: str, period: int = 7, _key: str = Depends(_optional_api_key)):
     """Seasonal patterns for a specific city."""
     from src.analytics.seasonality import (
         decompose_series,
@@ -1009,12 +1012,13 @@ def analytics_seasonality(city: str, period: int = 7):
 
 
 @app.get("/analytics/revpar")
-def analytics_revpar(
+def analytics_revpar_endpoint(
     city: Optional[str] = None,
     star_rating: Optional[float] = None,
     freq: str = "W",
     include_forecast: bool = False,
     forecast_days: int = 30,
+    _key: str = Depends(_optional_api_key),
 ):
     """RevPAR metrics and optional forecast."""
     from src.analytics.revenue import compute_revenue_metrics, revenue_time_series, forecast_revpar
@@ -1073,6 +1077,7 @@ def analytics_demand_curve(
     star_rating: Optional[float] = None,
     method: str = "log_linear",
     rooms_available: int = 100,
+    _key: str = Depends(_optional_api_key),
 ):
     """Demand analysis: curve, elasticity, optimal price."""
     from src.analytics.demand import (
@@ -1115,7 +1120,7 @@ def analytics_demand_curve(
 
 
 @app.get("/analytics/market-stats/{city}")
-def analytics_market_stats(city: str):
+def analytics_market_stats(city: str, _key: str = Depends(_optional_api_key)):
     """Competitive market statistics for a city."""
     from src.analytics.statistics import city_statistics
 
