@@ -1,0 +1,942 @@
+{
+  "timestamp": "2026-04-02T21:28:28.603320",
+  "total_venues": 55,
+  "total_required": 183,
+  "total_existing": 101,
+  "total_missing": 82,
+  "venues": {
+    "5064": {
+      "name": "Hotel Chelsea",
+      "required": [
+        "Stnd"
+      ],
+      "existing": [
+        "b&b",
+        "bed and breakfast",
+        "standard",
+        "standard room"
+      ],
+      "missing": []
+    },
+    "5073": {
+      "name": "Loews Miami Beach",
+      "required": [
+        "Stnd",
+        "DLX",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DLX"
+      ]
+    },
+    "5075": {
+      "name": "Villa Casa Casuarina",
+      "required": [
+        "Stnd",
+        "Suite"
+      ],
+      "existing": [
+        "standard"
+      ],
+      "missing": [
+        "Suite"
+      ]
+    },
+    "5077": {
+      "name": "SLS LUX Brickell",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "SPR"
+      ]
+    },
+    "5079": {
+      "name": "citizenM Brickell",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": [
+        "DLX",
+        "SPR",
+        "Suite"
+      ]
+    },
+    "5080": {
+      "name": "Pullman Miami Airport",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "APT",
+        "EXEC"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite",
+        "superior"
+      ],
+      "missing": [
+        "APT",
+        "EXEC"
+      ]
+    },
+    "5081": {
+      "name": "Embassy Suites",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "DRM"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DLX",
+        "SPR",
+        "DRM"
+      ]
+    },
+    "5082": {
+      "name": "DoubleTree Doral",
+      "required": [
+        "Stnd",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": []
+    },
+    "5083": {
+      "name": "Hilton Miami Airport",
+      "required": [
+        "Stnd",
+        "DLX",
+        "Suite",
+        "DRM"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DRM"
+      ]
+    },
+    "5084": {
+      "name": "Hilton Downtown",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DLX",
+        "SPR"
+      ]
+    },
+    "5089": {
+      "name": "Fairwind Hotel",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard"
+      ],
+      "missing": [
+        "SPR",
+        "Suite"
+      ]
+    },
+    "5090": {
+      "name": "Dream South Beach",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DLX",
+        "SPR"
+      ]
+    },
+    "5092": {
+      "name": "Iberostar Berkeley",
+      "required": [
+        "Stnd",
+        "SPR",
+        "APT"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": [
+        "SPR",
+        "APT"
+      ]
+    },
+    "5093": {
+      "name": "Hilton Bentley SB",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "APT"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "SPR",
+        "APT"
+      ]
+    },
+    "5094": {
+      "name": "Grayson Hotel",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite",
+        "superior"
+      ],
+      "missing": []
+    },
+    "5095": {
+      "name": "Cadet Hotel",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DLX",
+        "SPR"
+      ]
+    },
+    "5096": {
+      "name": "Marseilles Hotel",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "DRM"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DLX",
+        "SPR",
+        "DRM"
+      ]
+    },
+    "5097": {
+      "name": "Hyatt Centric SB",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard"
+      ],
+      "missing": [
+        "SPR",
+        "Suite"
+      ]
+    },
+    "5098": {
+      "name": "Eurostars Langford",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "APT",
+        "DRM",
+        "EXEC"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "SPR",
+        "APT",
+        "DRM",
+        "EXEC"
+      ]
+    },
+    "5100": {
+      "name": "Crystal Beach Suites",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "suite"
+      ],
+      "missing": [
+        "Stnd",
+        "DLX",
+        "SPR"
+      ]
+    },
+    "5101": {
+      "name": "Atwell Suites Brickell",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DLX",
+        "SPR"
+      ]
+    },
+    "5102": {
+      "name": "Notebook Miami Beach",
+      "required": [
+        "Stnd"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": []
+    },
+    "5103": {
+      "name": "Savoy Hotel",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "deluxe",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "SPR"
+      ]
+    },
+    "5104": {
+      "name": "Sole Miami",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "DLX",
+        "SPR"
+      ]
+    },
+    "5105": {
+      "name": "MB Hotel",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "SPR"
+      ]
+    },
+    "5106": {
+      "name": "Hampton Inn Mid Beach",
+      "required": [
+        "Stnd",
+        "DLX"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite",
+        "superior"
+      ],
+      "missing": []
+    },
+    "5107": {
+      "name": "Freehand Miami",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "DRM"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "breakfast",
+        "standard",
+        "suite",
+        "superior"
+      ],
+      "missing": [
+        "DLX",
+        "DRM"
+      ]
+    },
+    "5108": {
+      "name": "Gabriel South Beach",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "suite"
+      ],
+      "missing": [
+        "SPR"
+      ]
+    },
+    "5109": {
+      "name": "Riu Plaza Miami Beach",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard"
+      ],
+      "missing": [
+        "SPR",
+        "Suite"
+      ]
+    },
+    "5110": {
+      "name": "Breakwater South Beach",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "APT"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "breakfast",
+        "deluxe",
+        "standard",
+        "suite",
+        "superior"
+      ],
+      "missing": [
+        "APT"
+      ]
+    },
+    "5111": {
+      "name": "Viajero Miami",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard",
+        "superior"
+      ],
+      "missing": []
+    },
+    "5113": {
+      "name": "Cavalier Hotel",
+      "required": [
+        "Stnd",
+        "DLX"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "breakfast",
+        "deluxe",
+        "standard"
+      ],
+      "missing": []
+    },
+    "5115": {
+      "name": "Hilton Cabana",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "DRM"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "deluxe",
+        "deluxe",
+        "deluxe",
+        "deluxe room",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "suite",
+        "suite",
+        "suite",
+        "superior"
+      ],
+      "missing": [
+        "DRM"
+      ]
+    },
+    "5116": {
+      "name": "Kimpton Palomar",
+      "required": [
+        "Stnd"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": []
+    },
+    "5117": {
+      "name": "Albion Hotel",
+      "required": [
+        "Stnd",
+        "DLX",
+        "APT",
+        "DRM"
+      ],
+      "existing": [
+        "standard"
+      ],
+      "missing": [
+        "DLX",
+        "APT",
+        "DRM"
+      ]
+    },
+    "5119": {
+      "name": "citizenM South Beach",
+      "required": [
+        "Stnd"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": []
+    },
+    "5124": {
+      "name": "Grand Beach Hotel",
+      "required": [
+        "Stnd",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": [
+        "Suite"
+      ]
+    },
+    "5130": {
+      "name": "Holiday Inn Express",
+      "required": [
+        "Stnd",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": [
+        "Suite"
+      ]
+    },
+    "5131": {
+      "name": "Hotel Croydon",
+      "required": [
+        "Stnd",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": [
+        "Suite"
+      ]
+    },
+    "5132": {
+      "name": "Hotel Gaythering",
+      "required": [
+        "Stnd",
+        "DLX"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "standard"
+      ],
+      "missing": []
+    },
+    "5136": {
+      "name": "Kimpton Anglers",
+      "required": [
+        "Stnd",
+        "DLX",
+        "APT",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": [
+        "DLX",
+        "APT",
+        "Suite"
+      ]
+    },
+    "5138": {
+      "name": "Landon Bay Harbor",
+      "required": [
+        "Stnd",
+        "DLX"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "deluxe",
+        "deluxe",
+        "standard"
+      ],
+      "missing": []
+    },
+    "5139": {
+      "name": "SERENA Aventura",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": [
+        "DLX",
+        "SPR",
+        "Suite"
+      ]
+    },
+    "5140": {
+      "name": "Gates Hotel SB",
+      "required": [
+        "Stnd"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": []
+    },
+    "5141": {
+      "name": "Metropole South Beach",
+      "required": [
+        "Stnd"
+      ],
+      "existing": [
+        "bed and breakfast",
+        "standard"
+      ],
+      "missing": []
+    },
+    "5265": {
+      "name": "Hotel Belleza",
+      "required": [
+        "Stnd",
+        "SPR",
+        "DBL"
+      ],
+      "existing": [
+        "double room (2 extra beds)",
+        "room run of house",
+        "standard room (double/twin)"
+      ],
+      "missing": [
+        "Stnd",
+        "SPR",
+        "DBL"
+      ]
+    },
+    "5266": {
+      "name": "Dorchester Hotel",
+      "required": [
+        "Stnd",
+        "Suite",
+        "APT",
+        "DBL"
+      ],
+      "existing": [
+        "double room (2 extra beds)",
+        "room run of house",
+        "standard room (double/twin)"
+      ],
+      "missing": [
+        "Stnd",
+        "Suite",
+        "APT",
+        "DBL"
+      ]
+    },
+    "5267": {
+      "name": "Gale South Beach",
+      "required": [
+        "Stnd",
+        "Suite",
+        "1QSR"
+      ],
+      "existing": [
+        "1 double signature room",
+        "1 queen signature room",
+        "standard",
+        "standard room",
+        "suite"
+      ],
+      "missing": [
+        "1QSR"
+      ]
+    },
+    "5268": {
+      "name": "Fontainebleau",
+      "required": [
+        "Stnd",
+        "DLX",
+        "Suite",
+        "APT",
+        "OV2Q"
+      ],
+      "existing": [
+        "deluxe bayview - 2 queen beds",
+        "deluxe bayview - king bed",
+        "oceanview room - 2 queen beds",
+        "oceanview room - king bed",
+        "standard room (double/twin - room only)"
+      ],
+      "missing": [
+        "Stnd",
+        "DLX",
+        "Suite",
+        "APT",
+        "OV2Q"
+      ]
+    },
+    "5274": {
+      "name": "Generator Miami",
+      "required": [
+        "Stnd",
+        "DLX",
+        "SPR",
+        "Suite",
+        "DRM"
+      ],
+      "existing": [
+        "standard"
+      ],
+      "missing": [
+        "DLX",
+        "SPR",
+        "Suite",
+        "DRM"
+      ]
+    },
+    "5275": {
+      "name": "Miami Intl Airport Hotel",
+      "required": [
+        "Stnd"
+      ],
+      "existing": [
+        "standard"
+      ],
+      "missing": []
+    },
+    "5276": {
+      "name": "InterContinental Miami",
+      "required": [
+        "Stnd",
+        "DLX",
+        "Suite"
+      ],
+      "existing": [
+        "standard"
+      ],
+      "missing": [
+        "DLX",
+        "Suite"
+      ]
+    },
+    "5277": {
+      "name": "Catalina Hotel",
+      "required": [
+        "Stnd",
+        "Suite",
+        "EXEC"
+      ],
+      "existing": [
+        "executive",
+        "standard",
+        "standard",
+        "standard",
+        "standard",
+        "suite"
+      ],
+      "missing": []
+    },
+    "5278": {
+      "name": "Gale Miami Hotel",
+      "required": [
+        "Stnd",
+        "Suite",
+        "APT"
+      ],
+      "existing": [
+        "standard"
+      ],
+      "missing": [
+        "Suite",
+        "APT"
+      ]
+    },
+    "5279": {
+      "name": "Hilton Garden Inn SB",
+      "required": [
+        "Stnd"
+      ],
+      "existing": [
+        "standard"
+      ],
+      "missing": []
+    }
+  }
+}
