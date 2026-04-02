@@ -101,7 +101,7 @@ async def monitor_adjustments(request: Request, _key: str = Depends(_optional_ap
         })
     except (ImportError, OSError) as e:
         logger.error("Monitor adjustments query failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Monitor query failed — check server logs")
 
 
 @monitor_router.get("/monitor/adjustments/{hotel_id}")
@@ -129,7 +129,7 @@ async def monitor_adjustments_hotel(
         })
     except (ImportError, OSError) as e:
         logger.error("Monitor adjustments query failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Monitor query failed — check server logs")
 
 
 @monitor_router.get("/monitor/status")
@@ -148,4 +148,4 @@ async def monitor_status(request: Request, _key: str = Depends(_optional_api_key
         return JSONResponse(content=status)
     except (ImportError, OSError) as e:
         logger.error("Monitor status query failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Monitor query failed — check server logs")

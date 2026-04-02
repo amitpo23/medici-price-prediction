@@ -1096,7 +1096,8 @@ def salesoffice_debug():
             "model_info": result.get("model_info"),
         }
     except (ValueError, TypeError, KeyError, OSError) as e:
-        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
+        logger.error("Debug collection cycle failed", exc_info=True)
+        return {"status": "error", "error": "Collection cycle failed — check server logs"}
 
 
 @analytics_router.get("/options/detail/{detail_id}")
@@ -2735,15 +2736,10 @@ async def override_execute_direct(
                 "response_preview": response_preview,
             }
         else:
-            soap = build_soap_envelope(
-                hotel_code=zenith_id, inv_type_code=itc, rate_plan_code=rpc,
-                start=date_from, end=date_from, amount=target_price,
-                echo_token="override-single",
-            )
             zenith_result = {
                 "status": "dry_run",
                 "detail": "OVERRIDE_PUSH_ENABLED=false — Zenith push skipped. Set to true to enable.",
-                "soap_preview": soap[:300] + "...",
+                "would_push_to": f"hotel={zenith_id}, itc={itc}, rpc={rpc}, date={date_from}, amount=${target_price:.2f}",
             }
 
         return {
