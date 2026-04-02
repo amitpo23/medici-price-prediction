@@ -13,14 +13,26 @@ def get_engine():
     return create_engine(DATABASE_URL)
 
 
+_ALLOWED_TABLES = frozenset({
+    "bookings", "rooms", "rates", "daily_prices", "hotels",
+})
+
+
 def load_table(table_name: str, columns: str = "*", limit: int | None = None) -> pd.DataFrame:
     """Load a table from the database into a DataFrame.
 
     Args:
-        table_name: Name of the table.
+        table_name: Name of the table (must be in allowlist).
         columns: Comma-separated column names or '*' for all.
         limit: Maximum number of rows to fetch. None for all.
     """
+    if table_name not in _ALLOWED_TABLES:
+        raise ValueError(f"Table '{table_name}' not in allowed list: {sorted(_ALLOWED_TABLES)}")
+    if columns != "*":
+        cols = [c.strip() for c in columns.split(",")]
+        if not all(c.isidentifier() for c in cols):
+            raise ValueError(f"Invalid column names: {columns}")
+        columns = ", ".join(cols)
     engine = get_engine()
     query = f"SELECT {columns} FROM {table_name}"
     if limit:
