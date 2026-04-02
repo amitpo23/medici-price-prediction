@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medici Trading Chart</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; color:#e0e0e0; font-family:'SF Mono','Cascadia Code','Consolas',monospace; font-size:12px; }
+
+.header { display:flex; align-items:center; gap:16px; padding:8px 16px; background:#111; border-bottom:1px solid #333; }
+.header h1 { font-size:14px; color:#00E5FF; }
+.header select, .header input { background:#1a1a1a; color:#e0e0e0; border:1px solid #444; padding:4px 8px; font-size:12px; font-family:inherit; border-radius:2px; }
+
+.toggle-bar { display:flex; flex-wrap:wrap; gap:4px; padding:8px 16px; background:#0f0f0f; border-bottom:1px solid #222; }
+.toggle-group { display:flex; align-items:center; gap:2px; margin-right:12px; }
+.toggle-group-label { color:#888; font-size:10px; text-transform:uppercase; margin-right:4px; }
+.toggle-btn { padding:2px 8px; border:1px solid #333; background:#1a1a1a; color:#888; cursor:pointer; font-size:11px; font-family:inherit; border-radius:2px; transition:all 0.15s; }
+.toggle-btn.active { border-color:var(--ind-color); color:var(--ind-color); background:rgba(255,255,255,0.05); }
+.toggle-btn:hover { border-color:#666; }
+.toggle-btn.dimmed { opacity:0.3; cursor:not-allowed; }
+
+.chart-container { padding:8px 16px; }
+.chart-panel { background:#111; border:1px solid #222; border-radius:4px; margin-bottom:8px; padding:8px; position:relative; }
+.chart-panel h3 { font-size:11px; color:#666; margin-bottom:4px; text-transform:uppercase; }
+.chart-panel canvas { width:100% !important; }
+
+.consensus-bar { display:flex; align-items:center; gap:12px; padding:12px 16px; background:#111; border:1px solid #222; border-radius:4px; margin:8px 16px; }
+.consensus-fill { height:24px; border-radius:2px; transition:width 0.3s; }
+.consensus-bar-bg { flex:1; height:24px; background:#1a1a1a; border-radius:2px; overflow:hidden; }
+.consensus-label { font-size:13px; font-weight:bold; min-width:100px; }
+.consensus-detail { font-size:11px; color:#888; }
+.breakdown { display:flex; gap:16px; font-size:11px; }
+.breakdown span { padding:2px 6px; border-radius:2px; }
+
+.signal-buy { color:#4CAF50; }
+.signal-sell { color:#F44336; }
+.signal-neutral { color:#888; }
+
+.option-info { display:flex; gap:24px; padding:4px 16px; font-size:11px; color:#888; }
+.option-info .val { color:#e0e0e0; font-weight:bold; }
+
+#loading { text-align:center; padding:60px; color:#666; font-size:14px; }
+.no-data { text-align:center; padding:20px; color:#555; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>MEDICI TRADING CHART</h1>
+    <select id="hotelSelect" onchange="loadOptions()"><option>Loading hotels...</option></select>
+    <select id="optionSelect" onchange="loadChart()"><option>Select room...</option></select>
+    <span id="tBadge" style="color:#FFD600; font-weight:bold;"></span>
+</div>
+
+<div class="option-info" id="optionInfo"></div>
+
+<div class="toggle-bar" id="toggleBar"></div>
+
+<div class="consensus-bar" id="consensusBar" style="display:none;">
+    <div class="consensus-label" id="consensusLabel"></div>
+    <div class="consensus-bar-bg"><div class="consensus-fill" id="consensusFill"></div></div>
+    <div class="consensus-detail" id="consensusDetail"></div>
+</div>
+
+<div class="chart-container" id="charts">
+    <div id="loading">Loading chart data...</div>
+</div>
+
+<div class="breakdown" id="breakdownBar" style="padding:4px 16px;"></div>
+
+<script>
+const API_BASE = '/api/v1/salesoffice';
+let chartData = null;
+let activeIndicators = new Set(['price_scan', 'forward_curve']);
+let chartInstances = {};
+
+const GROUPS = {
+    price:  { label: 'Price',  keys: ['price_scan','forward_curve','prophet','historical_t','yoy_price'] },
+    demand: { label: 'Demand', keys: ['booking_velocity','cancel_rate','price_velocity','bts_flights'] },
+    macro:  { label: 'Macro',  keys: ['jets_etf','vix','hotel_reits','hotel_ppi'] },
+    supply: { label: 'Supply', keys: ['provider_count','competitor_avg','browser_rank','airbnb_avg'] },
+    env:    { label: 'Env',    keys: ['events','seasonality'] },
+    profit: { label: 'Profit', keys: ['margin'] },
+};
+
+async function loadHotels() {
+    try {
+        const resp = await fetch(`${API_BASE}/options?limit=5000&all=true`);
+        const data = await resp.json();
+        const options = data.data || data.options || data || [];
+        const hotels = [...new Set(options.map(o => o.hotel).filter(Boolean))].sort();
+        const sel = document.getElementById('hotelSelect');
+        sel.innerHTML = hotels.map(h => `<option value="${h}">${h}</option>`).join('');
+        if (hotels.length) loadOptions();
+    } catch(e) { console.error('loadHotels:', e); }
+}
+
+async function loadOptions() {
+    const hotel = document.getElementById('hotelSelect').value;
+    try {
+        const resp = await fetch(`${API_BASE}/options?limit=5000&all=true`);
+        const data = await resp.json();
+        const options = (data.data || data.options || data || []).filter(o => o.hotel === hotel);
+        const sel = document.getElementById('optionSelect');
+        sel.innerHTML = options.map(o => {
+            const id = o.id || o.option_id;
+            const label = `${o.category || '?'} / ${o.board || '?'} — ${o.check_in || '?'} — $${(o.price||o.current_price||0).toFixed(0)} — T=${o.T||'?'}`;
+            return `<option value="${id}">${label}</option>`;
+        }).join('');
+        if (options.length) loadChart();
+    } catch(e) { console.error('loadOptions:', e); }
+}
+
+async function loadChart() {
+    const optionId = document.getElementById('optionSelect').value;
+    if (!optionId) return;
+
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('charts').innerHTML = '<div id="loading">Loading indicators...</div>';
+
+    try {
+        const resp = await fetch(`${API_BASE}/chart/indicators/${optionId}`);
+        chartData = await resp.json();
+        renderToggles();
+        renderCharts();
+        renderConsensus();
+        renderOptionInfo();
+    } catch(e) {
+        document.getElementById('charts').innerHTML = `<div class="no-data">Error: ${e.message}</div>`;
+    }
+}
+
+function renderOptionInfo() {
+    if (!chartData) return;
+    const info = document.getElementById('optionInfo');
+    const T = chartData.T || 0;
+    document.getElementById('tBadge').textContent = `T=${T}d`;
+    info.innerHTML = `
+        <span>Hotel: <span class="val">${chartData.hotel}</span></span>
+        <span>Check-in: <span class="val">${chartData.check_in}</span></span>
+        <span>Price: <span class="val">$${(chartData.current_price||0).toFixed(2)}</span></span>
+        <span>T: <span class="val">${T} days</span></span>
+    `;
+}
+
+function renderToggles() {
+    if (!chartData) return;
+    const bar = document.getElementById('toggleBar');
+    bar.innerHTML = '';
+
+    for (const [groupKey, group] of Object.entries(GROUPS)) {
+        const div = document.createElement('div');
+        div.className = 'toggle-group';
+        div.innerHTML = `<span class="toggle-group-label">${group.label}:</span>`;
+
+        for (const key of group.keys) {
+            const ind = chartData.indicators?.[key];
+            const def = ind || {};
+            const color = def.color || '#888';
+            const active = activeIndicators.has(key);
+            const dimmed = ind && !ind.active_at_T;
+            const hasData = ind && ind.data && ind.data.length > 0;
+
+            const btn = document.createElement('button');
+            btn.className = `toggle-btn ${active ? 'active' : ''} ${dimmed ? 'dimmed' : ''}`;
+            btn.style.setProperty('--ind-color', color);
+            btn.textContent = (def.label || key).replace(/\s+/g,' ').substring(0, 12);
+            btn.title = `${def.label || key} (${def.type || '?'}) ${dimmed ? '[inactive at T]' : ''} ${!hasData ? '[no data]' : ''}`;
+
+            if (!dimmed && hasData) {
+                btn.onclick = () => {
+                    if (activeIndicators.has(key)) activeIndicators.delete(key);
+                    else activeIndicators.add(key);
+                    renderToggles();
+                    renderCharts();
+                };
+            }
+            div.appendChild(btn);
+        }
+        bar.appendChild(div);
+    }
+}
+
+function renderCharts() {
+    if (!chartData) return;
+
+    // Destroy old charts
+    Object.values(chartInstances).forEach(c => c.destroy());
+    chartInstances = {};
+
+    const container = document.getElementById('charts');
+    container.innerHTML = '';
+
+    // Group active indicators by group
+    const groupedActive = {};
+    for (const key of activeIndicators) {
+        const ind = chartData.indicators?.[key];
+        if (!ind || !ind.data || ind.data.length === 0) continue;
+        const group = ind.group || 'other';
+        if (!groupedActive[group]) groupedActive[group] = [];
+        groupedActive[group].push({ key, ...ind });
+    }
+
+    if (Object.keys(groupedActive).length === 0) {
+        container.innerHTML = '<div class="no-data">No indicators selected. Toggle indicators above.</div>';
+        return;
+    }
+
+    // Create a panel for each active group
+    for (const [group, indicators] of Object.entries(groupedActive)) {
+        const groupLabel = Object.values(GROUPS).find(g => g.keys.some(k => indicators.some(i => i.key === k)))?.label || group;
+
+        const panel = document.createElement('div');
+        panel.className = 'chart-panel';
+        panel.innerHTML = `<h3>${groupLabel}</h3>`;
+
+        const canvas = document.createElement('canvas');
+        canvas.height = group === 'price' ? 300 : 180;
+        panel.appendChild(canvas);
+        container.appendChild(panel);
+
+        const datasets = indicators.map(ind => ({
+            label: `${ind.label} (${ind.vote || '?'})`,
+            data: ind.data.map(d => ({ x: d.t, y: d.v })),
+            borderColor: ind.color,
+            backgroundColor: 'transparent',
+            borderWidth: ind.style === 'dashed' ? 1.5 : 2,
+            borderDash: ind.style === 'dashed' ? [6, 3] : ind.style === 'dotted' ? [2, 2] : [],
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.3,
+            yAxisID: 'y',
+        }));
+
+        chartInstances[group] = new Chart(canvas, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#888', font: { size: 10, family: 'monospace' }, boxWidth: 12 } },
+                    tooltip: {
+                        backgroundColor: '#1a1a1a', titleColor: '#e0e0e0', bodyColor: '#e0e0e0',
+                        borderColor: '#333', borderWidth: 1, titleFont: { family: 'monospace', size: 11 },
+                        bodyFont: { family: 'monospace', size: 11 },
+                    },
+                },
+                scales: {
+                    x: { type: 'category', ticks: { color: '#555', maxTicksLimit: 15, font: { size: 10 } }, grid: { color: '#1a1a1a' } },
+                    y: { position: 'right', ticks: { color: '#888', font: { size: 10 } }, grid: { color: '#1a1a1a' } },
+                },
+            },
+        });
+    }
+}
+
+function renderConsensus() {
+    if (!chartData?.consensus) return;
+    const c = chartData.consensus;
+    const bar = document.getElementById('consensusBar');
+    bar.style.display = 'flex';
+
+    const label = document.getElementById('consensusLabel');
+    const fill = document.getElementById('consensusFill');
+    const detail = document.getElementById('consensusDetail');
+    const breakdown = document.getElementById('breakdownBar');
+
+    const pct = Math.round(c.score * 100);
+    label.innerHTML = `<span class="signal-${c.signal.toLowerCase()}">${c.signal}</span> ${pct}%`;
+
+    fill.style.width = `${pct}%`;
+    fill.style.background = c.signal === 'BUY' ? '#4CAF50' : c.signal === 'SELL' ? '#F44336' : '#888';
+
+    detail.textContent = `${c.votes_buy} BUY / ${c.votes_sell} SELL / ${c.total_votes} votes`;
+
+    if (c.breakdown) {
+        const b = c.breakdown;
+        breakdown.innerHTML = `
+            <span style="color:#FFD600;">Leading: ${b.leading?.buy||0}/${b.leading?.total||0} BUY</span>
+            <span style="color:#00E5FF;">Coincident: ${b.coincident?.buy||0}/${b.coincident?.total||0} BUY</span>
+            <span style="color:#9E9E9E;">Lagging: ${b.lagging?.buy||0}/${b.lagging?.total||0} BUY</span>
+        `;
+    }
+}
+
+// Init
+loadHotels();
+</script>
+</body>
+</html>
