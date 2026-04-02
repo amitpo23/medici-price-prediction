@@ -63,4 +63,9 @@ htmlcov/
 .claude/
 mcp-servers/medici-db/node_modules/
 
+# Security — credential-bearing temp files
+skills/*/config.json
+scripts/tmp_*
+.playwright-mcp/
+
 # Daily dev logs (tracked intentionally)
