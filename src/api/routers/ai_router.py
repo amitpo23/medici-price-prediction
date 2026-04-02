@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from src.api.middleware import limiter, RATE_LIMIT_AI
 from src.api.models.pagination import pagination_params, paginate
 
-from src.api.routers._shared_state import _get_or_run_analysis
+from src.api.routers._shared_state import _get_or_run_analysis, _optional_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ async def salesoffice_ai_insights(
     request: Request,
     t_days: Optional[int] = None,
     hotel_name: Optional[str] = None,
+    _key: str = Depends(_optional_api_key),
 ):
     """AI-powered market intelligence — aggregate + per-room analysis."""
     try:
@@ -150,6 +151,7 @@ async def salesoffice_ai_ask(
     q: str,
     detail_id: Optional[int] = None,
     deep: bool = False,
+    _key: str = Depends(_optional_api_key),
 ):
     """Ask Claude a question about the portfolio data."""
     try:
@@ -173,6 +175,7 @@ async def salesoffice_ai_ask(
 async def salesoffice_ai_brief(
     request: Request,
     lang: str = "en",
+    _key: str = Depends(_optional_api_key),
 ):
     """AI-generated executive market brief for the trading team."""
     try:
@@ -191,7 +194,7 @@ async def salesoffice_ai_brief(
 
 @ai_router.get("/ai/explain/{detail_id}")
 @limiter.limit(RATE_LIMIT_AI)
-async def salesoffice_ai_explain(request: Request, detail_id: int):
+async def salesoffice_ai_explain(request: Request, detail_id: int, _key: str = Depends(_optional_api_key)):
     """Deep AI explanation of a specific room's prediction."""
     try:
         from src.analytics.claude_analyst import explain_prediction
@@ -223,6 +226,7 @@ async def salesoffice_ai_metadata(
     request: Request,
     detail_id: Optional[int] = None,
     page: dict = Depends(pagination_params),
+    _key: str = Depends(_optional_api_key),
 ):
     """AI-generated smart tags and metadata for room options."""
     try:
