@@ -1,82 +1,103 @@
 # Knowaa Competitive Scan — 55 Hotels
 
-> **Scan date:** 2026-04-03 00:50:47 UTC | **Check-in:** 2026-04-20 → 2026-04-21 | **Refundable only**
->
-> ⚠️ **Technical Note:** The live browser scan from this cloud environment could not retrieve room offers due to WebSocket 403 errors (Innstant B2B uses `wss://b2b.innstant.travel/wss/` for result delivery, which is blocked by the Anthropic egress proxy). The competitive analysis below is based on the **last successful scan: 2026-04-02 21:56 UTC**. Scan infrastructure (DB: Azure SQL, WS: Innstant B2B) requires direct internet access without WebSocket-filtering proxies.
+**Scan:** 2026-04-03 00:39:26 UTC | **Source:** Innstant B2B live browser scan
+**Search dates:** 2026-04-20 → 2026-04-21 (1 night, 2 adults) | **Filter:** Refundable only
+**Provider:** `Knowaa_Global_zenith` | **Account:** Knowaa/Amit
+
+---
 
 ## Summary
 
-| Metric | Value | vs Previous Scan |
-|--------|-------|-----------------|
-| Hotels scanned | 55 | — |
-| Knowaa appears | **11 (20%)** | ▼2 |
-| Knowaa #1 (cheapest) | **7 (13%)** | ▼2 |
-| Listed but not #1 | 4 (7%) | — |
-| Not listed (others active) | 33 (60%) | ▲3 |
-| No refundable offers | 12 (22%) | → |
+| Metric | 2026-04-03 00:39 | 2026-04-02 21:56 | 2026-04-02 00:37 | Δ vs prev scan |
+|--------|------------------|------------------|------------------|----------------|
+| Hotels scanned | 55 | 56 | 55 | *(=)* |
+| Hotels w/ offers | 43 | 43 | 42 | *(=)* |
+| Knowaa appears | **12 (22%)** | 11 (20%) | 15 (36%) | **(+1)** |
+| Knowaa #1 | **5 (9%)** | 7 (13%) | 8 (19%) | **(-2)** |
+| Knowaa #2 | 4 (7%) | 2 (4%) | 4 (10%) | **(+2)** |
+| Knowaa #3+ | 3 (5%) | 2 (4%) | 3 (7%) | **(+1)** |
+| No Knowaa (has offers) | 31 (56%) | 33 (59%) | 27 (49%) | **(-2)** |
+| No refundable offers | 12 (22%) | 12 (21%) | 13 (24%) | *(=)* |
 
-## A — Knowaa is CHEAPEST (#1) — 7 hotels
+---
 
-| Hotel | VenueId | Knowaa Price | 2nd Price | 2nd Provider | Advantage |
-|-------|---------|-------------|-----------|-------------|----------|
-| Cavalier Hotel | 5113 | **$100.04** | $106.04 | InnstantTravel | -$6.00 |
-| Embassy Suites by Hilton Miami International Airport | 5081 | **$132.12** | $132.12 | goglobal | -$0.00 |
-| Eurostars Langford Hotel | 5098 | **$142.50** | $142.50 | InnstantTravel | -$0.00 |
-| Hilton Miami Airport | 5083 | **$214.75** | $217.88 | goglobal | -$3.13 |
-| Hotel Riu Plaza Miami Beach | 5109 | **$288.57** | $288.57 | goglobal | -$0.00 |
-| Hyatt Centric South Beach Miami (City View) | 5097 | **$260.31** | $275.93 | InnstantTravel | -$15.62 |
-| Marseilles Hotel | 5096 | **$195.02** | $195.56 | InnstantTravel | -$0.54 |
+## Section A — Knowaa is #1 (Cheapest) — 5 hotels
 
-## B — Knowaa Listed But NOT Cheapest — 4 hotels
+| Hotel | Venue | Knowaa Price | Market Cheapest | Boards | Other Providers |
+|-------|-------|-------------|----------------|--------|----------------|
+| Embassy Suites by Hilton Miami International Airport | 5081 | **$131.57** | $131.57 | RO, BB | InnstantTravel |
+| Eurostars Langford Hotel | 5098 | **$142.42** | $142.42 | RO | InnstantTravel, goglobal |
+| Hilton Miami Airport | 5083 | **$214.62** | $214.62 | RO | InnstantTravel |
+| Hyatt Centric South Beach Miami (City View) | 5097 | **$283.57** | $283.57 | RO | *(sole provider)* |
+| Marseilles Hotel | 5096 | **$195.02** | $195.02 | RO | InnstantTravel, goglobal |
 
-| Hotel | VenueId | Knowaa Price | Cheapest | Provider | Rank | Gap |
-|-------|---------|-------------|----------|----------|------|-----|
-| citizenM Miami South Beach | 5119 | $175.71 | $175.70 | InnstantTravel | #3 | +$0.01 |
-| Crystal Beach Suites Hotel | 5100 | $167.16 | $167.15 | InnstantTravel | #2 | +$0.01 |
-| DoubleTree by Hilton Miami Doral | 5082 | $174.33 | $174.32 | InnstantTravel | #19 | +$0.01 |
-| Kimpton Hotel Palomar South Beach | 5116 | $180.80 | $180.79 | goglobal | #2 | +$0.01 |
+---
 
-## C — Knowaa NOT Listed (competitors active) — 32 hotels
+## Section B — Knowaa is #2 — 4 hotels
 
-| Hotel | VenueId | Cheapest | Provider | Categories | Boards |
-|-------|---------|---------|----------|------------|--------|
-| Atwell Suites Miami Brickell | 5101 | $229.02 | InnstantTravel | Suite | BB |
-| Breakwater South Beach | 5110 | $165.10 | InnstantTravel | Superior | BB |
-| Cadet Hotel | 5095 | $223.44 | InnstantTravel | Standard, Superior, Suite | RO |
-| citizenM Miami Brickell hotel | 5079 | $231.27 | InnstantTravel | Standard | RO |
-| Dorchester Hotel | 5266 | $145.21 | InnstantTravel | Standard, Apartment | RO |
-| FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 | $92.71 | InnstantTravel | Superior | RO |
-| Fontainebleau Miami Beach | 5268 | $545.24 | InnstantTravel | Deluxe, Standard | RO |
-| Freehand Miami | 5107 | $113.60 | InnstantTravel | Superior, Standard | RO |
-| Gale Miami Hotel and Residences | 5278 | $160.47 | InnstantTravel | Standard | RO |
-| Gale South Beach | 5267 | $240.99 | InnstantTravel | Standard | RO |
-| Generator Miami | 5274 | $138.41 | InnstantTravel | Deluxe | RO |
-| Grand Beach Hotel Miami | 5124 | $203.96 | InnstantTravel | Suite | RO |
-| Hampton Inn Miami Beach - Mid Beach | 5106 | $234.61 | InnstantTravel | Deluxe, Standard | RO |
-| Hilton Bentley Miami South Beach | 5093 | $427.08 | InnstantTravel | Standard | RO |
-| Hilton Cabana Miami Beach | 5115 | $163.66 | InnstantTravel | Standard, Deluxe | RO |
-| Hilton Garden Inn Miami South Beach | 5279 | $172.84 | InnstantTravel | Standard | RO |
-| HOLIDAY INN EXPRESS HOTEL & SUITES MIAMI | 5130 | $125.79 | InnstantTravel | Standard | BB |
-| Hotel Belleza | 5265 | $176.82 | InnstantTravel | Standard | RO |
-| Hôtel Gaythering | 5132 | $183.88 | InnstantTravel | Standard, Deluxe | BB |
-| Iberostar Berkeley Shore Hotel | 5092 | $225.49 | InnstantTravel | Standard | RO |
-| InterContinental Miami | 5276 | $283.43 | InnstantTravel | Standard | RO |
-| Kimpton Angler's Hotel | 5136 | $373.37 | InnstantTravel | Deluxe | RO |
-| Loews Miami Beach Hotel | 5073 | $352.64 | InnstantTravel | Standard | RO |
-| Miami International Airport Hotel | 5275 | $189.42 | InnstantTravel | Standard | RO |
-| Notebook Miami Beach | 5102 | $82.07 | InnstantTravel | Standard | RO |
-| Pullman Miami Airport | 5080 | $157.80 | InnstantTravel | Superior | RO |
-| Savoy Hotel | 5103 | $387.58 | InnstantTravel | Deluxe, Standard | RO |
-| SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | $155.30 | goglobal | Deluxe | RO |
-| The Albion Hotel | 5117 | $103.55 | InnstantTravel | Dormitory, Standard, Deluxe, Apartment | RO |
-| The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $318.12 | InnstantTravel | Standard | BB |
-| The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | $138.28 | InnstantTravel | Standard | RO |
-| THE LANDON BAY HARBOR | 5138 | $185.85 | InnstantTravel | Deluxe, Standard | BB, RO |
+| Hotel | Venue | Knowaa Price | Cheapest | Gap | Cheaper Provider |
+|-------|-------|-------------|----------|-----|------------------|
+| Crystal Beach Suites Hotel | 5100 | $167.16 | $167.15 | +$0.01 | InnstantTravel |
+| Freehand Miami | 5107 | $104.57 | $104.56 | +$0.01 | InnstantTravel |
+| Hotel Riu Plaza Miami Beach *(date range 1)* | 5109 | $287.39 | $287.38 | +$0.01 | goglobal |
+| Kimpton Hotel Palomar South Beach | 5116 | $180.06 | $180.05 | +$0.01 | goglobal |
 
-## D — No Refundable Offers — 12 hotels
+> **Note:** Hotel Riu Plaza Miami Beach has two active Orders (different date ranges). On date range 1 Knowaa is #2 at $287.39; on date range 2 Knowaa is absent and market cheapest is $1,316.89 (goglobal).
 
-| Hotel | VenueId |
-|-------|--------|
+---
+
+## Section C — Knowaa is #3+ — 3 hotels
+
+| Hotel | Venue | Rank | Knowaa Price | Cheapest | Gap | Cheapest Provider |
+|-------|-------|------|-------------|----------|-----|-------------------|
+| citizenM Miami South Beach | 5119 | #3 | $175.71 | $175.70 | +$0.01 | InnstantTravel |
+| DoubleTree by Hilton Miami Doral | 5082 | #19 | $174.33 | $174.32 | +$0.01 | InnstantTravel |
+| Cavalier Hotel | 5113 | #13 | $206.07 | $202.38 | +$3.69 | InnstantTravel |
+
+---
+
+## Section D — Has Offers but NO Knowaa — 31 hotels
+
+| Hotel | Venue | Cheapest Price | Provider | Boards |
+|-------|-------|---------------|----------|--------|
+| Notebook Miami Beach | 5102 | $82.05 | InnstantTravel | RO |
+| FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 | $93.13 | InnstantTravel | RO |
+| The Albion Hotel | 5117 | $103.55 | InnstantTravel | RO |
+| HOLIDAY INN EXPRESS HOTEL & SUITES MIAMI | 5130 | $123.80 | InnstantTravel | BB |
+| Generator Miami | 5274 | $136.41 | InnstantTravel | RO |
+| The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | $138.28 | InnstantTravel | RO |
+| Dorchester Hotel | 5266 | $145.51 | InnstantTravel | RO |
+| SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | $154.39 | InnstantTravel | RO |
+| Gale Miami Hotel and Residences | 5278 | $160.47 | InnstantTravel | RO |
+| Hilton Cabana Miami Beach | 5115 | $163.66 | InnstantTravel | RO |
+| Breakwater South Beach | 5110 | $165.10 | InnstantTravel | BB |
+| Pullman Miami Airport | 5080 | $167.04 | InnstantTravel | RO |
+| Hilton Garden Inn Miami South Beach | 5279 | $173.97 | InnstantTravel | RO |
+| Hotel Belleza | 5265 | $174.02 | InnstantTravel | RO |
+| Hôtel Gaythering | 5132 | $183.88 | InnstantTravel | BB |
+| THE LANDON BAY HARBOR | 5138 | $185.85 | InnstantTravel | RO, BB |
+| Miami International Airport Hotel | 5275 | $189.42 | InnstantTravel | RO |
+| Grand Beach Hotel Miami | 5124 | $203.84 | InnstantTravel | RO |
+| Cadet Hotel | 5095 | $223.44 | InnstantTravel | RO |
+| Iberostar Berkeley Shore Hotel | 5092 | $225.49 | InnstantTravel | RO |
+| Atwell Suites Miami Brickell | 5101 | $228.91 | InnstantTravel | BB |
+| citizenM Miami Brickell hotel | 5079 | $230.57 | InnstantTravel | RO |
+| Hampton Inn Miami Beach - Mid Beach | 5106 | $234.61 | InnstantTravel | RO |
+| Gale South Beach | 5267 | $240.99 | InnstantTravel | RO |
+| InterContinental Miami | 5276 | $283.27 | InnstantTravel | RO |
+| The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $315.84 | InnstantTravel | BB |
+| Kimpton Angler's Hotel | 5136 | $373.37 | InnstantTravel | RO |
+| Savoy Hotel | 5103 | $381.77 | InnstantTravel | RO |
+| Loews Miami Beach Hotel | 5073 | $352.64 | InnstantTravel | RO |
+| Hilton Bentley Miami South Beach | 5093 | $422.43 | InnstantTravel | RO |
+| Fontainebleau Miami Beach | 5268 | $545.24 | InnstantTravel | RO |
+
+---
+
+## Section E — No Refundable Offers — 12 hotels
+
+| Hotel | Venue |
+|-------|-------|
 | Dream South Beach | 5090 |
 | Hilton Miami Downtown | 5084 |
 | Hotel Chelsea | 5064 |
@@ -90,35 +111,38 @@
 | The Villa Casa Casuarina | 5075 |
 | Viajero Miami | 5111 |
 
-## Trend vs Previous Scan (2026-04-02 08:33)
+---
 
-| Metric | Previous | Current | Change |
-|--------|----------|---------|--------|
-| Knowaa appears | 13 | 11 | -2 |
-| Knowaa #1 | 9 | 7 | -2 |
-| Not listed | 30 | 33 | +3 |
-| No offers | 12 | 12 | +0 |
+## Trend vs 2026-04-02 21:56
 
-## Technical Diagnostic — 2026-04-03 Scan
+### Worsened — Fell Out of #1
+- **Cavalier Hotel**: #1 ($100.04) → **#13** ($206.07) — price jumped +$106.03, now $3.69 above InnstantTravel
+- **Hotel Riu Plaza Miami Beach**: #1 ($288.57) → **#2** ($287.39, gap $0.01 vs goglobal)
 
-| Step | Status | Detail |
-|------|--------|--------|
-| DB Query (Azure SQL) | ❌ Unavailable | `libodbc.so.2` not installed in Claude cloud env; pymssql: `Unable to connect` |
-| Hotel list source | ✅ Fallback | Loaded from `2026-04-02_21-56_full_scan.json` (55 unique hotels) |
-| Browser login | ✅ Success | Playwright + Chrome 131 + egress proxy — logged in as `amit/Knowaa` |
-| Hotel page load | ✅ Success | Pages load correctly with hotel details |
-| WebSocket (`wss://b2b.innstant.travel/wss/`) | ❌ Blocked | `Error during WebSocket handshake: Unexpected response code: 403` |
-| Room offers loaded | ❌ 0/55 hotels | Innstant uses WebSocket for result delivery — blocked by egress proxy |
-| Competitive data | ⚠️ Stale | Using 2026-04-02 21:56 UTC scan as reference |
-| Git push | ❌ Failed | HTTP 403 from git remote (requires separate auth) |
+### Improved — Newly Listed
+- **Freehand Miami**: not listed → **#2** ($104.57, gap $0.01 vs InnstantTravel)
 
-### Root Cause
-Innstant B2B delivers search results exclusively via WebSocket (`wss://`). The Anthropic egress proxy (`21.0.0.179:15004`) intercepts HTTPS traffic but returns HTTP 403 on WebSocket upgrade requests. This prevents room offers from loading in the Claude cloud environment.
+### Stable #1 — Price Deltas
+| Hotel | Prev Price | Now Price | Δ |
+|-------|-----------|-----------|---|
+| Embassy Suites by Hilton Miami International Airport | $132.12 | $131.57 | -$0.55 |
+| Eurostars Langford Hotel | $142.50 | $142.42 | -$0.08 |
+| Hilton Miami Airport | $214.75 | $214.62 | -$0.13 |
+| Hyatt Centric South Beach Miami (City View) | $260.31 | $283.57 | **+$23.26** ⚠️ |
+| Marseilles Hotel | $195.02 | $195.02 | $0.00 |
 
-### Fix Required
-- **For scheduled scans (every 8h):** Use the Remote Trigger from the local machine (direct internet), not Claude Cloud.
-- **Credential verification:** Credentials (`Amit`/`porat10`, account `Knowaa`) are confirmed working ✅
+### No Change in Section E
+- No hotels entered or left the "no refundable offers" group (stable at 12).
 
 ---
-_Generated by Knowaa Competitive Scanner (Claude agent) — 2026-04-03 00:50:47 UTC_
-_Competitive data: last successful scan 2026-04-02 21:56 UTC_
+
+## Key Observations
+
+1. **Knowaa #1 coverage dropped**: 7 → 5 hotels. Cavalier Hotel fell from #1 to #13 after its price jumped +$106 — likely a dynamic repricing event unrelated to Knowaa.
+2. **$0.01 gap dominates Sections B & C**: 6 of 7 hotels in B/C lose by exactly $0.01. Sub-cent pricing alignment could recover all 6 to #1.
+3. **InnstantTravel is market leader**: present as cheapest or co-provider in 40+ of 43 hotels with offers. goglobal appears in 8 hotels.
+4. **Hyatt Centric price spike**: +$23.26 vs yesterday — Knowaa remains sole provider and #1, but rate is elevated.
+5. **31 hotels completely absent Knowaa**: largest coverage gap. InnstantTravel holds the low price in all 31.
+
+---
+*Knowaa Competitive Scanner — 2026-04-03 00:39:26 UTC*
