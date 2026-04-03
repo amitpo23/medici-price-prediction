@@ -264,6 +264,20 @@ a{color:#42a5f5;text-decoration:none}
         <div style="margin-left:auto;display:flex;gap:4px" id="d-actions"></div>
       </div>
     </div>
+
+    <!-- Integrated views (Trading Chart, Correlation, Alerts, Audit, Execution) -->
+    <div class="section" style="padding:4px">
+      <div style="display:flex;gap:2px;margin-bottom:4px">
+        <button class="embed-tab active" onclick="showEmbed('correlation',this)" style="flex:1;padding:4px;font-size:9px;font-weight:700;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--panel);color:var(--call)">Correlation</button>
+        <button class="embed-tab" onclick="showEmbed('alerts',this)" style="flex:1;padding:4px;font-size:9px;font-weight:700;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surface);color:var(--muted)">Alerts</button>
+        <button class="embed-tab" onclick="showEmbed('audit',this)" style="flex:1;padding:4px;font-size:9px;font-weight:700;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surface);color:var(--muted)">Audit</button>
+        <button class="embed-tab" onclick="showEmbed('execution',this)" style="flex:1;padding:4px;font-size:9px;font-weight:700;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surface);color:var(--muted)">Execution</button>
+      </div>
+      <div id="embed-correlation" style="height:280px;overflow:auto"><div class="empty" style="padding:20px;text-align:center">Loading Correlation...</div></div>
+      <div id="embed-alerts" style="height:280px;overflow:auto;display:none"><div class="empty" style="padding:20px;text-align:center">Loading Alerts...</div></div>
+      <div id="embed-audit" style="height:280px;overflow:auto;display:none"><div class="empty" style="padding:20px;text-align:center">Loading Audit...</div></div>
+      <div id="embed-execution" style="height:280px;overflow:auto;display:none"><div class="empty" style="padding:20px;text-align:center">Loading Execution...</div></div>
+    </div>
   </div>
 
   <!-- ═══ RIGHT: Intelligence + Queue ═══ -->
@@ -436,6 +450,51 @@ function showToast(msg,ok){
   const t=document.createElement('div');t.className='toast '+(ok?'ok':'err');t.textContent=msg;
   document.body.appendChild(t);setTimeout(()=>t.remove(),4000);
 }
+
+/* ══════════ EMBEDDED VIEWS ══════════ */
+function showEmbed(id, btn){
+  ['correlation','alerts','audit','execution'].forEach(v=>{
+    document.getElementById('embed-'+v).style.display=v===id?'block':'none';
+  });
+  document.querySelectorAll('.embed-tab').forEach(t=>{
+    t.style.background=t===btn?'var(--panel)':'var(--surface)';
+    t.style.color=t===btn?'var(--call)':'var(--muted)';
+  });
+  loadEmbed(id);
+}
+const _embedLoaded={};
+async function loadEmbed(id){
+  if(_embedLoaded[id]) return;
+  _embedLoaded[id]=true;
+  const container=document.getElementById('embed-'+id);
+  const urls={
+    correlation:'/dashboard/correlation',
+    alerts:'/dashboard/streaming-alerts',
+    audit:'/dashboard/audit-trail',
+    execution:'/dashboard/execution',
+  };
+  try{
+    const r=await fetch('/api/v1/salesoffice'+urls[id]);
+    const html=await r.text();
+    // Extract body content
+    const match=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    if(match){
+      container.innerHTML=match[1];
+      // Execute scripts
+      container.querySelectorAll('script').forEach(s=>{
+        const ns=document.createElement('script');
+        ns.textContent=s.textContent;
+        container.appendChild(ns);
+      });
+    } else {
+      container.innerHTML=html;
+    }
+  }catch(e){
+    container.innerHTML='<div class="empty">Failed to load '+id+'</div>';
+  }
+}
+// Auto-load correlation on start
+setTimeout(()=>loadEmbed('correlation'),2000);
 
 /* ══════════ BEST BUY / SELL ══════════ */
 async function loadBuySell(mode){
