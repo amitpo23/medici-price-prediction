@@ -533,3 +533,78 @@ async def dashboard_best_buy():
 </body></html>"""
 
     return HTMLResponse(content=html)
+
+
+@dashboard_router.get("/dashboard/best-sell", response_class=HTMLResponse)
+async def dashboard_best_sell():
+    """Best Sell — overpriced rooms that should be repriced down."""
+    from src.analytics.best_sell import compute_best_sell
+    from src.api.routers._shared_state import _get_or_run_analysis
+
+    analysis = _get_or_run_analysis()
+    opps = compute_best_sell(analysis, top_n=30) if analysis else []
+
+    label_colors = {
+        "STRONG SELL": "#ff1744",
+        "SELL": "#ff9100",
+        "OVERPRICED": "#ffd600",
+        "FAIR PRICE": "#66bb6a",
+    }
+
+    rows_html = ""
+    for i, o in enumerate(opps, 1):
+        color = label_colors.get(o["label"], "#999")
+        over = f"+${o['overpricing_usd']:,.0f}" if o["overpricing_usd"] > 0 else "—"
+        rows_html += f"""<tr>
+            <td>{i}</td>
+            <td style="color:{color};font-weight:bold">{o['label']}</td>
+            <td><b>{o['hotel_name']}</b></td>
+            <td>{o['category']}/{o['board']}</td>
+            <td>{o['zone']}</td>
+            <td>{o['tier']}</td>
+            <td style="font-size:1.1em;font-weight:bold;color:#ff1744">${o['price']:,.0f}</td>
+            <td style="color:#66bb6a">${o['fair_price']:,.0f}</td>
+            <td style="color:#ff9100">{over}</td>
+            <td>+{o['adr_over_pct']}%</td>
+            <td>+{o['zone_over_pct']}%</td>
+            <td>{o['signal']} ({o['confidence']:.0%})</td>
+            <td style="color:#ff1744">{o['velocity_pct']:+.1f}%</td>
+            <td><b>{o['composite_score']:.3f}</b></td>
+        </tr>"""
+
+    sell_html = f"""<!DOCTYPE html>
+<html><head>
+<title>Best Sell — Overpriced Rooms | Medici</title>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="300">
+<style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #0a0a1a; color: #e0e0e0; }}
+    h1 {{ color: #ff1744; margin-bottom: 5px; }}
+    .subtitle {{ color: #888; margin-bottom: 20px; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+    th {{ background: #1a1a2e; padding: 10px 8px; text-align: left; color: #aaa; position: sticky; top: 0; }}
+    td {{ padding: 8px; border-bottom: 1px solid #1a1a2e; }}
+    tr:hover {{ background: #1a1a2e; }}
+    .legend {{ display: flex; gap: 20px; margin-bottom: 15px; }}
+    .legend span {{ padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; }}
+</style>
+</head><body>
+<h1>Best Sell — Overpriced Rooms</h1>
+<p class="subtitle">{len(opps)} overpriced rooms | Auto-refresh 5min | Ranked by sell urgency</p>
+<div class="legend">
+    <span style="background:#ff1744;color:#fff">STRONG SELL</span>
+    <span style="background:#ff9100;color:#000">SELL</span>
+    <span style="background:#ffd600;color:#000">OVERPRICED</span>
+    <span style="background:#66bb6a;color:#000">FAIR PRICE</span>
+</div>
+<table>
+<thead><tr>
+    <th>#</th><th>Label</th><th>Hotel</th><th>Room</th><th>Zone</th><th>Tier</th>
+    <th>Current</th><th>Fair Price</th><th>Overpriced By</th><th>vs ADR</th><th>vs Zone</th>
+    <th>Signal</th><th>Velocity</th><th>Score</th>
+</tr></thead>
+<tbody>{rows_html}</tbody>
+</table>
+</body></html>"""
+
+    return HTMLResponse(content=sell_html)
