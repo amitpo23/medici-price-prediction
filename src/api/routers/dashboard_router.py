@@ -458,3 +458,78 @@ async def dashboard_terminal_v2():
     """Terminal V2 — unified Bloomberg-style trading terminal."""
     from src.analytics.terminal_v2_page import generate_terminal_v2_html
     return HTMLResponse(content=generate_terminal_v2_html())
+
+
+@dashboard_router.get("/dashboard/best-buy", response_class=HTMLResponse)
+async def dashboard_best_buy():
+    """Best Buy Opportunities — top room purchase opportunities ranked by score."""
+    from src.analytics.best_buy import compute_best_buy
+    from src.api.routers._shared_state import _get_or_run_analysis
+
+    analysis = _get_or_run_analysis()
+    opps = compute_best_buy(analysis, top_n=30) if analysis else []
+
+    label_colors = {
+        "STRONG BUY": "#00c853",
+        "BUY": "#2979ff",
+        "WATCH": "#ff9100",
+        "AVOID": "#ff1744",
+    }
+
+    rows = ""
+    for i, o in enumerate(opps, 1):
+        color = label_colors.get(o["label"], "#999")
+        rows += f"""<tr>
+            <td>{i}</td>
+            <td style="color:{color};font-weight:bold">{o['label']}</td>
+            <td><b>{o['hotel_name']}</b></td>
+            <td>{o['category']}/{o['board']}</td>
+            <td>{o['zone']}</td>
+            <td>{o['tier']}</td>
+            <td style="font-size:1.1em;font-weight:bold">${o['price']:,.0f}</td>
+            <td>${o['adr_benchmark']:,}</td>
+            <td style="color:#00c853">-{o['adr_gap_pct']}%</td>
+            <td>${o['zone_avg']:,.0f}</td>
+            <td style="color:#2979ff">-{o['zone_gap_pct']}%</td>
+            <td>{o['signal']} ({o['confidence']:.0%})</td>
+            <td>{o['velocity_pct']:+.1f}%</td>
+            <td><b>{o['composite_score']:.3f}</b></td>
+            <td>T-{o.get('t_value') or '?'}</td>
+        </tr>"""
+
+    html = f"""<!DOCTYPE html>
+<html><head>
+<title>Best Buy Opportunities | Medici</title>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="300">
+<style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #0a0a1a; color: #e0e0e0; }}
+    h1 {{ color: #00c853; margin-bottom: 5px; }}
+    .subtitle {{ color: #888; margin-bottom: 20px; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+    th {{ background: #1a1a2e; padding: 10px 8px; text-align: left; color: #aaa; position: sticky; top: 0; }}
+    td {{ padding: 8px; border-bottom: 1px solid #1a1a2e; }}
+    tr:hover {{ background: #1a1a2e; }}
+    .legend {{ display: flex; gap: 20px; margin-bottom: 15px; }}
+    .legend span {{ padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; }}
+</style>
+</head><body>
+<h1>Best Buy Opportunities</h1>
+<p class="subtitle">{len(opps)} opportunities | Auto-refresh 5min | Ranked by composite score</p>
+<div class="legend">
+    <span style="background:#00c853;color:#000">STRONG BUY</span>
+    <span style="background:#2979ff;color:#fff">BUY</span>
+    <span style="background:#ff9100;color:#000">WATCH</span>
+    <span style="background:#ff1744;color:#fff">AVOID</span>
+</div>
+<table>
+<thead><tr>
+    <th>#</th><th>Label</th><th>Hotel</th><th>Room</th><th>Zone</th><th>Tier</th>
+    <th>Price</th><th>ADR</th><th>vs ADR</th><th>Zone Avg</th><th>vs Zone</th>
+    <th>Signal</th><th>Velocity</th><th>Score</th><th>T</th>
+</tr></thead>
+<tbody>{rows}</tbody>
+</table>
+</body></html>"""
+
+    return HTMLResponse(content=html)

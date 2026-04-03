@@ -1,0 +1,337 @@
+{
+  "created": [
+    {
+      "venue": 5077,
+      "hotel": "SLS LUX Brickell",
+      "product": "Superior",
+      "itc": "SPR"
+    },
+    {
+      "venue": 5276,
+      "hotel": "InterContinental Miami",
+      "product": "Deluxe",
+      "itc": "DLX"
+    },
+    {
+      "venue": 5276,
+      "hotel": "InterContinental Miami",
+      "product": "Suite",
+      "itc": "Suite"
+    },
+    {
+      "venue": 5278,
+      "hotel": "Gale Miami Hotel",
+      "product": "Suite",
+      "itc": "Suite"
+    },
+    {
+      "venue": 5278,
+      "hotel": "Gale Miami Hotel",
+      "product": "Apartment",
+      "itc": "APT"
+    }
+  ],
+  "skipped": [
+    {
+      "venue": 5073,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5075,
+      "product": "Suite"
+    },
+    {
+      "venue": 5079,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5079,
+      "product": "Superior"
+    },
+    {
+      "venue": 5079,
+      "product": "Suite"
+    },
+    {
+      "venue": 5081,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5081,
+      "product": "Superior"
+    },
+    {
+      "venue": 5081,
+      "product": "Dormitory"
+    },
+    {
+      "venue": 5083,
+      "product": "Dormitory"
+    },
+    {
+      "venue": 5084,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5084,
+      "product": "Superior"
+    },
+    {
+      "venue": 5089,
+      "product": "Superior"
+    },
+    {
+      "venue": 5089,
+      "product": "Suite"
+    },
+    {
+      "venue": 5090,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5090,
+      "product": "Superior"
+    },
+    {
+      "venue": 5092,
+      "product": "Superior"
+    },
+    {
+      "venue": 5092,
+      "product": "Apartment"
+    },
+    {
+      "venue": 5093,
+      "product": "Superior"
+    },
+    {
+      "venue": 5093,
+      "product": "Apartment"
+    },
+    {
+      "venue": 5095,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5095,
+      "product": "Superior"
+    },
+    {
+      "venue": 5096,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5096,
+      "product": "Superior"
+    },
+    {
+      "venue": 5096,
+      "product": "Dormitory"
+    },
+    {
+      "venue": 5097,
+      "product": "Superior"
+    },
+    {
+      "venue": 5097,
+      "product": "Suite"
+    },
+    {
+      "venue": 5098,
+      "product": "Superior"
+    },
+    {
+      "venue": 5098,
+      "product": "Apartment"
+    },
+    {
+      "venue": 5098,
+      "product": "Dormitory"
+    },
+    {
+      "venue": 5098,
+      "product": "Executive"
+    },
+    {
+      "venue": 5100,
+      "product": "Standard"
+    },
+    {
+      "venue": 5100,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5100,
+      "product": "Superior"
+    },
+    {
+      "venue": 5101,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5101,
+      "product": "Superior"
+    },
+    {
+      "venue": 5103,
+      "product": "Superior"
+    },
+    {
+      "venue": 5104,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5104,
+      "product": "Superior"
+    },
+    {
+      "venue": 5105,
+      "product": "Superior"
+    },
+    {
+      "venue": 5107,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5107,
+      "product": "Dormitory"
+    },
+    {
+      "venue": 5108,
+      "product": "Superior"
+    },
+    {
+      "venue": 5109,
+      "product": "Superior"
+    },
+    {
+      "venue": 5109,
+      "product": "Suite"
+    },
+    {
+      "venue": 5110,
+      "product": "Apartment"
+    },
+    {
+      "venue": 5115,
+      "product": "Dormitory"
+    },
+    {
+      "venue": 5117,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5117,
+      "product": "Apartment"
+    },
+    {
+      "venue": 5117,
+      "product": "Dormitory"
+    },
+    {
+      "venue": 5124,
+      "product": "Suite"
+    },
+    {
+      "venue": 5130,
+      "product": "Suite"
+    },
+    {
+      "venue": 5131,
+      "product": "Suite"
+    },
+    {
+      "venue": 5136,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5136,
+      "product": "Apartment"
+    },
+    {
+      "venue": 5136,
+      "product": "Suite"
+    },
+    {
+      "venue": 5139,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5139,
+      "product": "Superior"
+    },
+    {
+      "venue": 5139,
+      "product": "Suite"
+    },
+    {
+      "venue": 5265,
+      "product": "Standard"
+    },
+    {
+      "venue": 5265,
+      "product": "Superior"
+    },
+    {
+      "venue": 5265,
+      "product": "Double"
+    },
+    {
+      "venue": 5266,
+      "product": "Standard"
+    },
+    {
+      "venue": 5266,
+      "product": "Suite"
+    },
+    {
+      "venue": 5266,
+      "product": "Apartment"
+    },
+    {
+      "venue": 5266,
+      "product": "Double"
+    },
+    {
+      "venue": 5267,
+      "product": "Queen Standard"
+    },
+    {
+      "venue": 5268,
+      "product": "Standard"
+    },
+    {
+      "venue": 5268,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5268,
+      "product": "Suite"
+    },
+    {
+      "venue": 5268,
+      "product": "Apartment"
+    },
+    {
+      "venue": 5268,
+      "product": "Ocean View"
+    },
+    {
+      "venue": 5274,
+      "product": "Deluxe"
+    },
+    {
+      "venue": 5274,
+      "product": "Superior"
+    },
+    {
+      "venue": 5274,
+      "product": "Suite"
+    },
+    {
+      "venue": 5274,
+      "product": "Dormitory"
+    }
+  ],
+  "errors": []
+}

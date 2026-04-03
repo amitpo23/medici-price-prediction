@@ -4741,3 +4741,25 @@ def backtest_summary(
     except Exception as e:
         logger.error("Backtest summary failed: %s", e, exc_info=True)
         raise HTTPException(500, f"Backtest summary error: {str(e)}")
+
+
+# ── Best Buy Opportunities ─────────────────────────────────────
+@analytics_router.get("/best-buy")
+@limiter.limit(RATE_LIMIT_DATA)
+async def best_buy_opportunities(
+    request: Request,
+    top: int = Query(default=20, ge=1, le=100),
+    _key: str = Depends(_optional_api_key),
+):
+    """Top N best-buy opportunities ranked by composite score."""
+    from src.analytics.best_buy import compute_best_buy
+
+    analysis = _get_or_run_analysis()
+    if not analysis:
+        raise HTTPException(503, "No analysis data available")
+
+    opportunities = compute_best_buy(analysis, top_n=top)
+    return JSONResponse(content={
+        "count": len(opportunities),
+        "opportunities": opportunities,
+    })
