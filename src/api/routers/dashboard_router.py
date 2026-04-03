@@ -608,3 +608,160 @@ async def dashboard_best_sell():
 </body></html>"""
 
     return HTMLResponse(content=sell_html)
+
+
+@dashboard_router.get("/dashboard/execution", response_class=HTMLResponse)
+async def dashboard_execution():
+    """Execution Dashboard — overrides, opportunities, PnL, budget usage."""
+    import json as _json
+
+    exec_html = """<!DOCTYPE html>
+<html><head>
+<title>Execution Dashboard | Medici</title>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="120">
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:20px;background:#0a0a1a;color:#e0e0e0}
+h1{color:#42a5f5;margin-bottom:5px}
+.subtitle{color:#888;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:15px;margin-bottom:25px}
+.card{background:#16213e;border:1px solid #1a1a2e;border-radius:8px;padding:15px;text-align:center}
+.card-value{font-size:28px;font-weight:bold;font-family:monospace;margin:5px 0}
+.card-label{font-size:11px;color:#888;text-transform:uppercase}
+.green{color:#00c853} .red{color:#ff1744} .blue{color:#42a5f5} .orange{color:#ff9100}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+th{background:#1a1a2e;padding:8px;text-align:left;color:#aaa;position:sticky;top:0}
+td{padding:6px 8px;border-bottom:1px solid #1a1a2e}
+tr:hover{background:#1a1a2e}
+.section{margin-bottom:25px}
+.section h2{color:#aaa;font-size:14px;border-bottom:1px solid #1a1a2e;padding-bottom:5px}
+#loading{color:#888;font-style:italic}
+</style>
+</head><body>
+<h1>Execution Dashboard</h1>
+<p class="subtitle">Overrides, Opportunities, Budget | Auto-refresh 2min</p>
+
+<div class="grid">
+  <div class="card"><div class="card-label">Total Overrides (30d)</div><div class="card-value blue" id="k-overrides">—</div></div>
+  <div class="card"><div class="card-label">Total Opportunities (30d)</div><div class="card-value green" id="k-opps">—</div></div>
+  <div class="card"><div class="card-label">Success Rate</div><div class="card-value" id="k-success">—</div></div>
+  <div class="card"><div class="card-label">Budget Today ($2,000)</div><div class="card-value orange" id="k-budget">—</div></div>
+</div>
+
+<div class="section">
+  <h2>Recent Overrides (PUT Actions)</h2>
+  <table id="tbl-overrides"><thead><tr>
+    <th>Date</th><th>Hotel</th><th>Room</th><th>Original</th><th>Override</th><th>Discount</th><th>Status</th>
+  </tr></thead><tbody id="ovr-body"><tr><td colspan="7" id="loading">Loading...</td></tr></tbody></table>
+</div>
+
+<div class="section">
+  <h2>Recent Opportunities (CALL Actions)</h2>
+  <table id="tbl-opps"><thead><tr>
+    <th>Date</th><th>Hotel</th><th>Room</th><th>Buy Price</th><th>Sell Target</th><th>Margin</th><th>Status</th>
+  </tr></thead><tbody id="opp-body"><tr><td colspan="7">Loading...</td></tr></tbody></table>
+</div>
+
+<div class="section">
+  <h2>Best Buy Opportunities (Top 5)</h2>
+  <table><thead><tr><th>Label</th><th>Hotel</th><th>Room</th><th>Price</th><th>vs ADR</th><th>Score</th></tr></thead>
+  <tbody id="buy-body"><tr><td colspan="6">Loading...</td></tr></tbody></table>
+</div>
+
+<div class="section">
+  <h2>Best Sell Alerts (Top 5)</h2>
+  <table><thead><tr><th>Label</th><th>Hotel</th><th>Room</th><th>Price</th><th>Fair Price</th><th>Score</th></tr></thead>
+  <tbody id="sell-body"><tr><td colspan="6">Loading...</td></tr></tbody></table>
+</div>
+
+<script>
+const BASE='/api/v1/salesoffice';
+async function api(path){
+  const r=await fetch(BASE+path);
+  if(!r.ok) return null;
+  return r.json();
+}
+
+async function load(){
+  // Override history
+  const ovr=await api('/override/history?days=30');
+  if(ovr){
+    document.getElementById('k-overrides').textContent=ovr.total||0;
+    const rate=ovr.total>0?Math.round((ovr.success||0)/(ovr.total)*100):0;
+    const rateEl=document.getElementById('k-success');
+    rateEl.textContent=rate+'%';
+    rateEl.className='card-value '+(rate>=80?'green':rate>=50?'orange':'red');
+
+    const items=ovr.recent||ovr.items||[];
+    const tbody=document.getElementById('ovr-body');
+    if(items.length){
+      tbody.innerHTML=items.slice(0,15).map(i=>`<tr>
+        <td>${(i.created_at||i.date||'').substring(0,16)}</td>
+        <td>${i.hotel_name||i.hotel||''}</td>
+        <td>${i.category||''}/${i.board||''}</td>
+        <td>$${(i.original_price||0).toFixed(0)}</td>
+        <td style="color:#ff9100">$${(i.override_price||i.target_price||0).toFixed(0)}</td>
+        <td>-$${(i.discount||0).toFixed(2)}</td>
+        <td>${i.status||''}</td>
+      </tr>`).join('');
+    }else{tbody.innerHTML='<tr><td colspan="7" style="color:#888">No overrides in last 30 days</td></tr>';}
+  }
+
+  // Opportunity history
+  const opp=await api('/opportunity/history?days=30');
+  if(opp){
+    document.getElementById('k-opps').textContent=opp.total||0;
+    const items=opp.recent||opp.items||[];
+    const tbody=document.getElementById('opp-body');
+    if(items.length){
+      tbody.innerHTML=items.slice(0,15).map(i=>`<tr>
+        <td>${(i.created_at||i.date||'').substring(0,16)}</td>
+        <td>${i.hotel_name||i.hotel||''}</td>
+        <td>${i.category||''}/${i.board||''}</td>
+        <td>$${(i.buy_price||i.price||0).toFixed(0)}</td>
+        <td style="color:#00c853">$${(i.sell_target||i.target||0).toFixed(0)}</td>
+        <td>${(i.margin_pct||0).toFixed(0)}%</td>
+        <td>${i.status||''}</td>
+      </tr>`).join('');
+    }else{tbody.innerHTML='<tr><td colspan="7" style="color:#888">No opportunities in last 30 days</td></tr>';}
+  }
+
+  // Budget (placeholder — from opportunity history)
+  document.getElementById('k-budget').textContent='$'+((opp?.today_spend||0).toFixed(0))+' / $2,000';
+
+  // Best Buy top 5
+  const buy=await api('/best-buy?top=5');
+  if(buy&&buy.opportunities){
+    const tbody=document.getElementById('buy-body');
+    tbody.innerHTML=buy.opportunities.map(o=>{
+      const c={'STRONG BUY':'#00c853','BUY':'#2979ff','WATCH':'#ff9100'}[o.label]||'#999';
+      return `<tr>
+        <td style="color:${c};font-weight:bold">${o.label}</td>
+        <td>${o.hotel_name}</td><td>${o.category}/${o.board}</td>
+        <td>$${o.price.toFixed(0)}</td><td style="color:#00c853">-${o.adr_gap_pct}%</td>
+        <td><b>${o.composite_score.toFixed(3)}</b></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Best Sell top 5
+  const sell=await api('/best-sell?top=5');
+  if(sell&&sell.overpriced){
+    const tbody=document.getElementById('sell-body');
+    tbody.innerHTML=sell.overpriced.map(o=>{
+      const c={'STRONG SELL':'#ff1744','SELL':'#ff9100','OVERPRICED':'#ffd600'}[o.label]||'#999';
+      return `<tr>
+        <td style="color:${c};font-weight:bold">${o.label}</td>
+        <td>${o.hotel_name}</td><td>${o.category}/${o.board}</td>
+        <td style="color:#ff1744">$${o.price.toFixed(0)}</td>
+        <td style="color:#66bb6a">$${o.fair_price.toFixed(0)}</td>
+        <td><b>${o.composite_score.toFixed(3)}</b></td>
+      </tr>`;
+    }).join('');
+  }
+}
+load();
+</script>
+</body></html>"""
+
+    return HTMLResponse(content=exec_html)
