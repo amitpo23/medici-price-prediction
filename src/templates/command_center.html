@@ -274,6 +274,17 @@ a{color:#42a5f5;text-decoration:none}
       <div id="signal-body" class="empty">Select an option</div>
     </div>
 
+    <!-- Best Buy / Best Sell -->
+    <div class="section" id="panel-buysell">
+      <div style="display:flex;gap:4px;margin-bottom:6px">
+        <button id="btn-buy" onclick="loadBuySell('buy')" style="flex:1;background:#00c853;color:#000;border:none;border-radius:3px;padding:4px;font-size:10px;font-weight:700;cursor:pointer">Best Buy</button>
+        <button id="btn-sell" onclick="loadBuySell('sell')" style="flex:1;background:#ff1744;color:#fff;border:none;border-radius:3px;padding:4px;font-size:10px;font-weight:700;cursor:pointer">Best Sell</button>
+      </div>
+      <div id="buysell-body" style="max-height:200px;overflow-y:auto;font-size:10px">
+        <div class="empty">Click Buy or Sell</div>
+      </div>
+    </div>
+
     <!-- Source Consensus -->
     <div class="section" id="panel-sources">
       <div class="section-title">Source Consensus</div>
@@ -424,6 +435,37 @@ async function api(path){
 function showToast(msg,ok){
   const t=document.createElement('div');t.className='toast '+(ok?'ok':'err');t.textContent=msg;
   document.body.appendChild(t);setTimeout(()=>t.remove(),4000);
+}
+
+/* ══════════ BEST BUY / SELL ══════════ */
+async function loadBuySell(mode){
+  const body=document.getElementById('buysell-body');
+  body.innerHTML='<div class="empty">Loading...</div>';
+  try{
+    const endpoint=mode==='buy'?'/best-buy?top=10':'/best-sell?top=10';
+    const data=await api(endpoint);
+    const items=data.opportunities||data.overpriced||[];
+    if(!items.length){body.innerHTML='<div class="empty">No data</div>';return;}
+    let html='<table style="width:100%;border-collapse:collapse">';
+    html+='<tr style="font-size:9px;color:var(--muted)"><th>Label</th><th>Hotel</th><th>Room</th><th>Price</th><th>Gap</th></tr>';
+    items.forEach(o=>{
+      const lbl=o.label||'';
+      const colors={'STRONG BUY':'#00c853','BUY':'#2979ff','WATCH':'#ff9100','AVOID':'#ff1744','STRONG SELL':'#ff1744','SELL':'#ff9100','OVERPRICED':'#ffd600','FAIR PRICE':'#66bb6a'};
+      const c=colors[lbl]||'#999';
+      const gap=mode==='buy'?('-'+o.adr_gap_pct+'%'):('+'+o.zone_over_pct+'%');
+      const gapColor=mode==='buy'?'#00c853':'#ff1744';
+      html+=`<tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+        <td style="color:${c};font-weight:700;font-size:9px;padding:2px 4px">${lbl}</td>
+        <td style="padding:2px 4px;font-size:10px">${o.hotel_name?.split(' ').slice(0,2).join(' ')}</td>
+        <td style="padding:2px 4px;font-size:10px;color:var(--muted)">${o.category}/${o.board}</td>
+        <td style="padding:2px 4px;font-family:monospace">$${Math.round(o.price)}</td>
+        <td style="padding:2px 4px;color:${gapColor};font-family:monospace;font-size:10px">${gap}</td>
+      </tr>`;
+    });
+    html+='</table>';
+    html+=`<div style="text-align:center;margin-top:4px"><a href="/dashboard/best-${mode}" target="_blank" style="color:var(--call);font-size:10px">Full Dashboard →</a></div>`;
+    body.innerHTML=html;
+  }catch(e){body.innerHTML='<div class="empty">Error: '+e.message+'</div>';}
 }
 
 /* ══════════ INIT ══════════ */
