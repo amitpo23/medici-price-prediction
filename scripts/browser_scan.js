@@ -557,13 +557,23 @@ function gitPush(files) {
 
     try {
         const cwd = PROJECT_ROOT;
+        // Pull first to avoid conflicts with other agents pushing
+        try { execSync('git pull --rebase origin main', { cwd }); } catch (_) {}
         execSync(`git add shared-reports/ scan-reports/`, { cwd });
         const msg = `chore: automated browser-price-check scan ${new Date().toISOString().split('T')[0]}`;
         execSync(`git commit -m "${msg}\n\nCo-Authored-By: browser_scan.js <noreply@medici.com>"`, { cwd });
         execSync('git push origin main', { cwd });
         log('Reports pushed to GitHub');
     } catch (err) {
-        log(`WARNING: git push failed: ${err.message}`);
+        // Retry once after pull
+        try {
+            const cwd = PROJECT_ROOT;
+            execSync('git pull --rebase origin main', { cwd });
+            execSync('git push origin main', { cwd });
+            log('Reports pushed to GitHub (after retry)');
+        } catch (err2) {
+            log(`WARNING: git push failed after retry: ${err2.message}`);
+        }
     }
 }
 
