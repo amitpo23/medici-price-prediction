@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 110 Hotels
 
-**Scan:** 2026-04-03 14:04:27 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
+**Scan:** 2026-04-03 21:50:51 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
 
 ## Summary
 
@@ -8,67 +8,65 @@
 |--------|-------|
 | Hotels scanned | 110 |
 | Knowaa appears | **32 (29%)** |
-| Knowaa #1 | **11 (10%)** |
-| Not listed | 54 (49%) |
-| No refundable offers | 24 (22%) |
+| Knowaa #1 | **25 (23%)** |
+| Not listed | 51 (46%) |
+| No refundable offers | 27 (25%) |
 
-## A. Knowaa is CHEAPEST (#1) — 11 hotels
+## A. Knowaa is CHEAPEST (#1) — 25 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | 2nd $ | 2nd Provider | Gap |
 |-------|-------|-----|-------|----------|-------|-------------|-----|
-| citizenM Miami Brickell hotel | 5079 | Standard | RO | **$150.04** | $152.97 | InnstantTravel | -$2.93 |
-| Embassy Suites by Hilton Miami International Airport | 5081 | Suite | RO | **$132.74** | $136.87 | InnstantTravel | -$4.13 |
+| Cadet Hotel | 5095 | Standard | RO | **$223.45** | $225.90 | InnstantTravel | -$2.45 |
+| Cadet Hotel | 5095 | Standard | RO | **$223.45** | $225.06 | goglobal | -$1.61 |
+| Cavalier Hotel | 5113 | Standard | RO | **$120.68** | $121.92 | InnstantTravel | -$1.24 |
+| citizenM Miami Brickell hotel | 5079 | Standard | RO | **$223.91** | $223.91 | goglobal | -$0.00 |
+| citizenM Miami Brickell hotel | 5079 | Standard | RO | **$150.04** | $153.22 | InnstantTravel | -$3.18 |
+| citizenM Miami South Beach | 5119 | Standard | RO | **$175.61** | $177.53 | InnstantTravel | -$1.92 |
+| citizenM Miami South Beach | 5119 | Standard | RO | **$152.80** | $154.35 | InnstantTravel | -$1.55 |
+| Crystal Beach Suites Hotel | 5100 | Suite | RO | **$167.16** | $168.99 | InnstantTravel | -$1.83 |
+| Crystal Beach Suites Hotel | 5100 | Suite | RO | **$152.49** | $154.05 | InnstantTravel | -$1.56 |
+| Dream South Beach | 5090 | Standard | RO | **$128.12** | $129.68 | InnstantTravel | -$1.56 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Suite | RO | **$132.74** | $140.70 | InnstantTravel | -$7.96 |
 | Embassy Suites by Hilton Miami International Airport | 5081 | Suite | RO | **$251.60** | $266.70 | InnstantTravel | -$15.10 |
-| Freehand Miami | 5107 | Superior | RO | **$104.57** | $104.73 | InnstantTravel | -$0.16 |
-| Hilton Miami Airport | 5083 | Standard | RO | **$214.62** | $216.98 | goglobal | -$2.36 |
-| Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$287.39** | $288.82 | InnstantTravel | -$1.43 |
-| Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$237.76** | $238.86 | InnstantTravel | -$1.10 |
-| Iberostar Berkeley Shore Hotel | 5092 | Standard | RO | **$226.65** | $228.96 | InnstantTravel | -$2.31 |
-| Iberostar Berkeley Shore Hotel | 5092 | Standard | RO | **$187.73** | $188.69 | InnstantTravel | -$0.96 |
-| Kimpton Hotel Palomar South Beach | 5116 | Standard | RO | **$180.06** | $182.75 | InnstantTravel | -$2.69 |
+| Eurostars Langford Hotel | 5098 | Deluxe | RO | **$128.18** | $128.18 | InnstantTravel | -$0.00 |
+| Freehand Miami | 5107 | Superior | RO | **$101.92** | $104.56 | InnstantTravel | -$2.64 |
+| Freehand Miami | 5107 | Superior | RO | **$95.29** | $95.29 | InnstantTravel | -$0.00 |
+| Hilton Miami Airport | 5083 | Standard | RO | **$214.62** | $219.16 | InnstantTravel | -$4.54 |
+| Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$278.15** | $278.82 | InnstantTravel | -$0.67 |
+| Hotel Riu Plaza Miami Beach | 5109 | Deluxe | BB | **$238.86** | $238.86 | InnstantTravel | -$0.00 |
+| Iberostar Berkeley Shore Hotel | 5092 | Standard | RO | **$188.34** | $188.69 | InnstantTravel | -$0.35 |
+| Kimpton Hotel Palomar South Beach | 5116 | Standard | RO | **$180.06** | $187.18 | InnstantTravel | -$7.12 |
+| Kimpton Hotel Palomar South Beach | 5116 | Standard | RO | **$124.40** | $125.67 | InnstantTravel | -$1.27 |
 | Marseilles Hotel | 5096 | Standard | RO | **$195.02** | $195.44 | InnstantTravel | -$0.42 |
+| Pullman Miami Airport | 5080 | Deluxe | RO | **$147.58** | $147.74 | InnstantTravel | -$0.16 |
+| Savoy Hotel | 5103 | Suite | RO | **$367.13** | $367.79 | InnstantTravel | -$0.66 |
+| The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | Standard | RO | **$142.28** | $150.82 | InnstantTravel | -$8.54 |
 
-## B. Knowaa Listed But Not Cheapest — 21 hotels
+## B. Knowaa Listed But Not Cheapest — 7 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | Cheapest $ | Provider | Rank | Gap |
 |-------|-------|-----|-------|----------|-----------|----------|------|-----|
-| Cadet Hotel | 5095 | Standard | RO | $223.45 | $223.44 | InnstantTravel | #2 | +$0.01 |
-| Cadet Hotel | 5095 | Standard | RO | $223.45 | $223.44 | InnstantTravel | #2 | +$0.01 |
-| Cavalier Hotel | 5113 | Standard | RO | $206.07 | $202.30 | InnstantTravel | #12 | +$3.77 |
-| Cavalier Hotel | 5113 | Standard | RO | $120.68 | $120.60 | InnstantTravel | #2 | +$0.08 |
-| citizenM Miami Brickell hotel | 5079 | Standard | RO | $231.17 | $231.16 | InnstantTravel | #4 | +$0.01 |
-| citizenM Miami South Beach | 5119 | Standard | RO | $175.61 | $175.60 | InnstantTravel | #3 | +$0.01 |
-| Crystal Beach Suites Hotel | 5100 | Suite | RO | $167.16 | $167.15 | InnstantTravel | #2 | +$0.01 |
-| Crystal Beach Suites Hotel | 5100 | Suite | RO | $152.49 | $152.38 | InnstantTravel | #2 | +$0.11 |
+| Cavalier Hotel | 5113 | Standard | RO | $208.33 | $202.83 | InnstantTravel | #13 | +$5.50 |
 | DoubleTree by Hilton Miami Doral | 5082 | Standard | RO | $174.33 | $174.32 | InnstantTravel | #19 | +$0.01 |
 | DoubleTree by Hilton Miami Doral | 5082 | Standard | RO | $174.33 | $174.32 | InnstantTravel | #19 | +$0.01 |
-| Dream South Beach | 5090 | Standard | RO | $128.12 | $128.11 | goglobal | #2 | +$0.01 |
-| Eurostars Langford Hotel | 5098 | Deluxe | RO | $128.19 | $128.18 | InnstantTravel | #3 | +$0.01 |
-| Freehand Miami | 5107 | Superior | RO | $96.96 | $96.95 | InnstantTravel | #2 | +$0.01 |
-| Kimpton Angler's Hotel | 5136 | Superior | RO | $349.72 | $315.09 | InnstantTravel | #16 | +$34.63 |
-| Kimpton Hotel Palomar South Beach | 5116 | Standard | RO | $124.40 | $124.31 | InnstantTravel | #2 | +$0.09 |
+| Kimpton Angler's Hotel | 5136 | Superior | RO | $349.72 | $318.55 | InnstantTravel | #14 | +$31.17 |
 | Loews Miami Beach Hotel | 5073 | Standard | RO | $352.65 | $352.64 | InnstantTravel | #3 | +$0.01 |
-| Loews Miami Beach Hotel | 5073 | Standard | RO | $352.94 | $352.68 | InnstantTravel | #2 | +$0.26 |
+| Loews Miami Beach Hotel | 5073 | Standard | RO | $356.81 | $356.56 | InnstantTravel | #2 | +$0.25 |
 | Marseilles Hotel | 5096 | Standard | RO | $254.20 | $254.19 | InnstantTravel | #3 | +$0.01 |
-| Pullman Miami Airport | 5080 | Superior | RO | $147.58 | $146.13 | InnstantTravel | #3 | +$1.45 |
-| Savoy Hotel | 5103 | Deluxe | RO | $367.13 | $365.73 | InnstantTravel | #2 | +$1.40 |
-| THE LANDON BAY HARBOR | 5138 | Deluxe | BB | $286.91 | $271.48 | InnstantTravel | #8 | +$15.43 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 54 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 51 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
-| Atwell Suites Miami Brickell | 5101 | $225.17 | InnstantTravel | Suite | BB |
-| Atwell Suites Miami Brickell | 5101 | $189.59 | InnstantTravel | Suite | BB |
-| Breakwater South Beach | 5110 | $165.10 | InnstantTravel | Superior | BB |
-| Breakwater South Beach | 5110 | $156.47 | InnstantTravel | Superior | BB |
-| citizenM Miami South Beach | 5119 | $152.67 | InnstantTravel | Standard | RO |
+| Atwell Suites Miami Brickell | 5101 | $183.51 | InnstantTravel | Suite | BB |
+| Breakwater South Beach | 5110 | $166.91 | InnstantTravel | Superior | BB |
+| Breakwater South Beach | 5110 | $156.47 | InnstantTravel | Superior, Standard | BB |
 | Dorchester Hotel | 5266 | $145.51 | InnstantTravel | Standard, Apartment | RO |
 | Dorchester Hotel | 5266 | $145.97 | InnstantTravel | Standard, Apartment, Suite | RO |
 | Dream South Beach | 5090 | $168.44 | InnstantTravel | Standard | RO |
-| Eurostars Langford Hotel | 5098 | $156.66 | InnstantTravel | Deluxe | RO |
-| Fontainebleau Miami Beach | 5268 | $538.99 | goglobal | Deluxe, Standard | RO |
-| Fontainebleau Miami Beach | 5268 | $313.57 | InnstantTravel | Deluxe | RO |
+| FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 | $92.33 | InnstantTravel | Superior | RO |
+| Fontainebleau Miami Beach | 5268 | $459.35 | goglobal | Deluxe, Standard | RO |
+| Fontainebleau Miami Beach | 5268 | $311.62 | goglobal | Deluxe | RO |
 | Gale Miami Hotel and Residences | 5278 | $160.47 | InnstantTravel | Standard | RO |
 | Gale Miami Hotel and Residences | 5278 | $161.16 | InnstantTravel | Standard, Suite | RO |
 | Gale South Beach | 5267 | $240.99 | InnstantTravel | Standard | RO |
@@ -76,48 +74,48 @@
 | Generator Miami | 5274 | $138.43 | InnstantTravel | Deluxe | RO |
 | Generator Miami | 5274 | $139.05 | InnstantTravel | Deluxe | RO |
 | Grand Beach Hotel Miami | 5124 | $203.84 | InnstantTravel | Suite | RO |
-| Hampton Inn Miami Beach - Mid Beach | 5106 | $233.85 | InnstantTravel | Deluxe, Standard | RO |
+| Hampton Inn Miami Beach - Mid Beach | 5106 | $234.09 | InnstantTravel | Deluxe, Standard | RO |
 | Hampton Inn Miami Beach - Mid Beach | 5106 | $144.27 | goglobal | Standard, Deluxe | RO |
-| Hilton Bentley Miami South Beach | 5093 | $425.22 | InnstantTravel | Standard | RO |
-| Hilton Cabana Miami Beach | 5115 | $162.98 | InnstantTravel | Standard, Deluxe | RO |
-| Hilton Cabana Miami Beach | 5115 | $132.57 | InnstantTravel | Standard, Deluxe | RO |
-| Hilton Garden Inn Miami South Beach | 5279 | $172.77 | InnstantTravel | Standard | RO |
-| Hilton Garden Inn Miami South Beach | 5279 | $154.61 | InnstantTravel | Standard | RO |
+| Hilton Bentley Miami South Beach | 5093 | $421.50 | InnstantTravel | Standard | RO |
+| Hilton Cabana Miami Beach | 5115 | $164.62 | InnstantTravel | Standard, Deluxe | RO |
+| Hilton Cabana Miami Beach | 5115 | $134.03 | InnstantTravel | Standard, Deluxe | RO |
+| Hilton Garden Inn Miami South Beach | 5279 | $174.05 | InnstantTravel | Standard | RO |
+| Hilton Garden Inn Miami South Beach | 5279 | $156.31 | InnstantTravel | Standard | RO |
 | Hilton Miami Airport | 5083 | $161.05 | InnstantTravel | Standard | RO |
 | HOLIDAY INN EXPRESS HOTEL & SUITES MIAMI | 5130 | $125.73 | InnstantTravel | Standard | BB |
 | Hotel Belleza | 5265 | $176.73 | InnstantTravel | Standard, Superior | RO |
 | Hotel Belleza | 5265 | $117.53 | InnstantTravel | Standard | RO |
-| Hôtel Gaythering | 5132 | $172.21 | InnstantTravel | Standard | BB |
-| Hôtel Gaythering | 5132 | $127.81 | InnstantTravel | Standard | BB |
-| Hyatt Centric South Beach Miami (City View) | 5097 | $264.88 | InnstantTravel | Standard | RO |
-| Hyatt Centric South Beach Miami (City View) | 5097 | $251.76 | InnstantTravel | Standard | RO |
-| InterContinental Miami | 5276 | $282.54 | InnstantTravel | Standard | RO |
-| InterContinental Miami | 5276 | $335.22 | InnstantTravel | Standard | RO |
-| Kimpton Angler's Hotel | 5136 | $373.37 | InnstantTravel | Deluxe | RO |
-| MB Hotel, Trademark Collection by Wyndham | 5105 | $143.37 | InnstantTravel | Standard | RO |
-| Miami International Airport Hotel | 5275 | $191.63 | InnstantTravel | Standard | RO |
-| Miami International Airport Hotel | 5275 | $176.13 | InnstantTravel | Standard | RO |
-| Notebook Miami Beach | 5102 | $82.05 | InnstantTravel | Standard | RO |
-| Notebook Miami Beach | 5102 | $81.01 | InnstantTravel | Standard | RO |
-| Pullman Miami Airport | 5080 | $164.95 | InnstantTravel | Superior | RO |
+| Hotel Croydon | 5131 | $154.00 | InnstantTravel | Standard | RO |
+| Hôtel Gaythering | 5132 | $173.37 | InnstantTravel | Standard, Deluxe | BB |
+| Hôtel Gaythering | 5132 | $129.22 | InnstantTravel | Standard | BB |
+| Iberostar Berkeley Shore Hotel | 5092 | $228.96 | InnstantTravel | Standard | RO |
+| InterContinental Miami | 5276 | $283.27 | InnstantTravel | Standard | RO |
+| Kimpton Angler's Hotel | 5136 | $376.23 | InnstantTravel | Deluxe | RO |
+| MB Hotel, Trademark Collection by Wyndham | 5105 | $144.94 | InnstantTravel | Standard | RO |
+| Miami International Airport Hotel | 5275 | $193.73 | InnstantTravel | Standard | RO |
+| Miami International Airport Hotel | 5275 | $178.07 | InnstantTravel | Standard | RO |
+| Notebook Miami Beach | 5102 | $82.95 | InnstantTravel | Standard | RO |
+| Notebook Miami Beach | 5102 | $81.90 | InnstantTravel | Standard | RO |
+| Pullman Miami Airport | 5080 | $148.03 | InnstantTravel | Superior | RO |
 | Savoy Hotel | 5103 | $387.35 | InnstantTravel | Deluxe | RO |
-| SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | $153.98 | InnstantTravel | Standard | RO |
+| SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | $153.50 | goglobal | Standard, Deluxe | RO |
 | SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | $145.42 | goglobal | Deluxe | RO |
 | Sole Miami, A Noble House Resort | 5104 | $176.63 | InnstantTravel | Standard | RO |
-| The Albion Hotel | 5117 | $103.28 | InnstantTravel | Dormitory, Standard, Deluxe, Apartment | RO |
-| The Albion Hotel | 5117 | $103.28 | InnstantTravel | Dormitory, Standard, Deluxe, Apartment | RO |
+| The Albion Hotel | 5117 | $104.41 | InnstantTravel | Dormitory, Standard, Deluxe, Apartment | RO |
+| The Albion Hotel | 5117 | $104.41 | InnstantTravel | Dormitory, Standard, Deluxe, Apartment | RO |
 | The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $304.25 | InnstantTravel | Standard | BB |
-| The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $282.64 | InnstantTravel | Standard | BB |
-| The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | $138.28 | InnstantTravel | Standard | RO |
+| The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $283.30 | InnstantTravel | Standard | BB |
 | The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | $118.42 | InnstantTravel | Standard | RO |
 | THE LANDON BAY HARBOR | 5138 | $185.85 | InnstantTravel | Deluxe, Standard | BB, RO |
-| The Villa Casa Casuarina | 5075 | $571.62 | InnstantTravel | Suite | RO |
+| THE LANDON BAY HARBOR | 5138 | $274.46 | InnstantTravel | Deluxe | BB |
+| The Villa Casa Casuarina | 5075 | $577.90 | InnstantTravel | Suite | RO |
 
-## D. No Refundable Offers — 24 hotels
+## D. No Refundable Offers — 27 hotels
 
 | Hotel | Venue |
 |-------|-------|
-| FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 |
+| Atwell Suites Miami Brickell | 5101 |
+| Eurostars Langford Hotel | 5098 |
 | FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 |
 | Grand Beach Hotel Miami | 5124 |
 | Hilton Bentley Miami South Beach | 5093 |
@@ -127,7 +125,9 @@
 | Hotel Chelsea | 5064 |
 | Hotel Chelsea | 5064 |
 | Hotel Croydon | 5131 |
-| Hotel Croydon | 5131 |
+| Hyatt Centric South Beach Miami (City View) | 5097 |
+| Hyatt Centric South Beach Miami (City View) | 5097 |
+| InterContinental Miami | 5276 |
 | MB Hotel, Trademark Collection by Wyndham | 5105 |
 | Metropole South Beach | 5141 |
 | Metropole South Beach | 5141 |
