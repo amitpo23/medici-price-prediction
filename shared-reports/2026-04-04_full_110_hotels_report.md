@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 110 Hotels
 
-**Scan:** 2026-04-04 14:03:59 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
+**Scan:** 2026-04-04 14:22:56 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
 
 ## Summary
 
@@ -9,8 +9,8 @@
 | Hotels scanned | 110 |
 | Knowaa appears | **35 (32%)** |
 | Knowaa #1 | **26 (24%)** |
-| Not listed | 44 (40%) |
-| No refundable offers | 31 (28%) |
+| Not listed | 45 (41%) |
+| No refundable offers | 30 (27%) |
 
 ## A. Knowaa is CHEAPEST (#1) — 26 hotels
 
@@ -25,7 +25,7 @@
 | citizenM Miami South Beach | 5119 | Standard | RO | **$152.80** | $154.35 | InnstantTravel | -$1.55 |
 | Crystal Beach Suites Hotel | 5100 | Suite | RO | **$167.16** | $168.99 | InnstantTravel | -$1.83 |
 | Crystal Beach Suites Hotel | 5100 | Suite | RO | **$152.49** | $154.05 | InnstantTravel | -$1.56 |
-| Dream South Beach | 5090 | Standard | RO | **$127.89** | $129.46 | InnstantTravel | -$1.57 |
+| Dream South Beach | 5090 | Standard | RO | **$127.89** | $127.89 | goglobal | -$0.00 |
 | Embassy Suites by Hilton Miami International Airport | 5081 | Suite | RO | **$132.74** | $139.14 | InnstantTravel | -$6.40 |
 | Embassy Suites by Hilton Miami International Airport | 5081 | Suite | RO | **$251.60** | $266.70 | InnstantTravel | -$15.10 |
 | Eurostars Langford Hotel | 5098 | Deluxe | RO | **$127.95** | $127.95 | InnstantTravel | -$0.00 |
@@ -54,20 +54,21 @@
 | Kimpton Angler's Hotel | 5136 | Superior | RO | $347.95 | $318.55 | InnstantTravel | #14 | +$29.40 |
 | Loews Miami Beach Hotel | 5073 | Standard | RO | $352.65 | $352.64 | InnstantTravel | #3 | +$0.01 |
 | Loews Miami Beach Hotel | 5073 | Standard | RO | $356.81 | $356.56 | InnstantTravel | #2 | +$0.25 |
-| Pullman Miami Airport | 5080 | Superior | RO | $145.66 | $138.07 | InnstantTravel | #15 | +$7.59 |
+| Pullman Miami Airport | 5080 | Superior | RO | $145.66 | $138.07 | InnstantTravel | #16 | +$7.59 |
 | THE LANDON BAY HARBOR | 5138 | Deluxe | BB | $280.50 | $274.46 | InnstantTravel | #4 | +$6.04 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 44 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 45 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
 | Atwell Suites Miami Brickell | 5101 | $182.08 | InnstantTravel | Suite | BB |
 | Breakwater South Beach | 5110 | $165.48 | InnstantTravel | Superior | BB |
-| Breakwater South Beach | 5110 | $156.04 | InnstantTravel | Superior, Standard | BB |
+| Breakwater South Beach | 5110 | $156.04 | InnstantTravel | Superior | BB |
 | Dorchester Hotel | 5266 | $145.67 | InnstantTravel | Standard, Apartment, Suite | RO |
 | Dorchester Hotel | 5266 | $146.59 | InnstantTravel | Standard, Apartment, Suite | RO |
 | Dream South Beach | 5090 | $164.70 | InnstantTravel | Standard | RO |
 | FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 | $92.97 | InnstantTravel | Superior | RO |
+| FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 | $126.34 | InnstantTravel | Superior | RO |
 | Fontainebleau Miami Beach | 5268 | $462.96 | InnstantTravel | Deluxe, Standard | RO |
 | Fontainebleau Miami Beach | 5268 | $311.08 | goglobal | Deluxe | RO |
 | Gale Miami Hotel and Residences | 5278 | $160.47 | InnstantTravel | Standard | RO |
@@ -106,13 +107,12 @@
 | THE LANDON BAY HARBOR | 5138 | $185.85 | InnstantTravel | Deluxe, Standard | BB, RO |
 | The Villa Casa Casuarina | 5075 | $577.90 | InnstantTravel | Suite | RO |
 
-## D. No Refundable Offers — 31 hotels
+## D. No Refundable Offers — 30 hotels
 
 | Hotel | Venue |
 |-------|-------|
 | Atwell Suites Miami Brickell | 5101 |
 | Eurostars Langford Hotel | 5098 |
-| FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 |
 | Grand Beach Hotel Miami | 5124 |
 | Hilton Bentley Miami South Beach | 5093 |
 | Hilton Bentley Miami South Beach | 5093 |
