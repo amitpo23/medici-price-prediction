@@ -20,7 +20,7 @@ const FLAGS = {
 };
 
 const PROJECT_ROOT = path.join(__dirname, '..');
-const SCAN_DATE = '2026-04-02';
+const SCAN_DATE = '2026-04-08';
 const CHECK_IN = '2026-04-20';
 const CHECK_OUT = '2026-04-21';
 
@@ -32,7 +32,7 @@ const INNSTANT = {
 };
 
 // Chromium binary path (pre-installed in environment)
-const CHROMIUM_PATH = '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome';
+const CHROMIUM_PATH = '/opt/pw-browsers/chromium-1208/chrome-linux64/chrome';
 
 // Extract proxy from env
 function getProxyConfig() {
