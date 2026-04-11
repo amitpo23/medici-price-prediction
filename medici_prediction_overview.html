@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medici Prediction Overview</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #121b2e;
+    --panel-2: #172236;
+    --border: #24314c;
+    --text: #e6edf7;
+    --muted: #8a9bb8;
+    --accent: #4f8cff;
+    --call: #22c55e;
+    --put: #ef4444;
+    --neutral: #f59e0b;
+    --ok: #22c55e;
+    --warn: #f59e0b;
+    --err: #ef4444;
+    --shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .dashboard { max-width: 1480px; margin: 0 auto; padding: 20px; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+  header h1 .tag {
+    font-size: 11px; background: var(--accent); color: #fff; padding: 2px 8px;
+    border-radius: 10px; vertical-align: middle; margin-left: 8px; font-weight: 500;
+  }
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .controls label { font-size: 12px; color: var(--muted); }
+  .controls input, .controls select {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: 13px; min-width: 180px;
+    font-family: inherit;
+  }
+  .controls input:focus, .controls select:focus { outline: none; border-color: var(--accent); }
+  .controls button {
+    background: var(--accent); color: #fff; border: none; border-radius: 6px;
+    padding: 8px 14px; font-size: 13px; cursor: pointer; font-weight: 500;
+    font-family: inherit;
+  }
+  .controls button:hover { filter: brightness(1.15); }
+  .controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status-bar {
+    display: flex; align-items: center; gap: 10px; font-size: 12px;
+    color: var(--muted); margin-bottom: 16px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--muted);
+  }
+  .status-dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .status-dot.err { background: var(--err); box-shadow: 0 0 8px var(--err); }
+  .status-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .kpis {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px; margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow);
+  }
+  .kpi .label {
+    font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.6px; margin-bottom: 6px;
+  }
+  .kpi .value { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+  .kpi .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .kpi.call .value { color: var(--call); }
+  .kpi.put .value { color: var(--put); }
+  .kpi.neutral .value { color: var(--neutral); }
+
+  .charts-grid {
+    display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-bottom: 20px;
+  }
+  .charts-grid-3 {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow);
+  }
+  .card h2 {
+    margin: 0 0 12px 0; font-size: 14px; font-weight: 600;
+    color: var(--text); display: flex; align-items: center; justify-content: space-between;
+  }
+  .card h2 .hint { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .chart-wrap { position: relative; height: 260px; }
+  .chart-wrap.small { height: 220px; }
+
+  table {
+    width: 100%; border-collapse: collapse; font-size: 12.5px;
+  }
+  table th, table td {
+    text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border);
+  }
+  table th {
+    color: var(--muted); font-weight: 500; text-transform: uppercase;
+    font-size: 10.5px; letter-spacing: 0.5px; cursor: pointer; user-select: none;
+    position: sticky; top: 0; background: var(--panel); z-index: 1;
+  }
+  table th:hover { color: var(--text); }
+  table th .arrow { display: inline-block; width: 10px; color: var(--accent); }
+  table tbody tr:hover { background: var(--panel-2); }
+  .table-wrap { max-height: 460px; overflow: auto; }
+  .pill {
+    display: inline-block; padding: 2px 9px; border-radius: 10px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.4px;
+  }
+  .pill.call { background: rgba(34,197,94,0.15); color: var(--call); }
+  .pill.put { background: rgba(239,68,68,0.15); color: var(--put); }
+  .pill.neutral { background: rgba(245,158,11,0.15); color: var(--neutral); }
+  .mono { font-family: "SF Mono", Menlo, Monaco, Consolas, monospace; }
+
+  .error-banner {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4);
+    color: #fca5a5; padding: 10px 14px; border-radius: 8px;
+    margin-bottom: 16px; font-size: 13px; display: none;
+  }
+  .error-banner.visible { display: block; }
+  .loading-overlay {
+    text-align: center; color: var(--muted); padding: 40px;
+  }
+
+  @media (max-width: 1100px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .charts-grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <header>
+    <h1>Medici Prediction Overview <span class="tag">LIVE</span></h1>
+    <div class="controls">
+      <label for="apiBase">API Base</label>
+      <input id="apiBase" type="text" value="" placeholder="(same origin)" />
+      <label for="apiKey">API Key</label>
+      <input id="apiKey" type="password" placeholder="optional" />
+      <label for="hotelFilter">Hotel</label>
+      <select id="hotelFilter"><option value="">All</option></select>
+      <label for="signalFilter">Signal</label>
+      <select id="signalFilter">
+        <option value="">All</option>
+        <option value="CALL">CALL</option>
+        <option value="PUT">PUT</option>
+        <option value="NEUTRAL">NEUTRAL</option>
+      </select>
+      <button id="refreshBtn" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <div class="status-bar">
+    <div id="statusDot" class="status-dot"></div>
+    <span id="statusText">Idle</span>
+    <span id="lastUpdated" style="margin-left:auto;"></span>
+  </div>
+
+  <div id="errorBanner" class="error-banner"></div>
+
+  <section class="kpis" id="kpis">
+    <div class="kpi"><div class="label">Total Options</div><div class="value" id="kpiTotal">—</div><div class="sub" id="kpiTotalSub">rooms scanned</div></div>
+    <div class="kpi call"><div class="label">CALL Signals</div><div class="value" id="kpiCall">—</div><div class="sub" id="kpiCallSub">buy recommendations</div></div>
+    <div class="kpi put"><div class="label">PUT Signals</div><div class="value" id="kpiPut">—</div><div class="sub" id="kpiPutSub">sell recommendations</div></div>
+    <div class="kpi neutral"><div class="label">NEUTRAL</div><div class="value" id="kpiNeutral">—</div><div class="sub" id="kpiNeutralSub">hold</div></div>
+    <div class="kpi"><div class="label">Avg Confidence</div><div class="value" id="kpiConf">—</div><div class="sub">across active signals</div></div>
+    <div class="kpi"><div class="label">Dir. Accuracy (30d)</div><div class="value" id="kpiAcc">—</div><div class="sub" id="kpiAccSub">from /accuracy/summary</div></div>
+    <div class="kpi"><div class="label">Data Quality</div><div class="value" id="kpiDQ">—</div><div class="sub" id="kpiDQSub">composite score</div></div>
+  </section>
+
+  <section class="charts-grid">
+    <div class="card">
+      <h2>Accuracy Trend <span class="hint">Rolling 7d / 30d directional accuracy</span></h2>
+      <div class="chart-wrap"><canvas id="chartTrend"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Signal Distribution <span class="hint">Active positions</span></h2>
+      <div class="chart-wrap"><canvas id="chartSignals"></canvas></div>
+    </div>
+  </section>
+
+  <section class="charts-grid-3">
+    <div class="card">
+      <h2>Signals by Hotel</h2>
+      <div class="chart-wrap small"><canvas id="chartByHotel"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Confidence Distribution</h2>
+      <div class="chart-wrap small"><canvas id="chartConf"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Accuracy by Signal Class</h2>
+      <div class="chart-wrap small"><canvas id="chartAccSignal"></canvas></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Options Detail <span class="hint" id="tableCount">0 rows</span></h2>
+    <div class="table-wrap">
+      <table id="optionsTable">
+        <thead>
+          <tr>
+            <th data-sort="hotel">Hotel <span class="arrow"></span></th>
+            <th data-sort="detail_id">ID <span class="arrow"></span></th>
+            <th data-sort="t_days">T (days) <span class="arrow"></span></th>
+            <th data-sort="signal">Signal <span class="arrow"></span></th>
+            <th data-sort="confidence">Confidence <span class="arrow"></span></th>
+            <th data-sort="current_price">Current <span class="arrow"></span></th>
+            <th data-sort="predicted_price">Predicted <span class="arrow"></span></th>
+            <th data-sort="delta_pct">Δ% <span class="arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="optionsBody">
+          <tr><td colspan="8" class="loading-overlay">Click Refresh to load data from the Medici API.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<script>
+'use strict';
+
+// ─── State ────────────────────────────────────────────────────────────
+const state = {
+  options: [],
+  filtered: [],
+  sort: { key: 'confidence', dir: 'desc' },
+  charts: {},
+  accuracy: null,
+  accuracyBySignal: null,
+  accuracyByHotel: null,
+  accuracyTrend: null,
+  dataQuality: null,
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────
+function setStatus(kind, text) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot ' + kind;
+  document.getElementById('statusText').textContent = text;
+}
+function showError(msg) {
+  const el = document.getElementById('errorBanner');
+  if (!msg) { el.classList.remove('visible'); el.textContent = ''; return; }
+  el.classList.add('visible');
+  el.textContent = msg;
+}
+function fmtNum(n, digits = 0) {
+  if (n == null || Number.isNaN(n)) return '—';
+  return Number(n).toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+function fmtPct(n, digits = 1) {
+  if (n == null || Number.isNaN(n)) return '—';
+  // Accept either 0-1 or 0-100
+  const v = Math.abs(n) <= 1 ? n * 100 : n;
+  return v.toFixed(digits) + '%';
+}
+function fmtMoney(n) {
+  if (n == null || Number.isNaN(n)) return '—';
+  return '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+function pick(obj, keys, fallback = null) {
+  if (!obj) return fallback;
+  for (const k of keys) {
+    if (obj[k] != null) return obj[k];
+  }
+  return fallback;
+}
+
+async function apiGet(path) {
+  const base = document.getElementById('apiBase').value.replace(/\/$/, '');
+  const key = document.getElementById('apiKey').value.trim();
+  const headers = { 'Accept': 'application/json' };
+  if (key) headers['X-API-Key'] = key;
+  const url = base + path;
+  const res = await fetch(url, { headers, mode: 'cors' });
+  if (!res.ok) {
+    throw new Error(path + ' → HTTP ' + res.status);
+  }
+  return res.json();
+}
+
+// ─── Normalization ────────────────────────────────────────────────────
+function normalizeOption(raw) {
+  // Signal: Medici uses `option_signal`; fallbacks cover alt schemas
+  const signal = (
+    pick(raw, ['option_signal', 'signal', 'decision', 'action', 'recommendation']) ||
+    (raw.option_levels && raw.option_levels.direction) ||
+    'NEUTRAL'
+  ).toString().toUpperCase();
+
+  const current = Number(pick(raw, ['current_price', 'currentPrice', 'price_current', 'current', 'spot', 'spot_price']));
+  const predicted = Number(pick(raw, [
+    'predicted_checkin_price', 'predicted_price', 'predictedPrice',
+    'forecast', 'forecast_price', 'expected_price', 'target_price', 'mean', 'predicted',
+  ]));
+
+  // Delta: prefer explicit `expected_change_pct`, otherwise derive from prices
+  let delta = null;
+  const deltaRaw = pick(raw, ['expected_change_pct', 'delta_pct', 'deltaPct', 'expected_return', 'expected_return_pct']);
+  if (deltaRaw != null) {
+    delta = Number(deltaRaw);
+  } else if (Number.isFinite(current) && Number.isFinite(predicted) && current > 0) {
+    delta = ((predicted - current) / current) * 100;
+  }
+
+  // Confidence lives under quality.signal_confidence_mean (0-1) in Medici schema
+  const quality = raw.quality || {};
+  const confRaw = pick(raw, ['confidence', 'conf', 'confidence_score']) ??
+                  pick(quality, ['signal_confidence_mean', 'score', 'confidence']);
+  const conf = confRaw == null ? null : Number(confRaw);
+
+  return {
+    hotel: pick(raw, ['hotel_name', 'hotel', 'hotelName', 'property', 'property_name'], '—'),
+    hotel_id: pick(raw, ['hotel_id', 'hotelId', 'property_id']),
+    detail_id: pick(raw, ['detail_id', 'detailId', 'id', 'option_id'], '—'),
+    t_days: Number(pick(raw, ['t_horizon_days', 'days_to_checkin', 't_days', 'tDays', 't', 'days_out', 'dte'])),
+    signal,
+    confidence: Number.isFinite(conf) ? conf : null,
+    current_price: Number.isFinite(current) ? current : null,
+    predicted_price: Number.isFinite(predicted) ? predicted : null,
+    delta_pct: Number.isFinite(delta) ? delta : null,
+    _raw: raw,
+  };
+}
+
+function extractOptionsArray(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  // Medici /options returns { rows: [...] }
+  for (const key of ['rows', 'data', 'options', 'items', 'results']) {
+    if (Array.isArray(payload[key])) return payload[key];
+    if (payload[key] && Array.isArray(payload[key].items)) return payload[key].items;
+    if (payload[key] && Array.isArray(payload[key].rows)) return payload[key].rows;
+  }
+  return [];
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────
+function renderKPIs() {
+  const opts = state.filtered;
+  const total = opts.length;
+  const counts = { CALL: 0, PUT: 0, NEUTRAL: 0 };
+  let confSum = 0, confN = 0;
+  for (const o of opts) {
+    counts[o.signal] = (counts[o.signal] || 0) + 1;
+    if (o.confidence != null) { confSum += o.confidence; confN++; }
+  }
+  document.getElementById('kpiTotal').textContent = fmtNum(total);
+  document.getElementById('kpiCall').textContent = fmtNum(counts.CALL);
+  document.getElementById('kpiPut').textContent = fmtNum(counts.PUT);
+  document.getElementById('kpiNeutral').textContent = fmtNum(counts.NEUTRAL);
+  const avgConf = confN ? confSum / confN : null;
+  document.getElementById('kpiConf').textContent = avgConf == null ? '—' : fmtPct(avgConf);
+
+  const acc = state.accuracy || {};
+  const dirAcc = pick(acc, ['directional_accuracy', 'directionalAccuracy', 'accuracy', 'dir_accuracy']);
+  document.getElementById('kpiAcc').textContent = dirAcc == null ? '—' : fmtPct(dirAcc);
+  const scored = pick(acc, ['scored_count', 'n', 'count', 'total']);
+  document.getElementById('kpiAccSub').textContent = scored != null ? (fmtNum(scored) + ' scored preds') : 'from /accuracy/summary';
+
+  const dq = state.dataQuality || {};
+  const score = pick(dq, ['overall_score', 'score', 'composite', 'quality_score']);
+  document.getElementById('kpiDQ').textContent = score == null ? '—' : fmtPct(score);
+  const srcCount = pick(dq, ['sources_total', 'n_sources', 'total_sources']);
+  if (srcCount != null) document.getElementById('kpiDQSub').textContent = srcCount + ' data sources';
+}
+
+function destroyChart(key) {
+  if (state.charts[key]) { state.charts[key].destroy(); state.charts[key] = null; }
+}
+
+const chartCommon = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { labels: { color: '#e6edf7', font: { size: 11 } } },
+    tooltip: { backgroundColor: '#172236', borderColor: '#24314c', borderWidth: 1 },
+  },
+  scales: {
+    x: { ticks: { color: '#8a9bb8', font: { size: 10 } }, grid: { color: '#24314c' } },
+    y: { ticks: { color: '#8a9bb8', font: { size: 10 } }, grid: { color: '#24314c' } },
+  },
+};
+
+function renderSignalChart() {
+  destroyChart('signals');
+  const counts = { CALL: 0, PUT: 0, NEUTRAL: 0 };
+  for (const o of state.filtered) counts[o.signal] = (counts[o.signal] || 0) + 1;
+  const ctx = document.getElementById('chartSignals').getContext('2d');
+  state.charts.signals = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['CALL', 'PUT', 'NEUTRAL'],
+      datasets: [{
+        data: [counts.CALL, counts.PUT, counts.NEUTRAL],
+        backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
+        borderColor: '#121b2e',
+        borderWidth: 2,
+      }],
+    },
+    options: { ...chartCommon, scales: {}, cutout: '62%' },
+  });
+}
+
+function renderTrendChart() {
+  destroyChart('trend');
+  const trend = state.accuracyTrend;
+  let labels = [], d7 = [], d30 = [];
+  if (trend) {
+    const rows = Array.isArray(trend) ? trend : (trend.trend || trend.data || trend.points || []);
+    for (const r of rows) {
+      labels.push(pick(r, ['date', 'day', 'timestamp'], ''));
+      d7.push(Number(pick(r, ['rolling_7d', 'd7', 'accuracy_7d'])));
+      d30.push(Number(pick(r, ['rolling_30d', 'd30', 'accuracy_30d'])));
+    }
+  }
+  const ctx = document.getElementById('chartTrend').getContext('2d');
+  state.charts.trend = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '7-day', data: d7, borderColor: '#4f8cff', backgroundColor: 'rgba(79,140,255,0.15)', tension: 0.3, fill: true, pointRadius: 2 },
+        { label: '30-day', data: d30, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', tension: 0.3, fill: false, pointRadius: 2 },
+      ],
+    },
+    options: chartCommon,
+  });
+}
+
+function renderByHotelChart() {
+  destroyChart('byHotel');
+  const buckets = {};
+  for (const o of state.filtered) {
+    const h = o.hotel || '—';
+    if (!buckets[h]) buckets[h] = { CALL: 0, PUT: 0, NEUTRAL: 0 };
+    buckets[h][o.signal] = (buckets[h][o.signal] || 0) + 1;
+  }
+  const labels = Object.keys(buckets).sort();
+  const call = labels.map(l => buckets[l].CALL);
+  const put = labels.map(l => buckets[l].PUT);
+  const neu = labels.map(l => buckets[l].NEUTRAL);
+  const ctx = document.getElementById('chartByHotel').getContext('2d');
+  state.charts.byHotel = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'CALL', data: call, backgroundColor: '#22c55e' },
+        { label: 'NEUTRAL', data: neu, backgroundColor: '#f59e0b' },
+        { label: 'PUT', data: put, backgroundColor: '#ef4444' },
+      ],
+    },
+    options: {
+      ...chartCommon,
+      scales: {
+        x: { ...chartCommon.scales.x, stacked: true },
+        y: { ...chartCommon.scales.y, stacked: true },
+      },
+    },
+  });
+}
+
+function renderConfChart() {
+  destroyChart('conf');
+  const bins = [0, 0, 0, 0, 0]; // 0-20, 20-40, 40-60, 60-80, 80-100
+  for (const o of state.filtered) {
+    if (o.confidence == null) continue;
+    const v = Math.abs(o.confidence) <= 1 ? o.confidence * 100 : o.confidence;
+    const idx = Math.min(4, Math.max(0, Math.floor(v / 20)));
+    bins[idx]++;
+  }
+  const ctx = document.getElementById('chartConf').getContext('2d');
+  state.charts.conf = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['0-20%', '20-40%', '40-60%', '60-80%', '80-100%'],
+      datasets: [{ label: 'Count', data: bins, backgroundColor: '#4f8cff' }],
+    },
+    options: { ...chartCommon, plugins: { ...chartCommon.plugins, legend: { display: false } } },
+  });
+}
+
+function renderAccSignalChart() {
+  destroyChart('accSignal');
+  const src = state.accuracyBySignal || {};
+  const rows = Array.isArray(src) ? src : (src.by_signal || src.data || src);
+  const labels = [], precision = [], recall = [];
+  if (Array.isArray(rows)) {
+    for (const r of rows) {
+      labels.push((pick(r, ['signal', 'class', 'label']) || '').toString());
+      precision.push(Number(pick(r, ['precision', 'prec'])) || 0);
+      recall.push(Number(pick(r, ['recall', 'rec'])) || 0);
+    }
+  } else if (typeof rows === 'object') {
+    for (const k of Object.keys(rows)) {
+      const v = rows[k];
+      if (v && typeof v === 'object') {
+        labels.push(k);
+        precision.push(Number(pick(v, ['precision', 'prec'])) || 0);
+        recall.push(Number(pick(v, ['recall', 'rec'])) || 0);
+      }
+    }
+  }
+  const ctx = document.getElementById('chartAccSignal').getContext('2d');
+  state.charts.accSignal = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Precision', data: precision.map(v => Math.abs(v) <= 1 ? v * 100 : v), backgroundColor: '#4f8cff' },
+        { label: 'Recall', data: recall.map(v => Math.abs(v) <= 1 ? v * 100 : v), backgroundColor: '#22c55e' },
+      ],
+    },
+    options: {
+      ...chartCommon,
+      scales: {
+        ...chartCommon.scales,
+        y: { ...chartCommon.scales.y, suggestedMax: 100, ticks: { ...chartCommon.scales.y.ticks, callback: v => v + '%' } },
+      },
+    },
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('optionsBody');
+  const rows = state.filtered.slice();
+  const { key, dir } = state.sort;
+  rows.sort((a, b) => {
+    const av = a[key], bv = b[key];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === 'number' && typeof bv === 'number') return dir === 'asc' ? av - bv : bv - av;
+    return dir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="loading-overlay">No rows match the current filters.</td></tr>';
+  } else {
+    tbody.innerHTML = rows.slice(0, 500).map(r => {
+      const sigClass = r.signal.toLowerCase();
+      const deltaStr = r.delta_pct == null ? '—' :
+        (r.delta_pct >= 0 ? '+' : '') + r.delta_pct.toFixed(2) + '%';
+      return `
+        <tr>
+          <td>${escapeHtml(String(r.hotel))}</td>
+          <td class="mono">${escapeHtml(String(r.detail_id))}</td>
+          <td class="mono">${Number.isFinite(r.t_days) ? r.t_days : '—'}</td>
+          <td><span class="pill ${sigClass}">${r.signal}</span></td>
+          <td class="mono">${r.confidence == null ? '—' : fmtPct(r.confidence)}</td>
+          <td class="mono">${fmtMoney(r.current_price)}</td>
+          <td class="mono">${fmtMoney(r.predicted_price)}</td>
+          <td class="mono" style="color:${r.delta_pct == null ? 'var(--muted)' : (r.delta_pct >= 0 ? 'var(--call)' : 'var(--put)')}">${deltaStr}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+  const countEl = document.getElementById('tableCount');
+  countEl.textContent = rows.length + ' rows' + (rows.length > 500 ? ' (showing first 500)' : '');
+
+  // Update header arrows
+  document.querySelectorAll('#optionsTable th[data-sort]').forEach(th => {
+    const arrow = th.querySelector('.arrow');
+    arrow.textContent = th.dataset.sort === key ? (dir === 'asc' ? '▲' : '▼') : '';
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ─── Filters ──────────────────────────────────────────────────────────
+function applyFilters() {
+  const hotel = document.getElementById('hotelFilter').value;
+  const signal = document.getElementById('signalFilter').value;
+  state.filtered = state.options.filter(o => {
+    if (hotel && String(o.hotel) !== hotel) return false;
+    if (signal && o.signal !== signal) return false;
+    return true;
+  });
+  renderKPIs();
+  renderSignalChart();
+  renderByHotelChart();
+  renderConfChart();
+  renderTable();
+}
+
+function populateHotelFilter() {
+  const sel = document.getElementById('hotelFilter');
+  const prev = sel.value;
+  const hotels = Array.from(new Set(state.options.map(o => String(o.hotel)).filter(h => h && h !== '—'))).sort();
+  sel.innerHTML = '<option value="">All</option>' + hotels.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
+  if (prev && hotels.includes(prev)) sel.value = prev;
+}
+
+// ─── Load ─────────────────────────────────────────────────────────────
+async function loadAll() {
+  setStatus('loading', 'Fetching from Medici API…');
+  showError('');
+  document.getElementById('refreshBtn').disabled = true;
+  const errors = [];
+
+  try {
+    const optsPayload = await apiGet('/api/v1/salesoffice/options?profile=lite&include_chart=false&all=true');
+    const rawOpts = extractOptionsArray(optsPayload);
+    state.options = rawOpts.map(normalizeOption);
+    populateHotelFilter();
+  } catch (e) {
+    errors.push(e.message);
+    state.options = [];
+  }
+
+  // Non-critical endpoints — individual failures don't block dashboard
+  const extras = await Promise.allSettled([
+    apiGet('/api/v1/salesoffice/accuracy/summary?days=30'),
+    apiGet('/api/v1/salesoffice/accuracy/by-signal'),
+    apiGet('/api/v1/salesoffice/accuracy/by-hotel'),
+    apiGet('/api/v1/salesoffice/accuracy/trend'),
+    apiGet('/api/v1/salesoffice/data-quality/status'),
+  ]);
+  state.accuracy         = extras[0].status === 'fulfilled' ? extras[0].value : null;
+  state.accuracyBySignal = extras[1].status === 'fulfilled' ? extras[1].value : null;
+  state.accuracyByHotel  = extras[2].status === 'fulfilled' ? extras[2].value : null;
+  state.accuracyTrend    = extras[3].status === 'fulfilled' ? extras[3].value : null;
+  state.dataQuality      = extras[4].status === 'fulfilled' ? extras[4].value : null;
+  extras.forEach((e, i) => {
+    if (e.status === 'rejected') errors.push(['accuracy/summary','accuracy/by-signal','accuracy/by-hotel','accuracy/trend','data-quality/status'][i] + ': ' + e.reason.message);
+  });
+
+  applyFilters();
+  renderTrendChart();
+  renderAccSignalChart();
+
+  document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  document.getElementById('refreshBtn').disabled = false;
+
+  if (errors.length && state.options.length === 0) {
+    setStatus('err', 'Failed to load options');
+    showError('API errors: ' + errors.join(' • ') + '. Check the API Base URL, your network (CORS), and API key.');
+  } else if (errors.length) {
+    setStatus('ok', 'Loaded with partial data');
+    showError('Some endpoints failed: ' + errors.join(' • '));
+  } else {
+    setStatus('ok', 'Live — ' + state.options.length + ' options loaded');
+  }
+}
+
+// ─── Wire up ──────────────────────────────────────────────────────────
+document.getElementById('refreshBtn').addEventListener('click', loadAll);
+document.getElementById('hotelFilter').addEventListener('change', applyFilters);
+document.getElementById('signalFilter').addEventListener('change', applyFilters);
+document.querySelectorAll('#optionsTable th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    if (state.sort.key === key) {
+      state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      state.sort.key = key;
+      state.sort.dir = 'desc';
+    }
+    renderTable();
+  });
+});
+
+// Initial auto-load
+window.addEventListener('DOMContentLoaded', () => {
+  setStatus('', 'Ready — click Refresh or waiting for initial load…');
+  loadAll();
+});
+</script>
+</body>
+</html>

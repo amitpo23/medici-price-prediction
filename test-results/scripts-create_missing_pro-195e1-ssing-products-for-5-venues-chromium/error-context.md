@@ -1,0 +1,210 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner:
+    - navigation [ref=e2]:
+      - link [ref=e3] [cursor=pointer]:
+        - /url: /
+        - img [ref=e4]
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]:
+            - combobox [ref=e9]
+            - 'combobox "Pullman Miami Airport #5080" [ref=e12] [cursor=pointer]':
+              - 'textbox "Pullman Miami Airport #5080" [ref=e13]'
+          - generic [ref=e14]: 16:51
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - generic [ref=e17] [cursor=pointer]: Medici Live / Zvi
+            - text: 
+          - button [ref=e20] [cursor=pointer]
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - text: 
+      - generic [ref=e25] [cursor=pointer]:
+        - generic [ref=e26]: 
+        - generic [ref=e27]: Com.
+      - generic [ref=e28] [cursor=pointer]:
+        - generic [ref=e29]: 
+        - generic [ref=e30]: Bookings
+      - generic [ref=e31] [cursor=pointer]:
+        - generic [ref=e32]: 
+        - generic [ref=e33]: Rates
+      - generic [ref=e34] [cursor=pointer]:
+        - generic [ref=e35]: 
+        - generic [ref=e36]: Accounting
+      - generic [ref=e37] [cursor=pointer]:
+        - generic [ref=e38]: 
+        - generic [ref=e39]: Reports
+      - generic [ref=e40] [cursor=pointer]:
+        - generic [ref=e41]: 
+        - generic [ref=e42]: Policies
+      - generic [ref=e43] [cursor=pointer]:
+        - generic [ref=e44]: 
+        - generic [ref=e45]: Settings
+    - text:                                                                                                                             
+    - generic [ref=e47]:
+      - navigation "breadcrumb" [ref=e48]:
+        - generic [ref=e50]:
+          - link "" [ref=e52] [cursor=pointer]:
+            - /url: /products
+            - generic [ref=e53]: 
+          - generic [ref=e54]:
+            - text: /
+            - link:
+              - /url: /products
+          - generic [ref=e55]: / New Product
+      - generic [ref=e58]:
+        - heading " New Product" [level=5] [ref=e59]:
+          - generic [ref=e60]: 
+          - text: New Product
+        - generic [ref=e61]:
+          - tablist [ref=e63]:
+            - listitem [ref=e64]:
+              - tab "General" [ref=e65] [cursor=pointer]
+            - listitem [ref=e66]:
+              - tab "Locations" [ref=e67] [cursor=pointer]
+            - listitem [ref=e68]:
+              - tab "Descriptions" [ref=e69] [cursor=pointer]
+            - listitem [ref=e70]:
+              - tab "Images" [ref=e71] [cursor=pointer]
+            - listitem [ref=e72]:
+              - tab "Meta Objects" [ref=e73] [cursor=pointer]
+          - form [ref=e75]:
+            - tabpanel [ref=e76]:
+              - generic [ref=e77]:
+                - generic [ref=e78]:
+                  - generic [ref=e79]:
+                    - generic [ref=e80]: Product Type
+                    - combobox "Product Type" [ref=e82]:
+                      - option "Meals"
+                      - option "Drink"
+                      - option "Food"
+                      - option "Ticket"
+                      - option "Laundry"
+                      - option "Parking"
+                      - option "Room" [selected]
+                      - option "Damages"
+                      - option "Rentals"
+                      - option "SPA"
+                      - option "Extra's"
+                      - option "Minibar"
+                      - option "Bar"
+                      - option "Restaurant"
+                      - option "Event"
+                      - option "Retail"
+                      - option "Transportation"
+                      - option "Business"
+                      - option "Items"
+                      - option "Room With Meal plan"
+                      - option "Tax"
+                  - generic [ref=e83]:
+                    - generic [ref=e84]: Title
+                    - textbox "Title" [ref=e86]
+                  - generic [ref=e87]:
+                    - generic [ref=e88]: Short Name
+                    - textbox "Short Name" [ref=e90]
+                - separator [ref=e91]
+                - generic [ref=e92]:
+                  - generic [ref=e93]:
+                    - generic [ref=e94]: Base Price
+                    - generic [ref=e95]:
+                      - generic [ref=e97]: AED
+                      - textbox "Base Price" [ref=e98]:
+                        - /placeholder: Base price
+                      - textbox "Should be less than the base price" [ref=e99]:
+                        - /placeholder: Min price
+                      - textbox "Real product price" [ref=e100]:
+                        - /placeholder: Real price
+                      - generic [ref=e101]:
+                        - combobox [ref=e102]
+                        - combobox "Emirati Dirham (AED)" [ref=e105] [cursor=pointer]:
+                          - textbox "Emirati Dirham (AED)" [ref=e106]
+                  - generic [ref=e107]:
+                    - generic [ref=e108]: Price Per
+                    - generic [ref=e110]:
+                      - button "Person" [ref=e111] [cursor=pointer]
+                      - button "Product" [ref=e112] [cursor=pointer]
+                  - generic [ref=e113]:
+                    - generic [ref=e114]: Base Quantity
+                    - generic [ref=e116]:
+                      - button "Actual Arbitrary" [ref=e117] [cursor=pointer]:
+                        - generic [ref=e118]:
+                          - generic [ref=e119]: Actual
+                          - generic [ref=e120]: Arbitrary
+                      - generic [ref=e122]:
+                        - textbox "Base Quantity" [disabled] [ref=e123]:
+                          - /placeholder: "0"
+                        - generic [ref=e125] [cursor=pointer]: ∞
+                  - generic [ref=e126]:
+                    - generic [ref=e127]: Affected By
+                    - generic [ref=e128]:
+                      - combobox [ref=e129]
+                      - combobox "-- None --" [ref=e132] [cursor=pointer]:
+                        - textbox "-- None --" [ref=e133]
+                - separator [ref=e134]
+                - generic [ref=e135]:
+                  - generic [ref=e136]: Basic Occupancy
+                  - textbox "Basic Occupancy" [ref=e138]: "1"
+                - separator [ref=e139]
+                - generic [ref=e140]:
+                  - generic [ref=e141]:
+                    - generic [ref=e142]: Start Date
+                    - generic [ref=e144]:
+                      - textbox "Start Date" [ref=e145]
+                      - generic [ref=e146]:
+                        - generic [ref=e148]: 
+                        - generic [ref=e150]: 
+                  - generic [ref=e151]:
+                    - generic [ref=e152]: End Date
+                    - generic [ref=e154]:
+                      - textbox "End Date" [ref=e155]
+                      - generic [ref=e156]:
+                        - generic [ref=e158]: 
+                        - generic [ref=e160]: 
+                  - generic [ref=e161]:
+                    - generic [ref=e162]: On Request?
+                    - button "YES NO" [ref=e164] [cursor=pointer]:
+                      - generic [ref=e165]:
+                        - generic [ref=e166]: "YES"
+                        - generic [ref=e167]: "NO"
+                  - generic [ref=e169]:
+                    - generic [ref=e170]: Exclusive
+                    - combobox "Exclusive" [ref=e172]:
+                      - option "No"
+                      - option "Yes" [selected]
+                  - generic [ref=e173]:
+                    - generic [ref=e174]: Tags
+                    - textbox "Tags separated by comma" [ref=e177]
+                  - generic [ref=e178]:
+                    - generic [ref=e179]: Product order
+                    - textbox "Product order" [ref=e181]: "0"
+                  - generic [ref=e182]:
+                    - generic [ref=e183]: Status
+                    - combobox "Status" [ref=e185]:
+                      - option "Disabled"
+                      - option "Active" [selected]
+                - group "Product Details" [ref=e186]:
+                  - generic [ref=e187]: Product Details
+                  - separator [ref=e188]
+                  - generic [ref=e190]:
+                    - generic [ref=e191]: PMS Exchange code
+                    - textbox "PMS Exchange code" [ref=e193]
+            - text:           
+            - generic [ref=e194]:
+              - generic [ref=e195]:
+                - generic [ref=e196]: 
+                - text: Do not press the 'Submit' button, unless you filled in all the tabs.
+              - generic [ref=e197]:
+                - link " Cancel" [ref=e198] [cursor=pointer]:
+                  - /url: /products
+                  - generic [ref=e199]: 
+                  - text: Cancel
+                - button " Submit" [ref=e200] [cursor=pointer]:
+                  - generic [ref=e201]: 
+                  - text: Submit
+  - link "" [ref=e202] [cursor=pointer]:
+    - /url: "javascript:"
+    - generic [ref=e203]: 
+```
