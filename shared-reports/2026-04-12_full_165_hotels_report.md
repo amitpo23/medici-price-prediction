@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 165 Hotels
 
-**Scan:** 2026-04-12 05:49:58 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
+**Scan:** 2026-04-12 06:16:33 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
 
 ## Summary
 
@@ -9,8 +9,8 @@
 | Hotels scanned | 165 |
 | Knowaa appears | **16 (10%)** |
 | Knowaa #1 | **11 (7%)** |
-| Not listed | 100 (61%) |
-| No refundable offers | 49 (30%) |
+| Not listed | 101 (61%) |
+| No refundable offers | 48 (29%) |
 
 ## A. Knowaa is CHEAPEST (#1) — 11 hotels
 
@@ -38,7 +38,7 @@
 | SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | Deluxe | RO | $344.30 | $338.44 | InnstantTravel | #2 | +$5.86 |
 | THE LANDON BAY HARBOR | 5138 | Deluxe | BB | $976.94 | $947.51 | InnstantTravel | #6 | +$29.43 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 100 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 101 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
@@ -118,6 +118,7 @@
 | Marseilles Hotel | 5096 | $197.36 | InnstantTravel | Standard | RO |
 | MB Hotel, Trademark Collection by Wyndham | 5105 | $181.74 | InnstantTravel | Standard | RO |
 | MB Hotel, Trademark Collection by Wyndham | 5105 | $141.27 | InnstantTravel | Standard | RO |
+| MB Hotel, Trademark Collection by Wyndham | 5105 | $300.20 | goglobal | Standard | RO |
 | Metropole South Beach | 5141 | $123.20 | InnstantTravel | Suite | RO |
 | Miami International Airport Hotel | 5275 | $194.80 | InnstantTravel | Standard | RO |
 | Miami International Airport Hotel | 5275 | $179.74 | InnstantTravel | Standard | RO |
@@ -143,7 +144,7 @@
 | The Villa Casa Casuarina | 5075 | $561.99 | InnstantTravel | Suite | RO |
 | The Villa Casa Casuarina | 5075 | $908.46 | InnstantTravel | Suite | RO |
 
-## D. No Refundable Offers — 49 hotels
+## D. No Refundable Offers — 48 hotels
 
 | Hotel | Venue |
 |-------|-------|
@@ -177,7 +178,6 @@
 | InterContinental Miami | 5276 |
 | Kimpton Hotel Palomar South Beach | 5116 |
 | Marseilles Hotel | 5096 |
-| MB Hotel, Trademark Collection by Wyndham | 5105 |
 | Metropole South Beach | 5141 |
 | Metropole South Beach | 5141 |
 | SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 |
