@@ -1,15 +1,15 @@
 # Knowaa Full Competitive Scan — 166 Hotels
 
-**Scan:** 2026-04-13 05:47:51 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
+**Scan:** 2026-04-13 05:48:06 UTC | **Dates:** 2026-04-20 → 2026-04-21 | **Refundable only**
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Hotels scanned | 166 |
-| Knowaa appears | **22 (13%)** |
+| Knowaa appears | **21 (13%)** |
 | Knowaa #1 | **12 (7%)** |
-| Not listed | 89 (54%) |
+| Not listed | 90 (54%) |
 | No refundable offers | 55 (33%) |
 
 ## A. Knowaa is CHEAPEST (#1) — 12 hotels
@@ -29,7 +29,7 @@
 | SLS LUX Brickell | 5077 | Suite | RO | **$5000.00** | $5300.00 | InnstantTravel | -$300.00 |
 | The Villa Casa Casuarina | 5075 | Standard | RO | **$5000.00** | $5300.00 | InnstantTravel | -$300.00 |
 
-## B. Knowaa Listed But Not Cheapest — 10 hotels
+## B. Knowaa Listed But Not Cheapest — 9 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | Cheapest $ | Provider | Rank | Gap |
 |-------|-------|-----|-------|----------|-----------|----------|------|-----|
@@ -38,20 +38,19 @@
 | citizenM Miami Brickell hotel | 5079 | Standard | RO | $203.73 | $196.14 | goglobal | #3 | +$7.59 |
 | Embassy Suites by Hilton Miami International Airport | 5081 | Suite | RO | $248.68 | $245.18 | goglobal | #5 | +$3.50 |
 | Kimpton Angler's Hotel | 5136 | Superior | RO | $343.25 | $317.72 | InnstantTravel | #16 | +$25.53 |
-| Pullman Miami Airport | 5080 | Superior | RO | $145.94 | $136.82 | InnstantTravel | #20 | +$9.12 |
+| Pullman Miami Airport | 5080 | Superior | RO | $145.94 | $136.82 | InnstantTravel | #22 | +$9.12 |
 | Savoy Hotel | 5103 | Deluxe | RO | $367.76 | $361.66 | InnstantTravel | #2 | +$6.10 |
 | Sole Miami, A Noble House Resort | 5104 | Standard | RO | $284.54 | $281.18 | InnstantTravel | #2 | +$3.36 |
-| The Villa Casa Casuarina | 5075 | Suite | RO | $633.95 | $562.75 | InnstantTravel | #7 | +$71.20 |
 | The Villa Casa Casuarina | 5075 | Suite | RO | $1000.00 | $909.69 | InnstantTravel | #3 | +$90.31 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 89 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 90 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
 | Atwell Suites Miami Brickell | 5101 | $421.47 | goglobal | Suite | BB |
 | Breakwater South Beach | 5110 | $161.91 | InnstantTravel | Superior | BB |
 | Breakwater South Beach | 5110 | $153.57 | InnstantTravel | Superior | BB, RO |
-| Cavalier Hotel | 5113 | $139.04 | InnstantTravel | Standard, Deluxe | RO |
+| Cavalier Hotel | 5113 | $138.93 | goglobal | Standard | RO |
 | Cavalier Hotel | 5113 | $121.58 | InnstantTravel | Standard | RO |
 | Cavalier Hotel | 5113 | $554.55 | InnstantTravel | Standard | RO, BB |
 | citizenM Miami Brickell hotel | 5079 | $254.91 | InnstantTravel | Standard | RO |
@@ -137,6 +136,7 @@
 | The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | $291.59 | InnstantTravel | Standard | RO |
 | The Grayson Hotel Miami Downtown | 5094 | $171.62 | goglobal | Standard | RO |
 | The Grayson Hotel Miami Downtown | 5094 | $520.71 | goglobal | Standard, Suite, Deluxe | RO |
+| The Villa Casa Casuarina | 5075 | $562.75 | InnstantTravel | Suite | RO |
 
 ## D. No Refundable Offers — 55 hotels
 
