@@ -1,0 +1,354 @@
+{
+  "scanDate": "2026-04-14",
+  "scanTime": "14:18:38",
+  "reportGeneratedAt": "2026-04-14 16:18 UTC",
+  "searchDates": {
+    "checkIn": "2026-04-20",
+    "checkOut": "2026-04-21"
+  },
+  "totalUniqueHotels": 52,
+  "summary": {
+    "knowaaFirst": 5,
+    "knowaaSecond": 2,
+    "knowaaThirdPlus": 12,
+    "knowaaTotal": 19,
+    "noKnowaa": 27,
+    "noRefundableOffers": 6
+  },
+  "sectA": [
+    {
+      "name": "Freehand Miami",
+      "venueId": 5107,
+      "knowaaPrice": 92.96,
+      "gap": 0.0
+    },
+    {
+      "name": "Gale South Beach",
+      "venueId": 5267,
+      "knowaaPrice": 200.51,
+      "gap": 0.0
+    },
+    {
+      "name": "Hotel Riu Plaza Miami Beach",
+      "venueId": 5109,
+      "knowaaPrice": 236.51,
+      "gap": 0.0
+    },
+    {
+      "name": "Marseilles Hotel",
+      "venueId": 5096,
+      "knowaaPrice": 194.22,
+      "gap": 0.0
+    },
+    {
+      "name": "citizenM Miami Brickell hotel",
+      "venueId": 5079,
+      "knowaaPrice": 204.15,
+      "gap": 0.0
+    }
+  ],
+  "sectB": [
+    {
+      "name": "Cadet Hotel",
+      "venueId": 5095,
+      "knowaaPrice": 182.39,
+      "gap": 1.1799999999999784,
+      "gapPct": 0.6511781910490472
+    },
+    {
+      "name": "DoubleTree by Hilton Miami Doral",
+      "venueId": 5082,
+      "knowaaPrice": 167.48,
+      "gap": 0.009999999999990905,
+      "gapPct": 0.005971218725736493
+    }
+  ],
+  "sectC": [
+    {
+      "name": "Crystal Beach Suites Hotel",
+      "venueId": 5100,
+      "knowaaPrice": 167.09,
+      "cheapestPrice": 153.16,
+      "rank": 15,
+      "gapPct": 9.095063985374777
+    },
+    {
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "venueId": 5081,
+      "knowaaPrice": 189.45,
+      "cheapestPrice": 185.56,
+      "rank": 5,
+      "gapPct": 2.0963569734856575
+    },
+    {
+      "name": "Hilton Miami Airport",
+      "venueId": 5083,
+      "knowaaPrice": 210.63,
+      "cheapestPrice": 161.9,
+      "rank": 14,
+      "gapPct": 30.09882643607164
+    },
+    {
+      "name": "Hyatt Centric South Beach Miami (City View)",
+      "venueId": 5097,
+      "knowaaPrice": 301.24,
+      "cheapestPrice": 288.22,
+      "rank": 6,
+      "gapPct": 4.517382554992707
+    },
+    {
+      "name": "H\u00f4tel Gaythering",
+      "venueId": 5132,
+      "knowaaPrice": 142.67,
+      "cheapestPrice": 132.08,
+      "rank": 6,
+      "gapPct": 8.017867958812822
+    },
+    {
+      "name": "Kimpton Hotel Palomar South Beach",
+      "venueId": 5116,
+      "knowaaPrice": 333.86,
+      "cheapestPrice": 131.19,
+      "rank": 32,
+      "gapPct": 154.48586020275937
+    },
+    {
+      "name": "Pullman Miami Airport",
+      "venueId": 5080,
+      "knowaaPrice": 141.89,
+      "cheapestPrice": 133.21,
+      "rank": 14,
+      "gapPct": 6.516027325275864
+    },
+    {
+      "name": "SERENA Hotel Aventura Miami, Tapestry Collection by Hilton",
+      "venueId": 5139,
+      "knowaaPrice": 338.44,
+      "cheapestPrice": 165.91,
+      "rank": 12,
+      "gapPct": 103.99011512265686
+    },
+    {
+      "name": "Savoy Hotel",
+      "venueId": 5103,
+      "knowaaPrice": 368.3,
+      "cheapestPrice": 353.51,
+      "rank": 3,
+      "gapPct": 4.183757178014772
+    },
+    {
+      "name": "Sole Miami, A Noble House Resort",
+      "venueId": 5104,
+      "knowaaPrice": 281.18,
+      "cheapestPrice": 178.76,
+      "rank": 10,
+      "gapPct": 57.294696800179025
+    },
+    {
+      "name": "The Gates Hotel South Beach - a DoubleTree by Hilton",
+      "venueId": 5140,
+      "knowaaPrice": 125.05,
+      "cheapestPrice": 118.42,
+      "rank": 7,
+      "gapPct": 5.598716433034957
+    },
+    {
+      "name": "citizenM Miami South Beach",
+      "venueId": 5119,
+      "knowaaPrice": 360.39,
+      "cheapestPrice": 181.07,
+      "rank": 8,
+      "gapPct": 99.0335229469266
+    }
+  ],
+  "sectD": [
+    {
+      "name": "Atwell Suites Miami Brickell",
+      "venueId": 5101,
+      "cheapestPrice": 172.97,
+      "cheapestProvider": "goglobal"
+    },
+    {
+      "name": "Breakwater South Beach",
+      "venueId": 5110,
+      "cheapestPrice": 156.11,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Cavalier Hotel",
+      "venueId": 5113,
+      "cheapestPrice": 121.58,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Dorchester Hotel",
+      "venueId": 5266,
+      "cheapestPrice": 143.75,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Dream South Beach",
+      "venueId": 5090,
+      "cheapestPrice": 166.65,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Eurostars Langford Hotel",
+      "venueId": 5098,
+      "cheapestPrice": 128.2,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "FAIRWIND HOTEL & SUITES SOUTH BEACH",
+      "venueId": 5089,
+      "cheapestPrice": 102.78,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Fontainebleau Miami Beach",
+      "venueId": 5268,
+      "cheapestPrice": 319.53,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Gale Miami Hotel and Residences",
+      "venueId": 5278,
+      "cheapestPrice": 149.95,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Generator Miami",
+      "venueId": 5274,
+      "cheapestPrice": 114.83,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Grand Beach Hotel Miami",
+      "venueId": 5124,
+      "cheapestPrice": 206.03,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "HOLIDAY INN EXPRESS HOTEL & SUITES MIAMI",
+      "venueId": 5130,
+      "cheapestPrice": 124.18,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Hilton Bentley Miami South Beach",
+      "venueId": 5093,
+      "cheapestPrice": 405.88,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Hilton Cabana Miami Beach",
+      "venueId": 5115,
+      "cheapestPrice": 144.01,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Hilton Garden Inn Miami South Beach",
+      "venueId": 5279,
+      "cheapestPrice": 141.06,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Hilton Miami Downtown",
+      "venueId": 5084,
+      "cheapestPrice": 174.32,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Hotel Belleza",
+      "venueId": 5265,
+      "cheapestPrice": 154.34,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Hotel Croydon",
+      "venueId": 5131,
+      "cheapestPrice": 130.49,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Iberostar Berkeley Shore Hotel",
+      "venueId": 5092,
+      "cheapestPrice": 161.15,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "InterContinental Miami",
+      "venueId": 5276,
+      "cheapestPrice": 286.25,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Kimpton Angler's Hotel",
+      "venueId": 5136,
+      "cheapestPrice": 307.46,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "MB Hotel, Trademark Collection by Wyndham",
+      "venueId": 5105,
+      "cheapestPrice": 142.19,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "Metropole South Beach",
+      "venueId": 5141,
+      "cheapestPrice": 122.38,
+      "cheapestProvider": "goglobal"
+    },
+    {
+      "name": "Miami International Airport Hotel",
+      "venueId": 5275,
+      "cheapestPrice": 178.86,
+      "cheapestProvider": "goglobal"
+    },
+    {
+      "name": "Notebook Miami Beach",
+      "venueId": 5102,
+      "cheapestPrice": 80.96,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "THE LANDON BAY HARBOR",
+      "venueId": 5138,
+      "cheapestPrice": 793.22,
+      "cheapestProvider": "InnstantTravel"
+    },
+    {
+      "name": "The Gabriel Miami South Beach, Curio Collection by Hilton",
+      "venueId": 5108,
+      "cheapestPrice": 279.23,
+      "cheapestProvider": "InnstantTravel"
+    }
+  ],
+  "sectE": [
+    {
+      "name": "Hampton Inn Miami Beach - Mid Beach, FL",
+      "venueId": 5106
+    },
+    {
+      "name": "SLS LUX Brickell",
+      "venueId": 5077
+    },
+    {
+      "name": "The Albion Hotel",
+      "venueId": 5117
+    },
+    {
+      "name": "The Catalina Hotel & Beach Club",
+      "venueId": 5277
+    },
+    {
+      "name": "The Grayson Hotel Miami Downtown",
+      "venueId": 5094
+    },
+    {
+      "name": "Viajero Miami",
+      "venueId": 5111
+    }
+  ]
+}
