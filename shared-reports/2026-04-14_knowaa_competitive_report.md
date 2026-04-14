@@ -1,91 +1,140 @@
-# Knowaa Competitive Scan — 56 Hotels
+# Knowaa Competitive Scan Report — 2026-04-14
 
-> **Scan date:** 2026-04-14 01:25:23 UTC | **Check-in:** 2026-04-20 → 2026-04-21 | **Refundable only**
+> ⚠️ **Scan Notice (2026-04-14 01:25 UTC):** Live browser scan attempted but returned no data for all 56 hotels. Root cause: Innstant B2B pricing is delivered via WebSocket (`wss://b2b.innstant.travel/wss/`) which is terminated by the remote proxy before any frames are exchanged. This is a known environment limitation — the scan works correctly from local machines. **Data below reflects the last successful scan (2026-04-13 05:48 UTC).** Trend comparisons are vs. the April 12 20:14 scan.
 
-## Summary
-
-| Metric | Value | Trend |
-|--------|-------|-------|
-| Hotels scanned | 56 | - |
-| Knowaa appears | **0 (0%)** | ▼21 |
-| Knowaa #1 (cheapest) | **0 (0%)** | ▼12 |
-| Listed but not cheapest | 0 (0%) | ▼ |
-| Not listed (others have offers) | 0 (0%) | ▼90 |
-| No refundable offers | 56 (100%) | ▲1 |
-
-## A — Knowaa is CHEAPEST (#1) — 0 hotels
-
-_No hotels where Knowaa is cheapest._
-
-## D — No Refundable Offers — 56 hotels
-
-| Hotel | VenueId | Note |
-|-------|---------|------|
-| Atwell Suites Miami Brickell | 5101 | no refundable offers |
-| Breakwater South Beach | 5110 | no refundable offers |
-| Cadet Hotel | 5095 | no refundable offers |
-| Cavalier Hotel | 5113 | no refundable offers |
-| citizenM Miami Brickell hotel | 5079 | no refundable offers |
-| citizenM Miami South Beach | 5119 | no refundable offers |
-| Crystal Beach Suites Hotel | 5100 | no refundable offers |
-| Dorchester Hotel | 5266 | no refundable offers |
-| DoubleTree by Hilton Miami Doral | 5082 | no refundable offers |
-| Dream South Beach | 5090 | no refundable offers |
-| Embassy Suites by Hilton Miami International Airport | 5081 | no refundable offers |
-| Eurostars Langford Hotel | 5098 | no refundable offers |
-| FAIRWIND HOTEL & SUITES SOUTH BEACH | 5089 | no refundable offers |
-| Fontainebleau Miami Beach | 5268 | no refundable offers |
-| Freehand Miami | 5107 | no refundable offers |
-| Gale Miami Hotel and Residences | 5278 | no refundable offers |
-| Gale South Beach | 5267 | no refundable offers |
-| Generator Miami | 5274 | no refundable offers |
-| Grand Beach Hotel Miami | 5124 | no refundable offers |
-| Hampton Inn Miami Beach - Mid Beach | 5106 | no refundable offers |
-| Hampton Inn Miami Beach - Mid Beach, FL | 5106 | no refundable offers |
-| Hilton Bentley Miami South Beach | 5093 | no refundable offers |
-| Hilton Cabana Miami Beach | 5115 | no refundable offers |
-| Hilton Garden Inn Miami South Beach | 5279 | no refundable offers |
-| Hilton Miami Airport | 5083 | no refundable offers |
-| Hilton Miami Downtown | 5084 | no refundable offers |
-| HOLIDAY INN EXPRESS HOTEL & SUITES MIAMI | 5130 | no refundable offers |
-| Hotel Belleza | 5265 | no refundable offers |
-| Hotel Chelsea | 5064 | no refundable offers |
-| Hotel Croydon | 5131 | no refundable offers |
-| Hôtel Gaythering | 5132 | no refundable offers |
-| Hotel Riu Plaza Miami Beach | 5109 | no refundable offers |
-| Hyatt Centric South Beach Miami (City View) | 5097 | no refundable offers |
-| Iberostar Berkeley Shore Hotel | 5092 | no refundable offers |
-| InterContinental Miami | 5276 | no refundable offers |
-| Kimpton Angler's Hotel | 5136 | no refundable offers |
-| Kimpton Hotel Palomar South Beach | 5116 | no refundable offers |
-| Loews Miami Beach Hotel | 5073 | no refundable offers |
-| Marseilles Hotel | 5096 | no refundable offers |
-| MB Hotel, Trademark Collection by Wyndham | 5105 | no refundable offers |
-| Metropole South Beach | 5141 | no refundable offers |
-| Miami International Airport Hotel | 5275 | no refundable offers |
-| Notebook Miami Beach | 5102 | no refundable offers |
-| Pullman Miami Airport | 5080 | no refundable offers |
-| Savoy Hotel | 5103 | no refundable offers |
-| SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | no refundable offers |
-| SLS LUX Brickell | 5077 | no refundable offers |
-| Sole Miami, A Noble House Resort | 5104 | no refundable offers |
-| The Albion Hotel | 5117 | no refundable offers |
-| The Catalina Hotel & Beach Club | 5277 | no refundable offers |
-| The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | no refundable offers |
-| The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | no refundable offers |
-| The Grayson Hotel Miami Downtown | 5094 | no refundable offers |
-| THE LANDON BAY HARBOR | 5138 | no refundable offers |
-| The Villa Casa Casuarina | 5075 | no refundable offers |
-| Viajero Miami | 5111 | no refundable offers |
-
-## Trend vs Previous Scan
-
-| Metric | Previous | Current | Change |
-|--------|----------|---------|--------|
-| Knowaa appears | 21 | 0 | -21 |
-| Knowaa #1 | 12 | 0 | -12 |
-| Not listed | 90 | 0 | -90 |
-| No offers | 55 | 56 | +1 |
+**Date:** 2026-04-13 (last valid) | **Time:** 05:48:06 UTC | **Report Generated:** 2026-04-14
+**Search Window:** 2026-04-20 → 2026-04-21
+**Previous Scan:** 2026-04-12 20:14:22 UTC
+**Source:** Innstant B2B Browser Scan (Refundable Only)
+**Provider Filter:** `Knowaa_Global_zenith`
 
 ---
-_Generated by Knowaa Competitive Scanner (Claude agent) — 2026-04-14 01:25:23 UTC_
+
+## Executive Summary
+
+| Metric | Today (04-13 05:48) | Yesterday (04-12 20:14) | Delta |
+|--------|---------------------|------------------------|-------|
+| Hotels scanned | 166 | 166 | — |
+| Knowaa #1 (cheapest) | **2 (1%)** | 0 (0%) | **+2** |
+| Knowaa #2 | 4 | 1 | **+3** |
+| Knowaa #3+ | 3 | 3 | — |
+| Knowaa total presence | **9 (5%)** | 4 (2%) | **+5** |
+| No Knowaa (has offers) | 93 (56%) | 98 (59%) | **-5** |
+| No refundable offers | 64 (38%) | 64 (38%) | — |
+
+### Key Alerts
+
+**IMPROVED — New or recovered #1 positions:**
+- **Crystal Beach Suites Hotel** — now #1 at **$166.95** (Suite RO), was Section D
+- **Kimpton Angler's Hotel** — now #1 at **$509.87** (Standard RO), was Section D
+
+**Section A stats (real prices only, n=2):** avg Knowaa = $338.41, avg lead over #2 = $13.60
+
+---
+
+## Section A — Knowaa Is Cheapest (#1) — 2 hotels
+
+| Hotel | Venue | Cat | Board | Knowaa $ | 2nd $ | 2nd Provider | Gap | Trend |
+|-------|-------|-----|-------|----------|-------|-------------|-----|-------|
+| Crystal Beach Suites Hotel | 5100 | Suite | RO | **$166.95** | $167.18 | InnstantTravel | -$0.23 (-0.1%) | ⬆ Was D |
+| Kimpton Angler's Hotel | 5136 | Standard | RO | **$509.87** | $536.84 | InnstantTravel | -$26.97 (-5.3%) | ⬆ Was D |
+
+## Section B — Knowaa Is #2 — 4 hotels
+
+| Hotel | Venue | Cat | Board | Knowaa $ | Cheapest $ | Cheapest Provider | Gap | Trend |
+|-------|-------|-----|-------|----------|-----------|------------------|-----|-------|
+| Embassy Suites by Hilton Miami International Airport | 5081 | Suite | RO | $248.68 | **$245.18** | goglobal | +$3.50 (+1.4%) | ⬆ Was E |
+| Sole Miami, A Noble House Resort | 5104 | Standard | RO | $284.54 | **$281.18** | InnstantTravel | +$3.36 (+1.2%) | ⬆ Was E |
+| Savoy Hotel | 5103 | Suite | RO | $367.76 | **$361.66** | InnstantTravel | +$6.10 (+1.7%) | ⬆ Was E |
+| Kimpton Angler's Hotel | 5136 | Deluxe | RO | $371.31 | **$371.31** | InnstantTravel | +$0.00 (+0.0%) | ⬆ Was D |
+
+## Section C — Knowaa Is #3 or Lower — 3 hotels
+
+| Hotel | Venue | Cat | Board | Our Price | Rank | Cheapest $ | Provider | Gap | Trend |
+|-------|-------|-----|-------|-----------|------|-----------|----------|-----|-------|
+| citizenM Miami Brickell hotel | 5079 | Standard | RO | $203.73 | **#3** | $196.14 | goglobal | +$7.59 (+3.9%) | ⬆ Was D |
+| Kimpton Angler's Hotel | 5136 | Standard | RO | $343.25 | **#3** | $317.72 | InnstantTravel | +$25.53 (+8.0%) | ⬆ Was D |
+| Pullman Miami Airport | 5080 | Standard | RO | $145.94 | **#3** | $136.82 | InnstantTravel | +$9.12 (+6.7%) | ⬆ Was D |
+
+## Section D — Has Offers but NO Knowaa — 93 hotels
+
+_Knowaa is not listed. These represent inventory gaps or distribution failures._
+
+| Hotel | Venue | Cheapest $ | Provider | Cat | Board | Trend |
+|-------|-------|-----------|----------|-----|-------|-------|
+| Atwell Suites Miami Brickell | 5101 | $421.47 | goglobal | Suite | BB | ⬆ Was E |
+| Breakwater South Beach | 5110 | $161.91 | InnstantTravel | Superior | BB | ⬆ Was E |
+| Breakwater South Beach | 5110 | $153.57 | InnstantTravel | Superior | BB | ⬆ Was E |
+| Cadet Hotel | 5095 | $224.16 | goglobal | Standard | RO | ⬆ Was E |
+| Cadet Hotel | 5095 | $224.16 | goglobal | Standard | RO | ⬆ Was E |
+| Cavalier Hotel | 5113 | $138.93 | goglobal | Standard | RO | → Steady |
+| Cavalier Hotel | 5113 | $121.58 | InnstantTravel | Standard | RO | → Steady |
+| Cavalier Hotel | 5113 | $554.55 | InnstantTravel | Standard | RO | → Steady |
+| Crystal Beach Suites Hotel | 5100 | $153.22 | InnstantTravel | Suite | RO | → Steady |
+| Crystal Beach Suites Hotel | 5100 | $387.60 | InnstantTravel | Suite | RO | → Steady |
+| Dorchester Hotel | 5266 | $147.05 | InnstantTravel | Standard | RO | ⬆ Was E |
+| Dorchester Hotel | 5266 | $146.90 | InnstantTravel | Standard | RO | ⬆ Was E |
+| DoubleTree by Hilton Miami Doral | 5082 | $188.10 | InnstantTravel | Standard | RO | ⬆ Was E |
+| DoubleTree by Hilton Miami Doral | 5082 | $174.32 | InnstantTravel | Standard | RO | ⬆ Was E |
+| Dream South Beach | 5090 | $154.88 | InnstantTravel | Standard | RO | ⬆ Was E |
+| Eurostars Langford Hotel | 5098 | $130.19 | InnstantTravel | Deluxe | RO | ⬆ Was E |
+| Eurostars Langford Hotel | 5098 | $433.95 | InnstantTravel | Deluxe | RO | ⬆ Was E |
+| Fontainebleau Miami Beach | 5268 | $494.49 | InnstantTravel | Deluxe | RO | ⬆ Was E |
+| Fontainebleau Miami Beach | 5268 | $322.15 | InnstantTravel | Deluxe | RO | ⬆ Was E |
+| Fontainebleau Miami Beach | 5268 | $367.61 | InnstantTravel | Deluxe | RO | ⬆ Was E |
+| Freehand Miami | 5107 | $112.27 | InnstantTravel | Standard | RO | → Steady |
+| Freehand Miami | 5107 | $96.90 | goglobal | Superior | RO | → Steady |
+| Freehand Miami | 5107 | $758.88 | goglobal | Standard | RO | → Steady |
+| Gale Miami Hotel and Residences | 5278 | $153.47 | InnstantTravel | Standard | RO | → Steady |
+| Gale Miami Hotel and Residences | 5278 | $149.95 | InnstantTravel | Standard | RO | → Steady |
+
+> _68 additional Section D hotels not shown — see full JSON for complete list._
+
+## Section E — No Refundable Offers — 64 hotels
+
+_These hotels returned no refundable offers in the scan window._
+
+- Atwell Suites Miami Brickell
+- Breakwater South Beach
+- Cadet Hotel
+- Dorchester Hotel
+- DoubleTree by Hilton Miami Doral
+- Dream South Beach
+- Embassy Suites by Hilton Miami International Airport
+- Eurostars Langford Hotel
+- FAIRWIND HOTEL & SUITES SOUTH BEACH
+- Grand Beach Hotel Miami
+- HOLIDAY INN EXPRESS HOTEL & SUITES MIAMI
+- Hampton Inn Miami Beach - Mid Beach
+- Hampton Inn Miami Beach - Mid Beach, FL
+- Hilton Bentley Miami South Beach
+- Hilton Cabana Miami Beach
+- Hilton Garden Inn Miami South Beach
+- Hilton Miami Airport
+- Hilton Miami Downtown
+- Hotel Belleza
+- Hotel Chelsea
+- Hotel Croydon
+- Hyatt Centric South Beach Miami (City View)
+- InterContinental Miami
+- Kimpton Hotel Palomar South Beach
+- Marseilles Hotel
+- _13 more hotels — see JSON for full list_
+
+---
+
+## Scan Metadata
+
+| Field | Value |
+|-------|-------|
+| Scan file | `2026-04-13_05-48_full_scan.json` |
+| Scan timestamp | 2026-04-13 05:48:06 UTC |
+| Previous scan | 2026-04-12 20:14:22 UTC |
+| Hotels in scan | 166 |
+| Source | Innstant B2B (browser) |
+| Sentinel threshold | $1,000 (prices above excluded from ranking) |
+| Refundable only | Yes |
+| All room types | Yes (Standard, Deluxe, Superior, Suite, Apartment) |
+| All boards | Yes (RO + BB) |
+
+_Generated by Knowaa Competitive Scanner Agent — 2026-04-14 01:43 UTC_

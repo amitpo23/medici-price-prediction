@@ -13,7 +13,18 @@ const { execSync } = require('child_process');
 const PROJECT_ROOT = path.join(__dirname, '..');
 const SCAN_REPORTS = path.join(PROJECT_ROOT, 'scan-reports');
 const SHARED_REPORTS = path.join(PROJECT_ROOT, 'shared-reports');
-const CHROME_PATH = '/tmp/chrome/chrome-linux64/chrome';
+const CHROME_PATH = process.env.CHROME_PATH || (() => {
+    // Try Playwright's resolved path first, then common locations
+    try { return require('playwright').chromium.executablePath(); } catch { /* fall through */ }
+    const candidates = [
+        '/opt/pw-browsers/chromium-1208/chrome-linux64/chrome',
+        '/tmp/chrome/chrome-linux64/chrome',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+    ];
+    const fs = require('fs');
+    return candidates.find(p => { try { return fs.existsSync(p); } catch { return false; } }) || candidates[0];
+})();
 
 // ---------------------------------------------------------------------------
 // Proxy config (parse from HTTPS_PROXY env)
