@@ -7,6 +7,79 @@
 
 ---
 
+## Operational Requirements (from medici-hotels agent)
+
+### 1. Output Path (atomic write)
+```
+/Users/mymac/coding/medici-hotels/data/pending_reservations.json
+```
+Write via tmp file + rename to avoid partial reads:
+```python
+import tempfile, os, json
+
+def write_pending(reservations: list[dict], path: str):
+    tmp_fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(path), suffix=".tmp")
+    with os.fdopen(tmp_fd, 'w') as f:
+        json.dump(reservations, f, indent=2, default=str)
+    os.rename(tmp_path, path)  # atomic on same filesystem
+```
+
+### 2. Format per RESERVATION_FORMAT_UPDATE.md
+
+Each reservation (Commit or Cancel) must include at minimum:
+```json
+{
+  "BookingNumber": "1304985",
+  "ResStatus": "Cancel",
+  "HotelName": "Riu Plaza Miami Beach",
+  "HotelCode": "5109",
+  "DateFrom": "2026-05-21",
+  "DateTo": "2026-05-24",
+  "AmountAfterTax": 1000.07,
+  "CurrencyCode": "USD",
+  "RoomTypeCode": "DLX",
+  "MealPlan": "RO",
+  "AdultCount": 2,
+  "ChildrenCount": 0,
+  "GuestFirstName": "Francisco E",
+  "GuestLastName": "Romero",
+  "NightlyRates": [
+    {"date": "2026-05-21", "amount": 257.82},
+    {"date": "2026-05-22", "amount": 375.75},
+    {"date": "2026-05-23", "amount": 366.50}
+  ],
+  "CancellationPolicy": "From 21 May 2026 00:00:00 Reservation becomes Non Refundable",
+  "CancellationDeadline": "2026-05-21"
+}
+```
+
+**Key for cancellations:** `"ResStatus": "Cancel"` — this is what triggers room release.
+
+Full field reference: see `shared-reports/RESERVATION_FORMAT_UPDATE.md`
+
+### 3. Frequency: Every 30 minutes
+
+- Scan both **Past** and **Future** reservations
+- Past: up to **90 days back** (catches late cancellations that arrived after booking)
+- Future: all upcoming reservations
+- Schedule: via launchd (`com.medici.reservation-callback`, every 300s — already runs at 5min, can batch writes at 30min intervals)
+
+### 4. After writing — call the consumer
+
+Immediately after writing `pending_reservations.json`, invoke:
+```bash
+python3 /Users/mymac/coding/medici-hotels/skills/reservation-callback/process_incoming.py \
+    --from-json /Users/mymac/coding/medici-hotels/data/pending_reservations.json \
+    --live
+```
+
+This triggers `process_incoming.py` to:
+1. Read the JSON
+2. For each `ResStatus="Commit"` → create MED_Reservation, try_sell_active_room()
+3. For each `ResStatus="Cancel"` → create MED_Reservation with IsCanceled=1, **then release_active_room_on_cancel()** (the new function below)
+
+---
+
 ## Problem
 
 When a guest cancels a booking via Noovy, the system correctly records:
