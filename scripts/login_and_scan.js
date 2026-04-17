@@ -141,11 +141,29 @@ async function login(page) {
 async function scanHotel(page, hotel) {
     const url = buildUrl(hotel);
     await page.goto(url, { timeout: 30000, waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2000);
+
+    // Innstant B2B hotel page requires clicking "Show Rooms" / search trigger
+    // to load room offers — URL params alone do not auto-submit the search
+    const alreadyHasResults = await page.$('.search-result-item');
+    if (!alreadyHasResults) {
+        try {
+            // Try the call-to-action anchor (Show Rooms link on hotel page)
+            const trigger = await page.$('.call-to-action a, a.call-to-action, button.call-to-action');
+            if (trigger) {
+                await trigger.click();
+                await page.waitForTimeout(2000);
+            } else {
+                // Fallback: click any visible "Show Rooms" or "Search" text
+                await page.click('text=Show Rooms', { timeout: 3000 }).catch(() => {});
+            }
+        } catch { /* no trigger found, proceed anyway */ }
+    }
+
     try {
         await page.waitForSelector('.search-result-item', { timeout: HOTEL_TIMEOUT });
         await page.waitForTimeout(SETTLE_DELAY);
     } catch {
-        // No offers found
         return { id: hotel.InnstantId, v: hotel.VenueId, hotel: hotel.name, total: 0, knowaa: false, kCnt: 0, cheap: null, kCheap: null, is1st: false, rank: null, provs: [], cats: [], boards: [], byProv: {}, allOffers: [] };
     }
     const data = await page.evaluate(EXTRACT_FN);
