@@ -84,28 +84,57 @@ const SETTLE_DELAY = 2000;
 const PROJECT_ROOT = path.join(__dirname, '..');
 
 // ---------------------------------------------------------------------------
-// Step 0: Fetch active hotels from SalesOffice.Orders
+// Step 0: Fetch active hotels
 // ---------------------------------------------------------------------------
+// Dual-source: prefer hotels we actually hold rooms for (MED_Book), with
+// the exact dates of those holdings. When MED_Book is empty (e.g. after
+// a SalesOffice.Orders cleanup like 2026-04-15 where all orders were
+// deleted), fall back to a visibility-probe over every active Knowaa
+// Miami hotel with a 30-day-out date window — that keeps the scan alive
+// instead of returning 0 hotels.
 async function fetchHotelsFromDb() {
     log('Connecting to source DB for active hotels...');
     const pool = await sql.connect(SOURCE_DB);
-    const result = await pool.request().query(`
+
+    // Primary: hotels with active MED_Book inventory (we care about these most).
+    const primary = await pool.request().query(`
         SELECT DISTINCT
-            o.DestinationId AS InnstantId,
+            h.InnstantId,
             h.name,
             h.Innstant_ZenithId AS VenueId,
-            o.DateFrom,
-            o.DateTo
-        FROM [dbo].[SalesOffice.Orders] o
-        JOIN Med_Hotels h ON h.InnstantId = o.DestinationId
+            b.startDate AS DateFrom,
+            b.endDate AS DateTo
+        FROM MED_Book b
+        JOIN Med_Hotels h ON h.HotelId = b.HotelId
+        WHERE b.IsActive = 1
+          AND h.isActive = 1
+          AND h.Innstant_ZenithId >= 5000
+        ORDER BY h.name
+    `);
+
+    if (primary.recordset.length > 0) {
+        await pool.close();
+        log(`Found ${primary.recordset.length} hotels via MED_Book (primary)`);
+        return primary.recordset;
+    }
+
+    // Fallback: probe all Knowaa Miami hotels with a 30-day future window.
+    log('No active MED_Book rows — falling back to venue probe');
+    const fallback = await pool.request().query(`
+        SELECT
+            h.InnstantId,
+            h.name,
+            h.Innstant_ZenithId AS VenueId,
+            DATEADD(day, 30, CAST(GETDATE() AS DATE)) AS DateFrom,
+            DATEADD(day, 31, CAST(GETDATE() AS DATE)) AS DateTo
+        FROM Med_Hotels h
         WHERE h.isActive = 1
           AND h.Innstant_ZenithId >= 5000
-          AND o.IsActive = 1
         ORDER BY h.name
     `);
     await pool.close();
-    log(`Found ${result.recordset.length} active hotels in Orders`);
-    return result.recordset;
+    log(`Found ${fallback.recordset.length} hotels via venue probe (fallback)`);
+    return fallback.recordset;
 }
 
 // ---------------------------------------------------------------------------
