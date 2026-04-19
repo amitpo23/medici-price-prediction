@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 63 Hotels
 
-**Scan:** 2026-04-19 17:09:43 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
+**Scan:** 2026-04-19 17:37:41 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
 
 ## Summary
 
@@ -50,16 +50,16 @@
 | DoubleTree by Hilton Miami Doral | 5082 | $174.32 | InnstantTravel | Standard | RO |
 | DoubleTree by Hilton Miami Doral | 5082 | $165.10 | InnstantTravel | Standard | RO |
 | DoubleTree by Hilton Miami Doral | 5082 | $197.37 | InnstantTravel | Standard | RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $140.07 | goglobal | Suite, Standard | BB, RO |
+| Embassy Suites by Hilton Miami International Airport | 5081 | $140.07 | goglobal | Standard, Suite | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $140.07 | goglobal | Standard, Suite | RO, BB |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $143.33 | InnstantTravel | Standard, Suite | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $140.07 | goglobal | Suite, Standard | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $161.26 | goglobal | Suite, Standard | BB, RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $143.33 | InnstantTravel | Standard, Suite | BB, RO |
+| Embassy Suites by Hilton Miami International Airport | 5081 | $140.07 | goglobal | Standard, Suite | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $141.25 | goglobal | Suite, Standard | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $141.25 | goglobal | Suite, Standard | BB, RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $140.07 | goglobal | Suite, Standard | BB, RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $143.33 | InnstantTravel | Standard, Suite | BB, RO |
+| Embassy Suites by Hilton Miami International Airport | 5081 | $140.07 | goglobal | Standard, Suite | BB, RO |
+| Embassy Suites by Hilton Miami International Airport | 5081 | $141.25 | goglobal | Suite, Standard | BB, RO |
 | Hotel Riu Plaza Miami Beach | 5109 | $301.65 | InnstantTravel | Deluxe | BB, RO |
 | Pod Times Square | 5305 | $121.94 | HyperGuestDirect⇄ | Standard | RO |
 | Pod Times Square | 5305 | $162.33 | HyperGuestDirect⇄ | Standard | RO |
