@@ -1,0 +1,635 @@
+{
+  "generated_at_utc": "2026-04-19T00:17:31Z",
+  "source": "SearchResultsSessionPollLog",
+  "window_hours": 24,
+  "scan_duration_seconds": 1050,
+  "hotels_scanned": 56,
+  "hotels_failed": 0,
+  "failures": [],
+  "totals": {
+    "sessions": 746,
+    "knowaa_in": 338,
+    "knowaa_1": 297
+  },
+  "per_hotel": [
+    {
+      "zid": 5064,
+      "name": "Hotel Chelsea",
+      "sessions": 3,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5073,
+      "name": "Loews Miami Beach Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5075,
+      "name": "The Villa Casa Casuarina",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5077,
+      "name": "SLS LUX Brickell",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5079,
+      "name": "citizenM Miami Brickell hotel",
+      "sessions": 7,
+      "knowaa_in": 4,
+      "knowaa_1": 4,
+      "gap_sum": 0.0,
+      "gap_n": 4
+    },
+    {
+      "zid": 5080,
+      "name": "Pullman Miami Airport",
+      "sessions": 164,
+      "knowaa_in": 120,
+      "knowaa_1": 118,
+      "gap_sum": 43.66999999999999,
+      "gap_n": 120
+    },
+    {
+      "zid": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "sessions": 132,
+      "knowaa_in": 63,
+      "knowaa_1": 39,
+      "gap_sum": 217.70000000000027,
+      "gap_n": 63
+    },
+    {
+      "zid": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "sessions": 186,
+      "knowaa_in": 90,
+      "knowaa_1": 83,
+      "gap_sum": 22.04000000000002,
+      "gap_n": 90
+    },
+    {
+      "zid": 5083,
+      "name": "Hilton Miami Airport",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5084,
+      "name": "Hilton Miami Downtown",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5089,
+      "name": "FAIRWIND HOTEL & SUITES SOUTH BEACH",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5090,
+      "name": "Dream South Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5092,
+      "name": "Iberostar Berkeley Shore Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5093,
+      "name": "Hilton Bentley Miami South Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5094,
+      "name": "The Grayson Hotel Miami Downtown",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5095,
+      "name": "Cadet Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5096,
+      "name": "Marseilles Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5097,
+      "name": "Hyatt Centric South Beach Miami (City View)",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5098,
+      "name": "Eurostars Langford Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5100,
+      "name": "Crystal Beach Suites Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5101,
+      "name": "Atwell Suites Miami Brickell",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5102,
+      "name": "Notebook Miami Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5103,
+      "name": "Savoy Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5104,
+      "name": "Sole Miami, A Noble House Resort",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5105,
+      "name": "MB Hotel, Trademark Collection by Wyndham",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5106,
+      "name": "Hampton Inn Miami Beach - Mid Beach, FL",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5106,
+      "name": "Hampton Inn Miami Beach - Mid Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5107,
+      "name": "Freehand Miami",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5108,
+      "name": "The Gabriel Miami South Beach, Curio Collection by Hilton",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5109,
+      "name": "Hotel Riu Plaza Miami Beach",
+      "sessions": 34,
+      "knowaa_in": 10,
+      "knowaa_1": 10,
+      "gap_sum": 0.0,
+      "gap_n": 10
+    },
+    {
+      "zid": 5110,
+      "name": "Breakwater South Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5111,
+      "name": "Viajero Miami",
+      "sessions": 220,
+      "knowaa_in": 51,
+      "knowaa_1": 43,
+      "gap_sum": 52.56000000000002,
+      "gap_n": 51
+    },
+    {
+      "zid": 5113,
+      "name": "Cavalier Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5115,
+      "name": "Hilton Cabana Miami Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5116,
+      "name": "Kimpton Hotel Palomar South Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5117,
+      "name": "The Albion Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5119,
+      "name": "citizenM Miami South Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5124,
+      "name": "Grand Beach Hotel Miami",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5130,
+      "name": "HOLIDAY INN EXPRESS HOTEL & SUITES MIAMI",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5131,
+      "name": "Hotel Croydon",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5132,
+      "name": "H\u00f4tel Gaythering",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5136,
+      "name": "Kimpton Angler's Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5138,
+      "name": "THE LANDON BAY HARBOR",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5139,
+      "name": "SERENA Hotel Aventura Miami, Tapestry Collection by Hilton",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5140,
+      "name": "The Gates Hotel South Beach - a DoubleTree by Hilton",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5141,
+      "name": "Metropole South Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5265,
+      "name": "Hotel Belleza",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5266,
+      "name": "Dorchester Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5267,
+      "name": "Gale South Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5268,
+      "name": "Fontainebleau Miami Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5274,
+      "name": "Generator Miami",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5275,
+      "name": "Miami International Airport Hotel",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5276,
+      "name": "InterContinental Miami",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5277,
+      "name": "The Catalina Hotel & Beach Club",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5278,
+      "name": "Gale Miami Hotel and Residences",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "zid": 5279,
+      "name": "Hilton Garden Inn Miami South Beach",
+      "sessions": 0,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    }
+  ],
+  "per_cat_board": [
+    {
+      "category": "standard",
+      "board": "RO",
+      "sessions": 145,
+      "knowaa_in": 121,
+      "knowaa_1": 100,
+      "gap_sum": 117.01000000000018,
+      "gap_n": 121
+    },
+    {
+      "category": "standard",
+      "board": "BB",
+      "sessions": 136,
+      "knowaa_in": 19,
+      "knowaa_1": 19,
+      "gap_sum": 0.0,
+      "gap_n": 19
+    },
+    {
+      "category": "deluxe",
+      "board": "BB",
+      "sessions": 62,
+      "knowaa_in": 21,
+      "knowaa_1": 20,
+      "gap_sum": 22.47999999999999,
+      "gap_n": 21
+    },
+    {
+      "category": "deluxe",
+      "board": "RO",
+      "sessions": 64,
+      "knowaa_in": 49,
+      "knowaa_1": 44,
+      "gap_sum": 71.57,
+      "gap_n": 49
+    },
+    {
+      "category": "suite",
+      "board": "BB",
+      "sessions": 102,
+      "knowaa_in": 20,
+      "knowaa_1": 20,
+      "gap_sum": 0.0,
+      "gap_n": 20
+    },
+    {
+      "category": "suite",
+      "board": "RO",
+      "sessions": 92,
+      "knowaa_in": 91,
+      "knowaa_1": 77,
+      "gap_sum": 124.91000000000014,
+      "gap_n": 91
+    },
+    {
+      "category": "superior",
+      "board": "BB",
+      "sessions": 56,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "category": "superior",
+      "board": "RO",
+      "sessions": 56,
+      "knowaa_in": 15,
+      "knowaa_1": 15,
+      "gap_sum": 0.0,
+      "gap_n": 15
+    },
+    {
+      "category": "dormitory",
+      "board": "RO",
+      "sessions": 21,
+      "knowaa_in": 2,
+      "knowaa_1": 2,
+      "gap_sum": 0.0,
+      "gap_n": 2
+    },
+    {
+      "category": "deluxe",
+      "board": "HB",
+      "sessions": 6,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    },
+    {
+      "category": "standard",
+      "board": "HB",
+      "sessions": 6,
+      "knowaa_in": 0,
+      "knowaa_1": 0,
+      "gap_sum": 0.0,
+      "gap_n": 0
+    }
+  ],
+  "per_day": [
+    {
+      "date": "2026-04-19",
+      "sessions": 16,
+      "knowaa_in": 10,
+      "knowaa_1": 10
+    },
+    {
+      "date": "2026-04-18",
+      "sessions": 730,
+      "knowaa_in": 328,
+      "knowaa_1": 287
+    }
+  ]
+}
