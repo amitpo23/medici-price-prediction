@@ -474,80 +474,87 @@ async function writeToDb(jsonReport) {
         return 0;
     }
 
-    log('Writing scan results to BrowserScanResults...');
+    log('Writing scan results to [SalesOffice.BrowserScanResults]...');
     const pool = await sql.connect(SCAN_DB);
 
-    // Ensure table exists
-    await pool.request().query(`
-        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SalesOffice.BrowserScanResults' AND schema_id = SCHEMA_ID('dbo'))
-        BEGIN
-            CREATE TABLE [dbo].[SalesOffice.BrowserScanResults] (
-                Id INT IDENTITY(1,1) PRIMARY KEY,
-                ScanDate DATETIME NOT NULL,
-                CheckInDate DATE NOT NULL,
-                CheckOutDate DATE NOT NULL,
-                VenueId INT NULL,
-                HotelId INT NULL,
-                HotelName NVARCHAR(200) NULL,
-                Category NVARCHAR(100) NULL,
-                Board NVARCHAR(50) NULL,
-                Price DECIMAL(10,2) NULL,
-                PricePerNight DECIMAL(10,2) NULL,
-                Currency NVARCHAR(10) NULL,
-                Provider NVARCHAR(100) NULL,
-                IsKnowaa BIT DEFAULT 0,
-                KnowaaRank INT NULL,
-                Nights INT NULL,
-                CreatedAt DATETIME DEFAULT GETDATE()
-            );
-            CREATE INDEX IX_BrowserScanResults_ScanDate ON [dbo].[SalesOffice.BrowserScanResults](ScanDate);
-            CREATE INDEX IX_BrowserScanResults_VenueId ON [dbo].[SalesOffice.BrowserScanResults](VenueId);
-        END
-    `);
+    const cityForVenue = (venueId) => {
+        if (!venueId) return 'other';
+        if (venueId >= 5000 && venueId <= 5999) return 'miami';
+        if (venueId >= 2863 && venueId <= 2904) return 'dubai';
+        if (venueId >= 2964 && venueId <= 2998) return 'paris';
+        if (venueId >= 3001 && venueId <= 3073) return 'israel';
+        if (venueId >= 2914 && venueId <= 2930) return 'egypt';
+        if (venueId >= 2945 && venueId <= 2955) return 'lasvegas';
+        return 'other';
+    };
 
-    const scanDate = new Date(`${jsonReport.scanDate}T${jsonReport.scanTime}Z`);
-    const checkIn = jsonReport.searchDates.checkIn;
-    const checkOut = jsonReport.searchDates.checkOut;
+    const categoryBucket = (raw) => {
+        const c = (raw || '').toLowerCase();
+        if (c.includes('standard')) return 'standard';
+        if (c.includes('deluxe')) return 'deluxe';
+        if (c.includes('suite')) return 'suite';
+        return 'other';
+    };
+
+    const scanTimestamp = new Date(`${jsonReport.scanDate}T${jsonReport.scanTime}Z`);
+    const apiScanFile = `${jsonReport.scanDate}_${jsonReport.scanTime.replace(/:/g, '-').slice(0, 5)}_full_scan.json`;
     let inserted = 0;
 
     for (const hotel of jsonReport.hotels) {
-        for (const offer of hotel.offers) {
-            try {
-                await pool.request()
-                    .input('scanDate', sql.DateTime, scanDate)
-                    .input('checkIn', sql.Date, checkIn)
-                    .input('checkOut', sql.Date, checkOut)
-                    .input('venueId', sql.Int, hotel.venueId)
-                    .input('hotelId', sql.Int, hotel.hotelId)
-                    .input('name', sql.NVarChar(200), hotel.name)
-                    .input('cat', sql.NVarChar(100), offer.category)
-                    .input('board', sql.NVarChar(50), offer.board)
-                    .input('price', sql.Decimal(10, 2), offer.price)
-                    .input('ppn', sql.Decimal(10, 2), offer.price)
-                    .input('currency', sql.NVarChar(10), 'USD')
-                    .input('provider', sql.NVarChar(100), offer.provider)
-                    .input('isKnowaa', sql.Bit, offer.provider.includes('Knowaa') ? 1 : 0)
-                    .input('rank', sql.Int, hotel.knowaaRank)
-                    .input('nights', sql.Int, 1)
-                    .query(`
-                        INSERT INTO [dbo].[SalesOffice.BrowserScanResults]
-                            (ScanDate, CheckInDate, CheckOutDate, VenueId, HotelId, HotelName,
-                             Category, Board, Price, PricePerNight, Currency, Provider,
-                             IsKnowaa, KnowaaRank, Nights)
-                        VALUES
-                            (@scanDate, @checkIn, @checkOut, @venueId, @hotelId, @name,
-                             @cat, @board, @price, @ppn, @currency, @provider,
-                             @isKnowaa, @rank, @nights)
-                    `);
-                inserted++;
-            } catch (err) {
-                log(`  ERROR inserting ${hotel.name}/${offer.provider}: ${err.message}`);
-            }
+        const offers = hotel.offers || [];
+        const cheapest = { standard: null, deluxe: null, suite: null, other: null };
+        for (const off of offers) {
+            const b = categoryBucket(off.category);
+            if (cheapest[b] === null || off.price < cheapest[b]) cheapest[b] = off.price;
+        }
+        const status = offers.length > 0 ? 'OK' : 'NO_RESULTS';
+        let cheapestOverallOffer = null;
+        for (const off of offers) {
+            if (!cheapestOverallOffer || off.price < cheapestOverallOffer.price) cheapestOverallOffer = off;
+        }
+
+        try {
+            await pool.request()
+                .input('city', sql.NVarChar(50), cityForVenue(hotel.venueId))
+                .input('venueId', sql.Int, hotel.venueId)
+                .input('hotelId', sql.Int, hotel.hotelId)
+                .input('hotelName', sql.NVarChar(200), (hotel.name || '').slice(0, 200))
+                .input('totalRooms', sql.Int, offers.length)
+                .input('refundableRooms', sql.Int, null)
+                .input('cheapestStandard', sql.Float, cheapest.standard)
+                .input('cheapestDeluxe', sql.Float, cheapest.deluxe)
+                .input('cheapestSuite', sql.Float, cheapest.suite)
+                .input('cheapestOther', sql.Float, cheapest.other)
+                .input('cheapestOverall', sql.Float, hotel.cheapestPrice ?? (cheapestOverallOffer && cheapestOverallOffer.price))
+                .input('cheapestCategory', sql.NVarChar(50), cheapestOverallOffer && cheapestOverallOffer.category)
+                .input('cheapestBoard', sql.NVarChar(50), cheapestOverallOffer && cheapestOverallOffer.board)
+                .input('cheapestProvider', sql.NVarChar(100), hotel.cheapestProvider || (cheapestOverallOffer && cheapestOverallOffer.provider))
+                .input('scanStatus', sql.NVarChar(50), status)
+                .input('currencyCode', sql.NVarChar(10), 'USD')
+                .input('scanTimestamp', sql.DateTime, scanTimestamp)
+                .input('apiScanFile', sql.NVarChar(500), apiScanFile)
+                .query(`
+                    INSERT INTO [SalesOffice.BrowserScanResults]
+                        (City, VenueId, HotelId, HotelName,
+                         TotalRooms, RefundableRooms,
+                         CheapestStandard, CheapestDeluxe, CheapestSuite, CheapestOther,
+                         CheapestOverall, CheapestCategory, CheapestBoard, CheapestProvider,
+                         ScanStatus, CurrencyCode, ScanTimestamp, ApiScanFile)
+                    VALUES
+                        (@city, @venueId, @hotelId, @hotelName,
+                         @totalRooms, @refundableRooms,
+                         @cheapestStandard, @cheapestDeluxe, @cheapestSuite, @cheapestOther,
+                         @cheapestOverall, @cheapestCategory, @cheapestBoard, @cheapestProvider,
+                         @scanStatus, @currencyCode, @scanTimestamp, @apiScanFile)
+                `);
+            inserted++;
+        } catch (err) {
+            log(`  ERROR inserting ${hotel.name}: ${err.message}`);
         }
     }
 
     await pool.close();
-    log(`Inserted ${inserted} rows into BrowserScanResults`);
+    log(`Inserted ${inserted}/${jsonReport.hotels.length} rows into [SalesOffice.BrowserScanResults]`);
     return inserted;
 }
 
@@ -586,8 +593,8 @@ function gitPush(files) {
 
     try {
         const cwd = PROJECT_ROOT;
-        // Pull first to avoid conflicts with other agents pushing
-        try { execSync('git pull --rebase origin main', { cwd }); } catch (_) {}
+        // --autostash keeps .claude-memory.md (auto-updated by post-commit hook) from blocking rebase
+        try { execSync('git pull --rebase --autostash origin main', { cwd }); } catch (_) {}
         execSync(`git add shared-reports/ scan-reports/`, { cwd });
         const msg = `chore: automated browser-price-check scan ${new Date().toISOString().split('T')[0]}`;
         execSync(`git commit -m "${msg}\n\nCo-Authored-By: browser_scan.js <noreply@medici.com>"`, { cwd });
@@ -597,7 +604,7 @@ function gitPush(files) {
         // Retry once after pull
         try {
             const cwd = PROJECT_ROOT;
-            execSync('git pull --rebase origin main', { cwd });
+            execSync('git pull --rebase --autostash origin main', { cwd });
             execSync('git push origin main', { cwd });
             log('Reports pushed to GitHub (after retry)');
         } catch (err2) {
