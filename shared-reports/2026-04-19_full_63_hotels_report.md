@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 63 Hotels
 
-**Scan:** 2026-04-19 09:47:52 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
+**Scan:** 2026-04-19 10:08:56 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
 
 ## Summary
 
@@ -25,7 +25,7 @@
 | DoubleTree by Hilton Miami Doral | 5082 | Standard | RO | **$182.63** | $193.59 | InnstantTravel | -$10.96 |
 | Embassy Suites by Hilton Miami International Airport | 5081 | Standard | RO | **$158.45** | $167.96 | InnstantTravel | -$9.51 |
 | Embassy Suites by Hilton Miami International Airport | 5081 | Standard | RO | **$146.96** | $155.78 | InnstantTravel | -$8.82 |
-| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | RO | **$151.17** | $160.24 | InnstantTravel | -$9.07 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | RO | **$151.17** | $158.91 | goglobal | -$7.74 |
 | Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$363.02** | $384.80 | InnstantTravel | -$21.78 |
 | Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$364.19** | $386.04 | InnstantTravel | -$21.85 |
 | Pullman Miami Airport | 5080 | Standard | RO | **$133.40** | $135.56 | InnstantTravel | -$2.16 |
