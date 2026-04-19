@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 63 Hotels
 
-**Scan:** 2026-04-19 08:20:27 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
+**Scan:** 2026-04-19 08:34:04 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
 
 ## Summary
 
