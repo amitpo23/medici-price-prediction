@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 63 Hotels
 
-**Scan:** 2026-04-20 02:57:26 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
+**Scan:** 2026-04-20 03:13:57 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
 
 ## Summary
 
@@ -8,11 +8,11 @@
 |--------|-------|
 | Hotels scanned | 63 |
 | Knowaa appears | **18 (29%)** |
-| Knowaa #1 | **16 (25%)** |
-| Not listed | 32 (51%) |
-| No refundable offers | 13 (21%) |
+| Knowaa #1 | **17 (27%)** |
+| Not listed | 33 (52%) |
+| No refundable offers | 12 (19%) |
 
-## A. Knowaa is CHEAPEST (#1) — 16 hotels
+## A. Knowaa is CHEAPEST (#1) — 17 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | 2nd $ | 2nd Provider | Gap |
 |-------|-------|-----|-------|----------|-------|-------------|-----|
@@ -27,20 +27,20 @@
 | Embassy Suites by Hilton Miami International Airport | 5081 | Standard | RO | **$158.45** | $167.96 | InnstantTravel | -$9.51 |
 | Embassy Suites by Hilton Miami International Airport | 5081 | Standard | RO | **$146.96** | $155.78 | InnstantTravel | -$8.82 |
 | Embassy Suites by Hilton Miami International Airport | 5081 | Standard | RO | **$186.21** | $189.08 | InnstantTravel | -$2.87 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | RO | **$151.17** | $159.65 | goglobal | -$8.48 |
 | Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$363.02** | $384.80 | InnstantTravel | -$21.78 |
 | Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$364.19** | $386.04 | InnstantTravel | -$21.85 |
 | Pullman Miami Airport | 5080 | Standard | RO | **$133.40** | $135.56 | InnstantTravel | -$2.16 |
-| Pullman Miami Airport | 5080 | Standard | RO | **$133.45** | $135.74 | InnstantTravel | -$2.29 |
+| Pullman Miami Airport | 5080 | Standard | RO | **$133.45** | $135.00 | goglobal | -$1.55 |
 | Pullman Miami Airport | 5080 | Standard | RO | **$133.45** | $141.46 | InnstantTravel | -$8.01 |
 
-## B. Knowaa Listed But Not Cheapest — 2 hotels
+## B. Knowaa Listed But Not Cheapest — 1 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | Cheapest $ | Provider | Rank | Gap |
 |-------|-------|-----|-------|----------|-----------|----------|------|-----|
-| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $146.96 | $142.94 | InnstantTravel | #4 | +$4.02 |
-| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $149.99 | $142.94 | InnstantTravel | #23 | +$7.05 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Suite | RO | $146.96 | $139.69 | goglobal | #22 | +$7.27 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 32 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 33 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
@@ -53,9 +53,10 @@
 | Embassy Suites by Hilton Miami International Airport | 5081 | $140.87 | goglobal | Suite, Standard | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $140.87 | goglobal | Suite, Standard | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $139.69 | goglobal | Suite, Standard | RO, BB |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $162.37 | InnstantTravel | Suite, Standard | BB, RO |
+| Embassy Suites by Hilton Miami International Airport | 5081 | $159.65 | goglobal | Suite, Standard | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $140.87 | goglobal | Suite, Standard | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $140.87 | goglobal | Suite, Standard | BB, RO |
+| Embassy Suites by Hilton Miami International Airport | 5081 | $139.69 | goglobal | Standard, Suite | RO, BB |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $140.87 | goglobal | Standard, Suite | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $140.87 | goglobal | Suite, Standard | BB, RO |
 | Hotel Riu Plaza Miami Beach | 5109 | $300.83 | InnstantTravel | Deluxe | BB, RO |
@@ -77,7 +78,7 @@
 | Viajero Miami | 5111 | $114.00 | HyperGuestDirect⇄ | Deluxe | RO |
 | Viajero Miami | 5111 | $122.21 | HyperGuestDirect⇄ | Deluxe | RO |
 
-## D. No Refundable Offers — 13 hotels
+## D. No Refundable Offers — 12 hotels
 
 | Hotel | Venue |
 |-------|-------|
@@ -92,6 +93,5 @@
 | DoubleTree by Hilton Miami Doral | 5082 |
 | DoubleTree by Hilton Miami Doral | 5082 |
 | DoubleTree by Hilton Miami Doral | 5082 |
-| Embassy Suites by Hilton Miami International Airport | 5081 |
 | Hotel Chelsea | 5064 |
 
