@@ -1,0 +1,5484 @@
+{
+  "scanDate": "2026-04-20",
+  "scanTime": "11:06:48",
+  "searchDates": {
+    "checkIn": "2026-05-28",
+    "checkOut": "2026-05-29"
+  },
+  "source": "innstant_b2b_browser",
+  "totalHotelsScanned": 63,
+  "summary": {
+    "knowaaAppears": 20,
+    "knowaaFirst": 16,
+    "notListed": 24,
+    "noOffers": 19
+  },
+  "hotels": [
+    {
+      "hotelId": 854881,
+      "venueId": 5079,
+      "name": "citizenM Miami Brickell hotel",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 177.23,
+      "cheapestPrice": 177.23,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 177.23,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 187.86,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 203.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 204,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 204,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.61,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 206.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 207.42,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 207.42,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 210.14,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 210.14,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 213.29,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 213.29,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 214.08,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 219.52,
+          "provider": "goglobal"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 176.51,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 176.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 176.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 176.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 176.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 176.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 176.51,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 172.61,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 172.61,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 172.61,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 172.61,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 172.61,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.09,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 182.63,
+      "cheapestPrice": 182.63,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 182.63,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 193.59,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 180.82,
+      "cheapestPrice": 180.82,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 180.82,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 191.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 196.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 196.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 196.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 196.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 196.27,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 181.24,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 181.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 181.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 181.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 181.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 181.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 181.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 181.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 181.24,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 174.32,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 174.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 179.61,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 179.61,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 179.61,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 179.61,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 179.61,
+          "provider": "goglobal"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 182.63,
+      "cheapestPrice": 182.63,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard",
+        "Suite"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 182.63,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 193.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 211.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 218.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 218.35,
+          "provider": "goglobal"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 200.8,
+      "cheapestPrice": 200.8,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 200.8,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 212.85,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 257.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 257.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 257.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 257.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 257.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 257.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 260.46,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 260.46,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 260.46,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 260.46,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 260.46,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 200.8,
+      "cheapestPrice": 200.8,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard",
+        "Suite"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 200.8,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 212.85,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 248.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 255.91,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 257.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 257.94,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 165.1,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 165.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.22,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.22,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.22,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.22,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 170.22,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 171.64,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 171.64,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 171.64,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 171.64,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 171.64,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 171.64,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 171.64,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 171.64,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 182.63,
+      "cheapestPrice": 182.63,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 182.63,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 193.59,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 733781,
+      "venueId": 5082,
+      "name": "DoubleTree by Hilton Miami Doral",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 197.37,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 197.37,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 197.37,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 139.69,
+      "cheapestProvider": "goglobal",
+      "categories": [
+        "Suite",
+        "Standard"
+      ],
+      "boards": [
+        "BB",
+        "RO"
+      ],
+      "providers": [
+        "goglobal",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 139.69,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 139.69,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 139.69,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 139.69,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 140.87,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 140.87,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 140.87,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 140.87,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 143.22,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 143.22,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 144.39,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 144.39,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.39,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.39,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": false,
+      "knowaaRank": 19,
+      "knowaaPrice": 151.82,
+      "cheapestPrice": 142.94,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard",
+        "Suite"
+      ],
+      "boards": [
+        "BB",
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel",
+        "Knowaa_Global_zenith"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 142.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 151.62,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 151.62,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 151.62,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 151.82,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 153.05,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 153.05,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 153.05,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 155.54,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 155.54,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 158.45,
+      "cheapestPrice": 158.45,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 158.45,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 167.96,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 142.94,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard",
+        "Suite"
+      ],
+      "boards": [
+        "BB",
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 142.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.57,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.57,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.57,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 152.36,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 152.36,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 152.36,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 153.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 153.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 153.27,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 142.94,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard",
+        "Suite"
+      ],
+      "boards": [
+        "BB",
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 142.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 147.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 149.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 149.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 149.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 151.81,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 151.81,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 151.81,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 154.04,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 154.04,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": false,
+      "knowaaRank": 18,
+      "knowaaPrice": 146.96,
+      "cheapestPrice": 140.87,
+      "cheapestProvider": "goglobal",
+      "categories": [
+        "Suite",
+        "Standard"
+      ],
+      "boards": [
+        "BB",
+        "RO"
+      ],
+      "providers": [
+        "goglobal",
+        "InnstantTravel",
+        "Knowaa_Global_zenith"
+      ],
+      "offers": [
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 140.87,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 140.87,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 140.87,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 140.87,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 142.04,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 142.04,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 142.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 145.56,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 145.56,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 145.56,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 145.56,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 146.96,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 146.96,
+      "cheapestPrice": 146.96,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 146.96,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 155.78,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 158.48,
+      "cheapestProvider": "goglobal",
+      "categories": [
+        "Suite",
+        "Standard"
+      ],
+      "boards": [
+        "BB",
+        "RO"
+      ],
+      "providers": [
+        "goglobal",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 158.48,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 158.48,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 161.68,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 162,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 163.17,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 163.17,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 163.53,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 164.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 164.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 164.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 164.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 165.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 165.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 167.34,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 167.34,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 169.01,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 169.01,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 169.04,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 170.75,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 170.75,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 171.39,
+          "provider": "goglobal"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 142.94,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Standard",
+        "Suite"
+      ],
+      "boards": [
+        "BB",
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 142.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 146.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 147.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 147.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.3,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.3,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.3,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.3,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": false,
+      "knowaaRank": 13,
+      "knowaaPrice": 151.97,
+      "cheapestPrice": 142.94,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Suite",
+        "Standard"
+      ],
+      "boards": [
+        "BB",
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel",
+        "Knowaa_Global_zenith"
+      ],
+      "offers": [
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 142.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 144.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 147.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 148.35,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 149.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 151.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 151.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 151.62,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 151.62,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 151.97,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 153.05,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 153.05,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 154.54,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 154.54,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 154.6,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 154.6,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 155.54,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 156.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 156.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 157.49,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 157.49,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 157.9,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 157.9,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": false,
+      "knowaaRank": 7,
+      "knowaaPrice": 186.21,
+      "cheapestPrice": 184.3,
+      "cheapestProvider": "goglobal",
+      "categories": [
+        "Suite",
+        "Standard"
+      ],
+      "boards": [
+        "RO",
+        "BB"
+      ],
+      "providers": [
+        "goglobal",
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 184.3,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 184.3,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 184.3,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 185.48,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 185.48,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 185.48,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 186.21,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 186.65,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 186.65,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 189.08,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 191.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 191.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 191.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 191.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 191.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 193.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 193.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 193.32,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 193.93,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 193.93,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 193.93,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 195.71,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 195.71,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 195.71,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 20702,
+      "venueId": 5081,
+      "name": "Embassy Suites by Hilton Miami International Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 151.17,
+      "cheapestPrice": 151.17,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard",
+        "Suite"
+      ],
+      "boards": [
+        "RO",
+        "BB"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 151.17,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 160.24,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 162.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 164.4,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 164.4,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 169.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 169.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 169.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 172.33,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 172.33,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 172.33,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 172.96,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 172.96,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 172.96,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 176.7,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 176.7,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 177.49,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 177.49,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 177.49,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 179.18,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 179.18,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 179.18,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 180.9,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "RO",
+          "price": 180.9,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 183.29,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "BB",
+          "price": 183.37,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 183.37,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 183.37,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 184.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Suite",
+          "board": "BB",
+          "price": 184.7,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 32687,
+      "venueId": 5064,
+      "name": "Hotel Chelsea",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 24989,
+      "venueId": 5109,
+      "name": "Hotel Riu Plaza Miami Beach",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 24989,
+      "venueId": 5109,
+      "name": "Hotel Riu Plaza Miami Beach",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 363.02,
+      "cheapestPrice": 363.02,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO",
+        "BB"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 363.02,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 384.8,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 401.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 401.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 403.02,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 405.02,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 405.02,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 407.36,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 408.19,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 408.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 409.99,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 409.99,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 411.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 411.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 411.78,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 415.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 415.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 417.58,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 418.44,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 420.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 420.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 422.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 423.82,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 426.81,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 427.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 434.44,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 435.08,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 438.01,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 438.99,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 24989,
+      "venueId": 5109,
+      "name": "Hotel Riu Plaza Miami Beach",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 364.19,
+      "cheapestPrice": 364.19,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO",
+        "BB"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 364.19,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 386.04,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 401.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 401.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 404.19,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 405.02,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 405.02,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 407.36,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 408.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 411.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 411.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 411.78,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 415.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 415.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 417.58,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 418.44,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 422.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 426.81,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 428.44,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 438.01,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 439.25,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 441.44,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 441.44,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 441.69,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 441.69,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 445.61,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 445.61,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "BB",
+          "price": 448.2,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 826393,
+      "venueId": 5305,
+      "name": "Pod Times Square",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 121.94,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄",
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 121.94,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 129.26,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 129.26,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 129.38,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 132.19,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 134.96,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 135.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 136.79,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 136.79,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 137.35,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 137.39,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 137.75,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 139.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 140.07,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 141.02,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 826393,
+      "venueId": 5305,
+      "name": "Pod Times Square",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 162.33,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Standard",
+        "Dormitory"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄",
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 162.33,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 172.07,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 172.07,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 172.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 175.81,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 177.26,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 180.34,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 180.96,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 182.07,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 182.07,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Dormitory",
+          "board": "RO",
+          "price": 182.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 182.28,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 182.28,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 182.9,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 183.44,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 826393,
+      "venueId": 5305,
+      "name": "Pod Times Square",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 201.81,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Standard"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄",
+        "InnstantTravel",
+        "goglobal"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 201.81,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 213.85,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 213.92,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 213.92,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 218.48,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 222.45,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 222.45,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 223.38,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 224.21,
+          "provider": "goglobal"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 224.99,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 226.78,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 226.78,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 227.38,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 228.11,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 230.44,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 826393,
+      "venueId": 5305,
+      "name": "Pod Times Square",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 6805,
+      "venueId": 5080,
+      "name": "Pullman Miami Airport",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 149.78,
+      "cheapestProvider": "InnstantTravel",
+      "categories": [
+        "Superior"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 149.78,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 150.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 151.26,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 152.87,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 152.87,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 152.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 152.94,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 153.05,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 155.37,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 155.39,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 155.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 158.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 158.55,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 159.47,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 159.48,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 159.71,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 160.52,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 160.56,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 160.88,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 161.37,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 161.37,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 161.5,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 161.5,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 161.76,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 162.38,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 163.13,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 164.02,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 164.04,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 164.2,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 6805,
+      "venueId": 5080,
+      "name": "Pullman Miami Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 133.33,
+      "cheapestPrice": 133.33,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard",
+        "Superior"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 133.33,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 135.56,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 135.63,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 135.88,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 136.61,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 136.61,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 137.87,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 139.01,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 139.01,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 140.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 141.33,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 141.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 141.87,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 142.89,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 143.07,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 144.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 144.34,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 144.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 145.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 145.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.54,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.83,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.5,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.63,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.76,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.76,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.82,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 148.51,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 6805,
+      "venueId": 5080,
+      "name": "Pullman Miami Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 133.4,
+      "cheapestPrice": 133.4,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard",
+        "Superior"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 133.4,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 135.56,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 137.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 137.09,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.12,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.12,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 139.39,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 139.39,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 140.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 140.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 141.4,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 141.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 142.89,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 144.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 144.33,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 145.72,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 145.72,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.82,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.83,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.83,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.82,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 148.1,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 148.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 148.16,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 149.26,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 149.49,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 6805,
+      "venueId": 5080,
+      "name": "Pullman Miami Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 133.45,
+      "cheapestPrice": 133.45,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard",
+        "Superior"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 133.45,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 135.74,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 137.87,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.12,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.12,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.15,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.48,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 138.48,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 140.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 140.66,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 141.46,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 141.65,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 142.89,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 143.07,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 144,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 144.34,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.54,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.82,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.83,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 146.83,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.5,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 147.82,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 148.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 149.26,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 149.3,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 149.3,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 6805,
+      "venueId": 5080,
+      "name": "Pullman Miami Airport",
+      "knowaaPresent": true,
+      "knowaaIsCheapest": true,
+      "knowaaRank": 1,
+      "knowaaPrice": 133.45,
+      "cheapestPrice": 133.45,
+      "cheapestProvider": "Knowaa_Global_zenith",
+      "categories": [
+        "Standard",
+        "Superior",
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "Knowaa_Global_zenith",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 133.45,
+          "provider": "Knowaa_Global_zenith"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 141.46,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 178.51,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 178.62,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 179.8,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 179.8,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 181.22,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 181.59,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 181.67,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 182.71,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 182.71,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 186.21,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 186.47,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 186.98,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 186.98,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 187.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Standard",
+          "board": "RO",
+          "price": 187.2,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 187.27,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 187.82,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 188.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 188.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 188.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 188.43,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 189.28,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 189.91,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 189.91,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 190.3,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 190.3,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Superior",
+          "board": "RO",
+          "price": 190.38,
+          "provider": "InnstantTravel"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 190.38,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 140.45,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 140.45,
+          "provider": "HyperGuestDirect⇄"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 172.37,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 172.37,
+          "provider": "HyperGuestDirect⇄"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 117.65,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄",
+        "InnstantTravel"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 117.65,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 124.71,
+          "provider": "InnstantTravel"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 135.89,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 135.89,
+          "provider": "HyperGuestDirect⇄"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 114,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 114,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 114,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 114,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 114,
+          "provider": "HyperGuestDirect⇄"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": null,
+      "cheapestProvider": null,
+      "categories": [],
+      "boards": [],
+      "providers": [],
+      "offers": []
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 132.24,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 132.24,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 132.24,
+          "provider": "HyperGuestDirect⇄"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 132.24,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 132.24,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 132.24,
+          "provider": "HyperGuestDirect⇄"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 114,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 114,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 114,
+          "provider": "HyperGuestDirect⇄"
+        }
+      ]
+    },
+    {
+      "hotelId": 31709,
+      "venueId": 5111,
+      "name": "Viajero Miami",
+      "knowaaPresent": false,
+      "knowaaIsCheapest": false,
+      "knowaaRank": null,
+      "knowaaPrice": null,
+      "cheapestPrice": 122.21,
+      "cheapestProvider": "HyperGuestDirect⇄",
+      "categories": [
+        "Deluxe"
+      ],
+      "boards": [
+        "RO"
+      ],
+      "providers": [
+        "HyperGuestDirect⇄"
+      ],
+      "offers": [
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 122.21,
+          "provider": "HyperGuestDirect⇄"
+        },
+        {
+          "category": "Deluxe",
+          "board": "RO",
+          "price": 122.21,
+          "provider": "HyperGuestDirect⇄"
+        }
+      ]
+    }
+  ]
+}
