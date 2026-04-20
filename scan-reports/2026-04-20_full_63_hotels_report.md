@@ -1,16 +1,27 @@
 # Knowaa Full Competitive Scan — 63 Hotels
 
+<<<<<<< Updated upstream
 **Scan:** 2026-04-20 08:58:45 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
+=======
+**Scan:** 2026-04-20 09:14:13 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
+>>>>>>> Stashed changes
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Hotels scanned | 63 |
+<<<<<<< Updated upstream
 | Knowaa appears | **18 (29%)** |
 | Knowaa #1 | **16 (25%)** |
 | Not listed | 30 (48%) |
 | No refundable offers | 15 (24%) |
+=======
+| Knowaa appears | **19 (30%)** |
+| Knowaa #1 | **16 (25%)** |
+| Not listed | 31 (49%) |
+| No refundable offers | 13 (21%) |
+>>>>>>> Stashed changes
 
 ## A. Knowaa is CHEAPEST (#1) — 16 hotels
 
@@ -75,7 +86,11 @@
 | Viajero Miami | 5111 | $132.24 | HyperGuestDirect⇄ | Deluxe | RO |
 | Viajero Miami | 5111 | $114.00 | HyperGuestDirect⇄ | Deluxe | RO |
 
+<<<<<<< Updated upstream
 ## D. No Refundable Offers — 15 hotels
+=======
+## D. No Refundable Offers — 13 hotels
+>>>>>>> Stashed changes
 
 | Hotel | Venue |
 |-------|-------|
@@ -90,7 +105,6 @@
 | DoubleTree by Hilton Miami Doral | 5082 |
 | DoubleTree by Hilton Miami Doral | 5082 |
 | DoubleTree by Hilton Miami Doral | 5082 |
-| Embassy Suites by Hilton Miami International Airport | 5081 |
 | Hotel Chelsea | 5064 |
 | Viajero Miami | 5111 |
 | Viajero Miami | 5111 |
