@@ -1,0 +1,91 @@
+{
+  "reportDate": "2026-04-21",
+  "reportTime": "08:00:00",
+  "generatedAt": "2026-04-21T08:00:00Z",
+  "dataSource": "2026-04-21T00:46:22Z",
+  "previousScan": "2026-04-20T23:55:00Z",
+  "searchWindow": {
+    "checkIn": "2026-05-28",
+    "checkOut": "2026-05-29"
+  },
+  "provider": "Knowaa_Global_zenith",
+  "filter": "refundable_only",
+  "totalEntries": 63,
+  "uniqueHotels": 8,
+  "summary": {
+    "sectionA_knowaa1": 15,
+    "sectionB_knowaa2": 2,
+    "sectionC_knowaa3plus": 1,
+    "sectionD_noKnowaa": 29,
+    "sectionE_noRefundable": 16,
+    "totalKnowaaPresence": 18,
+    "knowaaPresencePct": 28.6,
+    "knowaa1Pct": 23.8
+  },
+  "vsLastScan": {
+    "sectionA_delta": 3,
+    "sectionB_delta": -1,
+    "sectionC_delta": -3,
+    "sectionD_delta": 0,
+    "sectionE_delta": 1,
+    "totalPresence_delta": -1
+  },
+  "sectionA_stats": {
+    "count": 15,
+    "avgKnowaaPrice": 196.29,
+    "avgGapVs2nd": 10.76,
+    "uniqueHotels": 5
+  },
+  "sectionA_hotels": [
+    {"hotel": "citizenM Miami Brickell hotel", "venueId": 5079, "slots": 1},
+    {"hotel": "DoubleTree by Hilton Miami Doral", "venueId": 5082, "slots": 7},
+    {"hotel": "Embassy Suites by Hilton Miami International Airport", "venueId": 5081, "slots": 4},
+    {"hotel": "Hotel Riu Plaza Miami Beach", "venueId": 5109, "slots": 2},
+    {"hotel": "Pullman Miami Airport", "venueId": 5080, "slots": 2}
+  ],
+  "sectionB_hotels": [
+    {"hotel": "Pullman Miami Airport", "venueId": 5080, "slots": 2, "avgGap": 3.31, "avgRank": 2}
+  ],
+  "sectionC_hotels": [
+    {"hotel": "Embassy Suites by Hilton Miami International Airport", "venueId": 5081, "slots": 1, "rank": 12, "gap": 3.50, "board": "BB"}
+  ],
+  "sectionD_hotels": [
+    {"hotel": "DoubleTree by Hilton Miami Doral", "venueId": 5082, "slots": 5, "topCompetitor": "InnstantTravel"},
+    {"hotel": "Embassy Suites by Hilton Miami International Airport", "venueId": 5081, "slots": 11, "topCompetitor": "goglobal"},
+    {"hotel": "Hotel Riu Plaza Miami Beach", "venueId": 5109, "slots": 1, "topCompetitor": "goglobal"},
+    {"hotel": "Pod Times Square", "venueId": 5305, "slots": 4, "topCompetitor": "HyperGuestDirect"},
+    {"hotel": "Pullman Miami Airport", "venueId": 5080, "slots": 1, "topCompetitor": "InnstantTravel"},
+    {"hotel": "Viajero Miami", "venueId": 5111, "slots": 7, "topCompetitor": "HyperGuestDirect"}
+  ],
+  "sectionE_hotels": [
+    {"hotel": "DoubleTree by Hilton Miami Doral", "venueId": 5082, "slots": 12},
+    {"hotel": "Hotel Chelsea", "venueId": 5064, "slots": 1},
+    {"hotel": "Viajero Miami", "venueId": 5111, "slots": 3}
+  ],
+  "criticalAlerts": [
+    {
+      "priority": "critical",
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "message": "10/10 slots (7 D + 3 E) with zero Knowaa presence — total distribution failure"
+    },
+    {
+      "priority": "critical",
+      "hotel": "Pod Times Square",
+      "venueId": 5305,
+      "message": "4/4 slots absent — HyperGuestDirect monopoly, Knowaa not loading"
+    },
+    {
+      "priority": "high",
+      "hotel": "Embassy Suites by Hilton Miami International Airport",
+      "venueId": 5081,
+      "message": "11 D-section BB/Suite gaps + 1 C-section BB slot at #12 (+$3.50)"
+    }
+  ],
+  "providerLandscape": [
+    {"provider": "InnstantTravel", "role": "dominant", "sections": ["A", "B", "C", "D"]},
+    {"provider": "goglobal", "role": "active", "notes": "Dominant on Embassy Suites BB/Suite"},
+    {"provider": "HyperGuestDirect", "role": "niche", "notes": "100% monopoly on Viajero + Pod Times Square"},
+    {"provider": "Knowaa_Global_zenith", "appearances": 18, "presencePct": 28.6}
+  ]
+}
