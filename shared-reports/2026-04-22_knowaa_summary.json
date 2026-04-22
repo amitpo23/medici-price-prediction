@@ -1,0 +1,208 @@
+{
+  "reportDate": "2026-04-22",
+  "generatedAt": "2026-04-22T00:43:57Z",
+  "scanNote": "live browser scan attempted but failed \u2014 DNS and Azure SQL unreachable from remote env",
+  "dataSource": "scan-reports/2026-04-21_16-37_full_scan.json",
+  "dataScanTime": "2026-04-21T16:37:57Z",
+  "searchDates": {
+    "checkIn": "2026-05-28",
+    "checkOut": "2026-05-29"
+  },
+  "hotelsScanned": 63,
+  "knowaaAppears": 23,
+  "knowaaFirst": 16,
+  "notListed": 26,
+  "noRefundableOffers": 14,
+  "knowaaAppearsPct": 37,
+  "knowaaFirstPct": 25,
+  "topKnowaaHotels": [
+    {
+      "hotel": "citizenM Miami Brickell hotel",
+      "venueId": 5079,
+      "knowaaPrice": 177.23,
+      "secondPrice": 187.86,
+      "gap": 10.63
+    },
+    {
+      "hotel": "DoubleTree by Hilton Miami Doral",
+      "venueId": 5082,
+      "knowaaPrice": 182.63,
+      "secondPrice": 193.59,
+      "gap": 10.96
+    },
+    {
+      "hotel": "DoubleTree by Hilton Miami Doral",
+      "venueId": 5082,
+      "knowaaPrice": 180.82,
+      "secondPrice": 191.67,
+      "gap": 10.85
+    },
+    {
+      "hotel": "DoubleTree by Hilton Miami Doral",
+      "venueId": 5082,
+      "knowaaPrice": 182.63,
+      "secondPrice": 193.59,
+      "gap": 10.96
+    },
+    {
+      "hotel": "DoubleTree by Hilton Miami Doral",
+      "venueId": 5082,
+      "knowaaPrice": 200.8,
+      "secondPrice": 212.85,
+      "gap": 12.05
+    },
+    {
+      "hotel": "DoubleTree by Hilton Miami Doral",
+      "venueId": 5082,
+      "knowaaPrice": 200.8,
+      "secondPrice": 212.85,
+      "gap": 12.05
+    },
+    {
+      "hotel": "DoubleTree by Hilton Miami Doral",
+      "venueId": 5082,
+      "knowaaPrice": 182.63,
+      "secondPrice": 193.59,
+      "gap": 10.96
+    },
+    {
+      "hotel": "Embassy Suites by Hilton Miami International Airport",
+      "venueId": 5081,
+      "knowaaPrice": 158.45,
+      "secondPrice": 167.96,
+      "gap": 9.51
+    },
+    {
+      "hotel": "Embassy Suites by Hilton Miami International Airport",
+      "venueId": 5081,
+      "knowaaPrice": 146.96,
+      "secondPrice": 155.78,
+      "gap": 8.82
+    },
+    {
+      "hotel": "Embassy Suites by Hilton Miami International Airport",
+      "venueId": 5081,
+      "knowaaPrice": 151.17,
+      "secondPrice": 157.88,
+      "gap": 6.71
+    },
+    {
+      "hotel": "Hotel Riu Plaza Miami Beach",
+      "venueId": 5109,
+      "knowaaPrice": 363.02,
+      "secondPrice": 384.8,
+      "gap": 21.78
+    },
+    {
+      "hotel": "Hotel Riu Plaza Miami Beach",
+      "venueId": 5109,
+      "knowaaPrice": 364.19,
+      "secondPrice": 386.04,
+      "gap": 21.85
+    },
+    {
+      "hotel": "Pullman Miami Airport",
+      "venueId": 5080,
+      "knowaaPrice": 133.33,
+      "secondPrice": 135.51,
+      "gap": 2.18
+    },
+    {
+      "hotel": "Pullman Miami Airport",
+      "venueId": 5080,
+      "knowaaPrice": 133.4,
+      "secondPrice": 135.51,
+      "gap": 2.11
+    },
+    {
+      "hotel": "Pullman Miami Airport",
+      "venueId": 5080,
+      "knowaaPrice": 133.45,
+      "secondPrice": 135.51,
+      "gap": 2.06
+    },
+    {
+      "hotel": "Pullman Miami Airport",
+      "venueId": 5080,
+      "knowaaPrice": 133.45,
+      "secondPrice": 141.46,
+      "gap": 8.01
+    }
+  ],
+  "criticalGaps": [
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 114
+    },
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 114
+    },
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 114
+    },
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 116.74
+    },
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 117.65
+    },
+    {
+      "hotel": "Pod Times Square",
+      "venueId": 5305,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 121.94
+    },
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 122.21
+    },
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 132.24
+    },
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 132.24
+    },
+    {
+      "hotel": "Viajero Miami",
+      "venueId": 5111,
+      "cheapestProvider": "HyperGuestDirect\u21c4",
+      "cheapestPrice": 135.89
+    }
+  ],
+  "competitorLandscape": [
+    [
+      "InnstantTravel",
+      253
+    ],
+    [
+      "HyperGuestDirect\u21c4",
+      28
+    ],
+    [
+      "goglobal",
+      4
+    ]
+  ]
+}
