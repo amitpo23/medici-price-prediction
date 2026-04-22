@@ -1,0 +1,87 @@
+name: Daily Analytics
+
+on:
+  schedule:
+    # 02:00 UTC daily — after all browser-scan cycles of the previous day.
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no DB writes)'
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: daily-analytics
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  price-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ODBC Driver 18 + pyodbc
+        run: |
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" | sudo tee /etc/apt/sources.list.d/microsoft-prod.list
+          sudo apt-get update
+          ACCEPT_EULA=Y sudo apt-get install -y msodbcsql18
+          pip install pyodbc
+
+      - name: Run price drift check
+        env:
+          SCAN_DB_SERVER: ${{ secrets.SCAN_DB_SERVER }}
+          SCAN_DB_NAME:   ${{ secrets.SCAN_DB_NAME }}
+          SCAN_DB_USER:   ${{ secrets.SCAN_DB_USER }}
+          SCAN_DB_PASS:   ${{ secrets.SCAN_DB_PASS }}
+          SOURCE_DB_SERVER: ${{ secrets.SOURCE_DB_SERVER }}
+          SOURCE_DB_NAME:   ${{ secrets.SOURCE_DB_NAME }}
+          SOURCE_DB_USER:   ${{ secrets.SOURCE_DB_USER }}
+          SOURCE_DB_PASS:   ${{ secrets.SOURCE_DB_PASS }}
+          CREATED_BY:       price-drift@GHA
+        run: |
+          FLAGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then FLAGS="--dry-run"; fi
+          python3 scripts/price_drift_check.py --window-hours 6 $FLAGS
+
+  knowaa-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90       # knowaa scan takes 15-30 min for 24h, up to 90 for 48h
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ODBC Driver 18 + pyodbc
+        run: |
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" | sudo tee /etc/apt/sources.list.d/microsoft-prod.list
+          sudo apt-get update
+          ACCEPT_EULA=Y sudo apt-get install -y msodbcsql18
+          pip install pyodbc
+
+      - name: Run Knowaa performance report
+        env:
+          SOURCE_DB_SERVER: ${{ secrets.SOURCE_DB_SERVER }}
+          SOURCE_DB_NAME:   ${{ secrets.SOURCE_DB_NAME }}
+          SOURCE_DB_USER:   ${{ secrets.SOURCE_DB_USER }}
+          SOURCE_DB_PASS:   ${{ secrets.SOURCE_DB_PASS }}
+          CREATED_BY:       knowaa-db@GHA
+        run: |
+          FLAGS="--no-files --no-push"         # cloud = DB only, no files, no git
+          if [ "${{ inputs.dry_run }}" = "true" ]; then FLAGS="$FLAGS --no-db"; fi
+          python3 scripts/knowaa_db_report.py --hours 24 $FLAGS
