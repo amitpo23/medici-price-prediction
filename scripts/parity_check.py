@@ -67,7 +67,12 @@ def fetch_rows(conn, window_hours: int) -> Dict[str, Dict[int, VenuePrice]]:
     return by_source
 
 
-def compare(rows: Dict[str, Dict[int, VenuePrice]], tolerance: float) -> dict:
+def compare(rows: Dict[str, Dict[int, VenuePrice]],
+             tolerance_usd: float, tolerance_pct: float) -> dict:
+    """A gap is a blocker only when it exceeds BOTH an absolute floor and a
+    relative (%) threshold. This prevents tiny absolute deltas on cheap
+    rooms from flagging, while also keeping the percentage honest for
+    expensive suites where $5 can be noise."""
     local = rows[LOCAL]
     gha = rows[GHA]
 
@@ -79,11 +84,14 @@ def compare(rows: Dict[str, Dict[int, VenuePrice]], tolerance: float) -> dict:
     for vid in common:
         l, g = local[vid], gha[vid]
         diff = abs(l.cheapest_overall - g.cheapest_overall)
-        if diff > tolerance:
+        mean = (l.cheapest_overall + g.cheapest_overall) / 2.0 or 1.0
+        pct = diff / mean * 100.0
+        # Only flag if gap exceeds BOTH the absolute AND the percent floor.
+        if diff > tolerance_usd and pct > tolerance_pct:
             gaps.append({
                 "venue": vid, "hotel": l.hotel_name,
                 "local": l.cheapest_overall, "gha": g.cheapest_overall,
-                "diff": diff,
+                "diff": diff, "pct": pct,
             })
     gaps.sort(key=lambda x: x["diff"], reverse=True)
 
@@ -95,7 +103,7 @@ def compare(rows: Dict[str, Dict[int, VenuePrice]], tolerance: float) -> dict:
     }
 
 
-def report(result: dict, tolerance: float) -> int:
+def report(result: dict, tolerance_usd: float, tolerance_pct: float) -> int:
     c = result["counts"]
     print(f"\n  ─── Parity Check ───")
     print(f"  Local rows:     {c[LOCAL]}")
@@ -121,15 +129,16 @@ def report(result: dict, tolerance: float) -> int:
 
     gaps = result["large_gaps"]
     if gaps:
-        print(f"\n  ⚠ Price gaps > ${tolerance:.2f} ({len(gaps)} venues):")
+        print(f"\n  ⚠ Price gaps > ${tolerance_usd:.2f} AND >{tolerance_pct:.1f}% ({len(gaps)} venues):")
         for g in gaps[:10]:
             print(f"    venue={g['venue']:5d} {g['hotel'][:35]:35s}"
-                  f" local=${g['local']:7.2f} gha=${g['gha']:7.2f} diff=${g['diff']:6.2f}")
-        if len(gaps) > len(result["large_gaps"][:10]):
+                  f" local=${g['local']:7.2f} gha=${g['gha']:7.2f}"
+                  f" diff=${g['diff']:6.2f} ({g['pct']:.1f}%)")
+        if len(gaps) > 10:
             print(f"    ...and {len(gaps)-10} more")
         blockers += 1
     else:
-        print(f"  ✓ All common venues within ${tolerance:.2f} tolerance")
+        print(f"  ✓ All common venues within ${tolerance_usd:.2f} AND {tolerance_pct:.1f}% tolerance")
 
     if blockers == 0:
         print(f"\n  ✓ PARITY OK — safe to continue toward cutover")
@@ -142,14 +151,18 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--window-hours", type=int, default=4,
                     help="Lookback window (default: 4h, covers 1 local + 1 GHA cycle)")
-    p.add_argument("--tolerance-usd", type=float, default=2.0,
-                    help="Max acceptable CheapestOverall gap per venue (default: $2)")
+    p.add_argument("--tolerance-usd", type=float, default=5.0,
+                    help="Minimum absolute gap (USD) to flag — default $5 "
+                         "(below this is natural Innstant price drift)")
+    p.add_argument("--tolerance-pct", type=float, default=3.0,
+                    help="Minimum relative gap (%%) to flag — default 3%% "
+                         "(gap must exceed BOTH usd AND pct floors to be a blocker)")
     args = p.parse_args()
 
     conn = pyodbc.connect(CONN_STR, timeout=30)
     rows = fetch_rows(conn, args.window_hours)
-    result = compare(rows, args.tolerance_usd)
-    return report(result, args.tolerance_usd)
+    result = compare(rows, args.tolerance_usd, args.tolerance_pct)
+    return report(result, args.tolerance_usd, args.tolerance_pct)
 
 
 if __name__ == "__main__":
