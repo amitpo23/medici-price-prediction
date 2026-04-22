@@ -2,84 +2,74 @@ name: Browser Price Check Scan
 
 on:
   schedule:
-    # Every 8 hours: 00:00, 08:00, 16:00 UTC
-    - cron: '0 */8 * * *'
+    # Every 3h, offset 90min from local cron (local: 0 0,3,6,9,...).
+    # Avoids dual-login race on the shared Innstant B2B account.
+    - cron: '30 1,4,7,10,13,16,19,22 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Dry run (no DB write, no git push)'
+        description: 'Dry run (no DB write)'
         required: false
         default: 'false'
         type: boolean
 
+concurrency:
+  group: browser-scan
+  cancel-in-progress: true
+
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install deps
         run: npm ci
 
-      - name: Install Playwright browsers
+      - name: Install Playwright chromium
         run: npx playwright install chromium --with-deps
 
       - name: Run browser scan
         env:
-          INNSTANT_USER: ${{ secrets.INNSTANT_USER }}
-          INNSTANT_PASS: ${{ secrets.INNSTANT_PASS }}
+          INNSTANT_USER:    ${{ secrets.INNSTANT_USER }}
+          INNSTANT_PASS:    ${{ secrets.INNSTANT_PASS }}
           INNSTANT_ACCOUNT: ${{ secrets.INNSTANT_ACCOUNT }}
           SOURCE_DB_SERVER: ${{ secrets.SOURCE_DB_SERVER }}
-          SOURCE_DB_NAME: ${{ secrets.SOURCE_DB_NAME }}
-          SOURCE_DB_USER: ${{ secrets.SOURCE_DB_USER }}
-          SOURCE_DB_PASS: ${{ secrets.SOURCE_DB_PASS }}
-          SCAN_DB_SERVER: ${{ secrets.SCAN_DB_SERVER }}
-          SCAN_DB_NAME: ${{ secrets.SCAN_DB_NAME }}
-          SCAN_DB_USER: ${{ secrets.SCAN_DB_USER }}
-          SCAN_DB_PASS: ${{ secrets.SCAN_DB_PASS }}
+          SOURCE_DB_NAME:   ${{ secrets.SOURCE_DB_NAME }}
+          SOURCE_DB_USER:   ${{ secrets.SOURCE_DB_USER }}
+          SOURCE_DB_PASS:   ${{ secrets.SOURCE_DB_PASS }}
+          SCAN_DB_SERVER:   ${{ secrets.SCAN_DB_SERVER }}
+          SCAN_DB_NAME:     ${{ secrets.SCAN_DB_NAME }}
+          SCAN_DB_USER:     ${{ secrets.SCAN_DB_USER }}
+          SCAN_DB_PASS:     ${{ secrets.SCAN_DB_PASS }}
+          # Tags rows written by this workflow — flip to BrowserScan@GHA after cutover.
+          CREATED_BY:       BrowserScan@GHA-parallel
         run: |
-          FLAGS=""
+          FLAGS="--no-push"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            FLAGS="--dry-run"
+            FLAGS="$FLAGS --dry-run"
           fi
-          # Git push handled separately in CI (see next step)
-          node scripts/browser_scan.js --no-push $FLAGS
+          node scripts/browser_scan.js $FLAGS
 
-      - name: Commit and push reports
-        if: ${{ inputs.dry_run != 'true' }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scan-reports/ shared-reports/
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore: automated browser-price-check scan $(date -u +%Y-%m-%d)
-
-          Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
-            # Retry with rebase in case remote has new commits (push race)
-            for i in 1 2 3; do
-              git pull --rebase origin main || true
-              if git push; then
-                echo "Push succeeded on attempt $i"
-                exit 0
-              fi
-              echo "Push attempt $i failed, retrying..."
-              sleep 5
-            done
-            echo "All push attempts failed"
-            exit 1
-          fi
+      - name: Upload scan reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-reports-${{ github.run_id }}
+          path: |
+            scan-reports/
+            shared-reports/
+          retention-days: 30
+          if-no-files-found: warn
