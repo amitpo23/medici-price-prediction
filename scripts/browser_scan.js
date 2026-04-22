@@ -535,19 +535,30 @@ async function writeToDb(jsonReport) {
                 .input('scanTimestamp', sql.DateTime, scanTimestamp)
                 .input('apiScanFile', sql.NVarChar(500), apiScanFile)
                 .input('createdBy', sql.NVarChar(100), process.env.CREATED_BY || 'local')
+                // RawJson: full per-hotel offers (category/board/provider/price) so
+                // downstream consumers don't need to fetch the JSON report file.
+                // Shared across medici-price-prediction + medici-hotels via this DB.
+                .input('rawJson', sql.NVarChar(sql.MAX), JSON.stringify({
+                    venueId: hotel.venueId, hotelId: hotel.hotelId,
+                    name: hotel.name, offers,
+                    cheapestPrice: hotel.cheapestPrice,
+                    cheapestProvider: hotel.cheapestProvider,
+                }))
                 .query(`
                     INSERT INTO [SalesOffice.BrowserScanResults]
                         (City, VenueId, HotelId, HotelName,
                          TotalRooms, RefundableRooms,
                          CheapestStandard, CheapestDeluxe, CheapestSuite, CheapestOther,
                          CheapestOverall, CheapestCategory, CheapestBoard, CheapestProvider,
-                         ScanStatus, CurrencyCode, ScanTimestamp, ApiScanFile, CreatedBy)
+                         ScanStatus, CurrencyCode, ScanTimestamp, ApiScanFile, CreatedBy,
+                         RawJson)
                     VALUES
                         (@city, @venueId, @hotelId, @hotelName,
                          @totalRooms, @refundableRooms,
                          @cheapestStandard, @cheapestDeluxe, @cheapestSuite, @cheapestOther,
                          @cheapestOverall, @cheapestCategory, @cheapestBoard, @cheapestProvider,
-                         @scanStatus, @currencyCode, @scanTimestamp, @apiScanFile, @createdBy)
+                         @scanStatus, @currencyCode, @scanTimestamp, @apiScanFile, @createdBy,
+                         @rawJson)
                 `);
             inserted++;
         } catch (err) {
