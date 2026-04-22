@@ -283,6 +283,7 @@ const MAX_RETRIES = 3;
 
 async function launchBrowser() {
     const browser = await chromium.launch({ headless: true });
+    registerBrowser(browser);   // SIGTERM handler will close this if job is cancelled
     const context = await browser.newContext({
         userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
         viewport: { width: 1280, height: 800 },
@@ -533,19 +534,20 @@ async function writeToDb(jsonReport) {
                 .input('currencyCode', sql.NVarChar(10), 'USD')
                 .input('scanTimestamp', sql.DateTime, scanTimestamp)
                 .input('apiScanFile', sql.NVarChar(500), apiScanFile)
+                .input('createdBy', sql.NVarChar(100), process.env.CREATED_BY || 'local')
                 .query(`
                     INSERT INTO [SalesOffice.BrowserScanResults]
                         (City, VenueId, HotelId, HotelName,
                          TotalRooms, RefundableRooms,
                          CheapestStandard, CheapestDeluxe, CheapestSuite, CheapestOther,
                          CheapestOverall, CheapestCategory, CheapestBoard, CheapestProvider,
-                         ScanStatus, CurrencyCode, ScanTimestamp, ApiScanFile)
+                         ScanStatus, CurrencyCode, ScanTimestamp, ApiScanFile, CreatedBy)
                     VALUES
                         (@city, @venueId, @hotelId, @hotelName,
                          @totalRooms, @refundableRooms,
                          @cheapestStandard, @cheapestDeluxe, @cheapestSuite, @cheapestOther,
                          @cheapestOverall, @cheapestCategory, @cheapestBoard, @cheapestProvider,
-                         @scanStatus, @currencyCode, @scanTimestamp, @apiScanFile)
+                         @scanStatus, @currencyCode, @scanTimestamp, @apiScanFile, @createdBy)
                 `);
             inserted++;
         } catch (err) {
@@ -658,6 +660,20 @@ async function main() {
     log(`No offers:      ${s.noOffers} (${pct(s.noOffers, results.length)})`);
     log('=== DONE ===');
 }
+
+// Graceful shutdown on SIGTERM (GHA runner cancel, docker stop, etc.).
+// registerBrowser() is called from launchBrowser() so the handle is
+// available at kill time and Chromium doesn't leak.
+let _activeBrowser = null;
+function registerBrowser(b) { _activeBrowser = b; }
+
+const _gracefulShutdown = async (signal) => {
+    log(`Received ${signal} — closing browser`);
+    try { if (_activeBrowser) await _activeBrowser.close(); } catch (_) {}
+    process.exit(0);
+};
+process.on('SIGTERM', () => _gracefulShutdown('SIGTERM'));
+process.on('SIGINT',  () => _gracefulShutdown('SIGINT'));
 
 main().catch(err => {
     console.error('FATAL:', err);
