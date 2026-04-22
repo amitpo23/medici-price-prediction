@@ -32,7 +32,12 @@ REPORT_TAG = "knowaa_searchlog_report"
 
 
 def _load_env() -> None:
+    """Load .env values into os.environ (local dev). No-op on GHA /
+    any environment where the file is absent — we expect env vars to be
+    set by the runner's secrets injection there."""
     env_path = ROOT / ".env"
+    if not env_path.exists():
+        return
     for line in env_path.read_text().splitlines():
         if "=" in line and not line.startswith("#"):
             k, v = line.split("=", 1)
