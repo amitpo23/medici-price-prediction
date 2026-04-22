@@ -1,16 +1,16 @@
 # Knowaa Full Competitive Scan — 63 Hotels
 
-**Scan:** 2026-04-22 05:02:07 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
+**Scan:** 2026-04-22 06:11:36 UTC | **Dates:** 2026-05-28 → 2026-05-29 | **Refundable only**
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Hotels scanned | 63 |
-| Knowaa appears | **16 (25%)** |
+| Knowaa appears | **22 (35%)** |
 | Knowaa #1 | **13 (21%)** |
-| Not listed | 31 (49%) |
-| No refundable offers | 16 (25%) |
+| Not listed | 27 (43%) |
+| No refundable offers | 14 (22%) |
 
 ## A. Knowaa is CHEAPEST (#1) — 13 hotels
 
@@ -30,15 +30,21 @@
 | Hotel Riu Plaza Miami Beach | 5109 | Deluxe | RO | **$364.19** | $386.04 | InnstantTravel | -$21.85 |
 | Pullman Miami Airport | 5080 | Standard | RO | **$133.45** | $141.46 | InnstantTravel | -$8.01 |
 
-## B. Knowaa Listed But Not Cheapest — 3 hotels
+## B. Knowaa Listed But Not Cheapest — 9 hotels
 
 | Hotel | Venue | Cat | Board | Knowaa $ | Cheapest $ | Provider | Rank | Gap |
 |-------|-------|-----|-------|----------|-----------|----------|------|-----|
-| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $151.82 | $143.46 | InnstantTravel | #19 | +$8.36 |
-| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $149.99 | $143.46 | InnstantTravel | #16 | +$6.53 |
-| Pullman Miami Airport | 5080 | Superior | RO | $133.45 | $130.09 | InnstantTravel | #2 | +$3.36 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $151.82 | $143.46 | InnstantTravel | #22 | +$8.36 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Suite | BB | $146.96 | $140.93 | goglobal | #18 | +$6.03 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Suite | BB | $151.97 | $143.46 | InnstantTravel | #13 | +$8.51 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $149.99 | $143.46 | InnstantTravel | #7 | +$6.53 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $149.99 | $143.46 | InnstantTravel | #24 | +$6.53 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $149.99 | $143.46 | InnstantTravel | #19 | +$6.53 |
+| Pullman Miami Airport | 5080 | Superior | RO | $133.33 | $130.09 | InnstantTravel | #2 | +$3.24 |
+| Pullman Miami Airport | 5080 | Superior | RO | $133.40 | $130.09 | InnstantTravel | #2 | +$3.31 |
+| Pullman Miami Airport | 5080 | Superior | RO | $133.45 | $129.08 | InnstantTravel | #2 | +$4.37 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 31 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 27 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
@@ -47,23 +53,19 @@
 | DoubleTree by Hilton Miami Doral | 5082 | $165.10 | InnstantTravel | Standard | RO |
 | DoubleTree by Hilton Miami Doral | 5082 | $183.54 | InnstantTravel | Standard | RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $143.46 | InnstantTravel | Standard, Suite | BB, RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $140.93 | goglobal | Suite, Standard | BB, RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $140.93 | goglobal | Suite, Standard | BB, RO |
+| Embassy Suites by Hilton Miami International Airport | 5081 | $138.58 | goglobal | Suite, Standard | RO, BB |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $138.58 | goglobal | Suite, Standard | RO, BB |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $183.42 | InnstantTravel | Suite, Standard | BB, RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $138.58 | goglobal | Suite, Standard | RO, BB |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $140.93 | goglobal | Suite, Standard | BB, RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $157.37 | goglobal | Suite, Standard | BB, RO |
 | Embassy Suites by Hilton Miami International Airport | 5081 | $143.46 | InnstantTravel | Standard, Suite | BB, RO |
-| Embassy Suites by Hilton Miami International Airport | 5081 | $143.46 | InnstantTravel | Standard, Suite | BB, RO |
-| Hotel Riu Plaza Miami Beach | 5109 | $294.77 | goglobal | Deluxe | BB, RO |
-| Pod Times Square | 5305 | $121.94 | HyperGuestDirect⇄ | Standard, Dormitory | RO |
-| Pod Times Square | 5305 | $162.33 | HyperGuestDirect⇄ | Standard | RO |
-| Pod Times Square | 5305 | $201.81 | HyperGuestDirect⇄ | Standard | RO |
+| Embassy Suites by Hilton Miami International Airport | 5081 | $160.14 | InnstantTravel | Standard, Suite | BB, RO |
+| Hotel Riu Plaza Miami Beach | 5109 | $301.92 | InnstantTravel | Deluxe | BB, RO |
+| Pod Times Square | 5305 | $121.94 | HyperGuestDirect⇄ | Standard | RO |
+| Pod Times Square | 5305 | $162.33 | HyperGuestDirect⇄ | Standard, Dormitory | RO |
+| Pod Times Square | 5305 | $201.81 | HyperGuestDirect⇄ | Standard, Dormitory | RO |
 | Pod Times Square | 5305 | $222.45 | HyperGuestDirect⇄ | Standard, Dormitory | RO |
-| Pullman Miami Airport | 5080 | $146.46 | InnstantTravel | Superior | RO |
-| Pullman Miami Airport | 5080 | $130.09 | InnstantTravel | Superior | RO |
+| Pullman Miami Airport | 5080 | $149.41 | InnstantTravel | Superior | RO |
 | Viajero Miami | 5111 | $140.45 | HyperGuestDirect⇄ | Deluxe | RO |
+| Viajero Miami | 5111 | $172.37 | HyperGuestDirect⇄ | Deluxe | RO |
 | Viajero Miami | 5111 | $117.65 | HyperGuestDirect⇄ | Deluxe | RO |
 | Viajero Miami | 5111 | $135.89 | HyperGuestDirect⇄ | Deluxe | RO |
 | Viajero Miami | 5111 | $114.00 | HyperGuestDirect⇄ | Deluxe | RO |
@@ -74,7 +76,7 @@
 | Viajero Miami | 5111 | $114.00 | HyperGuestDirect⇄ | Deluxe | RO |
 | Viajero Miami | 5111 | $122.21 | HyperGuestDirect⇄ | Deluxe | RO |
 
-## D. No Refundable Offers — 16 hotels
+## D. No Refundable Offers — 14 hotels
 
 | Hotel | Venue |
 |-------|-------|
@@ -92,6 +94,4 @@
 | DoubleTree by Hilton Miami Doral | 5082 |
 | DoubleTree by Hilton Miami Doral | 5082 |
 | Hotel Chelsea | 5064 |
-| Pullman Miami Airport | 5080 |
-| Viajero Miami | 5111 |
 
