@@ -96,45 +96,52 @@ async function fetchHotelsFromDb() {
     log('Connecting to source DB for active hotels...');
     const pool = await sql.connect(SOURCE_DB);
 
-    // Primary: hotels with active MED_Book inventory (we care about these most).
-    const primary = await pool.request().query(`
-        SELECT DISTINCT
-            h.InnstantId,
-            h.name,
-            h.Innstant_ZenithId AS VenueId,
-            b.startDate AS DateFrom,
-            b.endDate AS DateTo
-        FROM MED_Book b
-        JOIN Med_Hotels h ON h.HotelId = b.HotelId
-        WHERE b.IsActive = 1
-          AND h.isActive = 1
-          AND h.Innstant_ZenithId >= 5000
-        ORDER BY h.name
+    // UNION of three sources so coverage is broad enough for medici-hotels'
+    // gap analytics (it expects ~40 active sales-order hotels, not just the
+    // 8 we currently hold in MED_Book). Priority order:
+    //   1. MED_Book — rooms we currently hold, with real booking dates.
+    //   2. SalesOffice.Orders — active sales-order hotels (what we try to sell).
+    //   3. Any remaining active Med_Hotels with VenueId >= 5000 (defensive).
+    // Hotels that appear in #1 keep their booking dates. Otherwise we probe a
+    // 30-day-out window, which is a reasonable "is Knowaa visible here?" signal.
+    const result = await pool.request().query(`
+        ;WITH AllHotels AS (
+            SELECT
+                h.InnstantId,
+                h.name,
+                h.Innstant_ZenithId AS VenueId,
+                b.startDate AS DateFrom,
+                b.endDate AS DateTo,
+                1 AS source_rank
+            FROM MED_Book b
+            JOIN Med_Hotels h ON h.HotelId = b.HotelId
+            WHERE b.IsActive = 1 AND h.isActive = 1 AND h.Innstant_ZenithId >= 5000
+            UNION ALL
+            SELECT
+                h.InnstantId, h.name, h.Innstant_ZenithId AS VenueId,
+                DATEADD(day, 30, CAST(GETDATE() AS DATE)) AS DateFrom,
+                DATEADD(day, 31, CAST(GETDATE() AS DATE)) AS DateTo,
+                2 AS source_rank
+            FROM [SalesOffice.Orders] o
+            JOIN Med_Hotels h ON h.HotelId = CAST(o.DestinationId AS INT)
+            WHERE o.IsActive = 1
+              AND o.DestinationType = 'hotel'
+              AND h.Innstant_ZenithId > 0
+        ),
+        Ranked AS (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY VenueId ORDER BY source_rank) AS rn
+            FROM AllHotels
+        )
+        SELECT InnstantId, name, VenueId, DateFrom, DateTo
+        FROM Ranked
+        WHERE rn = 1
+        ORDER BY VenueId
     `);
 
-    if (primary.recordset.length > 0) {
-        await pool.close();
-        log(`Found ${primary.recordset.length} hotels via MED_Book (primary)`);
-        return primary.recordset;
-    }
-
-    // Fallback: probe all Knowaa Miami hotels with a 30-day future window.
-    log('No active MED_Book rows — falling back to venue probe');
-    const fallback = await pool.request().query(`
-        SELECT
-            h.InnstantId,
-            h.name,
-            h.Innstant_ZenithId AS VenueId,
-            DATEADD(day, 30, CAST(GETDATE() AS DATE)) AS DateFrom,
-            DATEADD(day, 31, CAST(GETDATE() AS DATE)) AS DateTo
-        FROM Med_Hotels h
-        WHERE h.isActive = 1
-          AND h.Innstant_ZenithId >= 5000
-        ORDER BY h.name
-    `);
     await pool.close();
-    log(`Found ${fallback.recordset.length} hotels via venue probe (fallback)`);
-    return fallback.recordset;
+    log(`Found ${result.recordset.length} distinct venues (MED_Book holdings + SalesOffice.Orders)`);
+    return result.recordset;
 }
 
 // ---------------------------------------------------------------------------
