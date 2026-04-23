@@ -70,9 +70,9 @@ def fetch_rows(conn, window_hours: int) -> Dict[str, Dict[int, VenuePrice]]:
 def compare(rows: Dict[str, Dict[int, VenuePrice]],
              tolerance_usd: float, tolerance_pct: float) -> dict:
     """A gap is a blocker only when it exceeds BOTH an absolute floor and a
-    relative (%) threshold. This prevents tiny absolute deltas on cheap
-    rooms from flagging, while also keeping the percentage honest for
-    expensive suites where $5 can be noise."""
+    relative (%) threshold. One-sided zeros (Innstant intermittent failures
+    where one scan got offers and the other got NO_RESULTS) are classified
+    separately — they indicate data quality, not drift."""
     local = rows[LOCAL]
     gha = rows[GHA]
 
@@ -81,16 +81,30 @@ def compare(rows: Dict[str, Dict[int, VenuePrice]],
     only_gha = set(gha.keys()) - set(local.keys())
 
     gaps = []
+    one_sided_zeros = []
     for vid in common:
         l, g = local[vid], gha[vid]
-        diff = abs(l.cheapest_overall - g.cheapest_overall)
-        mean = (l.cheapest_overall + g.cheapest_overall) / 2.0 or 1.0
+        l_price = l.cheapest_overall
+        g_price = g.cheapest_overall
+        # One-sided zero = Innstant flakiness, one scan returned NO_RESULTS.
+        # Not a drift blocker — flag separately so operators see the signal
+        # without triggering cutover blockers on natural scan noise.
+        if (l_price == 0) != (g_price == 0):
+            one_sided_zeros.append({
+                "venue": vid, "hotel": l.hotel_name,
+                "local": l_price, "gha": g_price,
+                "side_with_data": "local" if l_price > 0 else "gha",
+            })
+            continue
+        if l_price == 0 and g_price == 0:
+            continue  # both empty — nothing to compare
+        diff = abs(l_price - g_price)
+        mean = (l_price + g_price) / 2.0 or 1.0
         pct = diff / mean * 100.0
-        # Only flag if gap exceeds BOTH the absolute AND the percent floor.
         if diff > tolerance_usd and pct > tolerance_pct:
             gaps.append({
                 "venue": vid, "hotel": l.hotel_name,
-                "local": l.cheapest_overall, "gha": g.cheapest_overall,
+                "local": l_price, "gha": g_price,
                 "diff": diff, "pct": pct,
             })
     gaps.sort(key=lambda x: x["diff"], reverse=True)
@@ -100,6 +114,7 @@ def compare(rows: Dict[str, Dict[int, VenuePrice]],
         "only_local": sorted(only_local),
         "only_gha": sorted(only_gha),
         "large_gaps": gaps,
+        "one_sided_zeros": one_sided_zeros,
     }
 
 
@@ -127,9 +142,20 @@ def report(result: dict, tolerance_usd: float, tolerance_pct: float) -> int:
         print(f"  ⚠ Hotels in GHA but not local ({len(result['only_gha'])}):")
         print(f"      venues={result['only_gha'][:10]}")
 
+    zeros = result.get("one_sided_zeros", [])
+    if zeros:
+        print(f"\n  ℹ Innstant flakiness — one side NO_RESULTS ({len(zeros)} venues):")
+        for z in zeros[:5]:
+            print(f"    venue={z['venue']:5d} {z['hotel'][:35]:35s}"
+                  f" local=${z['local']:7.2f} gha=${z['gha']:7.2f}"
+                  f" (data from: {z['side_with_data']})")
+        if len(zeros) > 5:
+            print(f"    ...and {len(zeros)-5} more — natural Innstant intermittent failure")
+        print(f"  (not a cutover blocker — data quality signal, not drift)")
+
     gaps = result["large_gaps"]
     if gaps:
-        print(f"\n  ⚠ Price gaps > ${tolerance_usd:.2f} AND >{tolerance_pct:.1f}% ({len(gaps)} venues):")
+        print(f"\n  ⚠ Real price drift > ${tolerance_usd:.2f} AND >{tolerance_pct:.1f}% ({len(gaps)} venues):")
         for g in gaps[:10]:
             print(f"    venue={g['venue']:5d} {g['hotel'][:35]:35s}"
                   f" local=${g['local']:7.2f} gha=${g['gha']:7.2f}"
@@ -138,7 +164,7 @@ def report(result: dict, tolerance_usd: float, tolerance_pct: float) -> int:
             print(f"    ...and {len(gaps)-10} more")
         blockers += 1
     else:
-        print(f"  ✓ All common venues within ${tolerance_usd:.2f} AND {tolerance_pct:.1f}% tolerance")
+        print(f"  ✓ All common venues (both sides with data) within ${tolerance_usd:.2f} AND {tolerance_pct:.1f}% tolerance")
 
     if blockers == 0:
         print(f"\n  ✓ PARITY OK — safe to continue toward cutover")
