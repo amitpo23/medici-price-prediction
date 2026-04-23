@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 46 Hotels
 
-**Scan:** 2026-04-23 22:07:35 UTC | **Dates:** 2026-06-10 → 2026-06-11 | **Refundable only**
+**Scan:** 2026-04-23 22:26:37 UTC | **Dates:** 2026-06-10 → 2026-06-11 | **Refundable only**
 
 ## Summary
 
@@ -34,7 +34,7 @@
 | Notebook Miami Beach | 5102 | $141.11 | InnstantTravel | Standard, Superior | RO |
 | Sole Miami, A Noble House Resort | 5104 | $259.04 | InnstantTravel | Standard | RO |
 | MB Hotel, Trademark Collection by Wyndham | 5105 | $319.22 | InnstantTravel | Standard | RO |
-| Hampton Inn Miami Beach - Mid Beach | 5106 | $280.33 | InnstantTravel | Deluxe, Standard | RO, BB |
+| Hampton Inn Miami Beach - Mid Beach | 5106 | $269.24 | goglobal | Standard, Deluxe | RO |
 | Freehand Miami | 5107 | $316.34 | InnstantTravel | Superior, Standard | RO |
 | The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $525.35 | InnstantTravel | Standard | BB |
 | Hotel Riu Plaza Miami Beach | 5109 | $303.51 | InnstantTravel | Deluxe | RO, BB |
