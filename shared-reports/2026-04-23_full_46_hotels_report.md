@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 46 Hotels
 
-**Scan:** 2026-04-23 17:46:09 UTC | **Dates:** 2026-06-10 → 2026-06-11 | **Refundable only**
+**Scan:** 2026-04-23 18:56:01 UTC | **Dates:** 2026-06-10 → 2026-06-11 | **Refundable only**
 
 ## Summary
 
@@ -9,8 +9,8 @@
 | Hotels scanned | 46 |
 | Knowaa appears | **4 (9%)** |
 | Knowaa #1 | **3 (7%)** |
-| Not listed | 28 (61%) |
-| No refundable offers | 14 (30%) |
+| Not listed | 27 (59%) |
+| No refundable offers | 15 (33%) |
 
 ## A. Knowaa is CHEAPEST (#1) — 3 hotels
 
@@ -24,19 +24,18 @@
 
 | Hotel | Venue | Cat | Board | Knowaa $ | Cheapest $ | Provider | Rank | Gap |
 |-------|-------|-----|-------|----------|-----------|----------|------|-----|
-| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $149.99 | $143.39 | InnstantTravel | #10 | +$6.60 |
+| Embassy Suites by Hilton Miami International Airport | 5081 | Standard | BB | $149.99 | $143.39 | InnstantTravel | #19 | +$6.60 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 28 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 27 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
 | Crystal Beach Suites Hotel | 5100 | $251.95 | InnstantTravel | Suite | RO |
-| Atwell Suites Miami Brickell | 5101 | $341.41 | InnstantTravel | Suite | BB |
 | Notebook Miami Beach | 5102 | $141.11 | InnstantTravel | Standard, Superior | RO |
 | Sole Miami, A Noble House Resort | 5104 | $258.62 | InnstantTravel | Standard | RO |
 | MB Hotel, Trademark Collection by Wyndham | 5105 | $319.22 | InnstantTravel | Standard | RO |
 | Hampton Inn Miami Beach - Mid Beach | 5106 | $254.47 | InnstantTravel | Standard, Deluxe | RO |
-| Freehand Miami | 5107 | $316.34 | InnstantTravel | Superior, Standard | RO |
+| Freehand Miami | 5107 | $318.05 | InnstantTravel | Superior, Standard | RO |
 | The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $525.35 | InnstantTravel | Standard | BB |
 | Hotel Riu Plaza Miami Beach | 5109 | $303.51 | InnstantTravel | Deluxe | RO, BB |
 | Breakwater South Beach | 5110 | $268.02 | InnstantTravel | Superior, Standard | BB |
@@ -52,14 +51,14 @@
 | THE LANDON BAY HARBOR | 5138 | $216.28 | InnstantTravel | Deluxe | BB |
 | The Gates Hotel South Beach - a DoubleTree by Hilton | 5140 | $224.92 | InnstantTravel | Standard | RO |
 | Hotel Belleza | 5265 | $259.04 | InnstantTravel | Superior | RO |
-| Fontainebleau Miami Beach | 5268 | $509.35 | InnstantTravel | Standard, Deluxe | RO, BB |
-| Generator Miami | 5274 | $214.78 | InnstantTravel | Standard, Dormitory, Deluxe | RO |
+| Fontainebleau Miami Beach | 5268 | $530.28 | goglobal | Standard, Deluxe | RO |
+| Generator Miami | 5274 | $214.78 | InnstantTravel | Standard, Deluxe | RO |
 | Miami International Airport Hotel | 5275 | $188.11 | InnstantTravel | Standard | RO |
 | InterContinental Miami | 5276 | $311.07 | InnstantTravel | Standard | RO |
 | Gale Miami Hotel and Residences | 5278 | $264.49 | InnstantTravel | Standard | RO |
 | Pod Times Square | 5305 | $121.94 | HyperGuestDirect⇄ | Standard, Dormitory | RO |
 
-## D. No Refundable Offers — 14 hotels
+## D. No Refundable Offers — 15 hotels
 
 | Hotel | Venue |
 |-------|-------|
@@ -68,6 +67,7 @@
 | The Grayson Hotel Miami Downtown | 5094 |
 | Hyatt Centric South Beach Miami (City View) | 5097 |
 | Eurostars Langford Hotel | 5098 |
+| Atwell Suites Miami Brickell | 5101 |
 | Savoy Hotel | 5103 |
 | The Albion Hotel | 5117 |
 | Hotel Croydon | 5131 |
