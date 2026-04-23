@@ -254,52 +254,76 @@ def render_markdown(report: dict) -> str:
 def write_to_db(report: dict, created_by: str) -> int:
     """Upsert per-hotel aggregates into [SalesOffice.KnowaaPerformanceDaily].
 
-    Schema: one row per (ReportDate, HotelId). Category/Board columns are
-    NULL at hotel-level. A fresh run for the same date replaces prior rows.
+    MERGE-based upsert (no DELETE needed) — matches on (ReportDate, HotelId,
+    CreatedBy). Required because prediction_reader has a DB-wide DENY DELETE
+    that blocks any DELETE regardless of per-table GRANT.
 
     Returns number of rows written.
     """
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     hours = int(report.get("window_hours", 24))
 
+    params = []
+    for h in report.get("per_hotel", []):
+        sessions = int(h.get("sessions", 0))
+        k_in = int(h.get("knowaa_in", 0))
+        k_1 = int(h.get("knowaa_1", 0))
+        gap_n = int(h.get("gap_n", 0))
+        gap_sum = float(h.get("gap_sum", 0.0))
+        coverage_pct = round(k_in / sessions * 100, 2) if sessions else 0.0
+        n1_pct = round(k_1 / k_in * 100, 2) if k_in else 0.0
+        avg_gap = round(gap_sum / gap_n, 2) if gap_n else None
+        params.append((
+            date_str, hours,
+            int(h.get("zid") or 0),
+            (h.get("name") or "")[:200],
+            None, None,   # RoomCategory, RoomBoard (hotel-level)
+            sessions, k_in, coverage_pct, k_1, n1_pct, avg_gap,
+            created_by,
+        ))
+
+    if not params:
+        return 0
+
     with _conn() as cn:
         cur = cn.cursor()
-        cur.execute("""
-            DELETE FROM [SalesOffice.KnowaaPerformanceDaily]
-            WHERE ReportDate = ? AND CreatedBy = ?
-        """, date_str, created_by)
-
-        params = []
-        for h in report.get("per_hotel", []):
-            sessions = int(h.get("sessions", 0))
-            k_in = int(h.get("knowaa_in", 0))
-            k_1 = int(h.get("knowaa_1", 0))
-            gap_n = int(h.get("gap_n", 0))
-            gap_sum = float(h.get("gap_sum", 0.0))
-            coverage_pct = round(k_in / sessions * 100, 2) if sessions else 0.0
-            n1_pct = round(k_1 / k_in * 100, 2) if k_in else 0.0
-            avg_gap = round(gap_sum / gap_n, 2) if gap_n else None
-            params.append((
-                date_str, hours,
-                int(h.get("zid") or 0),     # HotelId (Innstant_ZenithId)
-                (h.get("name") or "")[:200],
-                None, None,                   # RoomCategory, RoomBoard (hotel-level)
-                sessions, k_in, coverage_pct, k_1, n1_pct, avg_gap,
-                created_by,
-            ))
-
-        if not params:
-            return 0
-
-        cur.fast_executemany = True
-        cur.executemany("""
-            INSERT INTO [SalesOffice.KnowaaPerformanceDaily]
-              (ReportDate, WindowHours, HotelId, HotelName,
-               RoomCategory, RoomBoard,
-               Sessions, KnowaaSessions, KnowaaCoveragePct,
-               KnowaaNumber1Sessions, KnowaaNumber1Pct, AvgGapUsd, CreatedBy)
-            VALUES (?,?,?,?, ?,?, ?,?,?, ?,?,?, ?)
-        """, params)
+        # Per-row upsert with MERGE — no table-wide DELETE needed.
+        # Safe for any principal with SELECT+INSERT+UPDATE on the table.
+        for p in params:
+            cur.execute("""
+                MERGE [SalesOffice.KnowaaPerformanceDaily] AS T
+                USING (VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)) AS S
+                      (ReportDate, WindowHours, HotelId, HotelName,
+                       RoomCategory, RoomBoard,
+                       Sessions, KnowaaSessions, KnowaaCoveragePct,
+                       KnowaaNumber1Sessions, KnowaaNumber1Pct, AvgGapUsd, CreatedBy)
+                ON  T.ReportDate = S.ReportDate
+                AND T.HotelId    = S.HotelId
+                AND T.CreatedBy  = S.CreatedBy
+                AND ISNULL(T.RoomCategory,'') = ISNULL(S.RoomCategory,'')
+                AND ISNULL(T.RoomBoard,'')    = ISNULL(S.RoomBoard,'')
+                WHEN MATCHED THEN UPDATE SET
+                    WindowHours           = S.WindowHours,
+                    HotelName             = S.HotelName,
+                    Sessions              = S.Sessions,
+                    KnowaaSessions        = S.KnowaaSessions,
+                    KnowaaCoveragePct     = S.KnowaaCoveragePct,
+                    KnowaaNumber1Sessions = S.KnowaaNumber1Sessions,
+                    KnowaaNumber1Pct      = S.KnowaaNumber1Pct,
+                    AvgGapUsd             = S.AvgGapUsd,
+                    InsertedAt            = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN
+                    INSERT (ReportDate, WindowHours, HotelId, HotelName,
+                            RoomCategory, RoomBoard,
+                            Sessions, KnowaaSessions, KnowaaCoveragePct,
+                            KnowaaNumber1Sessions, KnowaaNumber1Pct,
+                            AvgGapUsd, CreatedBy)
+                    VALUES (S.ReportDate, S.WindowHours, S.HotelId, S.HotelName,
+                            S.RoomCategory, S.RoomBoard,
+                            S.Sessions, S.KnowaaSessions, S.KnowaaCoveragePct,
+                            S.KnowaaNumber1Sessions, S.KnowaaNumber1Pct,
+                            S.AvgGapUsd, S.CreatedBy);
+            """, *p)
         cn.commit()
         return len(params)
 
