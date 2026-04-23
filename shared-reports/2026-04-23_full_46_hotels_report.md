@@ -1,6 +1,6 @@
 # Knowaa Full Competitive Scan — 46 Hotels
 
-**Scan:** 2026-04-23 15:12:26 UTC | **Dates:** 2026-06-10 → 2026-06-11 | **Refundable only**
+**Scan:** 2026-04-23 15:26:24 UTC | **Dates:** 2026-06-10 → 2026-06-11 | **Refundable only**
 
 ## Summary
 
@@ -9,8 +9,8 @@
 | Hotels scanned | 46 |
 | Knowaa appears | **3 (7%)** |
 | Knowaa #1 | **3 (7%)** |
-| Not listed | 33 (72%) |
-| No refundable offers | 10 (22%) |
+| Not listed | 32 (70%) |
+| No refundable offers | 11 (24%) |
 
 ## A. Knowaa is CHEAPEST (#1) — 3 hotels
 
@@ -20,12 +20,11 @@
 | Pullman Miami Airport | 5080 | Standard | RO | **$133.45** | $141.46 | InnstantTravel | -$8.01 |
 | DoubleTree by Hilton Miami Doral | 5082 | Standard | RO | **$182.63** | $193.59 | InnstantTravel | -$10.96 |
 
-## C. Knowaa NOT Listed (offers from others exist) — 33 hotels
+## C. Knowaa NOT Listed (offers from others exist) — 32 hotels
 
 | Hotel | Venue | Cheapest $ | Provider | Categories | Boards |
 |-------|-------|-----------|----------|------------|--------|
 | Embassy Suites by Hilton Miami International Airport | 5081 | $143.39 | InnstantTravel | Standard, Suite | BB, RO |
-| The Grayson Hotel Miami Downtown | 5094 | $274.72 | InnstantTravel | Standard | RO |
 | Eurostars Langford Hotel | 5098 | $213.52 | InnstantTravel | Deluxe | RO |
 | Crystal Beach Suites Hotel | 5100 | $251.95 | InnstantTravel | Suite | RO |
 | Atwell Suites Miami Brickell | 5101 | $341.41 | InnstantTravel | Suite | BB |
@@ -58,12 +57,13 @@
 | Gale Miami Hotel and Residences | 5278 | $264.49 | InnstantTravel | Standard | RO |
 | Pod Times Square | 5305 | $121.94 | HyperGuestDirect⇄ | Standard, Dormitory | RO |
 
-## D. No Refundable Offers — 10 hotels
+## D. No Refundable Offers — 11 hotels
 
 | Hotel | Venue |
 |-------|-------|
 | Hotel Chelsea | 5064 |
 | Iberostar Berkeley Shore Hotel | 5092 |
+| The Grayson Hotel Miami Downtown | 5094 |
 | Hyatt Centric South Beach Miami (City View) | 5097 |
 | Savoy Hotel | 5103 |
 | The Albion Hotel | 5117 |
