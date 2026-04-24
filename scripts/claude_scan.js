@@ -184,7 +184,41 @@ async function launchBrowser(proxy) {
     });
     const page = await context.newPage();
     await loginIfNeeded(page);
+    await verifyWebSocketAccess(page);
     return { browser, context, page };
+}
+
+// Quick WSS sanity check — Innstant uses WebSockets for room search.
+// If wss://b2b.innstant.travel/wss/ returns 400 (IP block), every hotel
+// will show 0 offers. Detect this early and abort rather than running a
+// 16-minute scan that produces zero useful data.
+async function verifyWebSocketAccess(page) {
+    let wssStatus = null;
+    page.on('websocket', ws => {
+        ws.on('socketerror', e => { wssStatus = 'error:' + String(e).slice(0, 80); });
+        ws.on('close', () => { if (!wssStatus) wssStatus = 'closed'; });
+        ws.on('framesent', () => { wssStatus = 'ok'; });
+    });
+
+    // Navigate to a hotel page to trigger the WSS connection attempt
+    const testUrl = `${INNSTANT.baseUrl}/hotel/citizenm-miami-brickell-hotel-854881?service=hotels&searchQuery=hotel-854881&startDate=2026-06-10&endDate=2026-06-11&account-country=US&onRequest=0&payAtTheHotel=1&adults=2&children=`;
+    await page.goto(INNSTANT.baseUrl, { timeout: 30000, waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3000);
+    await page.evaluate((url) => { window.spf && window.spf.navigate(url); }, testUrl);
+    await page.waitForTimeout(5000);
+
+    if (wssStatus && wssStatus !== 'ok') {
+        throw new Error(
+            `WebSocket blocked by Innstant server (${wssStatus}). ` +
+            'Room search requires wss://b2b.innstant.travel/wss/ — server returned HTTP 400. ' +
+            'This cloud IP is not whitelisted. Run from local/office machine.'
+        );
+    }
+    if (!wssStatus) {
+        log('WARNING: WSS status unknown after 5s — proceeding, but results may be empty');
+    } else {
+        log('WSS OK — proceeding with scan');
+    }
 }
 
 async function loginIfNeeded(page) {
@@ -197,13 +231,17 @@ async function loginIfNeeded(page) {
         } catch { /* ignore */ }
     }
 
-    await page.goto(INNSTANT.baseUrl, { timeout: 30000 });
+    await page.goto(`${INNSTANT.baseUrl}/agent/login`, { timeout: 30000 });
     await page.waitForTimeout(3000);
     const url = page.url();
 
     if (!url.includes('/login') && !url.includes('/agent/login')) {
-        log('Authenticated via saved cookies');
-        return;
+        // Verify actual auth state — stale cookies may bypass redirect but still be invalid
+        const title = await page.title();
+        if (title && !title.toLowerCase().includes('login')) {
+            log('Authenticated via saved cookies');
+            return;
+        }
     }
 
     log('Logging in to Innstant B2B...');
