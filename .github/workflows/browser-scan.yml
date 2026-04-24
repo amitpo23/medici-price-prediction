@@ -2,9 +2,12 @@ name: Browser Price Check Scan
 
 on:
   schedule:
-    # Every 3h, offset 90min from local cron (local: 0 0,3,6,9,...).
-    # Avoids dual-login race on the shared Innstant B2B account.
-    - cron: '30 1,4,7,10,13,16,19,22 * * *'
+    # Twice daily (08:00 + 20:00 UTC = 11:00 + 23:00 Israel). Aligned with
+    # caj-visibility-probe in rg-medici-agents so browser + API scan the same
+    # (hotel, date) set in overlapping windows, which makes vw_VenueVisibilityAll
+    # directly comparable. Cutover 2026-04-24: local launchd browser-scan is
+    # retired → GHA is now the sole producer.
+    - cron: '0 8,20 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -54,8 +57,9 @@ jobs:
           SCAN_DB_NAME:     ${{ secrets.SCAN_DB_NAME }}
           SCAN_DB_USER:     ${{ secrets.SCAN_DB_USER }}
           SCAN_DB_PASS:     ${{ secrets.SCAN_DB_PASS }}
-          # Tags rows written by this workflow — flip to BrowserScan@GHA after cutover.
-          CREATED_BY:       BrowserScan@GHA-parallel
+          # Cutover 2026-04-24: was BrowserScan@GHA-parallel, local was primary.
+          # Local retired — GHA is sole producer now.
+          CREATED_BY:       BrowserScan@GHA
         run: |
           FLAGS="--no-push"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
