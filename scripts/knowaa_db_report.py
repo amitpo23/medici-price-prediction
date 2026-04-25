@@ -25,6 +25,9 @@ from pathlib import Path
 
 import pyodbc
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from run_reporter import RunReporter  # vendored from medici-hotels skills/_shared/
+
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS_DIR = ROOT / "shared-reports"
 SCAN_REPORTS_DIR = ROOT / "scan-reports"
@@ -344,50 +347,79 @@ def main() -> None:
                    help="Skip git push (default behaviour for cloud runs)")
     args = p.parse_args()
 
-    report = build_report(args.hours)
-    stamp = datetime.utcnow().strftime("%Y-%m-%d_%H-%M")
-    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    created_by = os.environ.get("CREATED_BY", "knowaa-db@local")
+    # Open one connection for both the run-log row and the data write.
+    _load_env()
+    log_conn = pyodbc.connect(
+        f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+        f"SERVER={os.environ['SOURCE_DB_SERVER']};"
+        f"DATABASE={os.environ['SOURCE_DB_NAME']};"
+        f"UID={os.environ['SOURCE_DB_USER']};"
+        f"PWD={os.environ['SOURCE_DB_PASS']};"
+        f"Encrypt=yes;TrustServerCertificate=no;Connection Timeout=20",
+        autocommit=True,
+    )
+    try:
+        with RunReporter(
+            log_conn,
+            agent_name="knowaa-db-report",
+            created_by=created_by,
+            summary={"window_hours": args.hours},
+        ) as reporter:
+            report = build_report(args.hours)
+            stamp = datetime.utcnow().strftime("%Y-%m-%d_%H-%M")
+            date_str = datetime.utcnow().strftime("%Y-%m-%d")
 
-    # DB write (primary output shared with medici-hotels)
-    if not args.no_db:
-        try:
-            created_by = os.environ.get("CREATED_BY", "local")
-            n = write_to_db(report, created_by)
-            print(f"Inserted {n} rows into [SalesOffice.KnowaaPerformanceDaily] (CreatedBy={created_by})",
-                  file=sys.stderr)
-        except pyodbc.Error as e:
-            print(f"DB write failed: {str(e)[:200]}", file=sys.stderr)
+            reporter.summary.update({
+                "hotels_scanned": report.get("hotels_scanned"),
+                "hotels_failed": report.get("hotels_failed"),
+                "scan_duration_seconds": report.get("scan_duration_seconds"),
+                "totals": report.get("totals"),
+            })
 
-    # File output (unchanged behavior unless --no-files)
-    if not args.no_files:
-        args.outdir.mkdir(parents=True, exist_ok=True)
-        md_path = args.outdir / f"{date_str}_{REPORT_TAG}.md"
-        json_path = args.outdir / f"{stamp}_{REPORT_TAG}.json"
-        md_path.write_text(render_markdown(report))
-        json_path.write_text(json.dumps(report, indent=2, default=str))
-        print(f"Wrote {md_path}", file=sys.stderr)
-        print(f"Wrote {json_path}", file=sys.stderr)
+            # DB write (primary output shared with medici-hotels)
+            if not args.no_db:
+                try:
+                    n = write_to_db(report, created_by)
+                    reporter.summary["rows_upserted"] = n
+                    print(f"Inserted {n} rows into [SalesOffice.KnowaaPerformanceDaily] (CreatedBy={created_by})",
+                          file=sys.stderr)
+                except pyodbc.Error as e:
+                    print(f"DB write failed: {str(e)[:200]}", file=sys.stderr)
+                    reporter.summary["db_error"] = str(e)[:200]
 
-        if args.also_scan_reports:
-            SCAN_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-            md_copy = SCAN_REPORTS_DIR / f"{date_str}_{REPORT_TAG}.md"
-            md_copy.write_text(render_markdown(report))
-            print(f"Wrote {md_copy}", file=sys.stderr)
+            # File output (unchanged behavior unless --no-files)
+            if not args.no_files:
+                args.outdir.mkdir(parents=True, exist_ok=True)
+                md_path = args.outdir / f"{date_str}_{REPORT_TAG}.md"
+                json_path = args.outdir / f"{stamp}_{REPORT_TAG}.json"
+                md_path.write_text(render_markdown(report))
+                json_path.write_text(json.dumps(report, indent=2, default=str))
+                print(f"Wrote {md_path}", file=sys.stderr)
+                print(f"Wrote {json_path}", file=sys.stderr)
 
-    # Git push — skipped when --no-push (cloud runs) or --no-files
-    if not args.no_push and not args.no_files:
-        try:
-            import subprocess
-            subprocess.run(["git", "pull", "--rebase", "origin", "main"], cwd=ROOT, check=False)
-            subprocess.run(["git", "add", "shared-reports/", "scan-reports/"], cwd=ROOT, check=False)
-            subprocess.run(["git", "commit", "-m", f"chore: daily knowaa-searchlog report {date_str}"], cwd=ROOT, check=False)
-            subprocess.run(["git", "push", "origin", "main"], cwd=ROOT, check=False)
-        except Exception as e:
-            print(f"git push failed: {e}", file=sys.stderr)
+                if args.also_scan_reports:
+                    SCAN_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+                    md_copy = SCAN_REPORTS_DIR / f"{date_str}_{REPORT_TAG}.md"
+                    md_copy.write_text(render_markdown(report))
+                    print(f"Wrote {md_copy}", file=sys.stderr)
 
-    # Print markdown to stdout too (unless --no-files, to reduce GHA log noise)
-    if not args.no_files:
-        print(render_markdown(report))
+            # Git push — skipped when --no-push (cloud runs) or --no-files
+            if not args.no_push and not args.no_files:
+                try:
+                    import subprocess
+                    subprocess.run(["git", "pull", "--rebase", "origin", "main"], cwd=ROOT, check=False)
+                    subprocess.run(["git", "add", "shared-reports/", "scan-reports/"], cwd=ROOT, check=False)
+                    subprocess.run(["git", "commit", "-m", f"chore: daily knowaa-searchlog report {date_str}"], cwd=ROOT, check=False)
+                    subprocess.run(["git", "push", "origin", "main"], cwd=ROOT, check=False)
+                except Exception as e:
+                    print(f"git push failed: {e}", file=sys.stderr)
+
+            # Print markdown to stdout too (unless --no-files, to reduce GHA log noise)
+            if not args.no_files:
+                print(render_markdown(report))
+    finally:
+        log_conn.close()
 
 
 if __name__ == "__main__":

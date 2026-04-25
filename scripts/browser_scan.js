@@ -31,6 +31,7 @@ const sql = require('mssql');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const RunReporter = require('./run_reporter');
 
 // ---------------------------------------------------------------------------
 // Load .env if present
@@ -645,38 +646,84 @@ async function main() {
     log('=== Knowaa Browser Price Check ===');
     log(`Flags: ${JSON.stringify(FLAGS)}`);
 
-    // Step 0: Fetch hotels
-    const hotels = await fetchHotelsFromDb();
-    if (!hotels.length) {
-        log('ERROR: No active hotels found in Orders');
-        process.exit(1);
+    // Open a small connection just for the run-log row (separate from the
+    // scan-DB pool which is opened/closed inside writeToDb).
+    let logPool = null;
+    let reporter = null;
+    if (!FLAGS.dryRun) {
+        try {
+            logPool = await new sql.ConnectionPool(SCAN_DB).connect();
+            reporter = new RunReporter(logPool, {
+                agentName: 'browser-scan',
+                summary: { flags: FLAGS },
+            });
+            await reporter.start();
+        } catch (e) {
+            log(`WARN: RunReporter start failed (continuing): ${e.message}`);
+            reporter = null;
+        }
     }
 
-    // Step 1-2: Scan
-    const results = await scanAllHotels(hotels);
+    try {
+        // Step 0: Fetch hotels
+        const hotels = await fetchHotelsFromDb();
+        if (!hotels.length) {
+            log('ERROR: No active hotels found in Orders');
+            if (reporter) {
+                reporter.summary.error = 'no_hotels';
+                await reporter.finish('failure');
+            }
+            process.exit(1);
+        }
 
-    // Step 3-4: Build reports
-    const jsonReport = buildJsonReport(results, hotels);
-    const markdownReport = buildMarkdownReport(results, jsonReport);
+        // Step 1-2: Scan
+        const results = await scanAllHotels(hotels);
 
-    // Step 5: Save files
-    const files = saveReports(jsonReport, markdownReport);
+        // Step 3-4: Build reports
+        const jsonReport = buildJsonReport(results, hotels);
+        const markdownReport = buildMarkdownReport(results, jsonReport);
 
-    // Step 6: Write to DB
-    await writeToDb(jsonReport);
+        // Step 5: Save files
+        const files = saveReports(jsonReport, markdownReport);
 
-    // Step 7: Git push
-    gitPush(files);
+        // Step 6: Write to DB
+        const inserted = await writeToDb(jsonReport);
 
-    // Summary
-    const s = jsonReport.summary;
-    log('=== SUMMARY ===');
-    log(`Hotels scanned: ${results.length}`);
-    log(`Knowaa appears: ${s.knowaaAppears} (${pct(s.knowaaAppears, results.length)})`);
-    log(`Knowaa #1:      ${s.knowaaFirst} (${pct(s.knowaaFirst, results.length)})`);
-    log(`Not listed:     ${s.notListed} (${pct(s.notListed, results.length)})`);
-    log(`No offers:      ${s.noOffers} (${pct(s.noOffers, results.length)})`);
-    log('=== DONE ===');
+        // Step 7: Git push
+        gitPush(files);
+
+        if (reporter) {
+            const s = jsonReport.summary || {};
+            reporter.summary = {
+                ...reporter.summary,
+                hotels_total: results.length,
+                rows_inserted: inserted || 0,
+                knowaa_appears: s.knowaaAppears,
+                knowaa_first: s.knowaaFirst,
+                not_listed: s.notListed,
+            };
+            await reporter.finish('success');
+        }
+
+        // Summary
+        const s = jsonReport.summary;
+        log('=== SUMMARY ===');
+        log(`Hotels scanned: ${results.length}`);
+        log(`Knowaa appears: ${s.knowaaAppears} (${pct(s.knowaaAppears, results.length)})`);
+        log(`Knowaa #1:      ${s.knowaaFirst} (${pct(s.knowaaFirst, results.length)})`);
+        log(`Not listed:     ${s.notListed} (${pct(s.notListed, results.length)})`);
+        log(`No offers:      ${s.noOffers} (${pct(s.noOffers, results.length)})`);
+        log('=== DONE ===');
+    } catch (err) {
+        if (reporter) {
+            try { await reporter.finish('failure', err); } catch (_) {}
+        }
+        throw err;
+    } finally {
+        if (logPool) {
+            try { await logPool.close(); } catch (_) {}
+        }
+    }
 }
 
 // Graceful shutdown on SIGTERM (GHA runner cancel, docker stop, etc.).

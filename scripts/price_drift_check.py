@@ -25,9 +25,13 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import pyodbc
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from run_reporter import RunReporter  # vendored from medici-hotels skills/_shared/
 
 
 DRIFT_PCT_THRESHOLD = 5.0  # > 5% = DRIFT status
@@ -244,21 +248,43 @@ def main() -> int:
 
     conn = pyodbc.connect(get_conn_str(), timeout=30)
     try:
-        cur = conn.cursor()
-        browser = load_browser_offers(cur, args.window_hours)
-        if not browser:
-            print("  No recent browser offers — nothing to compare.")
-            return 0
-        venue_ids = sorted({o.venue_id for o in browser})
-        api = load_api_prices(cur, venue_ids)
-        rows = compare_and_build_rows(browser, api)
-        summarize(rows)
+        with RunReporter(
+            conn,
+            agent_name="price-drift",
+            created_by=created_by,
+            summary={"window_hours": args.window_hours},
+        ) as reporter:
+            cur = conn.cursor()
+            browser = load_browser_offers(cur, args.window_hours)
+            if not browser:
+                print("  No recent browser offers — nothing to compare.")
+                reporter.summary["status"] = "no_data"
+                return 0
+            venue_ids = sorted({o.venue_id for o in browser})
+            api = load_api_prices(cur, venue_ids)
+            rows = compare_and_build_rows(browser, api)
+            summarize(rows)
 
-        if args.dry_run:
-            print("\n  [DRY RUN] skipping DB write.")
-            return 0
-        inserted = write_rows(conn, rows, created_by)
-        print(f"\n  ✓ Inserted {inserted} rows into [SalesOffice.PriceDriftReport]")
+            # Capture summary metrics for AgentRunLog
+            by_status: dict[str, int] = {}
+            for r in rows:
+                by_status[r["Status"]] = by_status.get(r["Status"], 0) + 1
+            reporter.summary.update({
+                "venues_compared": len(venue_ids),
+                "rows_total": len(rows),
+                "match": by_status.get("MATCH", 0),
+                "drift": by_status.get("DRIFT", 0),
+                "missing_api": by_status.get("MISSING_API", 0),
+                "missing_browser": by_status.get("MISSING_BROWSER", 0),
+            })
+
+            if args.dry_run:
+                print("\n  [DRY RUN] skipping DB write.")
+                reporter.summary["dry_run"] = True
+                return 0
+            inserted = write_rows(conn, rows, created_by)
+            reporter.summary["inserted"] = inserted
+            print(f"\n  ✓ Inserted {inserted} rows into [SalesOffice.PriceDriftReport]")
     finally:
         conn.close()
     return 0
