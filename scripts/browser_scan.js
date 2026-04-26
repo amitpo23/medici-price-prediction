@@ -97,14 +97,18 @@ async function fetchHotelsFromDb() {
     log('Connecting to source DB for active hotels...');
     const pool = await sql.connect(SOURCE_DB);
 
-    // UNION of three sources so coverage is broad enough for medici-hotels'
-    // gap analytics (it expects ~40 active sales-order hotels, not just the
-    // 8 we currently hold in MED_Book). Priority order:
+    // UNION of two sources so coverage is broad enough for medici-hotels'
+    // gap analytics. Priority order:
     //   1. MED_Book — rooms we currently hold, with real booking dates.
-    //   2. SalesOffice.Orders — active sales-order hotels (what we try to sell).
-    //   3. Any remaining active Med_Hotels with VenueId >= 5000 (defensive).
-    // Hotels that appear in #1 keep their booking dates. Otherwise we probe a
-    // 30-day-out window, which is a reasonable "is Knowaa visible here?" signal.
+    //   2. SalesOffice.Orders — active sales-order hotels, real per-order dates.
+    //
+    // 2026-04-26: switched SalesOffice rows from a fixed today+30 window to the
+    // actual o.DateFrom/o.DateTo. The fixed window meant all 50 sales-order
+    // hotels were probed on the same date — when that date fell on a high-
+    // demand US weekend (e.g. Memorial Day), Knowaa rarely cleared so the
+    // browser scan reported 9% visibility while the API saw 73%. Using the
+    // order's own date aligns the browser with what the API probe is doing
+    // and with what we actually try to sell.
     const result = await pool.request().query(`
         ;WITH AllHotels AS (
             SELECT
@@ -120,18 +124,23 @@ async function fetchHotelsFromDb() {
             UNION ALL
             SELECT
                 h.InnstantId, h.name, h.Innstant_ZenithId AS VenueId,
-                DATEADD(day, 30, CAST(GETDATE() AS DATE)) AS DateFrom,
-                DATEADD(day, 31, CAST(GETDATE() AS DATE)) AS DateTo,
+                CAST(o.DateFrom AS DATE) AS DateFrom,
+                CAST(o.DateTo   AS DATE) AS DateTo,
                 2 AS source_rank
             FROM [SalesOffice.Orders] o
             JOIN Med_Hotels h ON h.HotelId = CAST(o.DestinationId AS INT)
             WHERE o.IsActive = 1
               AND o.DestinationType = 'hotel'
               AND h.Innstant_ZenithId > 0
+              AND o.DateFrom >= CAST(GETDATE() AS DATE)
         ),
         Ranked AS (
             SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY VenueId ORDER BY source_rank) AS rn
+                   -- Pick the earliest upcoming date per venue, MED_Book first.
+                   ROW_NUMBER() OVER (
+                       PARTITION BY VenueId
+                       ORDER BY source_rank, DateFrom
+                   ) AS rn
             FROM AllHotels
         )
         SELECT InnstantId, name, VenueId, DateFrom, DateTo
