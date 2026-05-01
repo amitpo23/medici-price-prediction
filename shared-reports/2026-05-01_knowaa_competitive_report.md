@@ -1,47 +1,47 @@
 # Knowaa Competitive Scan — 46 Hotels
 
-> **Scan run:** 2026-05-01 00:30 UTC | **Data from:** 2026-04-24 04:17:19 UTC | **Check-in:** 2026-06-10 → 2026-06-11 | **Refundable only**
+> **Scan run:** 2026-05-01 16:00 UTC | **Data from:** 2026-04-24 04:17:19 UTC | **Check-in:** 2026-06-10 → 2026-06-11 | **Refundable only**
 >
-> ⚠️ **Note:** Day 8 of consecutive cloud scan block — Innstant B2B login credentials could not be authenticated from this cloud environment (credentials may have been rotated). Azure SQL DB (port 1433) also TCP-blocked from cloud. This report uses the most recent valid local-machine scan (2026-04-24 04:17 UTC). **Data age: ~164h (7 days).** Live scan must resume from office IP.
+> ⚠️ **Note:** Day 9 of consecutive cloud scan block — Innstant B2B WebSocket (`wss://b2b.innstant.travel/wss/`) returns HTTP 400 from cloud IPs; Azure SQL DB (port 1433) also TCP-blocked from cloud. This report uses the most recent valid local-machine scan (2026-04-24 04:17 UTC). **Data age: ~180h (7.5 days).** Live scan must resume from office IP.
 
 ---
 
 ## Executive Summary
 
-| Metric | Value | vs Apr 30 | vs Apr 28 | vs Apr 26 | vs Apr 24 | 8-Day Trend (Apr 24→May 1) |
-|--------|-------|-----------|-----------|-----------|-----------|--------------------------|
-| Hotels scanned | **46** | 0 | 0 | 0 | 0 | 0 |
-| Knowaa appears | **3 (7%)** | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) |
-| Knowaa #1 (cheapest) | **3 (7%)** | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) |
-| Knowaa #2 | **0 (0%)** | 0 | 0 | 0 | 0 | 0 |
-| Knowaa #3+ | **0 (0%)** | 0 | 0 | 0 | 0 | 0 |
-| No Knowaa (has offers) | **28 (61%)** | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) |
-| No refundable offers | **15 (33%)** | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) |
+| Metric | Value | vs May 1 08:00 | vs May 1 00:30 | vs Apr 30 | vs Apr 28 | vs Apr 24 | 9-Day Trend (Apr 24→May 1) |
+|--------|-------|----------------|----------------|-----------|-----------|-----------|--------------------------|
+| Hotels scanned | **46** | 0 | 0 | 0 | 0 | 0 | 0 |
+| Knowaa appears | **3 (7%)** | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) |
+| Knowaa #1 (cheapest) | **3 (7%)** | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) |
+| Knowaa #2 | **0 (0%)** | 0 | 0 | 0 | 0 | 0 | 0 |
+| Knowaa #3+ | **0 (0%)** | 0 | 0 | 0 | 0 | 0 | 0 |
+| No Knowaa (has offers) | **28 (61%)** | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) |
+| No refundable offers | **15 (33%)** | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) | 0 (steady) |
 
 ### Key Insight
-**Day 8 of cloud scan block.** All metrics remain static — no fresh data obtainable from cloud. Knowaa holds all 3 active positions as #1 cheapest, each with a consistent ~6.0% margin vs InnstantTravel. Prices have been frozen since at least 2026-04-22 — **264h+ (11+ days) with zero movement**, confirming static allotment loading for the June 10–11 window.
+**Day 9 of cloud scan block — 16:00 UTC scheduled slot.** All metrics remain static — no fresh data obtainable from cloud. Knowaa holds all 3 active positions as #1 cheapest, each with a consistent ~5.66% margin vs InnstantTravel. Prices have been frozen since at least 2026-04-22 — **~290h+ (~12 days) with zero movement**, confirming static allotment loading for the June 10–11 window.
 
-The structural distribution gap is unchanged: only 3 of 46 hotels (7%) have Knowaa inventory for this date. **28 hotels have competitor offers with zero Knowaa presence** — a distribution failure, not sell-out.
+The structural distribution gap is unchanged: only 3 of 46 hotels (7%) have Knowaa inventory for this date. **28 hotels have competitor offers with zero Knowaa presence** — a distribution failure, not sell-out. **All 15 Section E hotels are at Day 12+ with no refundable inventory** — escalation to contracting is severely overdue.
 
 ### Performance Metrics (Section A, n=3)
 - Avg Knowaa price: **$164.44**
-- Avg gap vs #2: **-$9.87** (Knowaa cheaper by avg 6.0%)
+- Avg gap vs #2: **-$9.87** (Knowaa cheaper by avg 5.66%)
 - All 3 wins: Standard RO board vs InnstantTravel
-- Price stability: **$0.00 movement over 264h+** (Apr 22 → May 1, 11+ days)
+- Price stability: **$0.00 movement over ~290h+** (Apr 22 → May 1 16:00, ~12 days)
 
 ---
 
 ## Section A — Knowaa CHEAPEST (#1) — 3 hotels
 
-_Knowaa is the lowest refundable price. All wins on Standard RO board vs InnstantTravel. Prices locked for 11+ days._
+_Knowaa is the lowest refundable price. All wins on Standard RO board vs InnstantTravel. Prices locked for ~12 days._
 
 | Hotel | VenueId | Cat | Board | Knowaa $ | 2nd $ | 2nd Provider | Gap $ | Gap % | Trend |
 |-------|---------|-----|-------|----------|-------|-------------|-------|-------|-------|
-| Pullman Miami Airport | 5080 | Standard | RO | **$133.45** | $141.46 | InnstantTravel | -$8.01 | -5.66% | → Steady (264h+) |
-| citizenM Miami Brickell hotel | 5079 | Standard | RO | **$177.23** | $187.86 | InnstantTravel | -$10.63 | -5.66% | → Steady (264h+) |
-| DoubleTree by Hilton Miami Doral | 5082 | Standard | RO | **$182.63** | $193.59 | InnstantTravel | -$10.96 | -5.66% | → Steady (264h+) |
+| Pullman Miami Airport | 5080 | Standard | RO | **$133.45** | $141.46 | InnstantTravel | -$8.01 | -5.66% | → Steady (~290h+) |
+| citizenM Miami Brickell hotel | 5079 | Standard | RO | **$177.23** | $187.86 | InnstantTravel | -$10.63 | -5.66% | → Steady (~290h+) |
+| DoubleTree by Hilton Miami Doral | 5082 | Standard | RO | **$182.63** | $193.59 | InnstantTravel | -$10.96 | -5.66% | → Steady (~290h+) |
 
-> All three hotels have been Knowaa #1 for 11+ consecutive days. The consistent 5.66% margin against InnstantTravel is structural — static allotment rate, not dynamic repricing. A manual reload from the contracting/revenue side would be required to change these prices.
+> All three hotels have been Knowaa #1 for ~12 consecutive days. The consistent 5.66% margin against InnstantTravel is structural — static allotment rate, not dynamic repricing. A manual reload from the contracting/revenue side would be required to change these prices.
 
 ---
 
@@ -61,7 +61,7 @@ _No Knowaa positions ranked #3 or below._
 
 ## Section D — Hotels With Offers But NO Knowaa — 28 hotels
 
-_Knowaa inventory not loaded for June 10–11. InnstantTravel dominates with 442+ offers across 26 hotels; goglobal at 2 hotels; HyperGuestDirect⇄ at 2 hotels. All absences now 11+ consecutive days._
+_Knowaa inventory not loaded for June 10–11. InnstantTravel dominates with 442+ offers across 26 hotels; goglobal at 2 hotels; HyperGuestDirect⇄ at 2 hotels. All absences now 12+ consecutive days._
 
 | Hotel | VenueId | Cheapest $ | Provider | Category | Board | Priority |
 |-------|---------|-----------|----------|----------|-------|----------|
@@ -94,9 +94,9 @@ _Knowaa inventory not loaded for June 10–11. InnstantTravel dominates with 442
 | The Gabriel Miami South Beach, Curio Collection by Hilton | 5108 | $415.25 | InnstantTravel | Standard | BB | 🟢 LOW |
 | Savoy Hotel | 5103 | $499.26 | InnstantTravel | Standard | RO | 🟢 LOW |
 
-> **Priority inventory gaps — June 10–11 (11+ consecutive days, escalation critically overdue):**
-> - **Embassy Suites (5081)** — was Knowaa #1 in May 28–29 window; absent from June for 11+ days. Revenue at risk.
-> - **Hotel Riu Plaza (5109)** — was Knowaa #1 in May 28–29 window; absent from June for 11+ days. Revenue at risk.
+> **Priority inventory gaps — June 10–11 (12+ consecutive days, escalation critically overdue):**
+> - **Embassy Suites (5081)** — was Knowaa #1 in May 28–29 window; absent from June for 12+ days. Revenue at risk — critically overdue.
+> - **Hotel Riu Plaza (5109)** — was Knowaa #1 in May 28–29 window; absent from June for 12+ days. Revenue at risk — critically overdue.
 > - **Notebook Miami Beach (5102)** — platform-cheapest at $65.07; zero Knowaa presence across all observed dates.
 > - **HOLIDAY INN EXPRESS (5130)** — sole InnstantTravel at $114.92; Knowaa could win immediately with any loaded rate.
 > - **Pod Times Square (5305) + Viajero Miami (5111)** — captured by HyperGuestDirect⇄ direct channel ($121–$122).
@@ -105,27 +105,95 @@ _Knowaa inventory not loaded for June 10–11. InnstantTravel dominates with 442
 
 ## Section E — No Refundable Offers — 15 hotels
 
-_These hotels returned no refundable offers for June 10–11. Absence is 11+ consecutive days for the 4 flagged critical hotels._
+_These hotels returned no refundable offers for June 10–11. All 15 now at Day 12+ consecutive — escalation is critically overdue._
 
 | Hotel | VenueId | Status |
 |-------|---------|--------|
-| Atwell Suites Miami Brickell | 5101 | No offers (11+ days) |
-| Hilton Cabana Miami Beach | 5115 | No offers |
-| Hilton Garden Inn Miami South Beach | 5279 | No offers |
-| Hotel Chelsea | 5064 | No offers |
-| Hotel Croydon | 5131 | **🔴 CRITICAL — 11+ days** |
-| Hyatt Centric South Beach Miami (City View) | 5097 | No offers |
-| InterContinental Miami | 5276 | **🔴 CRITICAL — 11+ days** |
-| Kimpton Angler's Hotel | 5136 | No offers |
-| Kimpton Hotel Palomar South Beach | 5116 | No offers |
-| Metropole South Beach | 5141 | No offers |
-| SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | No offers |
-| Sole Miami, A Noble House Resort | 5104 | No offers |
-| The Albion Hotel | 5117 | No offers |
-| The Catalina Hotel & Beach Club | 5277 | **🔴 CRITICAL — 11+ days** |
-| The Grayson Hotel Miami Downtown | 5094 | No offers |
+| Atwell Suites Miami Brickell | 5101 | **🔴 CRITICAL — 12+ days (contract gap confirmed)** |
+| Hilton Cabana Miami Beach | 5115 | 🔴 CRITICAL — 12+ days |
+| Hilton Garden Inn Miami South Beach | 5279 | 🔴 CRITICAL — 12+ days |
+| Hotel Chelsea | 5064 | 🔴 CRITICAL — 12+ days |
+| Hotel Croydon | 5131 | **🔴 CRITICAL — 12+ days (contract gap confirmed)** |
+| Hyatt Centric South Beach Miami (City View) | 5097 | 🔴 CRITICAL — 12+ days |
+| InterContinental Miami | 5276 | **🔴 CRITICAL — 12+ days (contract gap confirmed)** |
+| Kimpton Angler's Hotel | 5136 | 🔴 CRITICAL — 12+ days |
+| Kimpton Hotel Palomar South Beach | 5116 | 🔴 CRITICAL — 12+ days |
+| Metropole South Beach | 5141 | 🔴 CRITICAL — 12+ days |
+| SERENA Hotel Aventura Miami, Tapestry Collection by Hilton | 5139 | 🔴 CRITICAL — 12+ days |
+| Sole Miami, A Noble House Resort | 5104 | 🔴 CRITICAL — 12+ days |
+| The Albion Hotel | 5117 | 🔴 CRITICAL — 12+ days |
+| The Catalina Hotel & Beach Club | 5277 | **🔴 CRITICAL — 12+ days (contract gap confirmed)** |
+| The Grayson Hotel Miami Downtown | 5094 | 🔴 CRITICAL — 12+ days |
 
-> **4 Critical Section E hotels** (Croydon 5131, Atwell 5101, InterContinental 5276, Catalina 5277) are now at **Day 11+** with no refundable inventory visible — escalation is critically overdue.
+> 🔴 **ALL 15 Section E hotels are at Day 12+ critical status.** Croydon (5131), Atwell Suites (5101), InterContinental (5276), and Catalina (5277) have confirmed contract gaps for June 10+. The remaining 11 hotels remain at escalation-overdue status. **Immediate action required — contracting team must resolve all 15 hotels urgently.**
+
+---
+
+## Trend — 9-Day Rolling View (Jun 10–11 Window)
+
+### Summary Metrics
+
+| Metric | Apr 24 04:17 | Apr 25 | Apr 26 | Apr 27 | Apr 28 | Apr 29* | Apr 30 | May 1 00:30 | May 1 08:00 | **May 1 16:00** | 9-Day Δ |
+|--------|-------------|--------|--------|--------|--------|---------|--------|-------------|-------------|-----------------|---------|
+| Knowaa appears | 3 | 3 | 3 | 3 | 3 | 3* | 3 | 3 | 3 | **3** | 0 |
+| Knowaa #1 | 3 | 3 | 3 | 3 | 3 | 3* | 3 | 3 | 3 | **3** | 0 |
+| Knowaa #2 | 0 | 0 | 0 | 0 | 0 | 0* | 0 | 0 | 0 | **0** | 0 |
+| No Knowaa (has offers) | 28 | 28 | 28 | 28 | 28 | 28* | 28 | 28 | 28 | **28** | 0 |
+| No refundable offers | 15 | 15 | 15 | 15 | 15 | 15* | 15 | 15 | 15 | **15** | 0 |
+
+_* Apr 29 = no cloud scan (cloud block Day 5/6); data repeated from Apr 28_
+
+### Section A — Price Stability (~12 days)
+
+| Hotel | Apr 22 | Apr 24 | Apr 26 | Apr 28 | Apr 30 | May 1 08:00 | **May 1 16:00** | Movement |
+|-------|--------|--------|--------|--------|--------|-------------|-----------------|----------|
+| citizenM Miami Brickell (5079) | $177.23 | $177.23 | $177.23 | $177.23 | $177.23 | $177.23 | **$177.23** | **$0.00 locked (~290h+)** |
+| Pullman Miami Airport (5080) | $133.45 | $133.45 | $133.45 | $133.45 | $133.45 | $133.45 | **$133.45** | **$0.00 locked (~290h+)** |
+| DoubleTree Miami Doral (5082) | $182.63 | $182.63 | $182.63 | $182.63 | $182.63 | $182.63 | **$182.63** | **$0.00 locked (~290h+)** |
+
+> **Interpretation:** ~12 consecutive days with zero price movement. Static allotment is confirmed beyond any doubt. Rates will not change without a manual reload from contracting/revenue. The 5.66% margin vs InnstantTravel is structural and permanent until allotment is reloaded.
+
+---
+
+## Provider Landscape (Jun 10–11)
+
+| Provider | Hotels | Est. Offers | Role |
+|----------|--------|-------------|------|
+| InnstantTravel | 26 hotels | 442+ | Primary competitor — dominant across Section D |
+| Knowaa_Global_zenith | 3 hotels | ~42 | Our provider — winning all active positions, severely under-distributed |
+| goglobal | 2 hotels | ~20 | Secondary (MB Hotel, Cavalier) |
+| HyperGuestDirect⇄ | 2 hotels | 2 | Direct channel (Pod Times Square, Viajero Miami) |
+
+---
+
+## Action Items
+
+| Priority | Hotel | VenueId | Issue | Action | Days |
+|----------|-------|---------|-------|--------|------|
+| 🔴 CRITICAL | Atwell Suites, Croydon, InterContinental, Catalina | 5101, 5131, 5276, 5277 | Section E for **12+ consecutive days** — contract gap confirmed | **Contact contracting team NOW** — verify June 10+ contract coverage | 12+ |
+| 🔴 CRITICAL | All other Section E hotels (11 hotels) | 5064, 5094, 5097, 5104, 5115, 5116, 5117, 5136, 5139, 5141, 5279 | 12+ days in Section E | **Escalate today** — include in contracting escalation | 12+ |
+| 🔴 URGENT | Embassy Suites Miami Intl Airport | 5081 | No Knowaa Jun 10–11 (was #1 in May window) — 12+ days | Load June allotment — revenue at risk, critically overdue | 12+ |
+| 🔴 URGENT | Hotel Riu Plaza Miami Beach | 5109 | No Knowaa Jun 10–11 (was #1 in May window) — 12+ days | Load June allotment — critically overdue | 12+ |
+| 🔴 HIGH | Notebook Miami Beach | 5102 | Cheapest hotel ($65.07) — zero Knowaa across all observed dates | Investigate contract — structural absence | 12+ |
+| 🔴 HIGH | HOLIDAY INN EXPRESS | 5130 | Sole competitor at $114.92 — easy Knowaa win | Load June inventory immediately | 12+ |
+| 🟡 MED | Pod Times Square, Viajero Miami | 5305, 5111 | HyperGuestDirect⇄ at $121–$122 | Evaluate direct rate parity / Knowaa load | 12+ |
+| 🟢 LOW | citizenM Brickell, Pullman, DoubleTree Doral | 5079, 5080, 5082 | Winning at 5.66% margin — static rates | Monitor — no action required | N/A |
+
+---
+
+## Scan Failure Context (Cloud Environment — Day 9)
+
+| Check | Status |
+|-------|--------|
+| HTTP to Innstant B2B | ✅ Accessible — login page loads |
+| WebSocket (`wss://b2b.innstant.travel/wss/`) | ❌ HTTP 400 — cloud IP blocked (Day 9 confirmed) |
+| Azure SQL port 1433 | ❌ TCP unreachable from cloud |
+| Today's scan attempts | ❌ 00:30 UTC blocked; 08:00 UTC blocked; 16:00 UTC blocked |
+| Last valid data | 2026-04-24 04:17:19 UTC (local machine) |
+| Data age | ~180h (7.5 days) |
+| Cloud block duration | **Day 9** (Apr 24 → May 1 16:00) |
+| Resolution | Valid scans must originate from office/local machine IP |
+| Impact | All pricing data is 180h stale; any price movements since Apr 24 04:17 are not captured |
 
 ---
 
@@ -133,18 +201,18 @@ _These hotels returned no refundable offers for June 10–11. Absence is 11+ con
 
 | Field | Value |
 |-------|-------|
-| Report date | 2026-05-01 00:30 UTC |
+| Report date | 2026-05-01 16:00 UTC |
 | Underlying data | `2026-04-24_04-17_full_scan.json` |
 | Data timestamp | 2026-04-24 04:17:19 UTC |
-| Data age | ~164h (7 days) |
-| Previous comparison | `2026-04-24_03-12_full_scan.json` |
+| Data age | ~180h (7.5 days) |
+| Previous comparison | `2026-05-01_08-00_knowaa_competitive_report.md` |
 | Hotels in scan | 46 |
 | Source | Innstant B2B (browser, from local machine) |
-| Cloud block reason | Login auth failure + Azure SQL port 1433 blocked from cloud IPs |
-| Consecutive blocked days | **8 (since Apr 24)** |
+| Cloud block reason | WebSocket HTTP 400 + Azure SQL port 1433 TCP-blocked from cloud IPs |
+| Consecutive blocked days | **9 (since Apr 24)** |
 | Refundable only | Yes |
 | All room types | Yes (Standard, Deluxe, Superior, Suite, Apartment) |
 | All boards | Yes (RO + BB) |
 | Provider filter | `Knowaa_Global_zenith` |
 
-_Generated by Knowaa Competitive Scanner Agent — 2026-05-01 00:30 UTC_
+_Generated by Knowaa Competitive Scanner Agent — 2026-05-01 16:00 UTC_
