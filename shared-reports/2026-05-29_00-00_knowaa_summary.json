@@ -1,0 +1,19 @@
+{
+    "scanDate": "2026-05-29 00:00:00 UTC",
+    "slot": 65,
+    "day": 43,
+    "dataAgeHours": 836,
+    "sourceData": "2026-04-24 04:17:19",
+    "searchDates": {
+        "checkIn": "2026-06-10",
+        "checkOut": "2026-06-11"
+    },
+    "totalHotels": 46,
+    "knowaaFirst": 3,
+    "knowaaSecond": 0,
+    "knowaaThirdPlus": 0,
+    "noKnowaaHasOffers": 28,
+    "noRefundableOffers": 15,
+    "blocked": true,
+    "blockerReason": "Azure SQL port 1433 TCP blocked (Login timeout 20s); INNSTANT_PASS/USER/ACCOUNT NOT_SET; no Playwright tools; WebFetch returns login page only (no offers without auth). pyodbc + unixODBC + ODBC Driver 18 all confirmed installed this session — DB connection is the only remaining infra blocker once TCP 1433 egress is opened."
+}
