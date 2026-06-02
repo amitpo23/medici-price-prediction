@@ -1,0 +1,19 @@
+{
+    "scanDate": "2026-06-02 08:00:00 UTC",
+    "slot": 78,
+    "day": 48,
+    "dataAgeHours": 940,
+    "sourceData": "2026-04-24 04:17:19",
+    "searchDates": {
+        "checkIn": "2026-06-10",
+        "checkOut": "2026-06-11"
+    },
+    "totalHotels": 46,
+    "knowaaFirst": 3,
+    "knowaaSecond": 0,
+    "knowaaThirdPlus": 0,
+    "noKnowaaHasOffers": 28,
+    "noRefundableOffers": 15,
+    "blocked": true,
+    "blockerReason": "TCP probe confirms port 1433 errno=110 (ETIMEDOUT) — Azure SQL egress blocked at network level; INNSTANT_PASS/USER/ACCOUNT NOT_SET; no Playwright tools; WebFetch returns Innstant login page (HTTP 200, Copyright 2026) but zero room offers without auth. pyodbc + unixODBC + pymssql all confirmed installed — TCP 1433 egress is the sole remaining infra blocker once opened."
+}
